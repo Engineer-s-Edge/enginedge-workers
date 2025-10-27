@@ -1,0 +1,232 @@
+groups:
+  - name: agent-tool-worker.alerts
+    rules:
+      # Service Health Alerts
+      - alert: AgentToolWorkerDown
+        expr: up{job="agent-tool-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Agent Tool Worker is down"
+          description: "Agent Tool Worker has been down for more than 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#service-down"
+
+      - alert: AgentToolWorkerHighErrorRate
+        expr: rate(tool_executions_error_total{job="agent-tool-worker"}[5m]) / rate(tool_executions_total{job="agent-tool-worker"}[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High tool execution error rate"
+          description: "Tool execution error rate is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#error-rate"
+
+      - alert: AgentToolWorkerCriticalErrorRate
+        expr: rate(tool_executions_error_total{job="agent-tool-worker"}[5m]) / rate(tool_executions_total{job="agent-tool-worker"}[5m]) > 0.25
+        for: 5m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Critical tool execution error rate"
+          description: "Tool execution error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#error-rate"
+
+      # Performance Alerts
+      - alert: AgentToolWorkerHighExecutionLatency
+        expr: histogram_quantile(0.95, rate(tool_execution_duration_seconds_bucket{job="agent-tool-worker"}[5m])) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High tool execution latency"
+          description: "95th percentile tool execution duration is {{ $value | printf \"%.2f\" }}s over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#latency"
+
+      - alert: AgentToolWorkerCriticalExecutionLatency
+        expr: histogram_quantile(0.95, rate(tool_execution_duration_seconds_bucket{job="agent-tool-worker"}[5m])) > 60
+        for: 5m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Critical tool execution latency"
+          description: "95th percentile tool execution duration is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#latency"
+
+      # Resource Alerts
+      - alert: AgentToolWorkerHighCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="agent-tool-worker"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#cpu"
+
+      - alert: AgentToolWorkerCriticalCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="agent-tool-worker"}[5m]) * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#cpu"
+
+      - alert: AgentToolWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="agent-tool-worker"} / 1024 / 1024 > 1024
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }} MB."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#memory"
+
+      - alert: AgentToolWorkerCriticalMemoryUsage
+        expr: process_resident_memory_bytes{job="agent-tool-worker"} / 1024 / 1024 > 1536
+        for: 5m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Critical memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }} MB."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#memory"
+
+      # Thread Pool Alerts
+      - alert: AgentToolWorkerThreadPoolExhausted
+        expr: thread_pool_active_threads{job="agent-tool-worker"} / thread_pool_max_threads{job="agent-tool-worker"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "Thread pool nearly exhausted"
+          description: "Thread pool usage is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#thread-pool"
+
+      - alert: AgentToolWorkerThreadPoolCritical
+        expr: thread_pool_active_threads{job="agent-tool-worker"} / thread_pool_max_threads{job="agent-tool-worker"} > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Thread pool critically exhausted"
+          description: "Thread pool usage is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#thread-pool"
+
+      # Rate Limiting Alerts
+      - alert: AgentToolWorkerHighRateLimitHits
+        expr: rate(rate_limit_exceeded_total{job="agent-tool-worker"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High rate limit hits"
+          description: "Rate limit exceeded {{ $value | printf \"%.2f\" }} times per second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#rate-limiting"
+
+      # Cache Performance Alerts
+      - alert: AgentToolWorkerLowCacheHitRate
+        expr: rate(redis_keyspace_hits_total{job="agent-tool-worker-redis"}[5m]) / (rate(redis_keyspace_hits_total{job="agent-tool-worker-redis"}[5m]) + rate(redis_keyspace_misses_total{job="agent-tool-worker-redis"}[5m])) < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Redis cache hit rate is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#caching"
+
+      # External API Alerts
+      - alert: AgentToolWorkerExternalAPIHighErrorRate
+        expr: rate(external_api_errors_total{job="agent-tool-worker"}[5m]) / rate(external_api_calls_total{job="agent-tool-worker"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High external API error rate"
+          description: "External API error rate is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#external-apis"
+
+      - alert: AgentToolWorkerExternalAPIHighLatency
+        expr: histogram_quantile(0.95, rate(external_api_duration_seconds_bucket{job="agent-tool-worker"}[5m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High external API latency"
+          description: "95th percentile external API duration is {{ $value | printf \"%.2f\" }}s."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#external-apis"
+
+      # HTTP Request Alerts
+      - alert: AgentToolWorkerHighHTTPErrorRate
+        expr: rate(http_requests_total{code=~"5..", job="agent-tool-worker"}[5m]) / rate(http_requests_total{job="agent-tool-worker"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#http-errors"
+
+      - alert: AgentToolWorkerHighHTTPResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="agent-tool-worker"}[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High HTTP response time"
+          description: "95th percentile HTTP response time is {{ $value | printf \"%.2f\" }}s."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#http"
+
+      # Tool Registry Alerts
+      - alert: AgentToolWorkerToolRegistryFailures
+        expr: rate(tool_registry_operations_total{status="error", job="agent-tool-worker"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "Tool registry operation failures"
+          description: "Tool registry operations failing at {{ $value | printf \"%.2f\" }} per second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/TROUBLESHOOTING.md#tool-registry"
+
+      # Active Execution Alerts
+      - alert: AgentToolWorkerHighActiveExecutions
+        expr: tool_executions_active{job="agent-tool-worker"} > 40
+        for: 5m
+        labels:
+          severity: warning
+          service: agent-tool-worker
+        annotations:
+          summary: "High number of active tool executions"
+          description: "Active tool executions: {{ $value }}."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#concurrency"
+
+      - alert: AgentToolWorkerCriticalActiveExecutions
+        expr: tool_executions_active{job="agent-tool-worker"} > 45
+        for: 2m
+        labels:
+          severity: critical
+          service: agent-tool-worker
+        annotations:
+          summary: "Critical number of active tool executions"
+          description: "Active tool executions: {{ $value }}."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/agent-tool-worker/documentation/PERFORMANCE.md#concurrency"

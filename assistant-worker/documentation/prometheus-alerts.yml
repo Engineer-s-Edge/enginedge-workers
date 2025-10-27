@@ -1,0 +1,232 @@
+groups:
+  - name: assistant-worker.alerts
+    rules:
+      # Service Health Alerts
+      - alert: AssistantWorkerDown
+        expr: up{job="assistant-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Assistant Worker is down"
+          description: "Assistant Worker has been down for more than 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#service-down"
+
+      - alert: AssistantWorkerHighErrorRate
+        expr: rate(agent_executions_error_total{job="assistant-worker"}[5m]) / rate(agent_executions_total{job="assistant-worker"}[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High agent execution error rate"
+          description: "Agent execution error rate is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#error-rate"
+
+      - alert: AssistantWorkerCriticalErrorRate
+        expr: rate(agent_executions_error_total{job="assistant-worker"}[5m]) / rate(agent_executions_total{job="assistant-worker"}[5m]) > 0.25
+        for: 5m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Critical agent execution error rate"
+          description: "Agent execution error is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#error-rate"
+
+      # Performance Alerts
+      - alert: AssistantWorkerHighExecutionLatency
+        expr: histogram_quantile(0.95, rate(agent_execution_duration_seconds_bucket{job="assistant-worker"}[5m])) > 60
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High agent execution latency"
+          description: "95th percentile agent execution duration is {{ $value | printf \"%.2f\" }}s over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#latency"
+
+      - alert: AssistantWorkerCriticalExecutionLatency
+        expr: histogram_quantile(0.95, rate(agent_execution_duration_seconds_bucket{job="assistant-worker"}[5m])) > 120
+        for: 5m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Critical agent execution latency"
+          description: "95th percentile agent execution duration is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#latency"
+
+      # Resource Alerts
+      - alert: AssistantWorkerHighCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="assistant-worker"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#cpu"
+
+      - alert: AssistantWorkerCriticalCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="assistant-worker"}[5m]) * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#cpu"
+
+      - alert: AssistantWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="assistant-worker"} / 1024 / 1024 > 1024
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }} MB."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#memory"
+
+      - alert: AssistantWorkerCriticalMemoryUsage
+        expr: process_resident_memory_bytes{job="assistant-worker"} / 1024 / 1024 > 1536
+        for: 5m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Critical memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }} MB."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#memory"
+
+      # LLM API Alerts
+      - alert: AssistantWorkerLLMAPIHighErrorRate
+        expr: rate(llm_api_errors_total{job="assistant-worker"}[5m]) / rate(llm_api_calls_total{job="assistant-worker"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High LLM API error rate"
+          description: "LLM API error rate is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#llm-apis"
+
+      - alert: AssistantWorkerLLMAPIHighLatency
+        expr: histogram_quantile(0.95, rate(llm_api_duration_seconds_bucket{job="assistant-worker"}[5m])) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High LLM API latency"
+          description: "95th percentile LLM API duration is {{ $value | printf \"%.2f\" }}s."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#llm-apis"
+
+      # Memory Operation Alerts
+      - alert: AssistantWorkerMemoryOperationFailures
+        expr: rate(memory_operations_total{status="error", job="assistant-worker"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "Memory operation failures"
+          description: "Memory operations failing at {{ $value | printf \"%.2f\" }} per second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#memory"
+
+      # Knowledge Graph Alerts
+      - alert: AssistantWorkerKGOperationFailures
+        expr: rate(kg_operations_total{status="error", job="assistant-worker"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "Knowledge graph operation failures"
+          description: "Knowledge graph operations failing at {{ $value | printf \"%.2f\" }} per second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#knowledge-graph"
+
+      # HTTP Request Alerts
+      - alert: AssistantWorkerHighHTTPErrorRate
+        expr: rate(http_requests_total{code=~"5..", job="assistant-worker"}[5m]) / rate(http_requests_total{job="assistant-worker"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate is {{ $value | printf \"%.2f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/TROUBLESHOOTING.md#http-errors"
+
+      - alert: AssistantWorkerHighHTTPResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="assistant-worker"}[5m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High HTTP response time"
+          description: "95th percentile HTTP response time is {{ $value | printf \"%.2f\" }}s."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#http"
+
+      # Active Agents Alerts
+      - alert: AssistantWorkerHighActiveAgents
+        expr: agents_active_total{job="assistant-worker"} > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High number of active agents"
+          description: "Active agents: {{ $value }}."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#concurrency"
+
+      - alert: AssistantWorkerCriticalActiveAgents
+        expr: agents_active_total{job="assistant-worker"} > 95
+        for: 2m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Critical number of active agents"
+          description: "Active agents: {{ $value }}."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#concurrency"
+
+      # Conversation Alerts
+      - alert: AssistantWorkerHighActiveConversations
+        expr: conversations_active_total{job="assistant-worker"} > 150
+        for: 5m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High number of active conversations"
+          description: "Active conversations: {{ $value }}."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#conversations"
+
+      - alert: AssistantWorkerCriticalActiveConversations
+        expr: conversations_active_total{job="assistant-worker"} > 200
+        for: 2m
+        labels:
+          severity: critical
+          service: assistant-worker
+        annotations:
+          summary: "Critical number of active conversations"
+          description: "Active conversations: {{ $value }}."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#conversations"
+
+      # Token Usage Alerts
+      - alert: AssistantWorkerHighTokenConsumption
+        expr: rate(llm_tokens_total{type="total", job="assistant-worker"}[5m]) > 100000
+        for: 10m
+        labels:
+          severity: warning
+          service: assistant-worker
+        annotations:
+          summary: "High token consumption rate"
+          description: "Token consumption rate: {{ $value | printf \"%.0f\" }} tokens/second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/assistant-worker/documentation/PERFORMANCE.md#token-usage"

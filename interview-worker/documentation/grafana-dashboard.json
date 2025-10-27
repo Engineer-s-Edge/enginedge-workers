@@ -1,0 +1,524 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Interview Worker - Production Dashboard",
+    "tags": ["interview", "ai", "transcription", "analysis", "scheduling", "production", "monitoring"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"interview-worker\"}",
+            "legendFormat": "Service Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "DOWN",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "UP",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Interviews",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "interviews_active_total{job=\"interview-worker\"}",
+            "legendFormat": "Active Interviews"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 50,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 30
+                },
+                {
+                  "color": "red",
+                  "value": 40
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Interview Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(interview_processing_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Processing/sec"
+          },
+          {
+            "expr": "rate(interview_processing_total{status=\"success\", job=\"interview-worker\"}[5m])",
+            "legendFormat": "Success/sec"
+          },
+          {
+            "expr": "rate(interview_processing_total{status=\"failed\", job=\"interview-worker\"}[5m])",
+            "legendFormat": "Failed/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 4
+        }
+      },
+      {
+        "id": 4,
+        "title": "Interview Processing Duration (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(interview_processing_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(interview_processing_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P50 Duration"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 4
+        }
+      },
+      {
+        "id": 5,
+        "title": "Transcription Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(transcription_requests_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Requests/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(transcription_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
+          },
+          {
+            "expr": "avg(transcription_confidence_score{job=\"interview-worker\"})",
+            "legendFormat": "Avg Confidence"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        }
+      },
+      {
+        "id": 6,
+        "title": "AI Analysis Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(analysis_requests_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Requests/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(analysis_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
+          },
+          {
+            "expr": "avg(analysis_confidence_score{job=\"interview-worker\"})",
+            "legendFormat": "Avg Confidence"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 12
+        }
+      },
+      {
+        "id": 7,
+        "title": "Provider Performance",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "rate(transcription_requests_total{job=\"interview-worker\"}[5m]) / rate(transcription_requests_total{job=\"interview-worker\"}[5m]) * 100",
+            "legendFormat": "{{provider}} Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        }
+      },
+      {
+        "id": 8,
+        "title": "Scheduling Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(scheduling_requests_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Requests/sec"
+          },
+          {
+            "expr": "rate(calendar_api_calls_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Calendar API/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(scheduling_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        }
+      },
+      {
+        "id": 9,
+        "title": "Interview Status Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (status) (rate(interview_processing_total{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 28
+        }
+      },
+      {
+        "id": 10,
+        "title": "Queue Depth",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "interview_queue_depth{job=\"interview-worker\"}",
+            "legendFormat": "Queue Depth"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 8,
+          "x": 8,
+          "y": 28
+        }
+      },
+      {
+        "id": 11,
+        "title": "External API Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(external_api_requests_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "API Calls/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(external_api_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
+          },
+          {
+            "expr": "rate(external_api_errors_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Errors/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 28
+        }
+      },
+      {
+        "id": 12,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Request Rate"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        }
+      },
+      {
+        "id": 13,
+        "title": "HTTP Response Time (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Response Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        }
+      },
+      {
+        "id": 14,
+        "title": "System Resources",
+        "type": "row",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 44
+        }
+      },
+      {
+        "id": 15,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_user_seconds_total{job=\"interview-worker\"}[5m]) * 100",
+            "legendFormat": "CPU Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 45
+        }
+      },
+      {
+        "id": 16,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"interview-worker\"} / 1024 / 1024",
+            "legendFormat": "Memory Usage (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MB"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 45
+        }
+      },
+      {
+        "id": 17,
+        "title": "Network I/O",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_io_read_bytes_total{job=\"interview-worker\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Network In MB/s"
+          },
+          {
+            "expr": "rate(process_io_write_bytes_total{job=\"interview-worker\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Network Out MB/s"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MB/s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 45
+        }
+      },
+      {
+        "id": 18,
+        "title": "Application Logs",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"interview-worker\"}",
+            "legendFormat": ""
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "showCommonLabels": false,
+          "wrapLogMessage": true,
+          "prettifyLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "none",
+          "sortOrder": "Descending"
+        },
+        "gridPos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 53
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ]
+    },
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

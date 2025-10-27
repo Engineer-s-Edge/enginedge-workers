@@ -1,0 +1,258 @@
+groups:
+  - name: phase8_rag_alerts
+    interval: 30s
+    rules:
+      - alert: HighRAGSearchLatency
+        expr: histogram_quantile(0.95, rate(rag_search_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+          phase: phase8
+        annotations:
+          summary: "High RAG search latency detected"
+          description: "RAG search p95 latency is {{ $value | humanizeDuration }} (threshold: 2s)"
+          runbook: "https://docs.enginedge.com/runbooks/high-rag-latency"
+
+      - alert: CriticalRAGSearchLatency
+        expr: histogram_quantile(0.95, rate(rag_search_duration_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: rag
+          phase: phase8
+        annotations:
+          summary: "CRITICAL: RAG search latency exceeds 5 seconds"
+          description: "RAG search p95 latency is {{ $value | humanizeDuration }} (critical threshold: 5s)"
+          runbook: "https://docs.enginedge.com/runbooks/critical-rag-latency"
+
+      - alert: HighRAGSearchErrorRate
+        expr: rate(rag_search_errors_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+          phase: phase8
+        annotations:
+          summary: "High RAG search error rate"
+          description: "RAG search error rate is {{ $value | printf \"%.2f\" }}/sec (threshold: 1/sec)"
+          runbook: "https://docs.enginedge.com/runbooks/rag-errors"
+
+      - alert: RAGServiceUnavailable
+        expr: up{job="data-processing-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: data-processing-worker
+          phase: phase8
+        annotations:
+          summary: "Data Processing Worker is down"
+          description: "RAG service unavailable - Data Processing Worker has been down for 1+ minutes"
+          runbook: "https://docs.enginedge.com/runbooks/service-down"
+
+  - name: phase8_document_processing_alerts
+    interval: 30s
+    rules:
+      - alert: HighDocumentProcessingLatency
+        expr: histogram_quantile(0.95, rate(data_processing_request_latency_seconds_bucket{endpoint="/documents/process-for-rag"}[5m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: document-processing
+          phase: phase8
+        annotations:
+          summary: "High document processing latency"
+          description: "Document processing p95 latency is {{ $value | humanizeDuration }} (threshold: 3s)"
+          runbook: "https://docs.enginedge.com/runbooks/slow-document-processing"
+
+      - alert: DocumentProcessingFailureSpike
+        expr: rate(data_processing_errors_total{error_type="document_processing_failed"}[5m]) > 2
+        for: 3m
+        labels:
+          severity: warning
+          component: document-processing
+          phase: phase8
+        annotations:
+          summary: "Document processing failure spike detected"
+          description: "Document processing failures: {{ $value | printf \"%.2f\" }}/sec (threshold: 2/sec)"
+          runbook: "https://docs.enginedge.com/runbooks/document-processing-failures"
+
+  - name: phase8_kafka_alerts
+    interval: 30s
+    rules:
+      - alert: HighKafkaConsumerLag
+        expr: kafka_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+          phase: phase8
+        annotations:
+          summary: "High Kafka consumer lag on {{ $labels.topic }}"
+          description: "Consumer lag is {{ $value }} messages on topic {{ $labels.topic }} partition {{ $labels.partition }}"
+          runbook: "https://docs.enginedge.com/runbooks/kafka-lag"
+
+      - alert: CriticalKafkaConsumerLag
+        expr: kafka_lag > 10000
+        for: 2m
+        labels:
+          severity: critical
+          component: kafka
+          phase: phase8
+        annotations:
+          summary: "CRITICAL: Kafka consumer lag exceeds 10k messages"
+          description: "Consumer lag is {{ $value }} messages on topic {{ $labels.topic }} - data processing severely behind"
+          runbook: "https://docs.enginedge.com/runbooks/critical-kafka-lag"
+
+      - alert: HighDLQMessageRate
+        expr: rate(dlq_messages_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: dlq
+          phase: phase8
+        annotations:
+          summary: "High DLQ message rate on {{ $labels.topic }}"
+          description: "DLQ rate is {{ $value | printf \"%.2f\" }}/sec for {{ $labels.error_type }} (threshold: 10/sec)"
+          runbook: "https://docs.enginedge.com/runbooks/high-dlq-rate"
+
+      - alert: DLQMessageFlood
+        expr: rate(dlq_messages_total[5m]) > 50
+        for: 2m
+        labels:
+          severity: critical
+          component: dlq
+          phase: phase8
+        annotations:
+          summary: "CRITICAL: DLQ message flood detected"
+          description: "DLQ rate is {{ $value | printf \"%.2f\" }}/sec - potential systemic failure"
+          runbook: "https://docs.enginedge.com/runbooks/dlq-flood"
+
+      - alert: KafkaMessageProcessingTimeout
+        expr: histogram_quantile(0.99, rate(kafka_message_processing_time_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+          phase: phase8
+        annotations:
+          summary: "Kafka message processing timeouts"
+          description: "p99 processing time is {{ $value | humanizeDuration }} on {{ $labels.topic }}"
+          runbook: "https://docs.enginedge.com/runbooks/kafka-timeouts"
+
+  - name: phase8_cross_worker_alerts
+    interval: 30s
+    rules:
+      - alert: CrossWorkerCommunicationFailure
+        expr: rate(data_processing_errors_total{error_type="http_communication_failed"}[5m]) > 5
+        for: 3m
+        labels:
+          severity: critical
+          component: cross-worker
+          phase: phase8
+        annotations:
+          summary: "Cross-worker communication failures detected"
+          description: "HTTP communication failures: {{ $value | printf \"%.2f\" }}/sec (threshold: 5/sec)"
+          runbook: "https://docs.enginedge.com/runbooks/cross-worker-failures"
+
+      - alert: DataProcessingWorkerUnreachable
+        expr: rate(data_processing_requests_total{status="error"}[5m]) / rate(data_processing_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: cross-worker
+          phase: phase8
+        annotations:
+          summary: "High error rate for Data Processing Worker requests"
+          description: "Error rate is {{ $value | printf \"%.2f%%\" }} (threshold: 10%)"
+          runbook: "https://docs.enginedge.com/runbooks/worker-unreachable"
+
+      - alert: AuthenticationFailureSpike
+        expr: rate(data_processing_errors_total{error_type="authentication_failed"}[5m]) > 2
+        for: 3m
+        labels:
+          severity: warning
+          component: authentication
+          phase: phase8
+        annotations:
+          summary: "Authentication failures between workers"
+          description: "Auth failures: {{ $value | printf \"%.2f\" }}/sec - check API keys/JWT tokens"
+          runbook: "https://docs.enginedge.com/runbooks/auth-failures"
+
+  - name: phase8_performance_alerts
+    interval: 30s
+    rules:
+      - alert: LowRAGSearchThroughput
+        expr: rate(rag_search_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+          component: rag
+          phase: phase8
+        annotations:
+          summary: "Low RAG search throughput"
+          description: "RAG search rate is {{ $value | printf \"%.2f\" }}/sec - unusually low activity"
+          runbook: "https://docs.enginedge.com/runbooks/low-throughput"
+
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{pod=~"assistant-worker.*|data-processing-worker.*"} / container_spec_memory_limit_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: resources
+          phase: phase8
+        annotations:
+          summary: "High memory usage on {{ $labels.pod }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} of limit"
+          runbook: "https://docs.enginedge.com/runbooks/high-memory"
+
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{pod=~"assistant-worker.*|data-processing-worker.*"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: resources
+          phase: phase8
+        annotations:
+          summary: "High CPU usage on {{ $labels.pod }}"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+          runbook: "https://docs.enginedge.com/runbooks/high-cpu"
+
+  - name: phase8_sla_alerts
+    interval: 1m
+    rules:
+      - alert: RAGSearchSLAViolation
+        expr: histogram_quantile(0.95, rate(rag_search_duration_seconds_bucket[5m])) > 1.5
+        for: 10m
+        labels:
+          severity: critical
+          component: sla
+          phase: phase8
+        annotations:
+          summary: "RAG Search SLA violated (p95 > 1.5s)"
+          description: "RAG search p95 latency is {{ $value | humanizeDuration }} for 10+ minutes"
+          runbook: "https://docs.enginedge.com/runbooks/sla-violation"
+
+      - alert: DocumentProcessingSLAViolation
+        expr: histogram_quantile(0.95, rate(data_processing_request_latency_seconds_bucket{endpoint="/documents/process-for-rag"}[5m])) > 2
+        for: 10m
+        labels:
+          severity: critical
+          component: sla
+          phase: phase8
+        annotations:
+          summary: "Document Processing SLA violated (p95 > 2s)"
+          description: "Document processing p95 latency is {{ $value | humanizeDuration }} for 10+ minutes"
+          runbook: "https://docs.enginedge.com/runbooks/sla-violation"
+
+      - alert: OverallAvailabilitySLAViolation
+        expr: avg_over_time(up{job=~"assistant-worker|data-processing-worker"}[1h]) < 0.99
+        for: 5m
+        labels:
+          severity: critical
+          component: sla
+          phase: phase8
+        annotations:
+          summary: "Availability SLA violated (< 99% uptime)"
+          description: "Service availability is {{ $value | humanizePercentage }} over last hour (SLA: 99%)"
+          runbook: "https://docs.enginedge.com/runbooks/availability-sla"

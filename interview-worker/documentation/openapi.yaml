@@ -1,0 +1,1272 @@
+openapi: 3.0.3
+info:
+  title: Interview Worker API
+  description: AI-powered interview processing and analysis service
+  version: 1.0.0
+  contact:
+    name: EnginEdge Team
+    email: dev@enginedge.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Local development server
+  - url: https://interview.enginedge.com/api/v1
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Returns the health status of the service and its dependencies
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /interviews:
+    post:
+      summary: Create interview
+      description: Schedule a new interview with candidate and interviewers
+      tags:
+        - Interviews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInterviewRequest'
+      responses:
+        '201':
+          description: Interview created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+    get:
+      summary: List interviews
+      description: Retrieve a paginated list of interviews with optional filtering
+      tags:
+        - Interviews
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Filter by user ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, in_progress, completed, cancelled]
+          description: Filter by interview status
+        - name: candidateId
+          in: query
+          schema:
+            type: string
+          description: Filter by candidate ID
+        - name: scheduledAfter
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter interviews scheduled after this date
+        - name: scheduledBefore
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter interviews scheduled before this date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of results per page
+      responses:
+        '200':
+          description: List of interviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewListResponse'
+
+  /interviews/{interviewId}:
+    get:
+      summary: Get interview
+      description: Retrieve detailed information about a specific interview
+      tags:
+        - Interviews
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique interview identifier
+      responses:
+        '200':
+          description: Interview details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+        '404':
+          description: Interview not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update interview
+      description: Modify interview details such as scheduling or participants
+      tags:
+        - Interviews
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique interview identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInterviewRequest'
+      responses:
+        '200':
+          description: Interview updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+        '404':
+          description: Interview not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Interview cannot be updated (already started or completed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Cancel interview
+      description: Cancel a scheduled interview
+      tags:
+        - Interviews
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique interview identifier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelInterviewRequest'
+      responses:
+        '204':
+          description: Interview cancelled successfully
+        '404':
+          description: Interview not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Interview cannot be cancelled (already in progress or completed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /interviews/{interviewId}/start:
+    post:
+      summary: Start interview
+      description: Mark the interview as started and begin recording/transcription
+      tags:
+        - Interviews
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique interview identifier
+      responses:
+        '200':
+          description: Interview started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+        '404':
+          description: Interview not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Interview cannot be started (not scheduled or already in progress)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /interviews/{interviewId}/end:
+    post:
+      summary: End interview
+      description: Mark the interview as completed and trigger analysis
+      tags:
+        - Interviews
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique interview identifier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndInterviewRequest'
+      responses:
+        '200':
+          description: Interview ended successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+        '404':
+          description: Interview not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Interview cannot be ended (not in progress)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transcription/upload:
+    post:
+      summary: Upload audio/video for transcription
+      description: Upload interview recording for transcription processing
+      tags:
+        - Transcription
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Audio or video file (WAV, MP3, MP4, WebM)
+                interviewId:
+                  type: string
+                  description: Associated interview ID
+                format:
+                  type: string
+                  enum: [audio, video]
+                  description: Media format
+                language:
+                  type: string
+                  default: en-US
+                  description: Language code for transcription
+      responses:
+        '202':
+          description: Transcription job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionJobResponse'
+        '400':
+          description: Invalid file or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /transcription/{interviewId}:
+    get:
+      summary: Get transcription results
+      description: Retrieve transcription results for an interview
+      tags:
+        - Transcription
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Interview identifier
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, srt, vtt]
+            default: json
+          description: Output format
+      responses:
+        '200':
+          description: Transcription results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionResponse'
+            text/plain:
+              schema:
+                type: string
+        '202':
+          description: Transcription in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionStatusResponse'
+        '404':
+          description: Transcription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analysis/{interviewId}/analyze:
+    post:
+      summary: Analyze interview
+      description: Trigger AI-powered analysis of interview content
+      tags:
+        - Analysis
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Interview identifier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisRequest'
+      responses:
+        '202':
+          description: Analysis job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisJobResponse'
+        '400':
+          description: Invalid analysis parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Interview not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analysis/{interviewId}/results:
+    get:
+      summary: Get analysis results
+      description: Retrieve AI analysis results for an interview
+      tags:
+        - Analysis
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Interview identifier
+      responses:
+        '200':
+          description: Analysis results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResponse'
+        '202':
+          description: Analysis in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisStatusResponse'
+        '404':
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /analysis/{interviewId}/feedback:
+    post:
+      summary: Generate feedback
+      description: Generate structured feedback based on analysis results
+      tags:
+        - Analysis
+      parameters:
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Interview identifier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '200':
+          description: Feedback generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '404':
+          description: Analysis results not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /scheduling/availability:
+    get:
+      summary: Check availability
+      description: Check calendar availability for scheduling
+      tags:
+        - Scheduling
+      parameters:
+        - name: userIds
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+          description: User IDs to check availability for
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Start of time range
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: End of time range
+        - name: duration
+          in: query
+          schema:
+            type: integer
+            default: 60
+          description: Meeting duration in minutes
+      responses:
+        '200':
+          description: Availability information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+
+  /scheduling/schedule:
+    post:
+      summary: Schedule interview
+      description: Find optimal time and schedule interview
+      tags:
+        - Scheduling
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleInterviewRequest'
+      responses:
+        '201':
+          description: Interview scheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleInterviewResponse'
+        '400':
+          description: No available time slots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        uptime:
+          type: number
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [ok, error]
+            redis:
+              type: string
+              enum: [ok, error]
+            kafka:
+              type: string
+              enum: [ok, error]
+            external_apis:
+              type: string
+              enum: [ok, degraded, error]
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            error:
+              type: object
+              properties:
+                code:
+                  example: VALIDATION_ERROR
+                message:
+                  example: Invalid input parameters
+                details:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                    message:
+                      type: string
+                    value:
+                      type: string
+
+    CreateInterviewRequest:
+      type: object
+      required:
+        - candidateId
+        - scheduledAt
+        - duration
+      properties:
+        userId:
+          type: string
+          description: User creating the interview
+        candidateId:
+          type: string
+          description: Candidate identifier
+        jobId:
+          type: string
+          description: Associated job position
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Interview start time
+        duration:
+          type: integer
+          minimum: 15
+          maximum: 480
+          description: Duration in minutes
+        interviewers:
+          type: array
+          items:
+            type: string
+          description: Interviewer user IDs
+        type:
+          type: string
+          enum: [technical, behavioral, system, case_study]
+          default: technical
+        format:
+          type: string
+          enum: [video, audio, text]
+          default: video
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InterviewQuestion'
+        timezone:
+          type: string
+          default: UTC
+
+    InterviewQuestion:
+      type: object
+      required:
+        - question
+      properties:
+        questionId:
+          type: string
+        question:
+          type: string
+        category:
+          type: string
+          enum: [introduction, technical, behavioral, experience, culture]
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        expectedDuration:
+          type: integer
+          description: Expected answer time in seconds
+
+    InterviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Interview'
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    Interview:
+      type: object
+      properties:
+        interviewId:
+          type: string
+        candidateId:
+          type: string
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        scheduledAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        interviewers:
+          type: array
+          items:
+            type: string
+        type:
+          type: string
+        format:
+          type: string
+        meetingUrl:
+          type: string
+        recordingUrl:
+          type: string
+        transcription:
+          $ref: '#/components/schemas/TranscriptionStatus'
+        analysis:
+          $ref: '#/components/schemas/AnalysisStatus'
+        metadata:
+          type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            createdBy:
+              type: string
+            version:
+              type: integer
+
+    InterviewListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            interviews:
+              type: array
+              items:
+                $ref: '#/components/schemas/Interview'
+            pagination:
+              type: object
+              properties:
+                page:
+                  type: integer
+                limit:
+                  type: integer
+                total:
+                  type: integer
+                totalPages:
+                  type: integer
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    UpdateInterviewRequest:
+      type: object
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          minimum: 15
+          maximum: 480
+        interviewers:
+          type: array
+          items:
+            type: string
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InterviewQuestion'
+
+    CancelInterviewRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          enum: [candidate_no_show, interviewer_unavailable, technical_issues, other]
+        notes:
+          type: string
+
+    EndInterviewRequest:
+      type: object
+      properties:
+        actualDuration:
+          type: integer
+          description: Actual interview duration in minutes
+        notes:
+          type: string
+
+    TranscriptionJobResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            jobId:
+              type: string
+            status:
+              type: string
+              enum: [queued, processing, completed, failed]
+            estimatedDuration:
+              type: integer
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    TranscriptionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            transcriptionId:
+              type: string
+            status:
+              type: string
+              enum: [completed, partial]
+            segments:
+              type: array
+              items:
+                $ref: '#/components/schemas/TranscriptionSegment'
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+            duration:
+              type: integer
+            language:
+              type: string
+            provider:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    TranscriptionSegment:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          description: "HH:MM:SS format"
+        speaker:
+          type: string
+          enum: [interviewer, candidate, unknown]
+        text:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        startTime:
+          type: number
+          description: Start time in seconds
+        endTime:
+          type: number
+          description: End time in seconds
+
+    TranscriptionStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [not_started, queued, processing, completed, failed]
+        transcriptionId:
+          type: string
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: string
+
+    TranscriptionStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/TranscriptionStatus'
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    AnalysisRequest:
+      type: object
+      properties:
+        analysisTypes:
+          type: array
+          items:
+            type: string
+            enum: [sentiment, keywords, competency, overall]
+          default: [sentiment, keywords, competency, overall]
+        customPrompts:
+          type: object
+          properties:
+            competency:
+              type: string
+            overall:
+              type: string
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+
+    AnalysisJobResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            jobId:
+              type: string
+            status:
+              type: string
+              enum: [queued, processing, completed, failed]
+            estimatedDuration:
+              type: integer
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    AnalysisResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AnalysisResult'
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    AnalysisResult:
+      type: object
+      properties:
+        analysisId:
+          type: string
+        status:
+          type: string
+          enum: [completed, partial]
+        sentiment:
+          type: object
+          properties:
+            overall:
+              type: number
+              minimum: -1
+              maximum: 1
+            timeline:
+              type: array
+              items:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                  score:
+                    type: number
+                    minimum: -1
+                    maximum: 1
+        keywords:
+          type: array
+          items:
+            type: object
+            properties:
+              word:
+                type: string
+              frequency:
+                type: integer
+              relevance:
+                type: number
+                minimum: 0
+                maximum: 1
+        competency:
+          type: object
+          properties:
+            technical:
+              type: number
+              minimum: 0
+              maximum: 10
+            communication:
+              type: number
+              minimum: 0
+              maximum: 10
+            problemSolving:
+              type: number
+              minimum: 0
+              maximum: 10
+            leadership:
+              type: number
+              minimum: 0
+              maximum: 10
+        overall:
+          type: object
+          properties:
+            score:
+              type: number
+              minimum: 0
+              maximum: 10
+            recommendation:
+              type: string
+            strengths:
+              type: array
+              items:
+                type: string
+            areasForImprovement:
+              type: array
+              items:
+                type: string
+        processingTime:
+          type: integer
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    AnalysisStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [not_started, queued, processing, completed, failed]
+        analysisId:
+          type: string
+        progress:
+          type: number
+          minimum: 0
+          maximum: 1
+        error:
+          type: string
+
+    AnalysisStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AnalysisStatus'
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    FeedbackRequest:
+      type: object
+      properties:
+        template:
+          type: string
+          enum: [comprehensive, brief, technical, executive]
+          default: comprehensive
+        recipients:
+          type: array
+          items:
+            type: string
+            enum: [candidate, hiring_manager, interviewers, all]
+          default: [candidate, hiring_manager]
+        includeScores:
+          type: boolean
+          default: true
+        customSections:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+          default: en
+
+    FeedbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            feedbackId:
+              type: string
+            candidateFeedback:
+              type: string
+            managerFeedback:
+              type: string
+            interviewerFeedback:
+              type: string
+            generatedAt:
+              type: string
+              format: date-time
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    AvailabilityResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            availability:
+              type: array
+              items:
+                type: object
+                properties:
+                  start:
+                    type: string
+                    format: date-time
+                  end:
+                    type: string
+                    format: date-time
+                  available:
+                    type: boolean
+                  confidence:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+            conflicts:
+              type: array
+              items:
+                type: object
+                properties:
+                  start:
+                    type: string
+                    format: date-time
+                  end:
+                    type: string
+                    format: date-time
+                  title:
+                    type: string
+                  type:
+                    type: string
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+    ScheduleInterviewRequest:
+      type: object
+      required:
+        - candidateId
+        - interviewers
+        - duration
+      properties:
+        candidateId:
+          type: string
+        interviewers:
+          type: array
+          items:
+            type: string
+        duration:
+          type: integer
+          minimum: 15
+          maximum: 480
+        preferredTimes:
+          type: array
+          items:
+            type: object
+            properties:
+              start:
+                type: string
+                format: date-time
+              end:
+                type: string
+                format: date-time
+        timezone:
+          type: string
+          default: UTC
+        bufferTime:
+          type: integer
+          default: 15
+          description: Buffer time between interviews in minutes
+
+    ScheduleInterviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            interviewId:
+              type: string
+            scheduledAt:
+              type: string
+              format: date-time
+            meetingUrl:
+              type: string
+            calendarEventId:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

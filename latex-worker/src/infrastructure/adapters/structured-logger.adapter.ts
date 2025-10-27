@@ -1,0 +1,54 @@
+/**
+ * Structured Logger Adapter
+ * 
+ * Implements ILogger port for the LaTeX worker.
+ * Wraps NestJS Logger for structured logging.
+ */
+
+import { Injectable, Logger } from '@nestjs/common';
+import { ILogger } from '../../domain/ports';
+
+@Injectable()
+export class StructuredLoggerAdapter implements ILogger {
+  private readonly logger = new Logger('LaTeXWorker');
+
+  log(message: string, context?: string): void {
+    if (context) {
+      this.logger.log(message, context);
+    } else {
+      this.logger.log(message);
+    }
+  }
+
+  error(message: string, trace?: string, context?: string): void {
+    if (context) {
+      this.logger.error(message, trace, context);
+    } else {
+      this.logger.error(message, trace);
+    }
+  }
+
+  warn(message: string, context?: string): void {
+    if (context) {
+      this.logger.warn(message, context);
+    } else {
+      this.logger.warn(message);
+    }
+  }
+
+  debug(message: string, context?: string): void {
+    if (context) {
+      this.logger.debug(message, context);
+    } else {
+      this.logger.debug(message);
+    }
+  }
+
+  verbose(message: string, context?: string): void {
+    if (context) {
+      this.logger.verbose(message, context);
+    } else {
+      this.logger.verbose(message);
+    }
+  }
+}

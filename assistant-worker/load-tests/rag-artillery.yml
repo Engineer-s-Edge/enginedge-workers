@@ -1,0 +1,150 @@
+# Phase 8 RAG Pipeline Load Test - Artillery Configuration
+# 
+# Run with: artillery run phase8-rag-artillery.yml
+# Report: artillery run --output report.json phase8-rag-artillery.yml
+# View report: artillery report report.json
+
+config:
+  target: "http://localhost:3003" # Data Processing Worker
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      name: "Sustained load"
+    - duration: 30
+      arrivalRate: 50
+      name: "Spike test"
+    - duration: 30
+      arrivalRate: 5
+      name: "Cool down"
+  
+  # Environment variables
+  variables:
+    assistantWorkerUrl: "http://localhost:3002"
+    dataProcessingUrl: "http://localhost:3003"
+  
+  # Performance thresholds
+  ensure:
+    p95: 2000  # 95th percentile < 2s
+    p99: 3000  # 99th percentile < 3s
+    maxErrorRate: 5  # Max 5% errors
+  
+  # Plugins
+  plugins:
+    metrics-by-endpoint:
+      # Group metrics by endpoint
+      stripQueryString: true
+    
+  # Payload configuration
+  payload:
+    path: "test-data.csv"
+    fields:
+      - "userId"
+      - "conversationId"
+      - "documentContent"
+      - "searchQuery"
+    skipHeader: true
+    order: "sequence"
+
+# Test scenarios
+scenarios:
+  # Scenario 1: Document Processing
+  - name: "Document Processing Workflow"
+    weight: 40
+    flow:
+      - post:
+          url: "/documents/process-for-rag"
+          headers:
+            Content-Type: "application/json"
+          json:
+            content: "{{ documentContent }}"
+            userId: "load-test-user-{{ $randomNumber() }}"
+            conversationId: "load-test-conv-{{ $randomNumber() }}"
+            metadata:
+              title: "Load Test Document"
+              source: "artillery"
+              timestamp: "{{ $isoTimestamp() }}"
+          capture:
+            - json: "$.documentId"
+              as: "documentId"
+            - json: "$.success"
+              as: "processSuccess"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: documentId
+            - hasProperty: success
+  
+  # Scenario 2: Vector Search
+  - name: "Vector Search Workflow"
+    weight: 30
+    flow:
+      - post:
+          url: "/vector-store/search-conversations"
+          headers:
+            Content-Type: "application/json"
+          json:
+            query: "{{ searchQuery }}"
+            userId: "{{ userId }}"
+            conversationId: "{{ conversationId }}"
+            limit: 5
+            similarityThreshold: 0.7
+            includeMetadata: true
+          capture:
+            - json: "$.results"
+              as: "searchResults"
+            - json: "$.count"
+              as: "resultCount"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: results
+  
+  # Scenario 3: Get Conversation Documents
+  - name: "Get Conversation Documents"
+    weight: 15
+    flow:
+      - get:
+          url: "/documents/by-conversation/{{ conversationId }}"
+          qs:
+            userId: "{{ userId }}"
+            limit: 10
+            offset: 0
+          expect:
+            - statusCode:
+                - 200
+                - 404  # Acceptable if conversation doesn't exist
+  
+  # Scenario 4: Get Embedding Models
+  - name: "Get Embedding Models"
+    weight: 10
+    flow:
+      - get:
+          url: "/embedders/models"
+          qs:
+            provider: "openai"
+          expect:
+            - statusCode: 200
+            - contentType: json
+  
+  # Scenario 5: Health Check
+  - name: "Health Check"
+    weight: 5
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+
+# Before/After hooks
+before:
+  flow:
+    - log: "Starting Phase 8 RAG Pipeline Load Test"
+    - log: "Target: {{ dataProcessingUrl }}"
+
+after:
+  flow:
+    - log: "Load test completed"
+    - log: "Check Artillery report for detailed metrics"

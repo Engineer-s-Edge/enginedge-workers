@@ -1,0 +1,185 @@
+groups:
+  - name: interview-worker.alerts
+    rules:
+      # Service Health Alerts
+      - alert: InterviewWorkerDown
+        expr: up{job="interview-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: interview-worker
+        annotations:
+          summary: "Interview Worker is down"
+          description: "Interview Worker has been down for more than 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#service-down"
+
+      - alert: InterviewWorkerHighErrorRate
+        expr: rate(http_requests_total{job="interview-worker", status=~"5.."}[5m]) / rate(http_requests_total{job="interview-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High error rate in Interview Worker"
+          description: "Interview Worker error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#high-error-rate"
+
+      # Performance Alerts
+      - alert: InterviewWorkerHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="interview-worker"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High latency in Interview Worker"
+          description: "Interview Worker P95 response time is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/PERFORMANCE.md#latency-optimization"
+
+      - alert: InterviewWorkerHighQueueDepth
+        expr: interview_queue_depth{job="interview-worker"} > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High queue depth in Interview Worker"
+          description: "Interview Worker queue depth is {{ $value }} over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/PERFORMANCE.md#queue-management"
+
+      # Interview Processing Alerts
+      - alert: InterviewWorkerProcessingFailureRate
+        expr: rate(interview_processing_total{status="failed", job="interview-worker"}[5m]) / rate(interview_processing_total{job="interview-worker"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: interview-worker
+        annotations:
+          summary: "High interview processing failure rate"
+          description: "Interview processing failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#processing-failures"
+
+      - alert: InterviewWorkerTranscriptionFailure
+        expr: rate(transcription_requests_total{status="failed", job="interview-worker"}[5m]) / rate(transcription_requests_total{job="interview-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High transcription failure rate"
+          description: "Transcription failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#transcription-issues"
+
+      - alert: InterviewWorkerAnalysisFailure
+        expr: rate(analysis_requests_total{status="failed", job="interview-worker"}[5m]) / rate(analysis_requests_total{job="interview-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High analysis failure rate"
+          description: "Analysis failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#analysis-issues"
+
+      # External API Alerts
+      - alert: InterviewWorkerExternalAPIFailure
+        expr: rate(external_api_errors_total{job="interview-worker"}[5m]) / rate(external_api_requests_total{job="interview-worker"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High external API failure rate"
+          description: "External API failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#external-api-issues"
+
+      - alert: InterviewWorkerCalendarAPIFailure
+        expr: rate(calendar_api_calls_total{status="failed", job="interview-worker"}[5m]) / rate(calendar_api_calls_total{job="interview-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High calendar API failure rate"
+          description: "Calendar API failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#calendar-integration"
+
+      # Resource Alerts
+      - alert: InterviewWorkerHighCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="interview-worker"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High CPU usage in Interview Worker"
+          description: "Interview Worker CPU usage is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/PERFORMANCE.md#resource-optimization"
+
+      - alert: InterviewWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="interview-worker"} / 1024 / 1024 > 1024
+        for: 10m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High memory usage in Interview Worker"
+          description: "Interview Worker memory usage is {{ $value | printf \"%.2f\" }}MB over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/PERFORMANCE.md#memory-management"
+
+      # Business Logic Alerts
+      - alert: InterviewWorkerNoActiveInterviews
+        expr: interviews_active_total{job="interview-worker"} == 0
+        for: 30m
+        labels:
+          severity: info
+          service: interview-worker
+        annotations:
+          summary: "No active interviews"
+          description: "No active interviews detected for the last 30 minutes. This may indicate a processing issue."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/MONITORING.md#business-metrics"
+
+      - alert: InterviewWorkerLowTranscriptionConfidence
+        expr: avg(transcription_confidence_score{job="interview-worker"}) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "Low transcription confidence"
+          description: "Average transcription confidence is {{ $value | printf \"%.2f\" }} over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#transcription-quality"
+
+      - alert: InterviewWorkerLowAnalysisConfidence
+        expr: avg(analysis_confidence_score{job="interview-worker"}) < 0.75
+        for: 10m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "Low analysis confidence"
+          description: "Average analysis confidence is {{ $value | printf \"%.2f\" }} over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/TROUBLESHOOTING.md#analysis-quality"
+
+      # Kafka Integration Alerts
+      - alert: InterviewWorkerKafkaConsumerLag
+        expr: kafka_consumer_group_lag{group="interview-worker", topic=~".*"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Kafka consumer lag for topic {{ $labels.topic }} is {{ $value }} messages."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/KAFKA_TOPICS.md#consumer-lag"
+
+      - alert: InterviewWorkerKafkaProducerErrors
+        expr: rate(kafka_producer_errors_total{job="interview-worker"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: interview-worker
+        annotations:
+          summary: "Kafka producer errors"
+          description: "Kafka producer errors detected: {{ $value }} errors per second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/interview-worker/documentation/KAFKA_TOPICS.md#producer-errors"

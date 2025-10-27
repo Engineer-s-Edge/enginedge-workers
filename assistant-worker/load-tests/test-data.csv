@@ -1,0 +1,21 @@
+userId,conversationId,documentContent,searchQuery
+user-1,conv-1,"Machine learning models require large datasets for training. Neural networks use backpropagation to learn patterns from data.",machine learning
+user-2,conv-2,"Cloud computing provides scalable infrastructure on demand. AWS, Azure, and GCP are the major cloud providers in the market.",cloud computing
+user-3,conv-3,"TypeScript is a typed superset of JavaScript that compiles to plain JavaScript. It adds static type checking to catch errors early.",TypeScript programming
+user-4,conv-4,"Kubernetes orchestrates containerized applications across clusters. It automates deployment, scaling, and management of containers.",container orchestration
+user-5,conv-5,"React is a JavaScript library for building user interfaces. It uses a virtual DOM for efficient rendering and component reusability.",React development
+user-6,conv-6,"PostgreSQL is a powerful open-source relational database. It supports advanced features like JSONB, full-text search, and window functions.",PostgreSQL database
+user-7,conv-7,"GraphQL is a query language for APIs. It allows clients to request exactly the data they need, avoiding over-fetching.",GraphQL API
+user-8,conv-8,"Docker containers package applications with their dependencies. They provide consistent environments across development and production.",Docker containers
+user-9,conv-9,"Python is widely used for data science and machine learning. Libraries like NumPy, Pandas, and Scikit-learn make it powerful.",Python data science
+user-10,conv-10,"Redis is an in-memory data store used for caching and session management. It supports various data structures like strings, hashes, and sets.",Redis caching
+user-11,conv-11,"REST APIs use HTTP methods for CRUD operations. They follow stateless principles and use standard HTTP status codes.",REST API design
+user-12,conv-12,"MongoDB is a NoSQL document database. It stores data in flexible JSON-like documents and scales horizontally.",MongoDB NoSQL
+user-13,conv-13,"Git is a distributed version control system. It enables collaboration through branches, merges, and remote repositories.",Git version control
+user-14,conv-14,"Microservices architecture breaks applications into small, independent services. Each service handles a specific business capability.",microservices
+user-15,conv-15,"CI/CD pipelines automate software delivery. They include stages for build, test, and deployment to production.",CI/CD automation
+user-16,conv-16,"TensorFlow is an open-source machine learning framework. It provides tools for building and training neural networks at scale.",TensorFlow ML
+user-17,conv-17,"JWT tokens authenticate users in stateless APIs. They contain encoded claims that can be verified without database lookups.",JWT authentication
+user-18,conv-18,"Elasticsearch is a distributed search and analytics engine. It provides full-text search capabilities with near real-time performance.",Elasticsearch search
+user-19,conv-19,"Vue.js is a progressive JavaScript framework. It features a reactive data binding system and component-based architecture.",Vue.js framework
+user-20,conv-20,"Apache Kafka is a distributed streaming platform. It handles high-throughput message queues with fault tolerance and durability.",Kafka messaging

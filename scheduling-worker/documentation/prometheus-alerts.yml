@@ -1,0 +1,273 @@
+groups:
+  - name: scheduling-worker.alerts
+    rules:
+      # Service Health Alerts
+      - alert: SchedulingWorkerDown
+        expr: up{job="scheduling-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: availability
+        annotations:
+          summary: "Scheduling Worker is down"
+          description: "Scheduling Worker has been down for more than 5 minutes."
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#service-down"
+          dashboard_url: "https://grafana.company.com/d/scheduling-worker"
+
+      - alert: SchedulingWorkerHighRestartRate
+        expr: rate(process_start_time_seconds{job="scheduling-worker"}[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: stability
+        annotations:
+          summary: "High restart rate detected"
+          description: "Scheduling Worker is restarting more than 6 times per hour."
+
+      # Performance Alerts
+      - alert: SchedulingWorkerHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="scheduling-worker"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: performance
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value | printf \"%.2f\" }}s (threshold: 2s)"
+          runbook_url: "https://docs.company.com/scheduling-worker/performance#response-time"
+
+      - alert: SchedulingWorkerHighErrorRate
+        expr: rate(http_requests_total{job="scheduling-worker", status=~"5.."}[5m]) / rate(http_requests_total{job="scheduling-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: errors
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | printf \"%.2f%%\" }} (threshold: 5%)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#error-rate"
+
+      - alert: SchedulingWorkerHigh4xxRate
+        expr: rate(http_requests_total{job="scheduling-worker", status=~"4.."}[5m]) / rate(http_requests_total{job="scheduling-worker"}[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: errors
+        annotations:
+          summary: "High client error rate"
+          description: "4xx error rate is {{ $value | printf \"%.2f%%\" }} (threshold: 10%)"
+
+      # Resource Alerts
+      - alert: SchedulingWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="scheduling-worker"} / 1024 / 1024 / 1024 > 1.5
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: resources
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }}GB (threshold: 1.5GB)"
+          runbook_url: "https://docs.company.com/scheduling-worker/performance#memory-usage"
+
+      - alert: SchedulingWorkerHighCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="scheduling-worker"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: resources
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}% (threshold: 80%)"
+          runbook_url: "https://docs.company.com/scheduling-worker/performance#cpu-usage"
+
+      # Database Alerts
+      - alert: SchedulingWorkerMongoDBConnectionPoolExhausted
+        expr: mongodb_connections{state="active", db="scheduling_prod"} / mongodb_connections{state="available", db="scheduling_prod"} > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: database
+        annotations:
+          summary: "MongoDB connection pool exhausted"
+          description: "Active connections: {{ $value | printf \"%.1f\" }} ratio (threshold: 0.9)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#database-connections"
+
+      - alert: SchedulingWorkerMongoDBHighLatency
+        expr: mongodb_op_latencies_total{quantile="0.95", db="scheduling_prod"} / 1000 > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: database
+        annotations:
+          summary: "High MongoDB operation latency"
+          description: "95th percentile latency is {{ $value | printf \"%.0f\" }}ms (threshold: 100ms)"
+
+      # Cache Alerts
+      - alert: SchedulingWorkerRedisConnectionFailed
+        expr: redis_connected_clients{job="scheduling-worker-redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: cache
+        annotations:
+          summary: "Redis connection failed"
+          description: "No active Redis connections detected"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#redis-connection"
+
+      - alert: SchedulingWorkerLowCacheHitRate
+        expr: rate(redis_keyspace_hits_total{job="scheduling-worker-redis"}[5m]) / (rate(redis_keyspace_hits_total{job="scheduling-worker-redis"}[5m]) + rate(redis_keyspace_misses_total{job="scheduling-worker-redis"}[5m])) < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | printf \"%.1f%%\" }} (threshold: 80%)"
+          runbook_url: "https://docs.company.com/scheduling-worker/performance#cache-performance"
+
+      # Kafka/Messaging Alerts
+      - alert: SchedulingWorkerKafkaConsumerLag
+        expr: kafka_consumer_group_lag{group="scheduling-worker-group"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: messaging
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer lag is {{ $value }} messages (threshold: 1000)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#kafka-consumer-lag"
+
+      - alert: SchedulingWorkerKafkaProducerErrors
+        expr: rate(kafka_producer_errors_total{job="scheduling-worker"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: messaging
+        annotations:
+          summary: "Kafka producer errors detected"
+          description: "Kafka producer errors rate: {{ $value | printf \"%.2f\" }}/sec"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#kafka-producer-errors"
+
+      # Google Calendar API Alerts
+      - alert: SchedulingWorkerGoogleAPIRateLimit
+        expr: rate(google_api_rate_limit_errors_total{job="scheduling-worker"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: external_api
+        annotations:
+          summary: "Google API rate limit hit"
+          description: "Google Calendar API rate limit errors detected"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#google-api-rate-limits"
+
+      - alert: SchedulingWorkerGoogleAPIAuthErrors
+        expr: rate(google_api_auth_errors_total{job="scheduling-worker"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: external_api
+        annotations:
+          summary: "Google API authentication errors"
+          description: "Google Calendar API authentication failures detected"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#google-api-auth"
+
+      # Business Logic Alerts
+      - alert: SchedulingWorkerCalendarSyncFailures
+        expr: rate(calendar_sync_errors_total{job="scheduling-worker"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: business_logic
+        annotations:
+          summary: "Calendar sync failures increasing"
+          description: "Calendar sync error rate: {{ $value | printf \"%.2f\" }}/sec"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#calendar-sync-failures"
+
+      - alert: SchedulingWorkerMLServiceTimeouts
+        expr: rate(ml_service_timeout_errors_total{job="scheduling-worker"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: business_logic
+        annotations:
+          summary: "ML service timeouts detected"
+          description: "ML scheduling service is timing out"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#ml-service-timeouts"
+
+      - alert: SchedulingWorkerHabitCompletionLow
+        expr: rate(habit_completion_total{job="scheduling-worker"}[1h]) < 10
+        for: 1h
+        labels:
+          severity: info
+          service: scheduling-worker
+          alert_type: business_metrics
+        annotations:
+          summary: "Low habit completion rate"
+          description: "Habit completion rate is below normal levels: {{ $value }}/hour"
+
+      # Infrastructure Alerts
+      - alert: SchedulingWorkerPodRestarts
+        expr: rate(kube_pod_container_status_restarts_total{namespace="production", pod=~"scheduling-worker-.*"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: infrastructure
+        annotations:
+          summary: "Pod restarts detected"
+          description: "Scheduling Worker pods are restarting"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#pod-restarts"
+
+      - alert: SchedulingWorkerDiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value | printf \"%.1f\" }}% (threshold: 85%)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#disk-space"
+
+      # SLA Breach Alerts
+      - alert: SchedulingWorkerSLABreach
+        expr: (1 - (avg_over_time(up{job="scheduling-worker"}[30d]))) * 100 > 0.1
+        for: 0m
+        labels:
+          severity: critical
+          service: scheduling-worker
+          alert_type: sla
+        annotations:
+          summary: "SLA breach detected"
+          description: "99.9% uptime SLA breached. Current uptime: {{ $value | printf \"%.4f\" }}%"
+          runbook_url: "https://docs.company.com/scheduling-worker/sla-breach-response"
+
+      - alert: SchedulingWorkerPerformanceSLABreach
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="scheduling-worker"}[30d])) > 0.5
+        for: 0m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: sla
+        annotations:
+          summary: "Performance SLA breach"
+          description: "P95 response time SLA (500ms) breached. Current: {{ $value | printf \"%.0f\" }}ms"
+          runbook_url: "https://docs.company.com/scheduling-worker/performance-sla-breach"

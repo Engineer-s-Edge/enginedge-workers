@@ -1,0 +1,519 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Agent Tool Worker - Production Dashboard",
+    "tags": ["agent-tool", "tools", "execution", "production", "monitoring"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"agent-tool-worker\"}",
+            "legendFormat": "Service Status"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "DOWN",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "UP",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Active Tool Executions",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "tool_executions_active{job=\"agent-tool-worker\"}",
+            "legendFormat": "Active Executions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 50,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 30
+                },
+                {
+                  "color": "red",
+                  "value": 40
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Tool Execution Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(tool_executions_total{job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Executions/sec"
+          },
+          {
+            "expr": "rate(tool_executions_success_total{job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Success/sec"
+          },
+          {
+            "expr": "rate(tool_executions_error_total{job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Errors/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 4
+        }
+      },
+      {
+        "id": 4,
+        "title": "Tool Execution Duration (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(tool_execution_duration_seconds_bucket{job=\"agent-tool-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(tool_execution_duration_seconds_bucket{job=\"agent-tool-worker\"}[5m]))",
+            "legendFormat": "P50 Duration"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 4
+        }
+      },
+      {
+        "id": 5,
+        "title": "Tool Success Rate by Type",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "rate(tool_executions_success_total{job=\"agent-tool-worker\"}[5m]) / rate(tool_executions_total{job=\"agent-tool-worker\"}[5m]) * 100",
+            "legendFormat": "{{tool_type}} Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 90
+                },
+                {
+                  "color": "green",
+                  "value": 95
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        }
+      },
+      {
+        "id": 6,
+        "title": "Rate Limiting",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(rate_limit_exceeded_total{job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Rate Limit Hits"
+          },
+          {
+            "expr": "rate_limit_current_usage{job=\"agent-tool-worker\"}",
+            "legendFormat": "Current Usage"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 12
+        }
+      },
+      {
+        "id": 7,
+        "title": "Cache Performance",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total{job=\"agent-tool-worker-redis\"}[5m]) / (rate(redis_keyspace_hits_total{job=\"agent-tool-worker-redis\"}[5m]) + rate(redis_keyspace_misses_total{job=\"agent-tool-worker-redis\"}[5m])) * 100",
+            "legendFormat": "Cache Hit Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 80
+                },
+                {
+                  "color": "green",
+                  "value": 95
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 18
+        }
+      },
+      {
+        "id": 8,
+        "title": "Thread Pool Usage",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "thread_pool_active_threads{job=\"agent-tool-worker\"} / thread_pool_max_threads{job=\"agent-tool-worker\"} * 100",
+            "legendFormat": "Thread Pool Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 70
+                },
+                {
+                  "color": "red",
+                  "value": 90
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 18
+        }
+      },
+      {
+        "id": 9,
+        "title": "Tool Registry Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(tool_registry_operations_total{operation=\"register\", job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Tool Registrations"
+          },
+          {
+            "expr": "rate(tool_registry_operations_total{operation=\"discover\", job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Tool Discoveries"
+          },
+          {
+            "expr": "rate(tool_registry_operations_total{operation=\"update\", job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Tool Updates"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 22
+        }
+      },
+      {
+        "id": 10,
+        "title": "External API Calls",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(external_api_calls_total{job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "API Calls/sec"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(external_api_duration_seconds_bucket{job=\"agent-tool-worker\"}[5m]))",
+            "legendFormat": "API Call P95 Duration"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 22
+        }
+      },
+      {
+        "id": 11,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"agent-tool-worker\"}[5m])",
+            "legendFormat": "Request Rate"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 30
+        }
+      },
+      {
+        "id": 12,
+        "title": "HTTP Response Time (P95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"agent-tool-worker\"}[5m]))",
+            "legendFormat": "P95 Response Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 30
+        }
+      },
+      {
+        "id": 13,
+        "title": "System Resources",
+        "type": "row",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 38
+        }
+      },
+      {
+        "id": 14,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_user_seconds_total{job=\"agent-tool-worker\"}[5m]) * 100",
+            "legendFormat": "CPU Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 39
+        }
+      },
+      {
+        "id": 15,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=\"agent-tool-worker\"} / 1024 / 1024",
+            "legendFormat": "Memory Usage (MB)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MB"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 39
+        }
+      },
+      {
+        "id": 16,
+        "title": "Network I/O",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_io_read_bytes_total{job=\"agent-tool-worker\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Network In MB/s"
+          },
+          {
+            "expr": "rate(process_io_write_bytes_total{job=\"agent-tool-worker\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Network Out MB/s"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "MB/s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 39
+        }
+      },
+      {
+        "id": 17,
+        "title": "Application Logs",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"agent-tool-worker\"}",
+            "legendFormat": ""
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "showCommonLabels": false,
+          "wrapLogMessage": true,
+          "prettifyLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "none",
+          "sortOrder": "Descending"
+        },
+        "gridPos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 47
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ]
+    },
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

@@ -1,0 +1,655 @@
+openapi: 3.0.3
+info:
+  title: Assistant Worker API
+  description: |
+    Comprehensive AI agent platform with support for multiple agent types, memory systems, and knowledge graphs.
+    
+    **Features:**
+    - 6 specialized agent types
+    - 5 memory systems
+    - Neo4j knowledge graph
+    - Real-time streaming
+    - Human-in-the-loop support
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@yourdomain.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://assistant.yourdomain.com
+    description: Production server
+
+tags:
+  - name: Agents
+    description: Core agent operations
+  - name: ReAct
+    description: ReAct agent operations
+  - name: Graph
+    description: Graph agent operations
+  - name: Expert
+    description: Expert agent operations
+  - name: Genius
+    description: Genius agent operations
+  - name: Collective
+    description: Collective agent operations
+  - name: Manager
+    description: Manager agent operations
+  - name: Memory
+    description: Memory operations
+  - name: Knowledge Graph
+    description: Knowledge graph operations
+  - name: Health
+    description: Health and metrics
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check service health
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  memory:
+                    type: object
+                    properties:
+                      used:
+                        type: number
+                      total:
+                        type: number
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      description: Get Prometheus-formatted metrics
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Metrics data
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /agents/create:
+    post:
+      summary: Create agent
+      description: Create a new agent instance
+      tags:
+        - Agents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+                - userId
+              properties:
+                name:
+                  type: string
+                  example: my-assistant
+                type:
+                  type: string
+                  enum: [react, graph, expert, genius, collective, manager]
+                  example: react
+                userId:
+                  type: string
+                  example: user123
+                config:
+                  type: object
+                  properties:
+                    model:
+                      type: string
+                      example: gpt-4
+                    provider:
+                      type: string
+                      example: openai
+                    temperature:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      example: 0.7
+                    maxTokens:
+                      type: integer
+                      example: 2048
+                    systemPrompt:
+                      type: string
+                    enableTools:
+                      type: boolean
+                      example: true
+                    toolNames:
+                      type: array
+                      items:
+                        type: string
+                    streamingEnabled:
+                      type: boolean
+                      example: true
+                    timeout:
+                      type: integer
+                      example: 30000
+      responses:
+        '201':
+          description: Agent created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: agent_1729776000_abc123
+                  name:
+                    type: string
+                  type:
+                    type: string
+                  state:
+                    type: string
+                    example: idle
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /agents:
+    get:
+      summary: List agents
+      description: Get list of agents for a user
+      tags:
+        - Agents
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [react, graph, expert, genius, collective, manager]
+        - name: active
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  agents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentSummary'
+
+  /agents/{agentId}:
+    get:
+      summary: Get agent
+      description: Get agent details
+      tags:
+        - Agents
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete agent
+      description: Delete an agent
+      tags:
+        - Agents
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/{agentId}/execute:
+    post:
+      summary: Execute agent
+      description: Execute agent with input
+      tags:
+        - Agents
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '200':
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '408':
+          $ref: '#/components/responses/Timeout'
+
+  /agents/{agentId}/stream:
+    post:
+      summary: Stream execution
+      description: Execute agent with streaming
+      tags:
+        - Agents
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteRequest'
+      responses:
+        '200':
+          description: Streaming response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /agents/{agentId}/abort:
+    post:
+      summary: Abort execution
+      description: Abort agent execution
+      tags:
+        - Agents
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Execution aborted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /memory/{conversationId}/messages:
+    post:
+      summary: Add message
+      description: Add message to conversation memory
+      tags:
+        - Memory
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+                - content
+              properties:
+                role:
+                  type: string
+                  enum: [user, assistant, system]
+                content:
+                  type: string
+                memoryType:
+                  type: string
+                  enum: [buffer, window, summary, vector, entity]
+                  default: buffer
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Message added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  conversationId:
+                    type: string
+                  messageAdded:
+                    type: boolean
+
+  /memory/{conversationId}:
+    get:
+      summary: Get messages
+      description: Get conversation messages
+      tags:
+        - Memory
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memoryType
+          in: query
+          schema:
+            type: string
+            enum: [buffer, window, summary, vector, entity]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Conversation messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversationId:
+                    type: string
+                  memoryType:
+                    type: string
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  total:
+                    type: integer
+    delete:
+      summary: Clear memory
+      description: Clear conversation memory
+      tags:
+        - Memory
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memoryType
+          in: query
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Memory cleared
+
+  /knowledge-graph/nodes:
+    post:
+      summary: Create node
+      description: Create a knowledge graph node
+      tags:
+        - Knowledge Graph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - label
+                - type
+                - layer
+              properties:
+                label:
+                  type: string
+                  example: Quantum Computing
+                type:
+                  type: string
+                  example: concept
+                layer:
+                  type: string
+                  enum: [L1_OBSERVATIONS, L2_PATTERNS, L3_MODELS, L4_THEORIES, L5_PRINCIPLES, L6_SYNTHESIS]
+                properties:
+                  type: object
+      responses:
+        '201':
+          description: Node created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  node:
+                    $ref: '#/components/schemas/KGNode'
+
+  /knowledge-graph/nodes/{nodeId}:
+    get:
+      summary: Get node
+      description: Get knowledge graph node
+      tags:
+        - Knowledge Graph
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  node:
+                    $ref: '#/components/schemas/KGNode'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    AgentId:
+      name: agentId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Agent identifier
+
+  schemas:
+    AgentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        state:
+          type: string
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        state:
+          type: string
+        config:
+          type: object
+
+    ExecuteRequest:
+      type: object
+      required:
+        - input
+        - userId
+      properties:
+        input:
+          type: string
+        userId:
+          type: string
+        sessionId:
+          type: string
+        conversationId:
+          type: string
+
+    ExecutionResult:
+      type: object
+      properties:
+        output:
+          type: string
+        status:
+          type: string
+        executionTime:
+          type: number
+        tokenCount:
+          type: object
+          properties:
+            input:
+              type: integer
+            output:
+              type: integer
+        metadata:
+          type: object
+
+    Message:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+
+    KGNode:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+        layer:
+          type: string
+        properties:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                        message:
+                          type: string
+
+    Timeout:
+      description: Request timeout
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

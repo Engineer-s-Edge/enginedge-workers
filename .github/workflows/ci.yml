@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        worker: [agent-tool-worker, assistant-worker, data-processing-worker, interview-worker, latex-worker, rnle-worker, scheduling-worker]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: ${{ matrix.worker }}/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd ${{ matrix.worker }}
+        npm ci
+
+    - name: Run linter
+      run: |
+        cd ${{ matrix.worker }}
+        npm run lint
+
+    - name: Run tests
+      run: |
+        cd ${{ matrix.worker }}
+        npm test -- --coverage --watchAll=false
+
+    - name: Build
+      run: |
+        cd ${{ matrix.worker }}
+        npm run build
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    strategy:
+      matrix:
+        worker: [agent-tool-worker, assistant-worker, data-processing-worker, interview-worker, latex-worker, rnle-worker, scheduling-worker]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: |
+        cd ${{ matrix.worker }}
+        docker build -t enginedge/${{ matrix.worker }}:latest .
+
+    - name: Test Docker image
+      run: |
+        cd ${{ matrix.worker }}
+        docker run --rm enginedge/${{ matrix.worker }}:latest npm test -- --watchAll=false || true

@@ -1,0 +1,1101 @@
+openapi: 3.0.3
+info:
+  title: Scheduling Worker API
+  description: Intelligent Calendar & Task Management API
+  version: 1.0.0
+  contact:
+    name: EnginEdge Team
+    email: dev@enginedge.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3007
+    description: Development server
+  - url: https://api.scheduling.company.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the service
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+
+  /calendars:
+    get:
+      summary: Get user calendars
+      description: Retrieve all calendars for the authenticated user
+      tags:
+        - Calendar
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of calendars
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calendars:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        primary:
+                          type: boolean
+                        accessRole:
+                          type: string
+                          enum: [owner, writer, reader]
+                        backgroundColor:
+                          type: string
+
+  /calendars/sync:
+    post:
+      summary: Sync calendar events
+      description: Synchronize calendar events with Google Calendar
+      tags:
+        - Calendar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                calendarId:
+                  type: string
+                  description: Google Calendar ID
+                fullSync:
+                  type: boolean
+                  default: false
+                  description: Perform full sync instead of incremental
+      responses:
+        '200':
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  syncedEvents:
+                    type: integer
+                  newEvents:
+                    type: integer
+                  updatedEvents:
+                    type: integer
+                  deletedEvents:
+                    type: integer
+
+  /events:
+    get:
+      summary: Get calendar events
+      description: Retrieve calendar events within a date range
+      tags:
+        - Calendar
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: calendarId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Calendar ID
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Start date (ISO 8601)
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: End date (ISO 8601)
+        - name: maxResults
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2500
+            default: 250
+      responses:
+        '200':
+          description: List of calendar events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        calendarId:
+                          type: string
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        startTime:
+                          type: string
+                          format: date-time
+                        endTime:
+                          type: string
+                          format: date-time
+                        location:
+                          type: string
+                        attendees:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              email:
+                                type: string
+                              displayName:
+                                type: string
+                              responseStatus:
+                                type: string
+                                enum: [needsAction, declined, tentative, accepted]
+                        reminders:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              method:
+                                type: string
+                                enum: [email, popup]
+                              minutes:
+                                type: integer
+                        recurrence:
+                          type: object
+                          properties:
+                            frequency:
+                              type: string
+                              enum: [daily, weekly, monthly, yearly]
+                            interval:
+                              type: integer
+                            until:
+                              type: string
+                              format: date
+                            count:
+                              type: integer
+                            byDay:
+                              type: array
+                              items:
+                                type: string
+
+  /goals:
+    get:
+      summary: Get user goals
+      description: Retrieve all goals for the authenticated user
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [not_started, in_progress, completed, abandoned]
+        - name: priority
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+      responses:
+        '200':
+          description: List of goals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goals:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        userId:
+                          type: string
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        status:
+                          type: string
+                          enum: [not_started, in_progress, completed, abandoned]
+                        targetDate:
+                          type: string
+                          format: date
+                        estimatedTimeRequired:
+                          type: integer
+                          description: Time in minutes
+                        timeSpent:
+                          type: integer
+                          description: Time in minutes
+                        progressPercentage:
+                          type: integer
+                          minimum: 0
+                          maximum: 100
+                        milestones:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              title:
+                                type: string
+                              description:
+                                type: string
+                              targetDate:
+                                type: string
+                                format: date
+                              completed:
+                                type: boolean
+                              completedAt:
+                                type: string
+                                format: date-time
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+
+    post:
+      summary: Create a new goal
+      description: Create a new goal for the authenticated user
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - priority
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                description:
+                  type: string
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                targetDate:
+                  type: string
+                  format: date
+                estimatedTimeRequired:
+                  type: integer
+                  minimum: 0
+                milestones:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      description:
+                        type: string
+                      targetDate:
+                        type: string
+                        format: date
+      responses:
+        '201':
+          description: Goal created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goal:
+                    $ref: '#/components/schemas/Goal'
+
+  /goals/{goalId}:
+    get:
+      summary: Get a specific goal
+      description: Retrieve a specific goal by ID
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: goalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Goal details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goal:
+                    $ref: '#/components/schemas/Goal'
+        '404':
+          description: Goal not found
+
+    put:
+      summary: Update a goal
+      description: Update an existing goal
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: goalId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                description:
+                  type: string
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                status:
+                  type: string
+                  enum: [not_started, in_progress, completed, abandoned]
+                targetDate:
+                  type: string
+                  format: date
+                progressPercentage:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                timeSpent:
+                  type: integer
+                  minimum: 0
+      responses:
+        '200':
+          description: Goal updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  goal:
+                    $ref: '#/components/schemas/Goal'
+
+    delete:
+      summary: Delete a goal
+      description: Delete an existing goal
+      tags:
+        - Goals
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: goalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Goal deleted successfully
+
+  /habits:
+    get:
+      summary: Get user habits
+      description: Retrieve all habits for the authenticated user
+      tags:
+        - Habits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of habits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        userId:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        frequency:
+                          type: string
+                          enum: [daily, weekly, monthly]
+                        priority:
+                          type: integer
+                          minimum: 1
+                          maximum: 5
+                        estimatedDurationMinutes:
+                          type: integer
+                          minimum: 1
+                        preferredTimeOfDay:
+                          type: string
+                          enum: [morning, afternoon, evening, anytime]
+                        isActive:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+                        completions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              date:
+                                type: string
+                                format: date
+                              completed:
+                                type: boolean
+                              note:
+                                type: string
+
+    post:
+      summary: Create a new habit
+      description: Create a new habit for the authenticated user
+      tags:
+        - Habits
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - frequency
+                - priority
+                - estimatedDurationMinutes
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                frequency:
+                  type: string
+                  enum: [daily, weekly, monthly]
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                estimatedDurationMinutes:
+                  type: integer
+                  minimum: 1
+                preferredTimeOfDay:
+                  type: string
+                  enum: [morning, afternoon, evening, anytime]
+                  default: anytime
+      responses:
+        '201':
+          description: Habit created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habit:
+                    $ref: '#/components/schemas/Habit'
+
+  /habits/{habitId}:
+    get:
+      summary: Get a specific habit
+      description: Retrieve a specific habit by ID
+      tags:
+        - Habits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: habitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Habit details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habit:
+                    $ref: '#/components/schemas/Habit'
+
+    put:
+      summary: Update a habit
+      description: Update an existing habit
+      tags:
+        - Habits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: habitId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                frequency:
+                  type: string
+                  enum: [daily, weekly, monthly]
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                estimatedDurationMinutes:
+                  type: integer
+                  minimum: 1
+                preferredTimeOfDay:
+                  type: string
+                  enum: [morning, afternoon, evening, anytime]
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: Habit updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habit:
+                    $ref: '#/components/schemas/Habit'
+
+    delete:
+      summary: Delete a habit
+      description: Delete an existing habit
+      tags:
+        - Habits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: habitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Habit deleted successfully
+
+  /habits/{habitId}/complete:
+    post:
+      summary: Complete a habit
+      description: Mark a habit as completed for a specific date
+      tags:
+        - Habits
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: habitId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+                - completed
+              properties:
+                date:
+                  type: string
+                  format: date
+                  description: Date of completion (YYYY-MM-DD)
+                completed:
+                  type: boolean
+                note:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Habit completion recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habit:
+                    $ref: '#/components/schemas/Habit'
+                  completion:
+                    type: object
+                    properties:
+                      date:
+                        type: string
+                        format: date
+                      completed:
+                        type: boolean
+                      note:
+                        type: string
+
+  /schedule/preview:
+    post:
+      summary: Preview schedule
+      description: Generate a schedule preview for optimal time slots
+      tags:
+        - Scheduling
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                calendarId:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                workingHoursStart:
+                  type: integer
+                  minimum: 0
+                  maximum: 23
+                  default: 9
+                workingHoursEnd:
+                  type: integer
+                  minimum: 0
+                  maximum: 23
+                  default: 17
+                workingDays:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 0
+                    maximum: 6
+                  default: [1, 2, 3, 4, 5]  # Monday to Friday
+                bufferMinutes:
+                  type: integer
+                  minimum: 0
+                  default: 15
+                includeWeekends:
+                  type: boolean
+                  default: false
+                maxTaskDuration:
+                  type: integer
+                  minimum: 15
+                  maximum: 480
+                  default: 120
+      responses:
+        '200':
+          description: Schedule preview generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview:
+                    type: object
+                    properties:
+                      availableSlots:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            startTime:
+                              type: string
+                              format: date-time
+                            endTime:
+                              type: string
+                              format: date-time
+                            duration:
+                              type: integer
+                              description: Duration in minutes
+                            score:
+                              type: number
+                              description: Scheduling score (0-1)
+                      recommendations:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            taskId:
+                              type: string
+                            suggestedStartTime:
+                              type: string
+                              format: date-time
+                            confidence:
+                              type: number
+                              minimum: 0
+                              maximum: 1
+
+  /schedule/task:
+    post:
+      summary: Schedule a task
+      description: Schedule a specific task at an optimal time slot
+      tags:
+        - Scheduling
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - task
+                - startTime
+              properties:
+                userId:
+                  type: string
+                calendarId:
+                  type: string
+                task:
+                  type: object
+                  required:
+                    - id
+                    - title
+                    - duration
+                  properties:
+                    id:
+                      type: string
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    duration:
+                      type: integer
+                      minimum: 15
+                      maximum: 480
+                      description: Duration in minutes
+                    priority:
+                      type: integer
+                      minimum: 1
+                      maximum: 5
+                    category:
+                      type: string
+                startTime:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Task scheduled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scheduledTask:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      taskId:
+                        type: string
+                      calendarEventId:
+                        type: string
+                      startTime:
+                        type: string
+                        format: date-time
+                      endTime:
+                        type: string
+                        format: date-time
+                      status:
+                        type: string
+                        enum: [scheduled, completed, cancelled]
+                      createdAt:
+                        type: string
+                        format: date-time
+
+  /schedule/tasks/{taskId}/complete:
+    post:
+      summary: Complete a scheduled task
+      description: Mark a scheduled task as completed
+      tags:
+        - Scheduling
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                completionRate:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                  default: 1.0
+                actualStart:
+                  type: string
+                  format: date-time
+                actualEnd:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Task completion recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scheduledTask:
+                    $ref: '#/components/schemas/ScheduledTask'
+                  stats:
+                    type: object
+                    properties:
+                      completionRate:
+                        type: number
+                      actualDuration:
+                        type: integer
+                        description: Actual duration in minutes
+                      efficiency:
+                        type: number
+                        description: Efficiency score (0-1)
+
+components:
+  schemas:
+    Goal:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 5
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, abandoned]
+        targetDate:
+          type: string
+          format: date
+        estimatedTimeRequired:
+          type: integer
+        timeSpent:
+          type: integer
+        progressPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        milestones:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              description:
+                type: string
+              targetDate:
+                type: string
+                format: date
+              completed:
+                type: boolean
+              completedAt:
+                type: string
+                format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Habit:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly]
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 5
+        estimatedDurationMinutes:
+          type: integer
+        preferredTimeOfDay:
+          type: string
+          enum: [morning, afternoon, evening, anytime]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        completions:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              completed:
+                type: boolean
+              note:
+                type: string
+
+    ScheduledTask:
+      type: object
+      properties:
+        id:
+          type: string
+        taskId:
+          type: string
+        calendarEventId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled]
+        completionRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        actualStart:
+          type: string
+          format: date-time
+        actualEnd:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication

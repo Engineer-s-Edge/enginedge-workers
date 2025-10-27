@@ -1,0 +1,184 @@
+# Prometheus Alerting Rules for LaTeX Worker
+
+groups:
+  - name: latex_worker_alerts
+    interval: 30s
+    rules:
+      # High Error Rate
+      - alert: LatexHighErrorRate
+        expr: |
+          (
+            rate(latex_compilation_error_total[5m]) 
+            / 
+            rate(latex_compilation_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "High LaTeX compilation error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Critical Error Rate
+      - alert: LatexCriticalErrorRate
+        expr: |
+          (
+            rate(latex_compilation_error_total[5m]) 
+            / 
+            rate(latex_compilation_total[5m])
+          ) > 0.25
+        for: 2m
+        labels:
+          severity: critical
+          component: latex-worker
+        annotations:
+          summary: "Critical LaTeX compilation error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 25%)"
+
+      # High Queue Depth
+      - alert: LatexHighQueueDepth
+        expr: latex_queue_depth > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "High LaTeX job queue depth"
+          description: "Queue depth is {{ $value }} jobs (threshold: 50)"
+
+      # Critical Queue Depth
+      - alert: LatexCriticalQueueDepth
+        expr: latex_queue_depth > 100
+        for: 2m
+        labels:
+          severity: critical
+          component: latex-worker
+        annotations:
+          summary: "Critical LaTeX job queue depth"
+          description: "Queue depth is {{ $value }} jobs (threshold: 100)"
+
+      # Slow Compilation Times
+      - alert: LatexSlowCompilations
+        expr: |
+          histogram_quantile(0.95, 
+            rate(latex_compilation_duration_seconds_bucket[5m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "LaTeX compilations are slow"
+          description: "95th percentile compilation time is {{ $value }}s (threshold: 10s)"
+
+      # Very Slow Compilation Times
+      - alert: LatexVerySlowCompilations
+        expr: |
+          histogram_quantile(0.95, 
+            rate(latex_compilation_duration_seconds_bucket[5m])
+          ) > 30
+        for: 2m
+        labels:
+          severity: critical
+          component: latex-worker
+        annotations:
+          summary: "LaTeX compilations are extremely slow"
+          description: "95th percentile compilation time is {{ $value }}s (threshold: 30s)"
+
+      # Low Cache Hit Rate
+      - alert: LatexLowCacheHitRate
+        expr: |
+          (
+            rate(latex_package_cache_hits_total[5m]) 
+            / 
+            (rate(latex_package_cache_hits_total[5m]) + rate(latex_package_cache_misses_total[5m]))
+          ) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "Low LaTeX package cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+
+      # High Memory Usage
+      - alert: LatexHighMemoryUsage
+        expr: latex_memory_usage_bytes > 1.5e9  # 1.5GB
+        for: 5m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "High memory usage in LaTeX worker"
+          description: "Memory usage is {{ $value | humanize1024 }}B (threshold: 1.5GB)"
+
+      # Critical Memory Usage
+      - alert: LatexCriticalMemoryUsage
+        expr: latex_memory_usage_bytes > 1.8e9  # 1.8GB
+        for: 2m
+        labels:
+          severity: critical
+          component: latex-worker
+        annotations:
+          summary: "Critical memory usage in LaTeX worker"
+          description: "Memory usage is {{ $value | humanize1024 }}B (threshold: 1.8GB, limit: 2GB)"
+
+      # Service Down
+      - alert: LatexWorkerDown
+        expr: up{job="latex-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: latex-worker
+        annotations:
+          summary: "LaTeX worker is down"
+          description: "LaTeX worker has been down for more than 1 minute"
+
+      # No Compilations
+      - alert: LatexNoCompilations
+        expr: rate(latex_compilation_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "No LaTeX compilations occurring"
+          description: "No compilations have occurred in the last 15 minutes"
+
+      # High Active Jobs (Potential Deadlock)
+      - alert: LatexHighActiveJobs
+        expr: latex_active_jobs > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "High number of active LaTeX jobs"
+          description: "{{ $value }} jobs have been active for >10 minutes (possible deadlock)"
+
+      # Specific Error Type Spike
+      - alert: LatexErrorTypeSpike
+        expr: |
+          rate(latex_compilation_error_total{error_type!=""}[5m]) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          component: latex-worker
+        annotations:
+          summary: "Spike in specific LaTeX error type"
+          description: "Error type {{ $labels.error_type }} occurring at {{ $value }}/sec"
+
+      # Pod Restart Loop
+      - alert: LatexPodRestartLoop
+        expr: |
+          rate(kube_pod_container_status_restarts_total{
+            container="latex-worker"
+          }[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: latex-worker
+        annotations:
+          summary: "LaTeX worker pod is restarting"
+          description: "Pod {{ $labels.pod }} is in a restart loop"
