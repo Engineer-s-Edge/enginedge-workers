@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: RNLE Worker API
+  title: resume Worker API
   description: |
-    The RNLE (Resume Natural Language Engine) Worker provides RESTful APIs for processing background commands
+    The resume (Resume Natural Language Engine) Worker provides RESTful APIs for processing background commands
     related to assistant operations and habit scheduling. Built with NestJS and following hexagonal architecture
     principles, this service handles asynchronous command processing with high reliability and scalability.
   version: 1.0.0
@@ -16,7 +16,7 @@ info:
 servers:
   - url: http://localhost:3001
     description: Local development server
-  - url: https://api.enginedge.com/rnle-worker
+  - url: https://api.enginedge.com/resume-worker
     description: Production server
 
 security:
@@ -423,7 +423,7 @@ components:
                               type: array
                               items:
                                 type: string
-                              example: ["rnle.commands", "rnle.command-results"]
+                              example: ["resume.commands", "resume.command-results"]
                 database:
                   allOf:
                     - $ref: '#/components/schemas/DependencyHealth'
@@ -534,4 +534,4 @@ tags:
 
 externalDocs:
   description: Complete documentation
-  url: https://github.com/enginedge/enginedge-workers/tree/main/rnle-worker/documentation
+  url: https://github.com/enginedge/enginedge-workers/tree/main/resume-worker/documentation

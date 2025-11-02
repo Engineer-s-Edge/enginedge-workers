@@ -1,8 +1,8 @@
-# RNLE Worker Performance Guide
+# resume Worker Performance Guide
 
 ## Overview
 
-This document provides performance optimization strategies, monitoring guidelines, and benchmarking results for the RNLE Worker. The service is designed to handle high-throughput command processing with low latency and high reliability.
+This document provides performance optimization strategies, monitoring guidelines, and benchmarking results for the resume Worker. The service is designed to handle high-throughput command processing with low latency and high reliability.
 
 ## Performance Characteristics
 
@@ -29,42 +29,42 @@ Based on testing with realistic workloads:
 
 ```prometheus
 # Command processing rate
-rate(command_processing_total{job="rnle-worker"}[5m])
+rate(command_processing_total{job="resume-worker"}[5m])
 
 # Processing latency (P95)
-histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="rnle-worker"}[5m]))
+histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m]))
 
 # Error rate
-rate(command_processing_total{status="failed", job="rnle-worker"}[5m]) / rate(command_processing_total{job="rnle-worker"}[5m])
+rate(command_processing_total{status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{job="resume-worker"}[5m])
 
 # Queue depth
-command_queue_depth{job="rnle-worker"}
+command_queue_depth{job="resume-worker"}
 ```
 
 #### System Metrics
 
 ```prometheus
 # CPU usage
-rate(process_cpu_user_seconds_total{job="rnle-worker"}[5m]) * 100
+rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) * 100
 
 # Memory usage
-process_resident_memory_bytes{job="rnle-worker"} / 1024 / 1024
+process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024
 
 # Network I/O
-rate(process_io_read_bytes_total{job="rnle-worker"}[5m]) / 1024 / 1024
-rate(process_io_write_bytes_total{job="rnle-worker"}[5m]) / 1024 / 1024
+rate(process_io_read_bytes_total{job="resume-worker"}[5m]) / 1024 / 1024
+rate(process_io_write_bytes_total{job="resume-worker"}[5m]) / 1024 / 1024
 ```
 
 #### External Service Metrics
 
 ```prometheus
 # Kafka metrics
-rate(kafka_producer_errors_total{job="rnle-worker"}[5m])
-kafka_consumer_group_lag{group="rnle-worker"}
+rate(kafka_producer_errors_total{job="resume-worker"}[5m])
+kafka_consumer_group_lag{group="resume-worker"}
 
 # Database metrics
-rate(mongodb_connections_total{job="rnle-worker"}[5m])
-histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="rnle-worker"}[5m]))
+rate(mongodb_connections_total{job="resume-worker"}[5m])
+histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m]))
 ```
 
 ## Performance Optimization Strategies
@@ -112,7 +112,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 ```typescript
 // Kafka producer optimization
 const kafka = new Kafka({
-  clientId: 'rnle-worker-optimized',
+  clientId: 'resume-worker-optimized',
   brokers: brokers,
   retry: {
     initialRetryTime: 100,
@@ -199,7 +199,7 @@ affinity:
           - key: app
             operator: In
             values:
-            - rnle-worker
+            - resume-worker
         topologyKey: kubernetes.io/hostname
 ```
 
@@ -283,7 +283,7 @@ const producer = kafka.producer({
 **Consumer Configuration:**
 ```typescript
 const consumer = kafka.consumer({
-  groupId: 'rnle-worker-group',
+  groupId: 'resume-worker-group',
   sessionTimeout: 30000,
   heartbeatInterval: 3000,
   rebalanceTimeout: 60000,
@@ -420,22 +420,22 @@ export default function () {
 
 ```yaml
 groups:
-  - name: rnle-worker-performance
+  - name: resume-worker-performance
     rules:
       - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="rnle-worker"}[5m])) > 1
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="resume-worker"}[5m])) > 1
         for: 5m
         labels:
           severity: warning
 
       - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5..", job="rnle-worker"}[5m]) / rate(http_requests_total{job="rnle-worker"}[5m]) > 0.05
+        expr: rate(http_requests_total{status=~"5..", job="resume-worker"}[5m]) / rate(http_requests_total{job="resume-worker"}[5m]) > 0.05
         for: 5m
         labels:
           severity: critical
 
       - alert: HighQueueDepth
-        expr: command_queue_depth{job="rnle-worker"} > 100
+        expr: command_queue_depth{job="resume-worker"} > 100
         for: 5m
         labels:
           severity: warning
@@ -452,13 +452,13 @@ groups:
 **Diagnosis:**
 ```bash
 # Check application logs for bottlenecks
-kubectl logs -f deployment/rnle-worker -n enginedge-workers | grep "duration"
+kubectl logs -f deployment/resume-worker -n enginedge-workers | grep "duration"
 
 # Monitor database query performance
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- mongosh --eval "db.serverStatus().metrics"
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- mongosh --eval "db.serverStatus().metrics"
 
 # Check Kafka consumer lag
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- kafka-consumer-groups --describe --group rnle-worker-group
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- kafka-consumer-groups --describe --group resume-worker-group
 ```
 
 **Solutions:**
@@ -479,10 +479,10 @@ kubectl exec -it deployment/rnle-worker -n enginedge-workers -- kafka-consumer-g
 kubectl top pods -n enginedge-workers
 
 # Analyze heap dumps
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- node --inspect --heap-prof
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- node --inspect --heap-prof
 
 # Monitor connection pools
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- netstat -tlnp
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- netstat -tlnp
 ```
 
 **Solutions:**
@@ -500,10 +500,10 @@ kubectl exec -it deployment/rnle-worker -n enginedge-workers -- netstat -tlnp
 **Diagnosis:**
 ```bash
 # Profile CPU usage
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- node --prof
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- node --prof
 
 # Check thread utilization
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- ps -T -p 1
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- ps -T -p 1
 
 # Monitor event loop lag
 curl http://localhost:9090/metrics | grep eventloop

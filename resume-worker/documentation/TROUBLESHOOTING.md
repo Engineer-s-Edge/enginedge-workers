@@ -1,8 +1,8 @@
-# RNLE Worker Troubleshooting Guide
+# resume Worker Troubleshooting Guide
 
 ## Overview
 
-This guide provides systematic troubleshooting procedures for common issues encountered with the RNLE Worker. Issues are categorized by severity and include diagnostic steps, solutions, and prevention measures.
+This guide provides systematic troubleshooting procedures for common issues encountered with the resume Worker. Issues are categorized by severity and include diagnostic steps, solutions, and prevention measures.
 
 ## Quick Health Check
 
@@ -16,10 +16,10 @@ curl -f http://localhost:3001/health
 curl http://localhost:3001/health | jq .
 
 # Check Kubernetes pod status
-kubectl get pods -n enginedge-workers -l app=rnle-worker
+kubectl get pods -n enginedge-workers -l app=resume-worker
 
 # Check service logs
-kubectl logs -f deployment/rnle-worker -n enginedge-workers --tail=100
+kubectl logs -f deployment/resume-worker -n enginedge-workers --tail=100
 ```
 
 ### Key Metrics to Monitor
@@ -82,14 +82,14 @@ kubectl exec -it <pod-name> -n enginedge-workers -- mongosh mongodb://$MONGODB_U
 **Emergency Recovery:**
 ```bash
 # Restart deployment
-kubectl rollout restart deployment/rnle-worker -n enginedge-workers
+kubectl rollout restart deployment/resume-worker -n enginedge-workers
 
 # Scale down and up
-kubectl scale deployment rnle-worker --replicas=0 -n enginedge-workers
-kubectl scale deployment rnle-worker --replicas=3 -n enginedge-workers
+kubectl scale deployment resume-worker --replicas=0 -n enginedge-workers
+kubectl scale deployment resume-worker --replicas=3 -n enginedge-workers
 
 # Force recreate pods
-kubectl delete pods -l app=rnle-worker -n enginedge-workers
+kubectl delete pods -l app=resume-worker -n enginedge-workers
 ```
 
 ### 2. High Error Rate (>5%)
@@ -103,7 +103,7 @@ kubectl delete pods -l app=rnle-worker -n enginedge-workers
 
 1. **Check Error Logs:**
 ```bash
-kubectl logs -f deployment/rnle-worker -n enginedge-workers | grep ERROR
+kubectl logs -f deployment/resume-worker -n enginedge-workers | grep ERROR
 ```
 
 2. **Analyze Error Patterns:**
@@ -194,10 +194,10 @@ export class CachedCommandService {
 3. **Infrastructure Scaling:**
 ```bash
 # Horizontal scaling
-kubectl scale deployment rnle-worker --replicas=5 -n enginedge-workers
+kubectl scale deployment resume-worker --replicas=5 -n enginedge-workers
 
 # Vertical scaling
-kubectl patch deployment rnle-worker -n enginedge-workers --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/cpu", "value": "1000m"}]'
+kubectl patch deployment resume-worker -n enginedge-workers --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/cpu", "value": "1000m"}]'
 ```
 
 ## Warning Issues
@@ -225,7 +225,7 @@ curl http://localhost:9090/metrics | grep "rate(command_processing_total"
 3. **Check Consumer Lag:**
 ```bash
 # Kafka consumer lag
-kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group rnle-worker-group
+kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group resume-worker-group
 ```
 
 **Solutions:**
@@ -233,7 +233,7 @@ kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group rnle-work
 1. **Scale Processing Capacity:**
 ```bash
 # Increase replica count
-kubectl scale deployment rnle-worker --replicas=5 -n enginedge-workers
+kubectl scale deployment resume-worker --replicas=5 -n enginedge-workers
 ```
 
 2. **Optimize Processing:**
@@ -324,7 +324,7 @@ kubectl exec -it kafka-pod -- kafka-broker-api-versions --bootstrap-server local
 
 3. **Check Consumer Group:**
 ```bash
-kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group rnle-worker-group --bootstrap-server localhost:9092
+kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group resume-worker-group --bootstrap-server localhost:9092
 ```
 
 **Solutions:**
@@ -332,7 +332,7 @@ kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group rnle-work
 1. **Connection Configuration:**
 ```typescript
 const kafka = new Kafka({
-  clientId: 'rnle-worker',
+  clientId: 'resume-worker',
   brokers: process.env.KAFKA_BROKERS.split(','),
   retry: {
     initialRetryTime: 100,
@@ -349,11 +349,11 @@ const kafka = new Kafka({
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: rnle-worker-kafka-access
+  name: resume-worker-kafka-access
 spec:
   podSelector:
     matchLabels:
-      app: rnle-worker
+      app: resume-worker
   policyTypes:
   - Egress
   egress:
@@ -379,10 +379,10 @@ spec:
 1. **Compare Configurations:**
 ```bash
 # Check ConfigMaps
-kubectl get configmap rnle-worker-config -n enginedge-workers -o yaml
+kubectl get configmap resume-worker-config -n enginedge-workers -o yaml
 
 # Check Secrets
-kubectl get secret rnle-worker-secrets -n enginedge-workers -o yaml
+kubectl get secret resume-worker-secrets -n enginedge-workers -o yaml
 ```
 
 2. **Verify Pod Configurations:**
@@ -398,7 +398,7 @@ kubectl describe pod <pod-name> -n enginedge-workers | grep -A 10 "Environment"
 kubectl apply -f updated-configmap.yaml
 
 # Rolling restart
-kubectl rollout restart deployment/rnle-worker -n enginedge-workers
+kubectl rollout restart deployment/resume-worker -n enginedge-workers
 ```
 
 ### 8. Log Volume High
@@ -412,12 +412,12 @@ kubectl rollout restart deployment/rnle-worker -n enginedge-workers
 
 1. **Check Log Volume:**
 ```bash
-kubectl logs deployment/rnle-worker -n enginedge-workers --since=1h | wc -l
+kubectl logs deployment/resume-worker -n enginedge-workers --since=1h | wc -l
 ```
 
 2. **Analyze Log Patterns:**
 ```bash
-kubectl logs deployment/rnle-worker -n enginedge-workers | grep "ERROR\|WARN" | head -20
+kubectl logs deployment/resume-worker -n enginedge-workers | grep "ERROR\|WARN" | head -20
 ```
 
 **Solutions:**
@@ -464,10 +464,10 @@ curl http://localhost:3001/debug/pprof/profile
 
 ```bash
 # Network connectivity testing
-kubectl run test-pod --image=busybox --rm -it -- nc -zv rnle-worker-service 3001
+kubectl run test-pod --image=busybox --rm -it -- nc -zv resume-worker-service 3001
 
 # Database connectivity
-kubectl run mongo-test --image=mongo --rm -it -- mongosh mongodb://user:pass@mongodb:27017/rnle_worker
+kubectl run mongo-test --image=mongo --rm -it -- mongosh mongodb://user:pass@mongodb:27017/resume_worker
 
 # Kafka testing
 kubectl run kafka-test --image=confluentinc/cp-kafka --rm -it -- kafka-console-producer --broker-list kafka:9092 --topic test
@@ -480,16 +480,16 @@ kubectl run kafka-test --image=confluentinc/cp-kafka --rm -it -- kafka-console-p
 1. **Alert Configuration:**
 ```yaml
 groups:
-  - name: rnle-worker-prevention
+  - name: resume-worker-prevention
     rules:
       - alert: ServiceDegraded
-        expr: up{job="rnle-worker"} < 1
+        expr: up{job="resume-worker"} < 1
         for: 5m
         labels:
           severity: critical
 
       - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5..", job="rnle-worker"}[5m]) > 0.05
+        expr: rate(http_requests_total{status=~"5..", job="resume-worker"}[5m]) > 0.05
         for: 5m
         labels:
           severity: warning

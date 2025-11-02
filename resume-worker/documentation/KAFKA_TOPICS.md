@@ -1,8 +1,8 @@
-# RNLE Worker Kafka Topics
+# resume Worker Kafka Topics
 
 ## Overview
 
-The RNLE Worker uses Apache Kafka for event-driven communication, asynchronous processing, and reliable message delivery. This document describes the Kafka topics, message schemas, and integration patterns used by the service.
+The resume Worker uses Apache Kafka for event-driven communication, asynchronous processing, and reliable message delivery. This document describes the Kafka topics, message schemas, and integration patterns used by the service.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ Command Request → REST API → Processing → Kafka Topics → Consumers
 
 ### 1. Command Topics
 
-#### `rnle.commands`
+#### `resume.commands`
 
 **Purpose:** Accepts command processing requests from external services
 
@@ -113,8 +113,8 @@ Command Request → REST API → Processing → Kafka Topics → Consumers
 
 ```typescript
 const consumer = kafka.consumer({
-  groupId: 'rnle-worker-commands',
-  topics: ['rnle.commands'],
+  groupId: 'resume-worker-commands',
+  topics: ['resume.commands'],
   fromBeginning: false,
   autoCommit: true,
   autoCommitInterval: 5000,
@@ -131,7 +131,7 @@ consumer.run({
 
 ### 2. Result Topics
 
-#### `rnle.command-results`
+#### `resume.command-results`
 
 **Purpose:** Publishes command processing outcomes and results
 
@@ -254,7 +254,7 @@ consumer.run({
 
 ### 3. Event Topics
 
-#### `rnle.worker-events`
+#### `resume.worker-events`
 
 **Purpose:** Broadcasts worker lifecycle events and system notifications
 
@@ -338,7 +338,7 @@ consumer.run({
 
 ### 4. Control Topics
 
-#### `rnle.worker-control`
+#### `resume.worker-control`
 
 **Purpose:** Handles worker coordination and administrative commands
 
@@ -398,9 +398,9 @@ consumer.run({
 ### Command Processing Group
 
 ```yaml
-groupId: rnle-worker-commands
+groupId: resume-worker-commands
 topics:
-  - rnle.commands
+  - resume.commands
 replicas: 3
 autoCommit: true
 autoCommitInterval: 5000
@@ -411,9 +411,9 @@ maxPollRecords: 100
 ### Event Processing Group
 
 ```yaml
-groupId: rnle-worker-events
+groupId: resume-worker-events
 topics:
-  - rnle.worker-events
+  - resume.worker-events
 replicas: 1
 autoCommit: true
 autoCommitInterval: 10000
@@ -423,9 +423,9 @@ sessionTimeout: 60000
 ### Control Group
 
 ```yaml
-groupId: rnle-worker-control
+groupId: resume-worker-control
 topics:
-  - rnle.worker-control
+  - resume.worker-control
 replicas: 1
 autoCommit: true
 autoCommitInterval: 1000
@@ -457,7 +457,7 @@ const producer = kafka.producer({
 ```typescript
 const reliableProducer = kafka.producer({
   idempotent: true,   // Exactly-once delivery
-  transactionalId: 'rnle-worker-producer',
+  transactionalId: 'resume-worker-producer',
   maxInFlightRequests: 1,
   retries: 0,         // Let transaction handle retries
 });
@@ -469,32 +469,32 @@ const reliableProducer = kafka.producer({
 
 ```prometheus
 # Producer metrics
-kafka_producer_requests_total{topic="rnle.command-results"}
-kafka_producer_errors_total{topic="rnle.command-results"}
+kafka_producer_requests_total{topic="resume.command-results"}
+kafka_producer_errors_total{topic="resume.command-results"}
 
 # Consumer metrics
-kafka_consumer_group_lag{group="rnle-worker-commands", topic="rnle.commands"}
-kafka_consumer_messages_consumed_total{group="rnle-worker-commands"}
+kafka_consumer_group_lag{group="resume-worker-commands", topic="resume.commands"}
+kafka_consumer_messages_consumed_total{group="resume-worker-commands"}
 
 # Topic metrics
-kafka_topic_partitions{topic="rnle.commands"}
-kafka_topic_partition_current_offset{topic="rnle.commands"}
+kafka_topic_partitions{topic="resume.commands"}
+kafka_topic_partition_current_offset{topic="resume.commands"}
 ```
 
 ### Alert Rules
 
 ```yaml
 groups:
-  - name: kafka-rnle-worker
+  - name: kafka-resume-worker
     rules:
       - alert: KafkaConsumerLagHigh
-        expr: kafka_consumer_group_lag{group="rnle-worker-commands"} > 1000
+        expr: kafka_consumer_group_lag{group="resume-worker-commands"} > 1000
         for: 5m
         labels:
           severity: warning
 
       - alert: KafkaProducerErrors
-        expr: rate(kafka_producer_errors_total{topic=~"rnle\\..*"}[5m]) > 0
+        expr: rate(kafka_producer_errors_total{topic=~"resume\\..*"}[5m]) > 0
         for: 5m
         labels:
           severity: critical
@@ -525,11 +525,11 @@ const retryConfig = {
 
 ### Dead Letter Topics
 
-#### `rnle.commands.dlq`
+#### `resume.commands.dlq`
 
 **Purpose:** Stores messages that failed processing after all retries
 
-**Schema:** Same as `rnle.commands` with additional error metadata
+**Schema:** Same as `resume.commands` with additional error metadata
 
 ```json
 {
@@ -556,17 +556,17 @@ const retryConfig = {
 ```yaml
 # Topic ACLs
 - resourceType: TOPIC
-  resourceName: rnle.commands
+  resourceName: resume.commands
   resourcePatternType: LITERAL
-  principal: User:rnle-worker
+  principal: User:resume-worker
   host: *
   operation: READ
   permissionType: ALLOW
 
 - resourceType: TOPIC
-  resourceName: rnle.command-results
+  resourceName: resume.command-results
   resourcePatternType: LITERAL
-  principal: User:rnle-worker
+  principal: User:resume-worker
   host: *
   operation: WRITE
   permissionType: ALLOW
@@ -590,7 +590,7 @@ configs:
 
 ```typescript
 const tunedConsumer = kafka.consumer({
-  groupId: 'rnle-worker-commands',
+  groupId: 'resume-worker-commands',
   fetchMinBytes: 1024,           // Wait for 1KB before fetching
   fetchMaxBytes: 5242880,        // Max 5MB per fetch
   fetchMaxWaitMs: 500,           // Wait up to 500ms
@@ -646,14 +646,14 @@ const tunedConsumer = kafka.consumer({
 ```typescript
 describe('Kafka Integration', () => {
   it('should process command via Kafka', async () => {
-    // Produce command to rnle.commands
+    // Produce command to resume.commands
     await producer.send({
-      topic: 'rnle.commands',
+      topic: 'resume.commands',
       messages: [{ value: JSON.stringify(testCommand) }],
     });
 
-    // Wait for result on rnle.command-results
-    const result = await waitForMessage('rnle.command-results');
+    // Wait for result on resume.command-results
+    const result = await waitForMessage('resume.command-results');
     expect(result.status).toBe('SUCCESS');
   });
 });
@@ -664,11 +664,11 @@ describe('Kafka Integration', () => {
 ```bash
 # Produce high volume of test messages
 kafka-producer-perf-test \
-  --topic rnle.commands \
+  --topic resume.commands \
   --num-records 100000 \
   --record-size 1024 \
   --throughput 1000 \
   --producer-props bootstrap.servers=kafka:9092
 ```
 
-This comprehensive Kafka integration ensures reliable, scalable, and observable message processing for the RNLE Worker.
+This comprehensive Kafka integration ensures reliable, scalable, and observable message processing for the resume Worker.

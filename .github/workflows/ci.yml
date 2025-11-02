@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        worker: [agent-tool-worker, assistant-worker, data-processing-worker, interview-worker, latex-worker, rnle-worker, scheduling-worker]
+        worker: [agent-tool-worker, assistant-worker, data-processing-worker, interview-worker, latex-worker, resume-worker, scheduling-worker]
 
     steps:
     - name: Checkout code
@@ -51,7 +51,7 @@ jobs:
 
     strategy:
       matrix:
-        worker: [agent-tool-worker, assistant-worker, data-processing-worker, interview-worker, latex-worker, rnle-worker, scheduling-worker]
+        worker: [agent-tool-worker, assistant-worker, data-processing-worker, interview-worker, latex-worker, resume-worker, scheduling-worker]
 
     steps:
     - name: Checkout code

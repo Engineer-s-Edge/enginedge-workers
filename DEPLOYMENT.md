@@ -77,7 +77,7 @@ The EnginEdge Workers are specialized microservices that handle domain-specific 
 **External Dependencies**: LaTeX distribution, math rendering engines
 **Resource Requirements**: High CPU for compilation, moderate memory
 
-### 6. RNLE Worker
+### 6. resume Worker
 **Purpose**: Symbolic mathematics and computation
 **Port**: 3006
 **External Dependencies**: Wolfram Alpha API, symbolic computation libraries
@@ -94,7 +94,7 @@ The EnginEdge Workers are specialized microservices that handle domain-specific 
 | Data Processing | 4+ | 16GB+ | 50GB+ | High bandwidth |
 | Interview | 2+ | 4GB+ | 20GB+ | Moderate |
 | LaTeX | 2+ | 4GB+ | 10GB+ | Low |
-| RNLE | 4+ | 8GB+ | 15GB+ | Moderate |
+| resume | 4+ | 8GB+ | 15GB+ | Moderate |
 
 ### External Dependencies
 
@@ -304,7 +304,7 @@ ENV WORKER_TYPE=data_processing
 
 ```bash
 # Build all workers
-for worker in llm agent-tool data-processing interview latex rnle; do
+for worker in llm agent-tool data-processing interview latex resume; do
   docker build -t enginedge/${worker}-worker:latest ./enginedge-workers/${worker}-worker
 done
 

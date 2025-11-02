@@ -1,0 +1,219 @@
+groups:
+  - name: resume-worker.alerts
+    rules:
+      # Service Health Alerts
+      - alert: resumeWorkerDown
+        expr: up{job="resume-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "resume Worker is down"
+          description: "resume Worker has been down for more than 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#service-completely-down"
+
+      - alert: resumeWorkerHighErrorRate
+        expr: rate(command_processing_total{status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{job="resume-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High command failure rate in resume Worker"
+          description: "Command failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#high-error-rate"
+
+      # Performance Alerts
+      - alert: resumeWorkerHighLatency
+        expr: histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High processing latency in resume Worker"
+          description: "P95 processing latency is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#high-latency"
+
+      - alert: resumeWorkerHighQueueDepth
+        expr: command_queue_depth{job="resume-worker"} > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High queue depth in resume Worker"
+          description: "Command queue depth is {{ $value }} over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#high-queue-depth"
+
+      - alert: resumeWorkerHighHttpErrorRate
+        expr: rate(http_requests_total{status=~"5..", job="resume-worker"}[5m]) / rate(http_requests_total{job="resume-worker"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High HTTP error rate in resume Worker"
+          description: "HTTP error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#high-error-rate"
+
+      # Resource Alerts
+      - alert: resumeWorkerHighCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High CPU usage in resume Worker"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#resource-optimization"
+
+      - alert: resumeWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024 > 400
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High memory usage in resume Worker"
+          description: "Memory usage is {{ $value | printf \"%.0f\" }}MB over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#memory-usage-high"
+
+      - alert: resumeWorkerHighEventLoopLag
+        expr: nodejs_eventloop_lag_seconds{job="resume-worker"} > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High event loop lag in resume Worker"
+          description: "Event loop lag is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#event-loop-optimization"
+
+      # Kafka Integration Alerts
+      - alert: resumeWorkerKafkaConsumerLag
+        expr: kafka_consumer_group_lag{group="resume-worker-commands", job="resume-worker"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High Kafka consumer lag in resume Worker"
+          description: "Kafka consumer lag is {{ $value }} messages."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/KAFKA_TOPICS.md#consumer-lag"
+
+      - alert: resumeWorkerKafkaProducerErrors
+        expr: rate(kafka_producer_errors_total{job="resume-worker"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Kafka producer errors in resume Worker"
+          description: "Kafka producer errors detected: {{ $value }} errors per second."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/KAFKA_TOPICS.md#producer-errors"
+
+      # Database Alerts
+      - alert: resumeWorkerDatabaseConnectionPoolExhausted
+        expr: mongodb_connections_active{job="resume-worker"} / mongodb_connections_available{job="resume-worker"} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Database connection pool usage is {{ $value | printf \"%.1f\" }}%."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#database-connection-issues"
+
+      - alert: resumeWorkerDatabaseSlowQueries
+        expr: histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Slow database queries in resume Worker"
+          description: "P95 query duration is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#database-optimization"
+
+      # Business Logic Alerts
+      - alert: resumeWorkerNoCommandProcessing
+        expr: rate(command_processing_total{job="resume-worker"}[15m]) == 0
+        for: 30m
+        labels:
+          severity: info
+          service: resume-worker
+        annotations:
+          summary: "No command processing activity"
+          description: "No commands have been processed for the last 30 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/MONITORING.md#business-metrics"
+
+      - alert: resumeWorkerHighAssistantCommandFailure
+        expr: rate(command_processing_total{task_type="EXECUTE_ASSISTANT", status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{task_type="EXECUTE_ASSISTANT", job="resume-worker"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High assistant command failure rate"
+          description: "Assistant command failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#assistant-command-failures"
+
+      - alert: resumeWorkerHighHabitsCommandFailure
+        expr: rate(command_processing_total{task_type="SCHEDULE_HABITS", status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{task_type="SCHEDULE_HABITS", job="resume-worker"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High habits command failure rate"
+          description: "Habits command failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#habits-command-failures"
+
+      # Health Check Alerts
+      - alert: resumeWorkerHealthCheckFailing
+        expr: probe_success{job="resume-worker-health"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "Health check failing for resume Worker"
+          description: "Health check has been failing for the last 3 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#health-check-failures"
+
+      - alert: resumeWorkerDependencyHealthDegraded
+        expr: probe_success{job="resume-worker-kafka-health"} == 0 OR probe_success{job="resume-worker-db-health"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Dependency health degraded"
+          description: "One or more dependencies (Kafka/Database) are unhealthy."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#dependency-health-issues"
+
+      # Garbage Collection Alerts
+      - alert: resumeWorkerHighGCActivity
+        expr: rate(nodejs_gc_duration_seconds_total{job="resume-worker"}[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: info
+          service: resume-worker
+        annotations:
+          summary: "High garbage collection activity"
+          description: "GC duration is {{ $value | printf \"%.2f\" }}s per second over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#memory-management"
+
+      - alert: resumeWorkerHighHeapUsage
+        expr: nodejs_heap_size_used_bytes{job="resume-worker"} / nodejs_heap_size_total_bytes{job="resume-worker"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High heap usage in resume Worker"
+          description: "Heap usage is {{ $value | printf \"%.1f\" }}% over the last 10 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#memory-usage-high"

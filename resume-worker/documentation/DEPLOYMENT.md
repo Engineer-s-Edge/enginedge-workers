@@ -1,8 +1,8 @@
-# RNLE Worker Deployment Guide
+# resume Worker Deployment Guide
 
 ## Overview
 
-This document provides comprehensive deployment instructions for the RNLE Worker across different environments including local development, Docker containers, and Kubernetes production deployments.
+This document provides comprehensive deployment instructions for the resume Worker across different environments including local development, Docker containers, and Kubernetes production deployments.
 
 ## Prerequisites
 
@@ -31,12 +31,12 @@ NODE_ENV=production
 
 # Kafka Configuration
 KAFKA_BROKERS=kafka-1:9092,kafka-2:9092,kafka-3:9092
-KAFKA_CLIENT_ID=rnle-worker
-KAFKA_GROUP_ID=rnle-worker-group
+KAFKA_CLIENT_ID=resume-worker
+KAFKA_GROUP_ID=resume-worker-group
 
 # Database Configuration
-MONGODB_URI=mongodb://username:password@mongodb-host:27017/rnle_worker
-MONGODB_DATABASE=rnle_worker
+MONGODB_URI=mongodb://username:password@mongodb-host:27017/resume_worker
+MONGODB_DATABASE=resume_worker
 
 # Redis Configuration (Optional)
 REDIS_URL=redis://redis-host:6379
@@ -62,7 +62,7 @@ CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd enginedge-workers/rnle-worker
+cd enginedge-workers/resume-worker
 
 # Install dependencies
 npm install
@@ -78,7 +78,7 @@ npm run start:dev
 
 ```bash
 # Build development image
-docker build -t rnle-worker:dev -f Dockerfile.dev .
+docker build -t resume-worker:dev -f Dockerfile.dev .
 
 # Run with docker-compose
 docker-compose -f docker-compose.dev.yml up
@@ -87,7 +87,7 @@ docker-compose -f docker-compose.dev.yml up
 docker run -p 3001:3001 \
   --env-file .env \
   --network enginedge-network \
-  rnle-worker:dev
+  resume-worker:dev
 ```
 
 ## Docker Deployment
@@ -135,13 +135,13 @@ CMD ["npm", "run", "start:prod"]
 
 ```bash
 # Build production image
-docker build -t rnle-worker:latest .
+docker build -t resume-worker:latest .
 
 # Tag for registry
-docker tag rnle-worker:latest your-registry.com/rnle-worker:v1.0.0
+docker tag resume-worker:latest your-registry.com/resume-worker:v1.0.0
 
 # Push to registry
-docker push your-registry.com/rnle-worker:v1.0.0
+docker push your-registry.com/resume-worker:v1.0.0
 ```
 
 ## Kubernetes Deployment
@@ -163,11 +163,11 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rnle-worker-config
+  name: resume-worker-config
   namespace: enginedge-workers
 data:
-  KAFKA_CLIENT_ID: "rnle-worker"
-  KAFKA_GROUP_ID: "rnle-worker-group"
+  KAFKA_CLIENT_ID: "resume-worker"
+  KAFKA_GROUP_ID: "resume-worker-group"
   LOG_LEVEL: "info"
   LOG_FORMAT: "json"
   NODE_ENV: "production"
@@ -179,7 +179,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: rnle-worker-secrets
+  name: resume-worker-secrets
   namespace: enginedge-workers
 type: Opaque
 data:
@@ -195,25 +195,25 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rnle-worker
+  name: resume-worker
   namespace: enginedge-workers
   labels:
-    app: rnle-worker
+    app: resume-worker
     version: v1.0.0
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: rnle-worker
+      app: resume-worker
   template:
     metadata:
       labels:
-        app: rnle-worker
+        app: resume-worker
         version: v1.0.0
     spec:
       containers:
-      - name: rnle-worker
-        image: your-registry.com/rnle-worker:v1.0.0
+      - name: resume-worker
+        image: your-registry.com/resume-worker:v1.0.0
         ports:
         - containerPort: 3001
           name: http
@@ -226,9 +226,9 @@ spec:
           value: "9090"
         envFrom:
         - configMapRef:
-            name: rnle-worker-config
+            name: resume-worker-config
         - secretRef:
-            name: rnle-worker-secrets
+            name: resume-worker-secrets
         resources:
           requests:
             memory: "256Mi"
@@ -268,13 +268,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rnle-worker-service
+  name: resume-worker-service
   namespace: enginedge-workers
   labels:
-    app: rnle-worker
+    app: resume-worker
 spec:
   selector:
-    app: rnle-worker
+    app: resume-worker
   ports:
   - name: http
     port: 3001
@@ -293,13 +293,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: rnle-worker-hpa
+  name: resume-worker-hpa
   namespace: enginedge-workers
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: rnle-worker
+    name: resume-worker
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -323,12 +323,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: rnle-worker-network-policy
+  name: resume-worker-network-policy
   namespace: enginedge-workers
 spec:
   podSelector:
     matchLabels:
-      app: rnle-worker
+      app: resume-worker
   policyTypes:
   - Ingress
   - Egress
@@ -376,7 +376,7 @@ spec:
 ### Chart Structure
 
 ```
-charts/rnle-worker/
+charts/resume-worker/
 ├── Chart.yaml
 ├── values.yaml
 ├── templates/
@@ -396,7 +396,7 @@ charts/rnle-worker/
 replicaCount: 3
 
 image:
-  repository: your-registry.com/rnle-worker
+  repository: your-registry.com/resume-worker
   tag: v1.0.0
   pullPolicy: IfNotPresent
 
@@ -408,10 +408,10 @@ service:
 config:
   kafka:
     brokers: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
-    clientId: "rnle-worker"
-    groupId: "rnle-worker-group"
+    clientId: "resume-worker"
+    groupId: "resume-worker-group"
   mongodb:
-    uri: "mongodb://username:password@mongodb-host:27017/rnle_worker"
+    uri: "mongodb://username:password@mongodb-host:27017/resume_worker"
   redis:
     url: "redis://redis-host:6379"
 
@@ -435,13 +435,13 @@ autoscaling:
 
 ```bash
 # Install with custom values
-helm install rnle-worker ./charts/rnle-worker \
+helm install resume-worker ./charts/resume-worker \
   --namespace enginedge-workers \
   --create-namespace \
   --values values-production.yaml
 
 # Upgrade deployment
-helm upgrade rnle-worker ./charts/rnle-worker \
+helm upgrade resume-worker ./charts/resume-worker \
   --namespace enginedge-workers \
   --values values-production.yaml
 ```
@@ -454,14 +454,14 @@ helm upgrade rnle-worker ./charts/rnle-worker \
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: rnle-worker-monitor
+  name: resume-worker-monitor
   namespace: monitoring
   labels:
-    app: rnle-worker
+    app: resume-worker
 spec:
   selector:
     matchLabels:
-      app: rnle-worker
+      app: resume-worker
   endpoints:
   - port: metrics
     path: /metrics
@@ -547,10 +547,10 @@ The deployment includes comprehensive health checks:
 kubectl get pods -n enginedge-workers
 
 # View pod logs
-kubectl logs -f deployment/rnle-worker -n enginedge-workers
+kubectl logs -f deployment/resume-worker -n enginedge-workers
 
 # Execute into pod
-kubectl exec -it deployment/rnle-worker -n enginedge-workers -- /bin/sh
+kubectl exec -it deployment/resume-worker -n enginedge-workers -- /bin/sh
 
 # Check service endpoints
 kubectl get endpoints -n enginedge-workers
@@ -596,10 +596,10 @@ kubectl get endpoints -n enginedge-workers
 
 ```bash
 # Rollback to previous Helm release
-helm rollback rnle-worker 1 -n enginedge-workers
+helm rollback resume-worker 1 -n enginedge-workers
 
 # Or rollback Kubernetes deployment
-kubectl rollout undo deployment/rnle-worker -n enginedge-workers
+kubectl rollout undo deployment/resume-worker -n enginedge-workers
 ```
 
 ### Database Rollback

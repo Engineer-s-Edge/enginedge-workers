@@ -1,8 +1,8 @@
-# RNLE Worker
+# resume Worker
 
 ## Overview
 
-The RNLE (Resume Natural Language Engine) Worker is a specialized microservice in the EnginEdge ecosystem designed for processing and executing background tasks related to assistant operations and habit scheduling. Built with NestJS and following hexagonal architecture principles, this worker handles asynchronous command processing with high reliability and scalability.
+The resume (Resume Natural Language Engine) Worker is a specialized microservice in the EnginEdge ecosystem designed for processing and executing background tasks related to assistant operations and habit scheduling. Built with NestJS and following hexagonal architecture principles, this worker handles asynchronous command processing with high reliability and scalability.
 
 ## Features
 
@@ -15,7 +15,7 @@ The RNLE (Resume Natural Language Engine) Worker is a specialized microservice i
 
 ## Architecture
 
-The RNLE Worker follows Clean Architecture (Hexagonal Architecture) principles:
+The resume Worker follows Clean Architecture (Hexagonal Architecture) principles:
 
 - **Domain Layer**: Core business logic and entities
 - **Application Layer**: Use cases and business rules orchestration

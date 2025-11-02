@@ -158,7 +158,7 @@ src/
 - Bibliography processing (BibTeX)
 - Error reporting and debugging
 
-### RNLE Worker (Port 3006)
+### resume Worker (Port 3006)
 **Domain**: Resume NLP Engine
 
 **Responsibilities:**

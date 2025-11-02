@@ -1,8 +1,8 @@
-# RNLE Worker API Documentation
+# resume Worker API Documentation
 
 ## Overview
 
-The RNLE Worker provides RESTful APIs for processing background commands and monitoring service health. All endpoints return JSON responses and follow REST conventions.
+The resume Worker provides RESTful APIs for processing background commands and monitoring service health. All endpoints return JSON responses and follow REST conventions.
 
 ## Base URL
 

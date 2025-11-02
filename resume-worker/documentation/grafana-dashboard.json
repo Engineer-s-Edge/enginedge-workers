@@ -1,8 +1,8 @@
 {
   "dashboard": {
     "id": null,
-    "title": "RNLE Worker - Production Dashboard",
-    "tags": ["rnle", "worker", "command-processing", "assistant", "habits", "production", "monitoring"],
+    "title": "resume Worker - Production Dashboard",
+    "tags": ["resume", "worker", "command-processing", "assistant", "habits", "production", "monitoring"],
     "timezone": "UTC",
     "panels": [
       {
@@ -11,7 +11,7 @@
         "type": "stat",
         "targets": [
           {
-            "expr": "up{job=\"rnle-worker\"}",
+            "expr": "up{job=\"resume-worker\"}",
             "legendFormat": "Service Status"
           }
         ],
@@ -47,7 +47,7 @@
         "type": "gauge",
         "targets": [
           {
-            "expr": "command_active_total{job=\"rnle-worker\"}",
+            "expr": "command_active_total{job=\"resume-worker\"}",
             "legendFormat": "Active Commands"
           }
         ],
@@ -87,15 +87,15 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(command_processing_total{job=\"rnle-worker\"}[5m])",
+            "expr": "rate(command_processing_total{job=\"resume-worker\"}[5m])",
             "legendFormat": "Total/sec"
           },
           {
-            "expr": "rate(command_processing_total{status=\"SUCCESS\", job=\"rnle-worker\"}[5m])",
+            "expr": "rate(command_processing_total{status=\"SUCCESS\", job=\"resume-worker\"}[5m])",
             "legendFormat": "Success/sec"
           },
           {
-            "expr": "rate(command_processing_total{status=\"FAILURE\", job=\"rnle-worker\"}[5m])",
+            "expr": "rate(command_processing_total{status=\"FAILURE\", job=\"resume-worker\"}[5m])",
             "legendFormat": "Failed/sec"
           }
         ],
@@ -112,11 +112,11 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job=\"rnle-worker\"}[5m]))",
+            "expr": "histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
             "legendFormat": "P95 Duration"
           },
           {
-            "expr": "histogram_quantile(0.50, rate(command_processing_duration_seconds_bucket{job=\"rnle-worker\"}[5m]))",
+            "expr": "histogram_quantile(0.50, rate(command_processing_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
             "legendFormat": "P50 Duration"
           }
         ],
@@ -138,7 +138,7 @@
         "type": "piechart",
         "targets": [
           {
-            "expr": "sum by (task_type) (rate(command_processing_total{job=\"rnle-worker\"}[5m]))",
+            "expr": "sum by (task_type) (rate(command_processing_total{job=\"resume-worker\"}[5m]))",
             "legendFormat": "{{task_type}}"
           }
         ],
@@ -155,7 +155,7 @@
         "type": "stat",
         "targets": [
           {
-            "expr": "command_queue_depth{job=\"rnle-worker\"}",
+            "expr": "command_queue_depth{job=\"resume-worker\"}",
             "legendFormat": "Queue Depth"
           }
         ],
@@ -194,7 +194,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(http_requests_total{job=\"rnle-worker\"}[5m])",
+            "expr": "rate(http_requests_total{job=\"resume-worker\"}[5m])",
             "legendFormat": "Request Rate"
           }
         ],
@@ -211,7 +211,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"rnle-worker\"}[5m]))",
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
             "legendFormat": "P95 Response Time"
           }
         ],
@@ -233,11 +233,11 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(kafka_producer_requests_total{job=\"rnle-worker\"}[5m])",
+            "expr": "rate(kafka_producer_requests_total{job=\"resume-worker\"}[5m])",
             "legendFormat": "Requests/sec"
           },
           {
-            "expr": "rate(kafka_producer_errors_total{job=\"rnle-worker\"}[5m])",
+            "expr": "rate(kafka_producer_errors_total{job=\"resume-worker\"}[5m])",
             "legendFormat": "Errors/sec"
           }
         ],
@@ -254,7 +254,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "kafka_consumer_group_lag{group=\"rnle-worker-commands\", job=\"rnle-worker\"}",
+            "expr": "kafka_consumer_group_lag{group=\"resume-worker-commands\", job=\"resume-worker\"}",
             "legendFormat": "Consumer Lag"
           }
         ],
@@ -271,11 +271,11 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "mongodb_connections_active{job=\"rnle-worker\"}",
+            "expr": "mongodb_connections_active{job=\"resume-worker\"}",
             "legendFormat": "Active Connections"
           },
           {
-            "expr": "mongodb_connections_available{job=\"rnle-worker\"}",
+            "expr": "mongodb_connections_available{job=\"resume-worker\"}",
             "legendFormat": "Available Connections"
           }
         ],
@@ -292,11 +292,11 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job=\"rnle-worker\"}[5m]))",
+            "expr": "histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
             "legendFormat": "P95 Query Time"
           },
           {
-            "expr": "rate(mongodb_queries_total{job=\"rnle-worker\"}[5m])",
+            "expr": "rate(mongodb_queries_total{job=\"resume-worker\"}[5m])",
             "legendFormat": "Queries/sec"
           }
         ],
@@ -329,7 +329,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(process_cpu_user_seconds_total{job=\"rnle-worker\"}[5m]) * 100",
+            "expr": "rate(process_cpu_user_seconds_total{job=\"resume-worker\"}[5m]) * 100",
             "legendFormat": "CPU Usage %"
           }
         ],
@@ -353,7 +353,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "process_resident_memory_bytes{job=\"rnle-worker\"} / 1024 / 1024",
+            "expr": "process_resident_memory_bytes{job=\"resume-worker\"} / 1024 / 1024",
             "legendFormat": "Memory Usage (MB)"
           }
         ],
@@ -375,7 +375,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "nodejs_eventloop_lag_seconds{job=\"rnle-worker\"}",
+            "expr": "nodejs_eventloop_lag_seconds{job=\"resume-worker\"}",
             "legendFormat": "Event Loop Lag"
           }
         ],
@@ -397,11 +397,11 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(nodejs_gc_duration_seconds_total{job=\"rnle-worker\"}[5m])",
+            "expr": "rate(nodejs_gc_duration_seconds_total{job=\"resume-worker\"}[5m])",
             "legendFormat": "GC Duration/sec"
           },
           {
-            "expr": "nodejs_heap_size_used_bytes{job=\"rnle-worker\"} / nodejs_heap_size_total_bytes{job=\"rnle-worker\"}",
+            "expr": "nodejs_heap_size_used_bytes{job=\"resume-worker\"} / nodejs_heap_size_total_bytes{job=\"resume-worker\"}",
             "legendFormat": "Heap Usage %"
           }
         ],
@@ -423,7 +423,7 @@
         "type": "logs",
         "targets": [
           {
-            "expr": "{job=\"rnle-worker\"}",
+            "expr": "{job=\"resume-worker\"}",
             "legendFormat": ""
           }
         ],

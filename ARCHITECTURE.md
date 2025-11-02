@@ -53,7 +53,7 @@ The **EnginEdge Workers** repository contains six specialized worker nodes that 
 **Port**: 3005
 **Domain**: LaTeX compilation, mathematical rendering, formula processing
 
-### 6. RNLE Worker (`rnle-worker/`)
+### 6. resume Worker (`resume-worker/`)
 **Purpose**: Symbolic mathematics and computation
 **Port**: 3006
 **Domain**: Symbolic equation solving, computational kernels, mathematical reasoning

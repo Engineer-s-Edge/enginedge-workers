@@ -1,7 +1,7 @@
 {
-  "name": "rnle-worker",
+  "name": "resume-worker",
   "version": "1.0.0",
-  "description": "RNLE Worker - Resume Natural Language Engine and code analysis",
+  "description": "resume Worker - Resume Natural Language Engine and code analysis",
   "author": "EnginEdge Team",
   "private": true,
   "license": "UNLICENSED",

@@ -1,8 +1,8 @@
-# RNLE Worker Architecture
+# resume Worker Architecture
 
 ## Overview
 
-The RNLE (Resume Natural Language Engine) Worker implements Clean Architecture (Hexagonal Architecture) principles to ensure maintainability, testability, and scalability. This document describes the architectural patterns, design decisions, and component interactions.
+The resume (Resume Natural Language Engine) Worker implements Clean Architecture (Hexagonal Architecture) principles to ensure maintainability, testability, and scalability. This document describes the architectural patterns, design decisions, and component interactions.
 
 ## Architecture Principles
 

@@ -1,15 +1,15 @@
-# RNLE Worker Monitoring Guide
+# resume Worker Monitoring Guide
 
 ## Overview
 
-The RNLE Worker implements comprehensive monitoring using Prometheus metrics, structured logging, and Grafana dashboards. This guide covers monitoring setup, key metrics, alerting rules, and troubleshooting procedures.
+The resume Worker implements comprehensive monitoring using Prometheus metrics, structured logging, and Grafana dashboards. This guide covers monitoring setup, key metrics, alerting rules, and troubleshooting procedures.
 
 ## Monitoring Architecture
 
 ### Components
 
 ```
-RNLE Worker
+resume Worker
     ↓
 Prometheus Metrics (/metrics)
     ↓
@@ -30,33 +30,33 @@ The service exposes metrics on port 9090 at `/metrics` endpoint using the Promet
 
 ```prometheus
 # Command processing rate
-rate(command_processing_total{job="rnle-worker"}[5m])
+rate(command_processing_total{job="resume-worker"}[5m])
 
 # Command processing latency (histogram)
-histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="rnle-worker"}[5m]))
+histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m]))
 
 # Command processing status breakdown
-sum by (status) (rate(command_processing_total{job="rnle-worker"}[5m]))
+sum by (status) (rate(command_processing_total{job="resume-worker"}[5m]))
 
 # Active command count
-command_active_total{job="rnle-worker"}
+command_active_total{job="resume-worker"}
 
 # Queue depth
-command_queue_depth{job="rnle-worker"}
+command_queue_depth{job="resume-worker"}
 ```
 
 #### HTTP Metrics
 
 ```prometheus
 # HTTP request rate
-rate(http_requests_total{job="rnle-worker"}[5m])
+rate(http_requests_total{job="resume-worker"}[5m])
 
 # HTTP request duration by endpoint
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="rnle-worker", route="/command/process"}[5m]))
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="resume-worker", route="/command/process"}[5m]))
 
 # HTTP status codes
-rate(http_requests_total{job="rnle-worker", status="200"}[5m])
-rate(http_requests_total{job="rnle-worker", status=~"5.."}[5m])
+rate(http_requests_total{job="resume-worker", status="200"}[5m])
+rate(http_requests_total{job="resume-worker", status=~"5.."}[5m])
 ```
 
 ### System Metrics
@@ -65,26 +65,26 @@ rate(http_requests_total{job="rnle-worker", status=~"5.."}[5m])
 
 ```prometheus
 # CPU usage
-rate(process_cpu_user_seconds_total{job="rnle-worker"}[5m]) * 100
+rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) * 100
 
 # Memory usage
-process_resident_memory_bytes{job="rnle-worker"} / 1024 / 1024
+process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024
 
 # Heap usage
-nodejs_heap_size_used_bytes{job="rnle-worker"} / nodejs_heap_size_total_bytes{job="rnle-worker"}
+nodejs_heap_size_used_bytes{job="resume-worker"} / nodejs_heap_size_total_bytes{job="resume-worker"}
 
 # Event loop lag
-nodejs_eventloop_lag_seconds{job="rnle-worker"}
+nodejs_eventloop_lag_seconds{job="resume-worker"}
 ```
 
 #### Garbage Collection
 
 ```prometheus
 # GC duration
-rate(nodejs_gc_duration_seconds_total{job="rnle-worker"}[5m])
+rate(nodejs_gc_duration_seconds_total{job="resume-worker"}[5m])
 
 # GC pause time
-histogram_quantile(0.95, rate(nodejs_gc_pause_seconds_bucket{job="rnle-worker"}[5m]))
+histogram_quantile(0.95, rate(nodejs_gc_pause_seconds_bucket{job="resume-worker"}[5m]))
 ```
 
 ### External Service Metrics
@@ -93,30 +93,30 @@ histogram_quantile(0.95, rate(nodejs_gc_pause_seconds_bucket{job="rnle-worker"}[
 
 ```prometheus
 # Producer metrics
-rate(kafka_producer_requests_total{job="rnle-worker"}[5m])
-rate(kafka_producer_errors_total{job="rnle-worker"}[5m])
+rate(kafka_producer_requests_total{job="resume-worker"}[5m])
+rate(kafka_producer_errors_total{job="resume-worker"}[5m])
 
 # Consumer metrics
-kafka_consumer_group_lag{group="rnle-worker-commands"}
-rate(kafka_consumer_messages_consumed_total{group="rnle-worker-commands"}[5m])
+kafka_consumer_group_lag{group="resume-worker-commands"}
+rate(kafka_consumer_messages_consumed_total{group="resume-worker-commands"}[5m])
 
 # Connection status
-kafka_producer_connection_count{job="rnle-worker"}
+kafka_producer_connection_count{job="resume-worker"}
 ```
 
 #### Database Metrics
 
 ```prometheus
 # Connection pool
-mongodb_connections_active{job="rnle-worker"}
-mongodb_connections_available{job="rnle-worker"}
+mongodb_connections_active{job="resume-worker"}
+mongodb_connections_available{job="resume-worker"}
 
 # Query performance
-histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="rnle-worker"}[5m]))
+histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m]))
 
 # Operation counts
-rate(mongodb_queries_total{job="rnle-worker"}[5m])
-rate(mongodb_inserts_total{job="rnle-worker"}[5m])
+rate(mongodb_queries_total{job="resume-worker"}[5m])
+rate(mongodb_inserts_total{job="resume-worker"}[5m])
 ```
 
 ## Grafana Dashboard
@@ -163,8 +163,8 @@ The Grafana dashboard is organized into the following sections:
 ```json
 {
   "dashboard": {
-    "title": "RNLE Worker - Production Dashboard",
-    "tags": ["rnle", "worker", "command-processing", "production"],
+    "title": "resume Worker - Production Dashboard",
+    "tags": ["resume", "worker", "command-processing", "production"],
     "timezone": "UTC",
     "refresh": "30s",
     "time": {
@@ -181,91 +181,91 @@ The Grafana dashboard is organized into the following sections:
 
 ```yaml
 groups:
-  - name: rnle-worker-critical
+  - name: resume-worker-critical
     rules:
-      - alert: RNLEWorkerDown
-        expr: up{job="rnle-worker"} == 0
+      - alert: resumeWorkerDown
+        expr: up{job="resume-worker"} == 0
         for: 5m
         labels:
           severity: critical
-          service: rnle-worker
+          service: resume-worker
         annotations:
-          summary: "RNLE Worker is down"
-          description: "RNLE Worker has been down for more than 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/rnle-worker/documentation/TROUBLESHOOTING.md#service-completely-down"
+          summary: "resume Worker is down"
+          description: "resume Worker has been down for more than 5 minutes."
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#service-completely-down"
 
-      - alert: RNLEWorkerHighErrorRate
-        expr: rate(command_processing_total{status="failed", job="rnle-worker"}[5m]) / rate(command_processing_total{job="rnle-worker"}[5m]) > 0.1
+      - alert: resumeWorkerHighErrorRate
+        expr: rate(command_processing_total{status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{job="resume-worker"}[5m]) > 0.1
         for: 5m
         labels:
           severity: critical
-          service: rnle-worker
+          service: resume-worker
         annotations:
           summary: "High command failure rate"
           description: "Command failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/rnle-worker/documentation/TROUBLESHOOTING.md#high-error-rate"
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#high-error-rate"
 ```
 
 ### Warning Alerts
 
 ```yaml
-  - name: rnle-worker-warning
+  - name: resume-worker-warning
     rules:
-      - alert: RNLEWorkerHighLatency
-        expr: histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="rnle-worker"}[5m])) > 5
+      - alert: resumeWorkerHighLatency
+        expr: histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m])) > 5
         for: 5m
         labels:
           severity: warning
-          service: rnle-worker
+          service: resume-worker
         annotations:
           summary: "High processing latency"
           description: "P95 processing latency is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/rnle-worker/documentation/PERFORMANCE.md#high-latency"
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#high-latency"
 
-      - alert: RNLEWorkerHighQueueDepth
-        expr: command_queue_depth{job="rnle-worker"} > 100
+      - alert: resumeWorkerHighQueueDepth
+        expr: command_queue_depth{job="resume-worker"} > 100
         for: 5m
         labels:
           severity: warning
-          service: rnle-worker
+          service: resume-worker
         annotations:
           summary: "High queue depth"
           description: "Command queue depth is {{ $value }} over the last 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/rnle-worker/documentation/PERFORMANCE.md#high-queue-depth"
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#high-queue-depth"
 
-      - alert: RNLEWorkerHighMemoryUsage
-        expr: process_resident_memory_bytes{job="rnle-worker"} / 1024 / 1024 > 400
+      - alert: resumeWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024 > 400
         for: 10m
         labels:
           severity: warning
-          service: rnle-worker
+          service: resume-worker
         annotations:
           summary: "High memory usage"
           description: "Memory usage is {{ $value | printf \"%.0f\" }}MB over the last 10 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/rnle-worker/documentation/TROUBLESHOOTING.md#memory-usage-high"
+          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#memory-usage-high"
 ```
 
 ### Info Alerts
 
 ```yaml
-  - name: rnle-worker-info
+  - name: resume-worker-info
     rules:
-      - alert: RNLEWorkerLowThroughput
-        expr: rate(command_processing_total{job="rnle-worker"}[15m]) < 10
+      - alert: resumeWorkerLowThroughput
+        expr: rate(command_processing_total{job="resume-worker"}[15m]) < 10
         for: 30m
         labels:
           severity: info
-          service: rnle-worker
+          service: resume-worker
         annotations:
           summary: "Low processing throughput"
           description: "Command processing rate is {{ $value | printf \"%.1f\" }} commands/minute over the last 30 minutes."
 
-      - alert: RNLEWorkerNoActiveCommands
-        expr: command_active_total{job="rnle-worker"} == 0
+      - alert: resumeWorkerNoActiveCommands
+        expr: command_active_total{job="resume-worker"} == 0
         for: 30m
         labels:
           severity: info
-          service: rnle-worker
+          service: resume-worker
         annotations:
           summary: "No active commands"
           description: "No commands have been processed for the last 30 minutes."
@@ -288,7 +288,7 @@ All logs follow a structured format with consistent fields:
 {
   "timestamp": "2024-01-15T10:30:00.000Z",
   "level": "info",
-  "service": "rnle-worker",
+  "service": "resume-worker",
   "workerId": "worker-pod-abc-123",
   "correlationId": "req-abc-123",
   "taskId": "assist-001",
@@ -317,7 +317,7 @@ GET /logs-*/_search
   "query": {
     "bool": {
       "must": [
-        { "match": { "service": "rnle-worker" } },
+        { "match": { "service": "resume-worker" } },
         { "match": { "level": "error" } },
         { "range": { "@timestamp": { "gte": "now-1h" } } }
       ]
@@ -331,7 +331,7 @@ GET /logs-*/_search
   "query": {
     "bool": {
       "must": [
-        { "match": { "service": "rnle-worker" } },
+        { "match": { "service": "resume-worker" } },
         { "match": { "message": "Command processing completed" } }
       ]
     }
@@ -382,7 +382,7 @@ Detailed health check including dependencies:
       "responseTime": 45,
       "details": {
         "brokers": 3,
-        "topics": ["rnle.commands", "rnle.command-results"]
+        "topics": ["resume.commands", "resume.command-results"]
       }
     },
     "database": {
@@ -471,31 +471,31 @@ startupProbe:
 1. **Check System Resources:**
 ```prometheus
 # CPU saturation
-rate(process_cpu_user_seconds_total{job="rnle-worker"}[5m]) > 0.8
+rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) > 0.8
 
 # Memory pressure
-process_resident_memory_bytes{job="rnle-worker"} / 1024 / 1024 > 400
+process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024 > 400
 
 # Network saturation
-rate(process_io_read_bytes_total{job="rnle-worker"}[5m]) > 10485760
+rate(process_io_read_bytes_total{job="resume-worker"}[5m]) > 10485760
 ```
 
 2. **Check External Dependencies:**
 ```prometheus
 # Kafka lag
-kafka_consumer_group_lag{group="rnle-worker-commands"} > 100
+kafka_consumer_group_lag{group="resume-worker-commands"} > 100
 
 # Database slow queries
-histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="rnle-worker"}[5m])) > 1
+histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m])) > 1
 ```
 
 3. **Check Application Bottlenecks:**
 ```prometheus
 # Queue buildup
-command_queue_depth{job="rnle-worker"} > 50
+command_queue_depth{job="resume-worker"} > 50
 
 # Thread pool exhaustion
-nodejs_active_handles_total{job="rnle-worker"} > 100
+nodejs_active_handles_total{job="resume-worker"} > 100
 ```
 
 ### Memory Leak Detection
@@ -503,10 +503,10 @@ nodejs_active_handles_total{job="rnle-worker"} > 100
 1. **Monitor Heap Growth:**
 ```prometheus
 # Heap size trend
-increase(nodejs_heap_size_used_bytes{job="rnle-worker"}[1h])
+increase(nodejs_heap_size_used_bytes{job="resume-worker"}[1h])
 
 # GC frequency
-rate(nodejs_gc_duration_seconds_total{job="rnle-worker"}[5m])
+rate(nodejs_gc_duration_seconds_total{job="resume-worker"}[5m])
 ```
 
 2. **Profile Memory Usage:**
@@ -523,16 +523,16 @@ kubectl exec -it <pod-name> -n enginedge-workers -- node --inspect --heap-snapsh
 1. **Categorize Errors:**
 ```prometheus
 # Errors by type
-sum by (error_type) (rate(command_processing_total{status="failed", job="rnle-worker"}[5m]))
+sum by (error_type) (rate(command_processing_total{status="failed", job="resume-worker"}[5m]))
 
 # HTTP errors by status
-rate(http_requests_total{status=~"5..", job="rnle-worker"}[5m])
+rate(http_requests_total{status=~"5..", job="resume-worker"}[5m])
 ```
 
 2. **Correlate with Logs:**
 ```bash
 # Find error logs with correlation IDs
-kubectl logs deployment/rnle-worker -n enginedge-workers | grep "correlationId.*error"
+kubectl logs deployment/resume-worker -n enginedge-workers | grep "correlationId.*error"
 ```
 
 ## Monitoring Best Practices
@@ -553,9 +553,9 @@ kubectl logs deployment/rnle-worker -n enginedge-workers | grep "correlationId.*
 
 ```prometheus
 # Format: namespace_subsystem_metric_name
-rnle_worker_command_processing_total{status="success"}
-rnle_worker_http_request_duration_seconds_bucket{le="0.1"}
-rnle_worker_kafka_consumer_lag
+resume_worker_command_processing_total{status="success"}
+resume_worker_http_request_duration_seconds_bucket{le="0.1"}
+resume_worker_kafka_consumer_lag
 ```
 
 ### Documentation Updates
@@ -604,4 +604,4 @@ export class CorrelationService {
 }
 ```
 
-This comprehensive monitoring setup ensures the RNLE Worker operates reliably with full observability into its performance, health, and behavior.
+This comprehensive monitoring setup ensures the resume Worker operates reliably with full observability into its performance, health, and behavior.
