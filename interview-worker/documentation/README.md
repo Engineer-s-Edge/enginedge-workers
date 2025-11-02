@@ -46,7 +46,7 @@ npm install
 Create a `.env` file:
 
 ```env
-PORT=3001
+PORT=3004
 MONGODB_URI=mongodb://localhost:27017/interview-worker
 REDIS_URL=redis://localhost:6379
 KAFKA_BROKERS=localhost:9092

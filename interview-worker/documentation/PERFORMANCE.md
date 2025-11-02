@@ -342,7 +342,7 @@ candidate_satisfaction_score > 4.0
 ```bash
 # 100 concurrent users, 10 RPS each
 artillery quick --count 100 --num 10 \
-  http://localhost:3001/api/v1/interviews
+  http://localhost:3004/api/v1/interviews
 ```
 
 #### Peak Load
@@ -354,14 +354,14 @@ artillery run load-test.yml
 #### Stress Testing
 ```bash
 # Gradually increase load until failure
-artillery run stress-test.yml --target http://localhost:3001
+artillery run stress-test.yml --target http://localhost:3004
 ```
 
 ### Load Test Configuration
 ```yaml
 # load-test.yml
 config:
-  target: 'http://localhost:3001'
+  target: 'http://localhost:3004'
   phases:
     - duration: 60
       arrivalRate: 10
@@ -464,7 +464,7 @@ ps -T -p $(pgrep node)
 tcpdump -i eth0 port 3001
 
 # Connection analysis
-netstat -antp | grep :3001
+netstat -antp | grep :3004
 ```
 
 ## Capacity Planning

@@ -37,7 +37,7 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node . .
 
-EXPOSE 3001
+EXPOSE 3004
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["npm", "run", "start:prod"]
 ```
@@ -74,7 +74,7 @@ metadata:
 data:
   NODE_ENV: "production"
   LOG_LEVEL: "info"
-  PORT: "3001"
+  PORT: "3004"
   MONGODB_URI: "mongodb://interview-mongodb:27017/interview_worker"
   REDIS_URL: "redis://interview-redis:6379"
   KAFKA_BROKERS: "kafka-cluster:9092"
@@ -125,7 +125,7 @@ spec:
       - name: interview-worker
         image: enginedge/interview-worker:latest
         ports:
-        - containerPort: 3001
+        - containerPort: 3004
           name: http
         envFrom:
         - configMapRef:
@@ -142,13 +142,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: 3004
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: 3004
           initialDelaySeconds: 5
           periodSeconds: 5
         volumeMounts:

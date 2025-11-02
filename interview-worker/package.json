@@ -85,8 +85,29 @@
     "testMatch": [
       "<rootDir>/**/*.spec.ts"
     ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/__tests__/setup.ts"
+    ],
     "transform": {
       "^.+\\.ts$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^@domain/(.*)$": "<rootDir>/domain/$1",
+      "^@application/(.*)$": "<rootDir>/application/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1"
+    },
+    "extensionsToTreatAsEsm": [],
+    "globals": {
+      "ts-jest": {
+        "useESM": false,
+        "tsconfig": {
+          "paths": {
+            "@domain/*": ["domain/*"],
+            "@application/*": ["application/*"],
+            "@infrastructure/*": ["infrastructure/*"]
+          }
+        }
+      }
     },
     "collectCoverage": true,
     "coverageDirectory": "../coverage",

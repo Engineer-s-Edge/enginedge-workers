@@ -2,7 +2,7 @@
   "dashboard": {
     "id": null,
     "title": "Interview Worker - Production Dashboard",
-    "tags": ["interview", "ai", "transcription", "analysis", "scheduling", "production", "monitoring"],
+    "tags": ["interview", "ai", "production", "monitoring"],
     "timezone": "UTC",
     "panels": [
       {
@@ -43,18 +43,18 @@
       },
       {
         "id": 2,
-        "title": "Active Interviews",
+        "title": "Active Interview Sessions",
         "type": "gauge",
         "targets": [
           {
-            "expr": "interviews_active_total{job=\"interview-worker\"}",
-            "legendFormat": "Active Interviews"
+            "expr": "interview_sessions_active{job=\"interview-worker\"}",
+            "legendFormat": "Active Sessions"
           }
         ],
         "fieldConfig": {
           "defaults": {
             "min": 0,
-            "max": 50,
+            "max": 100,
             "thresholds": {
               "mode": "absolute",
               "steps": [
@@ -64,11 +64,11 @@
                 },
                 {
                   "color": "orange",
-                  "value": 30
+                  "value": 50
                 },
                 {
                   "color": "red",
-                  "value": 40
+                  "value": 80
                 }
               ]
             }
@@ -83,280 +83,175 @@
       },
       {
         "id": 3,
-        "title": "Interview Processing Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(interview_processing_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Processing/sec"
-          },
-          {
-            "expr": "rate(interview_processing_total{status=\"success\", job=\"interview-worker\"}[5m])",
-            "legendFormat": "Success/sec"
-          },
-          {
-            "expr": "rate(interview_processing_total{status=\"failed\", job=\"interview-worker\"}[5m])",
-            "legendFormat": "Failed/sec"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 4
-        }
-      },
-      {
-        "id": 4,
-        "title": "Interview Processing Duration (P95)",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(interview_processing_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
-            "legendFormat": "P95 Duration"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(interview_processing_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
-            "legendFormat": "P50 Duration"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 4
-        }
-      },
-      {
-        "id": 5,
-        "title": "Transcription Performance",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(transcription_requests_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Requests/sec"
-          },
-          {
-            "expr": "histogram_quantile(0.95, rate(transcription_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
-            "legendFormat": "P95 Duration"
-          },
-          {
-            "expr": "avg(transcription_confidence_score{job=\"interview-worker\"})",
-            "legendFormat": "Avg Confidence"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 12
-        }
-      },
-      {
-        "id": 6,
-        "title": "AI Analysis Performance",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(analysis_requests_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Requests/sec"
-          },
-          {
-            "expr": "histogram_quantile(0.95, rate(analysis_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
-            "legendFormat": "P95 Duration"
-          },
-          {
-            "expr": "avg(analysis_confidence_score{job=\"interview-worker\"})",
-            "legendFormat": "Avg Confidence"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 12
-        }
-      },
-      {
-        "id": 7,
-        "title": "Provider Performance",
-        "type": "bargauge",
-        "targets": [
-          {
-            "expr": "rate(transcription_requests_total{job=\"interview-worker\"}[5m]) / rate(transcription_requests_total{job=\"interview-worker\"}[5m]) * 100",
-            "legendFormat": "{{provider}} Usage %"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "min": 0,
-            "max": 100
-          }
-        },
-        "gridPos": {
-          "h": 6,
-          "w": 12,
-          "x": 0,
-          "y": 20
-        }
-      },
-      {
-        "id": 8,
-        "title": "Scheduling Operations",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(scheduling_requests_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Requests/sec"
-          },
-          {
-            "expr": "rate(calendar_api_calls_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Calendar API/sec"
-          },
-          {
-            "expr": "histogram_quantile(0.95, rate(scheduling_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
-            "legendFormat": "P95 Duration"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 20
-        }
-      },
-      {
-        "id": 9,
-        "title": "Interview Status Distribution",
+        "title": "Session Status Distribution",
         "type": "piechart",
         "targets": [
           {
-            "expr": "sum by (status) (rate(interview_processing_total{job=\"interview-worker\"}[5m]))",
+            "expr": "sum by (status) (interview_sessions_total{job=\"interview-worker\"})",
             "legendFormat": "{{status}}"
           }
         ],
         "gridPos": {
           "h": 8,
-          "w": 8,
-          "x": 0,
-          "y": 28
+          "w": 6,
+          "x": 12,
+          "y": 0
         }
       },
       {
-        "id": 10,
-        "title": "Queue Depth",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "interview_queue_depth{job=\"interview-worker\"}",
-            "legendFormat": "Queue Depth"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 50
-                },
-                {
-                  "color": "red",
-                  "value": 100
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 8,
-          "x": 8,
-          "y": 28
-        }
-      },
-      {
-        "id": 11,
-        "title": "External API Performance",
+        "id": 4,
+        "title": "Sessions Created Rate",
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(external_api_requests_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "API Calls/sec"
+            "expr": "rate(interview_sessions_created_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Created/sec"
           },
           {
-            "expr": "histogram_quantile(0.95, rate(external_api_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
-            "legendFormat": "P95 Duration"
+            "expr": "rate(interview_sessions_completed_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Completed/sec"
           },
           {
-            "expr": "rate(external_api_errors_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Errors/sec"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 28
-        }
-      },
-      {
-        "id": 12,
-        "title": "HTTP Request Rate",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(http_requests_total{job=\"interview-worker\"}[5m])",
-            "legendFormat": "Request Rate"
+            "expr": "rate(interview_sessions_paused_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Paused/sec"
           }
         ],
         "gridPos": {
           "h": 8,
           "w": 12,
           "x": 0,
-          "y": 36
+          "y": 4
         }
       },
       {
-        "id": 13,
+        "id": 5,
+        "title": "Question Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(interview_questions_selected_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Selected/sec"
+          },
+          {
+            "expr": "rate(interview_responses_submitted_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Responses/sec"
+          },
+          {
+            "expr": "rate(interview_questions_skipped_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Skipped/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 4
+        }
+      },
+      {
+        "id": 6,
+        "title": "Profile Observations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(candidate_profile_observations_total{type=\"strengths\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "Strengths/sec"
+          },
+          {
+            "expr": "rate(candidate_profile_observations_total{type=\"concerns\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "Concerns/sec"
+          },
+          {
+            "expr": "rate(candidate_profile_observations_total{type=\"keyInsights\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "Insights/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 12
+        }
+      },
+      {
+        "id": 7,
+        "title": "WebSocket Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "websocket_connections_active{job=\"interview-worker\"}",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 12
+        }
+      },
+      {
+        "id": 8,
+        "title": "WebSocket Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(websocket_messages_received_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Messages Received/sec"
+          },
+          {
+            "expr": "rate(websocket_messages_sent_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Messages Sent/sec"
+          },
+          {
+            "expr": "rate(websocket_connections_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Connections/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 12
+        }
+      },
+      {
+        "id": 9,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Requests/sec"
+          },
+          {
+            "expr": "rate(http_requests_total{method=\"POST\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "POST/sec"
+          },
+          {
+            "expr": "rate(http_requests_total{method=\"GET\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "GET/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        }
+      },
+      {
+        "id": 10,
         "title": "HTTP Response Time (P95)",
         "type": "graph",
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
             "legendFormat": "P95 Response Time"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P50 Response Time"
           }
         ],
         "fieldConfig": {
@@ -368,7 +263,74 @@
           "h": 8,
           "w": 12,
           "x": 12,
-          "y": 36
+          "y": 20
+        }
+      },
+      {
+        "id": 11,
+        "title": "HTTP Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "5xx Errors/sec"
+          },
+          {
+            "expr": "rate(http_requests_total{status=~\"4..\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "4xx Errors/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 28
+        }
+      },
+      {
+        "id": 12,
+        "title": "MongoDB Connection Pool",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "mongodb_connection_pool_size{job=\"interview-worker\"}",
+            "legendFormat": "Pool Size"
+          },
+          {
+            "expr": "mongodb_connection_pool_active{job=\"interview-worker\"}",
+            "legendFormat": "Active Connections"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 28
+        }
+      },
+      {
+        "id": 13,
+        "title": "MongoDB Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mongodb_operations_total{operation=\"find\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "Find Ops/sec"
+          },
+          {
+            "expr": "rate(mongodb_operations_total{operation=\"insert\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "Insert Ops/sec"
+          },
+          {
+            "expr": "rate(mongodb_operations_total{operation=\"update\",job=\"interview-worker\"}[5m])",
+            "legendFormat": "Update Ops/sec"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 28
         }
       },
       {
@@ -379,7 +341,7 @@
           "h": 1,
           "w": 24,
           "x": 0,
-          "y": 44
+          "y": 36
         }
       },
       {
@@ -403,7 +365,7 @@
           "h": 8,
           "w": 8,
           "x": 0,
-          "y": 45
+          "y": 37
         }
       },
       {
@@ -425,60 +387,33 @@
           "h": 8,
           "w": 8,
           "x": 8,
-          "y": 45
+          "y": 37
         }
       },
       {
         "id": 17,
-        "title": "Network I/O",
+        "title": "Report Generation",
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(process_io_read_bytes_total{job=\"interview-worker\"}[5m]) / 1024 / 1024",
-            "legendFormat": "Network In MB/s"
+            "expr": "rate(interview_reports_generated_total{job=\"interview-worker\"}[5m])",
+            "legendFormat": "Reports/sec"
           },
           {
-            "expr": "rate(process_io_write_bytes_total{job=\"interview-worker\"}[5m]) / 1024 / 1024",
-            "legendFormat": "Network Out MB/s"
+            "expr": "histogram_quantile(0.95, rate(interview_report_generation_duration_seconds_bucket{job=\"interview-worker\"}[5m]))",
+            "legendFormat": "P95 Duration"
           }
         ],
         "fieldConfig": {
           "defaults": {
-            "unit": "MB/s"
+            "unit": "s"
           }
         },
         "gridPos": {
           "h": 8,
           "w": 8,
           "x": 16,
-          "y": 45
-        }
-      },
-      {
-        "id": 18,
-        "title": "Application Logs",
-        "type": "logs",
-        "targets": [
-          {
-            "expr": "{job=\"interview-worker\"}",
-            "legendFormat": ""
-          }
-        ],
-        "options": {
-          "showTime": true,
-          "showLabels": false,
-          "showCommonLabels": false,
-          "wrapLogMessage": true,
-          "prettifyLogMessage": true,
-          "enableLogDetails": true,
-          "dedupStrategy": "none",
-          "sortOrder": "Descending"
-        },
-        "gridPos": {
-          "h": 12,
-          "w": 24,
-          "x": 0,
-          "y": 53
+          "y": 37
         }
       }
     ],

@@ -9,7 +9,7 @@ This guide provides systematic troubleshooting procedures for common issues in t
 ### Service Status
 ```bash
 # Check service health
-curl http://localhost:3001/health
+curl http://localhost:3004/health
 
 # Check Kubernetes pod status
 kubectl get pods -n interview-worker
@@ -95,7 +95,7 @@ kubectl exec -it deployment/interview-worker -n interview-worker -- env | grep -
 kubectl logs -n interview-worker deployment/interview-worker | grep ERROR
 
 # Check error metrics
-curl http://localhost:3001/metrics | grep http_requests_total
+curl http://localhost:3004/metrics | grep http_requests_total
 
 # Analyze error patterns
 kubectl logs -n interview-worker deployment/interview-worker | \
@@ -150,7 +150,7 @@ gcloud quota list --filter="speech"
 #### Performance Analysis
 ```bash
 # Check response time metrics
-curl http://localhost:3001/metrics | grep http_request_duration
+curl http://localhost:3004/metrics | grep http_request_duration
 
 # Profile application performance
 kubectl exec -it deployment/interview-worker -n interview-worker -- \
@@ -206,7 +206,7 @@ npx clinic heapprofiler -- node dist/main.js
 file interview_audio.wav
 
 # Test transcription service
-curl -X POST http://localhost:3001/transcription/upload \
+curl -X POST http://localhost:3004/transcription/upload \
   -F "file=@test_audio.wav" \
   -F "interviewId=test-123"
 ```
@@ -291,7 +291,7 @@ gcloud auth application-default print-access-token
 #### WebSocket Troubleshooting
 ```bash
 # Check WebSocket endpoint
-wscat -c ws://localhost:3001/transcription/stream/test-interview
+wscat -c ws://localhost:3004/transcription/stream/test-interview
 
 # Monitor WebSocket connections
 kubectl logs -n interview-worker deployment/interview-worker | grep websocket

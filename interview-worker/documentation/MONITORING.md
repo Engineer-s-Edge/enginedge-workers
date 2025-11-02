@@ -309,7 +309,7 @@ Response:
 scrape_configs:
   - job_name: 'interview-worker'
     static_configs:
-      - targets: ['interview-worker:3001']
+      - targets: ['interview-worker:3004']
     metrics_path: '/metrics'
     scrape_interval: 15s
 

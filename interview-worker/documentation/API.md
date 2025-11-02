@@ -51,7 +51,7 @@ For production, implement one of:
 ## Base URL
 
 ```
-http://localhost:3001/api/v1
+http://localhost:3004/api/v1
 ```
 
 ---
@@ -246,7 +246,7 @@ GET /transcription/{interviewId}
 ### Real-time Transcription
 
 ```http
-WebSocket: ws://localhost:3001/transcription/stream/{interviewId}
+WebSocket: ws://localhost:3004/transcription/stream/{interviewId}
 ```
 
 ---
