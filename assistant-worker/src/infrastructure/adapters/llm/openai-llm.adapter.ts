@@ -315,4 +315,20 @@ export class OpenAILLMAdapter implements ILLMProvider {
   getModelName(): string {
     return 'openai';
   }
+
+  /**
+   * Speech to Text - Not implemented by default
+   * Use separate STT service (e.g., Google Speech, Azure Speech)
+   */
+  async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
+    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+  }
+
+  /**
+   * Text to Speech - Not implemented by default
+   * Use separate TTS service (e.g., Google Speech, Azure Speech)
+   */
+  async textToSpeech(text: string, voice?: string): Promise<Buffer> {
+    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+  }
 }

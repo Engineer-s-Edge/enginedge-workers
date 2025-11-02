@@ -13,6 +13,18 @@
 
 import { Module } from '@nestjs/common';
 import { DomainModule } from '@domain/domain.module';
+import { QuestionService } from './services/question.service';
+import { SessionService } from './services/session.service';
+import { InterviewService } from './services/interview.service';
+import { CandidateProfileService } from './services/candidate-profile.service';
+import { EvaluatorService } from './services/evaluator.service';
+import { CreateQuestionUseCase } from './use-cases/create-question.use-case';
+import { SelectQuestionsUseCase } from './use-cases/select-questions.use-case';
+import { StartInterviewUseCase } from './use-cases/start-interview.use-case';
+import { PauseInterviewUseCase } from './use-cases/pause-interview.use-case';
+import { ResumeInterviewUseCase } from './use-cases/resume-interview.use-case';
+import { SkipQuestionUseCase } from './use-cases/skip-question.use-case';
+import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
 
 /**
  * Application module - use cases and application services
@@ -25,14 +37,30 @@ import { DomainModule } from '@domain/domain.module';
     DomainModule, // Domain services (AgentFactory, MemoryManager, etc.)
   ],
   providers: [
-    
+    // Use cases
+    CreateQuestionUseCase,
+    SelectQuestionsUseCase,
+    StartInterviewUseCase,
+    PauseInterviewUseCase,
+    ResumeInterviewUseCase,
+    SkipQuestionUseCase,
+    SubmitResponseUseCase,
+    // Services
+    QuestionService,
+    SessionService,
+    InterviewService,
+    CandidateProfileService,
+    EvaluatorService,
   ],
   exports: [
     // Export domain module so infrastructure can access it
     DomainModule,
-    
-    // Export services for other modules
-    
+    // Export services for controllers
+    QuestionService,
+    SessionService,
+    InterviewService,
+    CandidateProfileService,
+    EvaluatorService,
   ],
 })
 export class ApplicationModule {}

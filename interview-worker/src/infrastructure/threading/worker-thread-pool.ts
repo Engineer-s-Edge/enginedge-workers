@@ -155,8 +155,8 @@ export class WorkerThreadPool implements OnModuleDestroy {
     this.assignTaskToWorkerWithWorker(availableWorker);
   }
 
-  private assignTaskToWorkerWithWorker(worker: Worker): void {
-    const task = this.taskQueue.shift();
+  private assignTaskToWorkerWithWorker<T = unknown, R = unknown>(worker: Worker): void {
+    const task = this.taskQueue.shift() as WorkerTask<T, R> | undefined;
     if (!task) {
       this.availableWorkers.push(worker);
       return;

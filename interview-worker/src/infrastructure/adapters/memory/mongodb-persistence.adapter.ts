@@ -6,7 +6,12 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
-import { Message } from '@domain/entities/command.entities';
+// Note: This is a mock implementation. Message type would come from assistant-worker in production.
+interface Message {
+  role: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
 
 // MongoDB document interface
 interface ConversationDocument {

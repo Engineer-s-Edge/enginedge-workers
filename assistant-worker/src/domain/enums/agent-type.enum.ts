@@ -23,6 +23,9 @@ export const AgentType = {
   
   /** Hierarchical task decomposition and delegation */
   MANAGER: 'manager',
+  
+  /** AI-powered interview conducting agent */
+  INTERVIEW: 'interview',
 } as const;
 
 /**
@@ -69,6 +72,7 @@ export function getAgentTypeDisplayName(type: AgentTypeValue): string {
     [AgentType.GENIUS]: 'Genius (Learning)',
     [AgentType.COLLECTIVE]: 'Collective (Coordination)',
     [AgentType.MANAGER]: 'Manager (Hierarchical)',
+    [AgentType.INTERVIEW]: 'Interview (Mock Interview)',
   };
   return names[type];
 }
@@ -78,14 +82,15 @@ export function getAgentTypeDisplayName(type: AgentTypeValue): string {
  */
 export function getExecutionModel(
   type: AgentTypeValue,
-): 'chain-of-thought' | 'dag' | 'research' | 'learning' | 'coordination' | 'hierarchical' {
-  const models: Record<AgentTypeValue, 'chain-of-thought' | 'dag' | 'research' | 'learning' | 'coordination' | 'hierarchical'> = {
+): 'chain-of-thought' | 'dag' | 'research' | 'learning' | 'coordination' | 'hierarchical' | 'interview' {
+  const models: Record<AgentTypeValue, 'chain-of-thought' | 'dag' | 'research' | 'learning' | 'coordination' | 'hierarchical' | 'interview'> = {
     [AgentType.REACT]: 'chain-of-thought',
     [AgentType.GRAPH]: 'dag',
     [AgentType.EXPERT]: 'research',
     [AgentType.GENIUS]: 'learning',
     [AgentType.COLLECTIVE]: 'coordination',
     [AgentType.MANAGER]: 'hierarchical',
+    [AgentType.INTERVIEW]: 'interview',
   };
   return models[type];
 }

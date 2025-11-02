@@ -237,4 +237,12 @@ export class GroqLLMAdapter implements ILLMProvider {
   getModelName(): string {
     return 'groq';
   }
+
+  async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
+    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+  }
+
+  async textToSpeech(text: string, voice?: string): Promise<Buffer> {
+    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+  }
 }

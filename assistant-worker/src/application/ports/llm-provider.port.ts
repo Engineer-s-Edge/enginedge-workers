@@ -94,4 +94,20 @@ export interface ILLMProvider {
    * Get model name
    */
   getModelName(): string;
+
+  /**
+   * Convert speech to text (STT)
+   * @param audioBuffer Audio buffer to transcribe
+   * @param language Optional language code (e.g., 'en-US')
+   * @returns Transcribed text
+   */
+  speechToText?(audioBuffer: Buffer, language?: string): Promise<string>;
+
+  /**
+   * Convert text to speech (TTS)
+   * @param text Text to convert to speech
+   * @param voice Optional voice identifier
+   * @returns Audio buffer
+   */
+  textToSpeech?(text: string, voice?: string): Promise<Buffer>;
 }

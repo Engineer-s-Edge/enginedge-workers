@@ -16,6 +16,7 @@ import { ExpertAgent } from '../agents/expert-agent/expert-agent';
 import { GeniusAgent } from '../agents/genius-agent/genius-agent';
 import { CollectiveAgent } from '../agents/collective-agent/collective-agent';
 import { ManagerAgent } from '../agents/manager-agent/manager-agent';
+import { InterviewAgent } from '../agents/interview-agent';
 import { MemoryManager } from '../services/memory-manager.service';
 import { StateMachineService } from '../services/state-machine.service';
 import { ResponseParser } from '../services/response-parser.service';
@@ -65,6 +66,8 @@ export class AgentFactory {
           return this.createCollectiveAgent(agent);
         case 'manager':
           return this.createManagerAgent(agent);
+        case 'interview':
+          return this.createInterviewAgent(agent);
         default:
           throw new BadRequestException(`Unknown agent type: ${agent.agentType}`);
       }
@@ -202,6 +205,29 @@ export class AgentFactory {
       StateMachineService,
       this.responseParser,
       this.promptBuilder,
+      config,
+    );
+  }
+
+  /**
+   * Create Interview agent
+   * Best for: Conducting mock interviews
+   */
+  private createInterviewAgent(agent: Agent): InterviewAgent {
+    const config = {
+      interviewWorkerBaseUrl: agent.config.interviewWorkerBaseUrl || process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
+      sessionId: agent.config.sessionId || '',
+      interviewId: agent.config.interviewId || '',
+      candidateId: agent.config.candidateId || '',
+      temperature: agent.config.temperature || 0.7,
+      model: agent.config.model || 'gpt-4',
+      difficulty: agent.config.difficulty || 'medium',
+      communicationMode: agent.config.communicationMode || 'text',
+    };
+
+    return new InterviewAgent(
+      this.llmProvider,
+      this.logger,
       config,
     );
   }
