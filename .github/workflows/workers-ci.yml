@@ -1,0 +1,166 @@
+name: workers-ci
+
+on:
+  push:
+    paths:
+      - 'enginedge-workers/**'
+      - 'enginedge-workers/.github/workflows/workers-ci.yml'
+  pull_request:
+    paths:
+      - 'enginedge-workers/**'
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      workers-matrix: ${{ steps.set-matrix.outputs.matrix }}
+      python-changed: ${{ steps.set-matrix.outputs.python_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          token: ${{ github.token }}
+          filters: |
+            assistant-worker:
+              - 'enginedge-workers/assistant-worker/**'
+            agent-tool-worker:
+              - 'enginedge-workers/agent-tool-worker/**'
+            data-processing-worker:
+              - 'enginedge-workers/data-processing-worker/**'
+            interview-worker:
+              - 'enginedge-workers/interview-worker/**'
+            latex-worker:
+              - 'enginedge-workers/latex-worker/**'
+            resume-worker:
+              - 'enginedge-workers/resume-worker/**'
+            identity-worker:
+              - 'enginedge-workers/identity-worker/**'
+            scheduling-worker:
+              - 'enginedge-workers/scheduling-worker/**'
+            resume-nlp-service:
+              - 'enginedge-workers/resume-nlp-service/**'
+      - name: Build matrix JSON
+        id: set-matrix
+        run: |
+          # map worker to port
+          declare -A ports=( \
+            [assistant-worker]=3001 \
+            [agent-tool-worker]=3002 \
+            [data-processing-worker]=3003 \
+            [interview-worker]=3004 \
+            [latex-worker]=3005 \
+            [resume-worker]=3006 \
+            [identity-worker]=3000 \
+            [scheduling-worker]=3000 )
+          list=()
+          for w in "assistant-worker" "agent-tool-worker" "data-processing-worker" "interview-worker" "latex-worker" "resume-worker" "identity-worker" "scheduling-worker"; do
+            changed=$(jq -r '."'"$w"'"' <<<'${{ toJson(steps.filter.outputs) }}')
+            if [ "$changed" = "true" ]; then
+              port=${ports[$w]}
+              list+=("{\"worker\":\"$w\",\"port\":$port}")
+            fi
+          done
+          matrix_json="{\"include\":[${list[*]}]}"
+          echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
+          python_changed=$(jq -r '."resume-nlp-service"' <<<'${{ toJson(steps.filter.outputs) }}')
+          echo "python_changed=$python_changed" >> $GITHUB_OUTPUT
+
+  node-workers:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: ${{ fromJson(needs.changes.outputs['workers-matrix']).include != null && contains(needs.changes.outputs['workers-matrix'], 'worker') }}
+    strategy:
+      matrix: ${{ fromJson(needs.changes.outputs['workers-matrix']) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        working-directory: enginedge-workers/${{ matrix.worker }}
+        run: npm ci || npm install
+      - name: Format check
+        working-directory: enginedge-workers/${{ matrix.worker }}
+        run: npm run format:check || (echo "Formatting check failed. Run 'npm run format' to fix." && exit 1)
+      - name: Lint check
+        working-directory: enginedge-workers/${{ matrix.worker }}
+        run: npm run lint:check || (echo "Linting check failed. Run 'npm run lint' to fix." && exit 1)
+      - name: Test
+        working-directory: enginedge-workers/${{ matrix.worker }}
+        run: npm test --if-present
+      - name: Build
+        working-directory: enginedge-workers/${{ matrix.worker }}
+        run: npm run build --if-present
+      - name: Docker login
+        if: github.ref == 'refs/heads/main'
+        run: echo $CR_PAT | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+        env:
+          CR_PAT: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Docker build & push
+        if: github.ref == 'refs/heads/main'
+        working-directory: enginedge-workers/${{ matrix.worker }}
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ matrix.worker }}:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE
+      - name: Helm deploy
+        if: github.ref == 'refs/heads/main' && secrets.KUBECONFIG_B64 != ''
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          echo "$KUBECONFIG_B64" | base64 -d > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ matrix.worker }}:${{ github.sha }}
+          helm upgrade --install ${{ matrix.worker }} ../enginedge-core/platform/k8s/charts/worker-generic \
+            --namespace default \
+            --set image.repository=${IMAGE%:*} \
+            --set image.tag=${IMAGE##*:} \
+            --set component=${{ matrix.worker }} \
+            --set port=${{ matrix.port }} \
+            --set imagePullSecrets[0].name=ghcr-pull-secret
+
+  python-services:
+    needs: changes
+    runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.python-changed == 'true' }}
+    strategy:
+      matrix:
+        service: [resume-nlp-service]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        working-directory: enginedge-workers/${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install black isort flake8 || true
+      - name: Format check
+        working-directory: enginedge-workers/${{ matrix.service }}
+        run: |
+          black --check . || (echo "Black formatting check failed. Run 'black .' to fix." && exit 1)
+          isort --check-only --profile black . || (echo "isort check failed. Run 'isort . --profile black' to fix." && exit 1)
+      - name: Lint check
+        working-directory: enginedge-workers/${{ matrix.service }}
+        run: |
+          flake8 . --max-line-length=100 --extend-ignore=E203,W503 || (echo "Flake8 check failed. Fix linting errors." && exit 1)
+      - name: Test
+        working-directory: enginedge-workers/${{ matrix.service }}
+        run: pytest -q || true
+      - name: Docker login
+        if: github.ref == 'refs/heads/main'
+        run: echo $CR_PAT | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+        env:
+          CR_PAT: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Docker build & push
+        if: github.ref == 'refs/heads/main'
+        working-directory: enginedge-workers/${{ matrix.service }}
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE
