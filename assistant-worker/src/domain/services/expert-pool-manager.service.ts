@@ -61,8 +61,13 @@ export class ExpertPoolManager {
   /**
    * Allocate experts based on requirements
    */
-  async allocateExperts(request: ExpertAllocationRequest): Promise<AllocationResult> {
-    this.logger.info(`Allocating ${request.count} experts: ${request.specialization || 'general'}`, {});
+  async allocateExperts(
+    request: ExpertAllocationRequest,
+  ): Promise<AllocationResult> {
+    this.logger.info(
+      `Allocating ${request.count} experts: ${request.specialization || 'general'}`,
+      {},
+    );
 
     const allocated: ExpertAgentInstance[] = [];
     const failed: string[] = [];
@@ -112,7 +117,9 @@ export class ExpertPoolManager {
     index: number,
   ): Promise<ExpertAgentInstance> {
     const expertId = `expert-${Date.now()}-${index}`;
-    const complexityLevel = request.complexity ? parseInt(request.complexity.replace('L', '')) : 3;
+    const complexityLevel = request.complexity
+      ? parseInt(request.complexity.replace('L', ''))
+      : 3;
 
     // Create agent config
     const config = AgentConfig.create({
@@ -122,7 +129,7 @@ export class ExpertPoolManager {
       streamingEnabled: true,
       temperature: 0.7,
       maxTokens: 4000,
-      systemPrompt: `You are an expert research agent specializing in ${request.specialization || 'general knowledge'}. 
+      systemPrompt: `You are an expert research agent specializing in ${request.specialization || 'general knowledge'}.
 Your role is to conduct thorough research, analyze sources, and synthesize findings into comprehensive reports.`,
     });
 
@@ -216,7 +223,9 @@ Your role is to conduct thorough research, analyze sources, and synthesize findi
    * Get count of available experts
    */
   async getAvailableCount(): Promise<number> {
-    const available = Array.from(this.expertPool.values()).filter((e) => e.availability).length;
+    const available = Array.from(this.expertPool.values()).filter(
+      (e) => e.availability,
+    ).length;
     this.logger.debug(`Available experts: ${available}`);
     return available;
   }
@@ -293,8 +302,12 @@ Your role is to conduct thorough research, analyze sources, and synthesize findi
     const total = this.expertPool.size;
     const available = await this.getAvailableCount();
     const busy = total - available;
-    const allocations = this.allocationHistory.filter((h) => h.action === 'allocate').length;
-    const releases = this.allocationHistory.filter((h) => h.action === 'release').length;
+    const allocations = this.allocationHistory.filter(
+      (h) => h.action === 'allocate',
+    ).length;
+    const releases = this.allocationHistory.filter(
+      (h) => h.action === 'release',
+    ).length;
 
     return { total, available, busy, allocations, releases };
   }

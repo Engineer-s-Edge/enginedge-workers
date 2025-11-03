@@ -49,7 +49,7 @@ interface GraphExecutionState {
 
 /**
  * GraphAgent - DAG-based Workflow Execution
- * 
+ *
  * Implements directed acyclic graph (DAG) execution:
  * - Node types: task, condition, user_input, approval, parallel
  * - Conditional branching
@@ -95,7 +95,7 @@ export class GraphAgent extends BaseAgent {
   ): Promise<ExecutionResult> {
     try {
       this.addThinkingStep('Starting Graph Agent execution');
-      
+
       // Parse workflow graph from input or context
       const graph = this.parseGraphDefinition(input, context);
       this.graphState.graph = graph;
@@ -131,7 +131,7 @@ export class GraphAgent extends BaseAgent {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error('Graph execution failed', { error: errorMsg });
-      
+
       return {
         status: 'error',
         output: `Graph execution failed: ${errorMsg}`,
@@ -149,7 +149,7 @@ export class GraphAgent extends BaseAgent {
   ): AsyncGenerator<string> {
     try {
       yield 'Graph Agent Starting\n';
-      
+
       const graph = this.parseGraphDefinition(input, context);
       this.graphState.graph = graph;
       this.graphState.startTime = Date.now();
@@ -168,11 +168,11 @@ export class GraphAgent extends BaseAgent {
 
       yield `\nWorkflow completed with status: ${executionResult.status}\n`;
       yield `Executed nodes: ${executionResult.executedNodes.length}/${graph.nodes.length}\n`;
-      
+
       if (executionResult.failedNodes.length > 0) {
         yield `Failed nodes: ${executionResult.failedNodes.length}\n`;
       }
-      
+
       yield `Total duration: ${executionResult.duration}ms\n`;
       yield 'Graph Agent Completed\n';
     } catch (error) {
@@ -184,7 +184,10 @@ export class GraphAgent extends BaseAgent {
   /**
    * Parse workflow graph definition from input
    */
-  private parseGraphDefinition(input: string, context: ExecutionContext): WorkflowGraph {
+  private parseGraphDefinition(
+    input: string,
+    context: ExecutionContext,
+  ): WorkflowGraph {
     try {
       // Try to parse as JSON
       const parsed = JSON.parse(input);
@@ -239,28 +242,38 @@ export class GraphAgent extends BaseAgent {
     const startTime = Date.now();
     const executedNodes: ExecutedNode[] = [];
     const failedNodes: ExecutedNode[] = [];
-    const errors: Array<{ nodeId: string; message: string; code?: string }> = [];
+    const errors: Array<{ nodeId: string; message: string; code?: string }> =
+      [];
     const nodeResults = new Map<string, unknown>();
 
     try {
       // Topological sort of nodes
       const executionOrder = this.topologicalSort(graph);
 
-      this.logger.info('GraphAgent: Execution order', { order: executionOrder });
+      this.logger.info('GraphAgent: Execution order', {
+        order: executionOrder,
+      });
 
       // Execute nodes
       for (const nodeId of executionOrder) {
-        const node = graph.nodes.find(n => n.id === nodeId);
+        const node = graph.nodes.find((n) => n.id === nodeId);
         if (!node) continue;
 
         try {
-          const executedNode = await this.executeNode(node, nodeResults, context);
+          const executedNode = await this.executeNode(
+            node,
+            nodeResults,
+            context,
+          );
           executedNodes.push(executedNode);
           nodeResults.set(nodeId, executedNode.output);
 
-          this.addThinkingStep(`Node ${node.name} completed with status ${executedNode.status}`);
+          this.addThinkingStep(
+            `Node ${node.name} completed with status ${executedNode.status}`,
+          );
         } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
           const failedNode: ExecutedNode = {
             nodeId: node.id,
             nodeName: node.name,
@@ -273,7 +286,7 @@ export class GraphAgent extends BaseAgent {
             startTime: new Date(),
             retryCount: 0,
           };
-          
+
           executedNodes.push(failedNode);
           failedNodes.push(failedNode);
           errors.push({
@@ -294,7 +307,12 @@ export class GraphAgent extends BaseAgent {
 
       return {
         graphId: graph.id,
-        status: failedNodes.length === 0 ? 'success' : failedNodes.length === executedNodes.length ? 'failed' : 'partial',
+        status:
+          failedNodes.length === 0
+            ? 'success'
+            : failedNodes.length === executedNodes.length
+              ? 'failed'
+              : 'partial',
         startTime: new Date(startTime),
         endTime: new Date(endTime),
         duration,
@@ -328,7 +346,8 @@ export class GraphAgent extends BaseAgent {
   ): Promise<ExecutedNode> {
     const startTime = new Date();
     let retryCount = 0;
-    const maxRetries = node.retryPolicy?.maxRetries ?? this.config.maxRetries ?? 3;
+    const maxRetries =
+      node.retryPolicy?.maxRetries ?? this.config.maxRetries ?? 3;
 
     while (retryCount <= maxRetries) {
       try {
@@ -348,7 +367,11 @@ export class GraphAgent extends BaseAgent {
             break;
 
           case NodeType.DECISION:
-            output = await this.executeDecisionNode(node, previousResults, context);
+            output = await this.executeDecisionNode(
+              node,
+              previousResults,
+              context,
+            );
             break;
 
           case NodeType.PARALLEL_SPLIT:
@@ -385,14 +408,18 @@ export class GraphAgent extends BaseAgent {
         retryCount++;
 
         if (retryCount > maxRetries) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
-          throw new Error(`Node execution failed after ${retryCount} attempts: ${errorMsg}`);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          throw new Error(
+            `Node execution failed after ${retryCount} attempts: ${errorMsg}`,
+          );
         }
 
         // Exponential backoff
-        const backoffMs = (node.retryPolicy?.backoffMs ?? 100) * 
+        const backoffMs =
+          (node.retryPolicy?.backoffMs ?? 100) *
           Math.pow(node.retryPolicy?.backoffMultiplier ?? 2, retryCount - 1);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
     }
 
@@ -408,8 +435,9 @@ export class GraphAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<unknown> {
     // Use LLM to process the task
-    const prompt = node.config.prompt as string || `Execute task: ${node.name}`;
-    
+    const prompt =
+      (node.config.prompt as string) || `Execute task: ${node.name}`;
+
     const systemPrompt = this.promptBuilder.buildSystemPrompt('task', {
       taskName: node.name,
       taskDescription: node.description,
@@ -421,7 +449,7 @@ export class GraphAgent extends BaseAgent {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
       ],
-      temperature: this.config.temperature as number ?? 0.5,
+      temperature: (this.config.temperature as number) ?? 0.5,
       maxTokens: 1000,
     };
 
@@ -437,15 +465,19 @@ export class GraphAgent extends BaseAgent {
     previousResults: Map<string, unknown>,
     context: ExecutionContext,
   ): Promise<unknown> {
-    const condition = node.config.condition as string || '';
-    
+    const condition = (node.config.condition as string) || '';
+
     // Evaluate condition
     try {
       // Simple evaluation - in production use a safe evaluator
       const result = eval(condition);
       return { decision: result, condition };
     } catch {
-      return { decision: false, condition, error: 'Failed to evaluate condition' };
+      return {
+        decision: false,
+        condition,
+        error: 'Failed to evaluate condition',
+      };
     }
   }
 

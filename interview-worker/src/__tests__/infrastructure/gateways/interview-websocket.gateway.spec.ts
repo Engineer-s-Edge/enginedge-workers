@@ -151,4 +151,3 @@ describe('InterviewWebSocketGateway', () => {
     expect(mockTranscriptRepository.appendMessage).toHaveBeenCalled();
   });
 });
-

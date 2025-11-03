@@ -32,5 +32,8 @@ export interface MessageBrokerPort {
   /**
    * Subscribe to a topic and handle messages
    */
-  subscribe(topic: string, handler: (message: unknown) => Promise<void>): Promise<void>;
+  subscribe(
+    topic: string,
+    handler: (message: unknown) => Promise<void>,
+  ): Promise<void>;
 }

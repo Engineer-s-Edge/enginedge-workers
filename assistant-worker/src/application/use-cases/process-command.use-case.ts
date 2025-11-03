@@ -3,7 +3,7 @@ import { CommandDto, CommandResultDto } from '../dto/command.dto';
 
 /**
  * Use Case: Process Command
- * 
+ *
  * Orchestrates the processing of commands received from the message queue.
  * This is application layer logic that coordinates domain services and entities.
  */
@@ -95,4 +95,3 @@ export class ProcessCommandUseCase {
     };
   }
 }
-

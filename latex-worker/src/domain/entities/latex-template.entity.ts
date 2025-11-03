@@ -1,6 +1,6 @@
 /**
  * LaTeXTemplate Entity
- * 
+ *
  * Represents a reusable LaTeX template with variable substitution.
  * Used for resumes, articles, reports, letters, etc.
  */
@@ -198,9 +198,10 @@ export class LaTeXTemplate {
           substitutionValue = value ? 'true' : 'false';
           break;
         case 'date':
-          substitutionValue = value instanceof Date
-            ? value.toISOString().split('T')[0]
-            : String(value);
+          substitutionValue =
+            value instanceof Date
+              ? value.toISOString().split('T')[0]
+              : String(value);
           break;
         default:
           substitutionValue = String(value);

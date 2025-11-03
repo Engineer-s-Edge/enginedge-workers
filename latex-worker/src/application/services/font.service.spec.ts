@@ -200,7 +200,7 @@ describe('FontService', () => {
     it('should continue on individual font errors', async () => {
       mockFileSystem.mkdir.mockResolvedValue(undefined);
       mockFileSystem.exists
-        .mockResolvedValueOnce(true)  // First font exists
+        .mockResolvedValueOnce(true) // First font exists
         .mockResolvedValueOnce(false); // Second font missing
 
       mockFileSystem.readFile.mockResolvedValue(Buffer.from('font data'));
@@ -305,7 +305,9 @@ describe('FontService', () => {
 
       expect(result.valid).toBe(false);
       expect(result.missingFonts).toContain('CustomFont123');
-      expect(result.warnings.some(w => w.includes('Missing fonts'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('Missing fonts'))).toBe(
+        true,
+      );
     });
 
     it('should validate documents without custom fonts', async () => {
@@ -403,7 +405,7 @@ describe('FontService', () => {
 
       const fontFiles = await service.findFontFiles('/project');
 
-      const normalized = fontFiles.map(f => f.replace(/\\/g, '/'));
+      const normalized = fontFiles.map((f) => f.replace(/\\/g, '/'));
       expect(normalized).toContain('fonts/Arial.ttf');
       expect(normalized).toContain('fonts/Times.otf');
       expect(normalized).not.toContain('fonts/readme.txt');

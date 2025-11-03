@@ -1,6 +1,6 @@
 /**
  * Google Speech API Adapter
- * 
+ *
  * Handles Speech-to-Text (STT) and Text-to-Speech (TTS) via Google Cloud Speech API.
  */
 
@@ -23,7 +23,10 @@ export class GoogleSpeechAdapter {
   /**
    * Convert speech to text using Google Speech-to-Text API
    */
-  async speechToText(audioBuffer: Buffer, language: string = 'en-US'): Promise<string> {
+  async speechToText(
+    audioBuffer: Buffer,
+    language: string = 'en-US',
+  ): Promise<string> {
     if (!this.apiKey) {
       throw new Error('Google Cloud API key not configured');
     }
@@ -56,7 +59,10 @@ export class GoogleSpeechAdapter {
   /**
    * Convert text to speech using Google Text-to-Speech API
    */
-  async textToSpeech(text: string, voice: string = 'en-US-Wavenet-D'): Promise<Buffer> {
+  async textToSpeech(
+    text: string,
+    voice: string = 'en-US-Wavenet-D',
+  ): Promise<Buffer> {
     if (!this.apiKey) {
       throw new Error('Google Cloud API key not configured');
     }
@@ -81,4 +87,3 @@ export class GoogleSpeechAdapter {
     }
   }
 }
-

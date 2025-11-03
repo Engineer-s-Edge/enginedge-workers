@@ -6,10 +6,17 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type MermaidOperation = 'render-diagram' | 'validate-syntax' | 'get-themes' | 'convert-format';
+export type MermaidOperation =
+  | 'render-diagram'
+  | 'validate-syntax'
+  | 'get-themes'
+  | 'convert-format';
 
 export interface MermaidArgs {
   operation: MermaidOperation;
@@ -47,7 +54,8 @@ export interface MermaidOutput extends ToolOutput {
 @Injectable()
 export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
   readonly name = 'mermaid-actor';
-  readonly description = 'Provides integration with Mermaid for diagram rendering and generation';
+  readonly description =
+    'Provides integration with Mermaid for diagram rendering and generation';
 
   readonly errorEvents: ErrorEvent[];
 
@@ -79,26 +87,31 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
         properties: {
           operation: {
             type: 'string',
-            enum: ['render-diagram', 'validate-syntax', 'get-themes', 'convert-format']
+            enum: [
+              'render-diagram',
+              'validate-syntax',
+              'get-themes',
+              'convert-format',
+            ],
           },
           diagramCode: { type: 'string' },
           sourceFormat: {
             type: 'string',
-            enum: ['mermaid', 'plantuml', 'graphviz']
+            enum: ['mermaid', 'plantuml', 'graphviz'],
           },
           targetFormat: {
             type: 'string',
-            enum: ['svg', 'png', 'pdf', 'mermaid']
+            enum: ['svg', 'png', 'pdf', 'mermaid'],
           },
           theme: {
             type: 'string',
-            enum: ['default', 'dark', 'forest', 'neutral']
+            enum: ['default', 'dark', 'forest', 'neutral'],
           },
           width: { type: 'number', minimum: 100, maximum: 5000 },
           height: { type: 'number', minimum: 100, maximum: 5000 },
-          backgroundColor: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' }
+          backgroundColor: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
         },
-        required: ['operation']
+        required: ['operation'],
       },
       {
         type: 'object',
@@ -106,7 +119,12 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
           success: { type: 'boolean' },
           operation: {
             type: 'string',
-            enum: ['render-diagram', 'validate-syntax', 'get-themes', 'convert-format']
+            enum: [
+              'render-diagram',
+              'validate-syntax',
+              'get-themes',
+              'convert-format',
+            ],
           },
           svgContent: { type: 'string' },
           pngData: { type: 'string' },
@@ -116,13 +134,13 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
           themes: { type: 'array', items: { type: 'string' } },
           convertedCode: { type: 'string' },
           diagramType: { type: 'string' },
-          renderTime: { type: 'number' }
+          renderTime: { type: 'number' },
         },
-        required: ['success', 'operation']
+        required: ['success', 'operation'],
       },
       [],
       ActorCategory.EXTERNAL_PRODUCTIVITY,
-      false
+      false,
     );
 
     super(metadata, errorEvents);
@@ -142,16 +160,19 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
       case 'convert-format':
         return this.convertFormat(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
   private async renderDiagram(args: MermaidArgs): Promise<MermaidOutput> {
     if (!args.diagramCode) {
       throw Object.assign(new Error('Diagram code is required for rendering'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -162,7 +183,12 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
       const diagramType = this.extractDiagramType(args.diagramCode);
 
       // Simulate rendering - In real implementation, this would use Mermaid CLI or API
-      const svgContent = this.generateMockSVG(args.diagramCode, args.theme || 'default', args.width || 800, args.height || 600);
+      const svgContent = this.generateMockSVG(
+        args.diagramCode,
+        args.theme || 'default',
+        args.width || 800,
+        args.height || 600,
+      );
 
       const renderTime = Date.now() - startTime;
 
@@ -171,7 +197,7 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
         operation: 'render-diagram',
         svgContent,
         diagramType,
-        renderTime
+        renderTime,
       };
     } catch (error: unknown) {
       throw this.handleRenderError(error);
@@ -180,9 +206,12 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
 
   private async validateSyntax(args: MermaidArgs): Promise<MermaidOutput> {
     if (!args.diagramCode) {
-      throw Object.assign(new Error('Diagram code is required for validation'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Diagram code is required for validation'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -194,7 +223,9 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
         operation: 'validate-syntax',
         isValid,
         errors: isValid ? undefined : errors,
-        diagramType: isValid ? this.extractDiagramType(args.diagramCode) : undefined
+        diagramType: isValid
+          ? this.extractDiagramType(args.diagramCode)
+          : undefined,
       };
     } catch (error: unknown) {
       throw this.handleRenderError(error);
@@ -208,7 +239,7 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
       return {
         success: true,
         operation: 'get-themes',
-        themes
+        themes,
       };
     } catch (error: unknown) {
       throw this.handleRenderError(error);
@@ -217,14 +248,17 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
 
   private async convertFormat(args: MermaidArgs): Promise<MermaidOutput> {
     if (!args.diagramCode) {
-      throw Object.assign(new Error('Diagram code is required for conversion'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Diagram code is required for conversion'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     if (!args.sourceFormat || !args.targetFormat) {
       throw Object.assign(new Error('Source and target formats are required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -234,19 +268,27 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
 
       if (args.sourceFormat === 'plantuml' && args.targetFormat === 'mermaid') {
         convertedCode = this.convertPlantUMLToMermaid(args.diagramCode);
-      } else if (args.sourceFormat === 'graphviz' && args.targetFormat === 'mermaid') {
+      } else if (
+        args.sourceFormat === 'graphviz' &&
+        args.targetFormat === 'mermaid'
+      ) {
         convertedCode = this.convertGraphvizToMermaid(args.diagramCode);
       }
 
       return {
         success: true,
         operation: 'convert-format',
-        convertedCode
+        convertedCode,
       };
     } catch (error: unknown) {
-      throw Object.assign(new Error(`Format conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`), {
-        name: 'ConversionError'
-      });
+      throw Object.assign(
+        new Error(
+          `Format conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ),
+        {
+          name: 'ConversionError',
+        },
+      );
     }
   }
 
@@ -256,7 +298,10 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
 
     if (firstLine?.includes('gitgraph')) {
       return 'gitgraph';
-    } else if (firstLine?.includes('graph') || firstLine?.includes('flowchart')) {
+    } else if (
+      firstLine?.includes('graph') ||
+      firstLine?.includes('flowchart')
+    ) {
       return 'flowchart';
     } else if (firstLine?.includes('sequence')) {
       return 'sequence';
@@ -296,7 +341,12 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
     const firstLine = lines[0]?.trim();
 
     // Check for basic diagram declaration
-    if (!firstLine || !/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|gitgraph|mindmap|timeline|sankey)/i.test(firstLine)) {
+    if (
+      !firstLine ||
+      !/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|gitgraph|mindmap|timeline|sankey)/i.test(
+        firstLine,
+      )
+    ) {
       errors.push('Diagram must start with a valid diagram type declaration');
     }
 
@@ -310,14 +360,30 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
     for (const line of lines) {
       for (const char of line) {
         switch (char) {
-          case '[': bracketCount++; break;
-          case ']': bracketCount--; break;
-          case '{': braceCount++; break;
-          case '}': braceCount--; break;
-          case '(': parenCount++; break;
-          case ')': parenCount--; break;
-          case "'": quoteCount = 1 - quoteCount; break;
-          case '"': doubleQuoteCount = 1 - doubleQuoteCount; break;
+          case '[':
+            bracketCount++;
+            break;
+          case ']':
+            bracketCount--;
+            break;
+          case '{':
+            braceCount++;
+            break;
+          case '}':
+            braceCount--;
+            break;
+          case '(':
+            parenCount++;
+            break;
+          case ')':
+            parenCount--;
+            break;
+          case "'":
+            quoteCount = 1 - quoteCount;
+            break;
+          case '"':
+            doubleQuoteCount = 1 - doubleQuoteCount;
+            break;
         }
       }
     }
@@ -331,7 +397,12 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
     return errors;
   }
 
-  private generateMockSVG(code: string, theme: string, width: number, height: number): string {
+  private generateMockSVG(
+    code: string,
+    theme: string,
+    width: number,
+    height: number,
+  ): string {
     // Generate a mock SVG based on diagram type
     const diagramType = this.extractDiagramType(code);
 
@@ -339,10 +410,11 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
       default: { bg: '#ffffff', text: '#000000', border: '#000000' },
       dark: { bg: '#1f2937', text: '#ffffff', border: '#ffffff' },
       forest: { bg: '#f0f9f0', text: '#0f5132', border: '#0f5132' },
-      neutral: { bg: '#f8f9fa', text: '#495057', border: '#495057' }
+      neutral: { bg: '#f8f9fa', text: '#495057', border: '#495057' },
     };
 
-    const colors = themeColors[theme as keyof typeof themeColors] || themeColors.default;
+    const colors =
+      themeColors[theme as keyof typeof themeColors] || themeColors.default;
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="100%" height="100%" fill="${colors.bg}" stroke="${colors.border}" stroke-width="2"/>
@@ -358,7 +430,9 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
 
     // Convert @startuml/@enduml to mermaid syntax
     mermaidCode = mermaidCode.replace(/@startuml[\s\S]*?@enduml/g, (match) => {
-      const content = match.replace(/@startuml\s*/, '').replace(/\s*@enduml/, '');
+      const content = match
+        .replace(/@startuml\s*/, '')
+        .replace(/\s*@enduml/, '');
       return content;
     });
 
@@ -384,28 +458,32 @@ export class MermaidActor extends BaseActor<MermaidArgs, MermaidOutput> {
   }
 
   private handleRenderError(error: unknown): Error {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown rendering error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown rendering error';
 
     if (errorMessage.includes('syntax') || errorMessage.includes('parse')) {
       return Object.assign(new Error(`Syntax error: ${errorMessage}`), {
-        name: 'SyntaxError'
+        name: 'SyntaxError',
       });
     }
 
     if (errorMessage.includes('render') || errorMessage.includes('svg')) {
       return Object.assign(new Error(`Rendering failed: ${errorMessage}`), {
-        name: 'RenderError'
+        name: 'RenderError',
       });
     }
 
     if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       return Object.assign(new Error('Network connectivity issue'), {
-        name: 'NetworkError'
+        name: 'NetworkError',
       });
     }
 
-    return Object.assign(new Error(`Mermaid operation failed: ${errorMessage}`), {
-      name: 'RenderError'
-    });
+    return Object.assign(
+      new Error(`Mermaid operation failed: ${errorMessage}`),
+      {
+        name: 'RenderError',
+      },
+    );
   }
 }

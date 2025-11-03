@@ -39,7 +39,9 @@ describe('XeLaTeXCompilerAdapter', () => {
       const workingDir = '/tmp/test';
 
       mockFileSystem.exists.mockResolvedValue(true);
-      mockFileSystem.readFile.mockResolvedValue(Buffer.from('mock log content'));
+      mockFileSystem.readFile.mockResolvedValue(
+        Buffer.from('mock log content'),
+      );
 
       await adapter.compile(document, workingDir);
 
@@ -63,7 +65,11 @@ describe('XeLaTeXCompilerAdapter', () => {
     });
 
     it('should log compilation start', async () => {
-      const document = LaTeXDocument.create('3', '\\documentclass{article}\\begin{document}\\end{document}', {});
+      const document = LaTeXDocument.create(
+        '3',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+        {},
+      );
       const workingDir = '/tmp/test3';
 
       mockFileSystem.exists.mockResolvedValue(true);
@@ -78,7 +84,11 @@ describe('XeLaTeXCompilerAdapter', () => {
     });
 
     it('should handle multi-pass compilation', async () => {
-      const document = LaTeXDocument.create('4', '\\documentclass{article}\\begin{document}\\end{document}', {});
+      const document = LaTeXDocument.create(
+        '4',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+        {},
+      );
       const workingDir = '/tmp/test4';
 
       mockFileSystem.exists.mockResolvedValue(true);
@@ -90,7 +100,11 @@ describe('XeLaTeXCompilerAdapter', () => {
     });
 
     it('should handle missing PDF file', async () => {
-      const document = LaTeXDocument.create('7', '\\documentclass{article}\\begin{document}\\end{document}', {});
+      const document = LaTeXDocument.create(
+        '7',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+        {},
+      );
       const workingDir = '/tmp/test7';
 
       mockFileSystem.exists.mockResolvedValue(false);
@@ -102,7 +116,11 @@ describe('XeLaTeXCompilerAdapter', () => {
     });
 
     it('should track compilation time', async () => {
-      const document = LaTeXDocument.create('9', '\\documentclass{article}\\begin{document}\\end{document}', {});
+      const document = LaTeXDocument.create(
+        '9',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+        {},
+      );
       const workingDir = '/tmp/test9';
 
       mockFileSystem.exists.mockResolvedValue(true);
@@ -114,7 +132,11 @@ describe('XeLaTeXCompilerAdapter', () => {
     });
 
     it('should handle documents with shell escape enabled', async () => {
-      const document = LaTeXDocument.create('10', '\\documentclass{article}\\begin{document}\\end{document}', {});
+      const document = LaTeXDocument.create(
+        '10',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+        {},
+      );
       const workingDir = '/tmp/test10';
 
       mockFileSystem.exists.mockResolvedValue(true);
@@ -128,7 +150,12 @@ describe('XeLaTeXCompilerAdapter', () => {
 
   describe('compileProject', () => {
     it('should log project compilation start', async () => {
-      const project = LaTeXProject.create('proj1', 'Test Project', 'main.tex', '\\documentclass{article}\\begin{document}\\end{document}');
+      const project = LaTeXProject.create(
+        'proj1',
+        'Test Project',
+        'main.tex',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+      );
       const workingDir = '/tmp/proj';
 
       mockFileSystem.exists.mockResolvedValue(true);
@@ -140,8 +167,16 @@ describe('XeLaTeXCompilerAdapter', () => {
     });
 
     it('should handle project with multiple files', async () => {
-      const project = LaTeXProject.create('proj2', 'Multi-file', 'main.tex', '\\documentclass{article}\\begin{document}\\end{document}')
-        .addFile({ path: 'chapter1.tex', content: 'Chapter content', type: 'tex' });
+      const project = LaTeXProject.create(
+        'proj2',
+        'Multi-file',
+        'main.tex',
+        '\\documentclass{article}\\begin{document}\\end{document}',
+      ).addFile({
+        path: 'chapter1.tex',
+        content: 'Chapter content',
+        type: 'tex',
+      });
       const workingDir = '/tmp/proj2';
 
       mockFileSystem.exists.mockResolvedValue(true);
@@ -183,7 +218,9 @@ describe('XeLaTeXCompilerAdapter', () => {
       const workingDir = '/tmp/test11';
 
       mockFileSystem.exists.mockResolvedValue(false);
-      mockFileSystem.readFile.mockResolvedValue(Buffer.from('Error in compilation'));
+      mockFileSystem.readFile.mockResolvedValue(
+        Buffer.from('Error in compilation'),
+      );
 
       const result = await adapter.compile(document, workingDir);
 

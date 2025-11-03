@@ -71,8 +71,13 @@ export const ExperienceBankItemSchemaFactory = SchemaFactory.createForClass(
 
 // Add indexes for common queries
 ExperienceBankItemSchemaFactory.index({ userId: 1, 'metadata.reviewed': 1 });
-ExperienceBankItemSchemaFactory.index({ userId: 1, 'metadata.technologies': 1 });
+ExperienceBankItemSchemaFactory.index({
+  userId: 1,
+  'metadata.technologies': 1,
+});
 ExperienceBankItemSchemaFactory.index({ userId: 1, 'metadata.role': 1 });
-ExperienceBankItemSchemaFactory.index({ userId: 1, 'metadata.impactScore': -1 });
+ExperienceBankItemSchemaFactory.index({
+  userId: 1,
+  'metadata.impactScore': -1,
+});
 ExperienceBankItemSchemaFactory.index({ hash: 1 }, { unique: true });
-

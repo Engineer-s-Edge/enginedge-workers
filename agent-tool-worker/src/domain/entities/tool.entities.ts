@@ -20,7 +20,8 @@ export interface ToolResult<TArgs = unknown, TOutput = unknown> {
   durationMs: number;
 }
 
-export interface ToolSuccess<TArgs = unknown, TOutput = unknown> extends ToolResult<TArgs, TOutput> {
+export interface ToolSuccess<TArgs = unknown, TOutput = unknown>
+  extends ToolResult<TArgs, TOutput> {
   success: true;
   output: TOutput;
 }

@@ -84,7 +84,10 @@ export class ExpertAgent extends BaseAgent {
       ...this.researchState,
       sources: [...this.researchState.sources, source],
     };
-    this.logger.info('Added research source', { url: source.url, title: source.title });
+    this.logger.info('Added research source', {
+      url: source.url,
+      title: source.title,
+    });
   }
 
   /**
@@ -139,11 +142,16 @@ export class ExpertAgent extends BaseAgent {
         },
       };
     } catch (error) {
-      this.logger.error('ExpertAgent: Research failed', error as Record<string, unknown>);
+      this.logger.error(
+        'ExpertAgent: Research failed',
+        error as Record<string, unknown>,
+      );
       return {
         status: 'error',
         output: `Research failed: ${error instanceof Error ? error.message : String(error)}`,
-        error: { message: error instanceof Error ? error.message : String(error) },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       };
     }
   }
@@ -251,7 +259,9 @@ export class ExpertAgent extends BaseAgent {
             sources.push({
               id: result.id || `source_${sources.length}`,
               url: `doc://${result.documentId}#chunk${result.chunkIndex}`,
-              title: result.metadata?.title as string || `Document ${result.documentId}`,
+              title:
+                (result.metadata?.title as string) ||
+                `Document ${result.documentId}`,
               content: result.content,
               credibilityScore: this.calculateCredibility(result.score),
               evaluationNotes: `Document ${result.documentId}, Chunk ${result.chunkIndex}, Similarity: ${result.score.toFixed(3)}`,
@@ -264,15 +274,20 @@ export class ExpertAgent extends BaseAgent {
           sourcesFound: sources.length,
         });
       } catch (error) {
-        this.logger.error('ExpertAgent: RAG search failed, falling back to simulation', {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        this.logger.error(
+          'ExpertAgent: RAG search failed, falling back to simulation',
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
         // Fall back to simulated sources if RAG fails
         this.addSimulatedSources(queries, sources);
       }
     } else {
       // Fallback: Simulate source discovery if RAG not available
-      this.logger.info('ExpertAgent: RAG not available, using simulated sources');
+      this.logger.info(
+        'ExpertAgent: RAG not available, using simulated sources',
+      );
       this.addSimulatedSources(queries, sources);
     }
 
@@ -300,7 +315,10 @@ export class ExpertAgent extends BaseAgent {
   /**
    * Add simulated sources (fallback when RAG is not available)
    */
-  private addSimulatedSources(queries: string[], sources: ResearchSource[]): void {
+  private addSimulatedSources(
+    queries: string[],
+    sources: ResearchSource[],
+  ): void {
     queries.forEach((q, idx) => {
       sources.push({
         id: `source_${idx}`,
@@ -335,7 +353,8 @@ export class ExpertAgent extends BaseAgent {
         messages: [
           {
             role: 'system',
-            content: 'You are a critical analyst. Extract key evidence and identify any contradictions.',
+            content:
+              'You are a critical analyst. Extract key evidence and identify any contradictions.',
           },
           {
             role: 'user',
@@ -364,7 +383,8 @@ export class ExpertAgent extends BaseAgent {
       sourcesEvaluated: this.researchState.sources.length,
       evidenceExtracted: evidenceList.length,
       contradictionsFound: 0,
-      averageQuality: evidenceList.length > 0 ? totalQuality / evidenceList.length : 0,
+      averageQuality:
+        evidenceList.length > 0 ? totalQuality / evidenceList.length : 0,
       duration: Date.now() - startTime,
     };
   }
@@ -390,7 +410,8 @@ export class ExpertAgent extends BaseAgent {
       messages: [
         {
           role: 'system',
-          content: 'You are a synthesis expert. Integrate research findings into a coherent narrative.',
+          content:
+            'You are a synthesis expert. Integrate research findings into a coherent narrative.',
         },
         {
           role: 'user',

@@ -61,9 +61,7 @@ export class ExpertResearchPipelineService {
   /**
    * Execute full research pipeline (AIM → SHOOT → SKIN)
    */
-  async executeResearchPipeline(
-    topics: ResearchTopic[],
-  ): Promise<{
+  async executeResearchPipeline(topics: ResearchTopic[]): Promise<{
     report: ResearchReport;
     stages: PipelineStage[];
     progress$: Observable<ResearchProgress>;
@@ -84,7 +82,12 @@ export class ExpertResearchPipelineService {
       const skinStage = await this.executeSKIN(shootStage.sources, stages);
 
       // Generate final report
-      const report = this.generateReport(topics, aimStage, shootStage, skinStage);
+      const report = this.generateReport(
+        topics,
+        aimStage,
+        shootStage,
+        skinStage,
+      );
 
       this.logger.log(`Research pipeline completed successfully`);
 
@@ -174,7 +177,9 @@ export class ExpertResearchPipelineService {
     aimResult: ExplorationResult,
     stages: PipelineStage[],
   ): Promise<{ sources: ResearchSource[]; evidence: EvidenceEntry[] }> {
-    this.logger.log(`Executing SHOOT phase for ${aimResult.queriesGenerated} queries`);
+    this.logger.log(
+      `Executing SHOOT phase for ${aimResult.queriesGenerated} queries`,
+    );
 
     const stage: PipelineStage = {
       name: 'Search & Operations',
@@ -184,7 +189,11 @@ export class ExpertResearchPipelineService {
     };
 
     try {
-      this.emitProgress(stage, 10, `Starting search for ${aimResult.queriesGenerated} queries`);
+      this.emitProgress(
+        stage,
+        10,
+        `Starting search for ${aimResult.queriesGenerated} queries`,
+      );
 
       const sources: ResearchSource[] = [];
       const evidence: EvidenceEntry[] = [];
@@ -215,7 +224,10 @@ export class ExpertResearchPipelineService {
 
       stage.status = 'completed';
       stage.completedAt = new Date();
-      stage.output = { sourceCount: sources.length, evidenceCount: evidence.length };
+      stage.output = {
+        sourceCount: sources.length,
+        evidenceCount: evidence.length,
+      };
 
       stages.push(stage);
 
@@ -253,15 +265,27 @@ export class ExpertResearchPipelineService {
 
       // Group sources by theme/topic
       const themes = this.groupSourcesByTheme(sources);
-      this.emitProgress(stage, 30, `Grouped findings into ${themes.size} themes`);
+      this.emitProgress(
+        stage,
+        30,
+        `Grouped findings into ${themes.size} themes`,
+      );
 
       // Detect contradictions
       const contradictions = this.detectContradictions();
-      this.emitProgress(stage, 60, `Identified ${contradictions.length} potential contradictions`);
+      this.emitProgress(
+        stage,
+        60,
+        `Identified ${contradictions.length} potential contradictions`,
+      );
 
       // Resolve contradictions with source credibility
       const resolvedInsights = this.resolveContradictions(contradictions);
-      this.emitProgress(stage, 80, `Resolved ${contradictions.length} contradictions`);
+      this.emitProgress(
+        stage,
+        80,
+        `Resolved ${contradictions.length} contradictions`,
+      );
 
       this.emitProgress(stage, 95, 'Synthesis generation complete');
 
@@ -334,7 +358,10 @@ export class ExpertResearchPipelineService {
   /**
    * Extract evidence from a source
    */
-  private extractEvidence(source: ResearchSource, query: string): EvidenceEntry[] {
+  private extractEvidence(
+    source: ResearchSource,
+    query: string,
+  ): EvidenceEntry[] {
     return [
       {
         id: `evidence-${source.id}`,
@@ -349,7 +376,9 @@ export class ExpertResearchPipelineService {
   /**
    * Group sources by theme
    */
-  private groupSourcesByTheme(sources: ResearchSource[]): Map<string, ResearchSource[]> {
+  private groupSourcesByTheme(
+    sources: ResearchSource[],
+  ): Map<string, ResearchSource[]> {
     const themes = new Map<string, ResearchSource[]>();
 
     for (const source of sources) {
@@ -375,7 +404,9 @@ export class ExpertResearchPipelineService {
    * Resolve contradictions using source credibility
    */
   private resolveContradictions(contradictions: Contradiction[]): string[] {
-    return contradictions.map((c) => `Resolved contradiction ${c.id}: ${c.description}`);
+    return contradictions.map(
+      (c) => `Resolved contradiction ${c.id}: ${c.description}`,
+    );
   }
 
   /**
@@ -413,7 +444,11 @@ export class ExpertResearchPipelineService {
   /**
    * Emit progress updates
    */
-  private emitProgress(stage: PipelineStage, progress: number, message: string): void {
+  private emitProgress(
+    stage: PipelineStage,
+    progress: number,
+    message: string,
+  ): void {
     this.progressSubject.next({
       stage,
       progress,

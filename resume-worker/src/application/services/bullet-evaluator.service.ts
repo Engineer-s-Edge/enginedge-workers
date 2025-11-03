@@ -31,7 +31,7 @@ export class BulletEvaluatorService {
 
   /**
    * Evaluate a single bullet point against quality KPIs.
-   * 
+   *
    * This proxies to the resume-nlp-service via Kafka for NLP-based checks,
    * but also performs some local checks.
    */
@@ -39,7 +39,7 @@ export class BulletEvaluatorService {
     bulletText: string,
     role?: string,
     useLlm: boolean = false,
-    generateFixes: boolean = true
+    generateFixes: boolean = true,
   ): Promise<BulletEvaluationResult> {
     this.logger.log(`Evaluating bullet: ${bulletText.substring(0, 50)}...`);
 
@@ -49,7 +49,7 @@ export class BulletEvaluatorService {
 
     // Placeholder: In production, this would send to Kafka topic 'resume.bullet.evaluate'
     // and listen for response on 'resume.bullet.evaluate.response'
-    
+
     // For now, return mock data
     const result: BulletEvaluationResult = {
       overallScore: 0.85,
@@ -58,32 +58,34 @@ export class BulletEvaluatorService {
         actionVerb: {
           passed: true,
           score: 1.0,
-          feedback: 'Starts with strong action verb'
+          feedback: 'Starts with strong action verb',
         },
         quantifiable: {
           passed: true,
           score: 1.0,
-          feedback: 'Contains quantifiable metrics'
+          feedback: 'Contains quantifiable metrics',
         },
         concise: {
           passed: true,
           score: 0.9,
-          feedback: 'Length is appropriate'
-        }
+          feedback: 'Length is appropriate',
+        },
       },
       feedback: [
         'Strong action verb used',
         'Good use of metrics',
-        'Consider adding more context'
+        'Consider adding more context',
       ],
-      suggestedFixes: generateFixes ? [
-        {
-          description: 'Add percentage improvement',
-          fixedText: bulletText + ' by 25%',
-          confidence: 0.8,
-          changesApplied: ['add_metric']
-        }
-      ] : undefined
+      suggestedFixes: generateFixes
+        ? [
+            {
+              description: 'Add percentage improvement',
+              fixedText: bulletText + ' by 25%',
+              confidence: 0.8,
+              changesApplied: ['add_metric'],
+            },
+          ]
+        : undefined,
     };
 
     return result;
@@ -95,11 +97,10 @@ export class BulletEvaluatorService {
   async evaluateBullets(
     bullets: string[],
     role?: string,
-    useLlm: boolean = false
+    useLlm: boolean = false,
   ): Promise<BulletEvaluationResult[]> {
     return Promise.all(
-      bullets.map(bullet => this.evaluateBullet(bullet, role, useLlm, false))
+      bullets.map((bullet) => this.evaluateBullet(bullet, role, useLlm, false)),
     );
   }
 }
-

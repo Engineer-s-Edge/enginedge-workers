@@ -3,7 +3,11 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { TodoistActor, TodoistArgs, TodoistOutput } from '@infrastructure/tools/actors/todoist.actor';
+import {
+  TodoistActor,
+  TodoistArgs,
+  TodoistOutput,
+} from '@infrastructure/tools/actors/todoist.actor';
 
 describe('TodoistActor', () => {
   let actor: TodoistActor;
@@ -19,7 +23,9 @@ describe('TodoistActor', () => {
   describe('Basic Properties', () => {
     it('should have correct name and description', () => {
       expect(actor.name).toBe('todoist-actor');
-      expect(actor.description).toBe('Provides integration with Todoist API for task management');
+      expect(actor.description).toBe(
+        'Provides integration with Todoist API for task management',
+      );
     });
 
     it('should have correct category and auth requirements', () => {
@@ -32,10 +38,13 @@ describe('TodoistActor', () => {
     it('should return error when API token is missing', async () => {
       const args: TodoistArgs = {
         operation: 'create-task',
-        content: 'Test Task'
+        content: 'Test Task',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toBe('Todoist API token is required');
@@ -48,15 +57,19 @@ describe('TodoistActor', () => {
       operation: 'create-task',
       apiToken: 'test-api-token',
       content: 'Review code changes',
-      description: 'Review the latest pull request for the authentication module',
+      description:
+        'Review the latest pull request for the authentication module',
       projectId: 'project-123',
       dueDate: '2024-01-15',
       priority: 3,
-      labels: ['work', 'urgent']
+      labels: ['work', 'urgent'],
     };
 
     it('should create a task successfully', async () => {
-      const result = await actor.execute({ name: 'todoist-actor', args: validArgs as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: validArgs as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('create-task');
@@ -66,10 +79,13 @@ describe('TodoistActor', () => {
     it('should return error when content is missing', async () => {
       const args: TodoistArgs = {
         operation: 'create-task',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toBe('Task content is required');
@@ -84,10 +100,13 @@ describe('TodoistActor', () => {
         apiToken: 'test-api-token',
         taskId: 'task-123',
         content: 'Updated task content',
-        priority: 4
+        priority: 4,
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('update-task');
@@ -98,10 +117,13 @@ describe('TodoistActor', () => {
       const args: TodoistArgs = {
         operation: 'update-task',
         apiToken: 'test-api-token',
-        content: 'Updated content'
+        content: 'Updated content',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toBe('Task ID is required for task update');
@@ -114,10 +136,13 @@ describe('TodoistActor', () => {
       const args: TodoistArgs = {
         operation: 'complete-task',
         apiToken: 'test-api-token',
-        taskId: 'task-123'
+        taskId: 'task-123',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('complete-task');
@@ -127,13 +152,18 @@ describe('TodoistActor', () => {
     it('should return error when taskId is missing', async () => {
       const args: TodoistArgs = {
         operation: 'complete-task',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Task ID is required for task completion');
+      expect(result.error?.message).toBe(
+        'Task ID is required for task completion',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -143,10 +173,13 @@ describe('TodoistActor', () => {
       const args: TodoistArgs = {
         operation: 'delete-task',
         apiToken: 'test-api-token',
-        taskId: 'task-123'
+        taskId: 'task-123',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('delete-task');
@@ -156,13 +189,18 @@ describe('TodoistActor', () => {
     it('should return error when taskId is missing', async () => {
       const args: TodoistArgs = {
         operation: 'delete-task',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Task ID is required for task deletion');
+      expect(result.error?.message).toBe(
+        'Task ID is required for task deletion',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -172,15 +210,21 @@ describe('TodoistActor', () => {
       const args: TodoistArgs = {
         operation: 'get-task',
         apiToken: 'test-api-token',
-        taskId: 'task-123'
+        taskId: 'task-123',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('get-task');
       expect((result.output as TodoistOutput).task).toBeDefined();
-      const task = (result.output as TodoistOutput).task as { id: string; content: string };
+      const task = (result.output as TodoistOutput).task as {
+        id: string;
+        content: string;
+      };
       expect(task.id).toBe('task-123');
       expect(task.content).toBe('Sample Task');
     });
@@ -188,10 +232,13 @@ describe('TodoistActor', () => {
     it('should return error when taskId is missing', async () => {
       const args: TodoistArgs = {
         operation: 'get-task',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toBe('Task ID is required');
@@ -205,10 +252,13 @@ describe('TodoistActor', () => {
         operation: 'list-tasks',
         apiToken: 'test-api-token',
         filter: 'today',
-        limit: 50
+        limit: 50,
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('list-tasks');
@@ -225,10 +275,13 @@ describe('TodoistActor', () => {
         apiToken: 'test-api-token',
         projectName: 'New Project',
         parentId: 'parent-123',
-        color: 30
+        color: 30,
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('create-project');
@@ -238,10 +291,13 @@ describe('TodoistActor', () => {
     it('should return error when projectName is missing', async () => {
       const args: TodoistArgs = {
         operation: 'create-project',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toBe('Project name is required');
@@ -253,16 +309,23 @@ describe('TodoistActor', () => {
     it('should get projects successfully', async () => {
       const args: TodoistArgs = {
         operation: 'get-projects',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoistOutput).operation).toBe('get-projects');
       expect((result.output as TodoistOutput).projects).toBeDefined();
-      expect(Array.isArray((result.output as TodoistOutput).projects)).toBe(true);
-      expect((result.output as TodoistOutput).projects!.length).toBeGreaterThan(0);
+      expect(Array.isArray((result.output as TodoistOutput).projects)).toBe(
+        true,
+      );
+      expect((result.output as TodoistOutput).projects!.length).toBeGreaterThan(
+        0,
+      );
     });
   });
 
@@ -270,13 +333,18 @@ describe('TodoistActor', () => {
     it('should return error for unsupported operation', async () => {
       const args = {
         operation: 'invalid-operation' as unknown as 'create-task',
-        apiToken: 'test-api-token'
+        apiToken: 'test-api-token',
       };
 
-      const result = await actor.execute({ name: 'todoist-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'todoist-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Unsupported operation: invalid-operation');
+      expect(result.error?.message).toBe(
+        'Unsupported operation: invalid-operation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });

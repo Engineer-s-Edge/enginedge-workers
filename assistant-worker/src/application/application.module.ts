@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services and use cases.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
@@ -25,7 +25,7 @@ import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers (ILogger, ILLMProvider, IAgentRepository)
  * are automatically available to all modules. No need to import it here.
  */
@@ -40,7 +40,7 @@ import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.
     AgentConfigurationService,
     AgentEventService,
     AgentSessionService,
-    
+
     // Advanced Services (Phase 5)
     CheckpointService,
     HITLService,
@@ -52,7 +52,7 @@ import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.
   exports: [
     // Export domain module so infrastructure can access it
     DomainModule,
-    
+
     // Export services for other modules
     AgentService,
     AgentValidationService,

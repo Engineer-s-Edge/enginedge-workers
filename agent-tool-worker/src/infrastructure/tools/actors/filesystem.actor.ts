@@ -9,10 +9,19 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type FilesystemOperation = 'read' | 'write' | 'delete' | 'mkdir' | 'exists' | 'list';
+export type FilesystemOperation =
+  | 'read'
+  | 'write'
+  | 'delete'
+  | 'mkdir'
+  | 'exists'
+  | 'list';
 
 export interface FilesystemArgs {
   operation: FilesystemOperation;
@@ -34,14 +43,19 @@ export interface FilesystemOutput extends ToolOutput {
 }
 
 @Injectable()
-export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput> {
+export class FilesystemActor extends BaseActor<
+  FilesystemArgs,
+  FilesystemOutput
+> {
   readonly name = 'filesystem-actor';
-  readonly description = 'Safely perform basic filesystem operations within a sandboxed root directory';
+  readonly description =
+    'Safely perform basic filesystem operations within a sandboxed root directory';
 
   readonly metadata: ActorConfig = {
     name: this.name,
     description: this.description,
-    useCase: 'Create, read, update, delete files and folders for automation within sandboxed environment',
+    useCase:
+      'Create, read, update, delete files and folders for automation within sandboxed environment',
     inputSchema: {
       type: 'object',
       additionalProperties: false,
@@ -50,32 +64,33 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
         operation: {
           type: 'string',
           enum: ['read', 'write', 'delete', 'mkdir', 'exists', 'list'],
-          description: 'The filesystem operation to perform'
+          description: 'The filesystem operation to perform',
         },
         filepath: {
           type: 'string',
-          description: 'Path to the file or directory (relative to sandbox root)'
+          description:
+            'Path to the file or directory (relative to sandbox root)',
         },
         content: {
           type: 'string',
-          description: 'Content to write to file (for write operation)'
+          description: 'Content to write to file (for write operation)',
         },
         encoding: {
           type: 'string',
           enum: ['utf8', 'utf-8', 'ascii', 'base64'],
           default: 'utf8',
-          description: 'Text encoding for file operations'
+          description: 'Text encoding for file operations',
         },
         recursive: {
           type: 'boolean',
           default: false,
-          description: 'Whether to perform recursive operations'
+          description: 'Whether to perform recursive operations',
         },
         sandboxRoot: {
           type: 'string',
-          description: 'Override the default sandbox root directory'
-        }
-      }
+          description: 'Override the default sandbox root directory',
+        },
+      },
     },
     outputSchema: {
       type: 'object',
@@ -87,22 +102,26 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
         content: { type: 'string' },
         exists: { type: 'boolean' },
         entries: { type: 'array', items: { type: 'string' } },
-        message: { type: 'string' }
-      }
+        message: { type: 'string' },
+      },
     },
     invocationExample: [
       {
         name: 'filesystem-actor',
-        args: { operation: 'read', filepath: 'README.md' }
+        args: { operation: 'read', filepath: 'README.md' },
       },
       {
         name: 'filesystem-actor',
-        args: { operation: 'write', filepath: 'notes/todo.txt', content: 'Buy groceries' }
+        args: {
+          operation: 'write',
+          filepath: 'notes/todo.txt',
+          content: 'Buy groceries',
+        },
       },
       {
         name: 'filesystem-actor',
-        args: { operation: 'list', filepath: '.' }
-      }
+        args: { operation: 'list', filepath: '.' },
+      },
     ],
     retries: 0,
     maxIterations: 1,
@@ -111,35 +130,38 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
     pauseBeforeUse: false,
     userModifyQuery: false,
     category: ActorCategory.INTERNAL_SANDBOX,
-    requiresAuth: false
+    requiresAuth: false,
   };
 
   readonly errorEvents: ErrorEvent[] = [
     {
       name: 'ENOENT',
-      guidance: 'File or directory not found. Check if the path exists within the sandbox.',
-      retryable: false
+      guidance:
+        'File or directory not found. Check if the path exists within the sandbox.',
+      retryable: false,
     },
     {
       name: 'EACCES',
-      guidance: 'Permission denied. The path may be outside the sandbox or access is restricted.',
-      retryable: false
+      guidance:
+        'Permission denied. The path may be outside the sandbox or access is restricted.',
+      retryable: false,
     },
     {
       name: 'EISDIR',
       guidance: 'Expected a file but found a directory, or vice versa.',
-      retryable: false
+      retryable: false,
     },
     {
       name: 'ENOTDIR',
       guidance: 'Expected a directory but found a file.',
-      retryable: false
+      retryable: false,
     },
     {
       name: 'ValidationError',
-      guidance: 'Invalid input parameters. Check the operation and required fields.',
-      retryable: false
-    }
+      guidance:
+        'Invalid input parameters. Check the operation and required fields.',
+      retryable: false,
+    },
   ];
 
   /**
@@ -152,9 +174,12 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
     // Validate and resolve path within sandbox
     const validatePath = (filepath?: string): string => {
       if (!filepath) {
-        throw Object.assign(new Error('filepath is required for this operation'), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error('filepath is required for this operation'),
+          {
+            name: 'ValidationError',
+          },
+        );
       }
 
       const fullPath = path.resolve(sandboxRoot, filepath);
@@ -162,7 +187,7 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
       // Security check: ensure path doesn't escape sandbox
       if (!fullPath.startsWith(sandboxRoot)) {
         const error = Object.assign(new Error('Path escapes sandbox root'), {
-          name: 'EACCES'
+          name: 'EACCES',
         });
         throw error;
       }
@@ -179,7 +204,7 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
             success: true,
             operation: 'read',
             filepath: args.filepath,
-            content
+            content,
           };
         }
 
@@ -191,7 +216,7 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
           return {
             success: true,
             operation: 'write',
-            filepath: args.filepath
+            filepath: args.filepath,
           };
         }
 
@@ -199,12 +224,12 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
           const fullPath = validatePath(args.filepath);
           await fs.rm(fullPath, {
             recursive: args.recursive || false,
-            force: true
+            force: true,
           });
           return {
             success: true,
             operation: 'delete',
-            filepath: args.filepath
+            filepath: args.filepath,
           };
         }
 
@@ -214,7 +239,7 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
           return {
             success: true,
             operation: 'mkdir',
-            filepath: args.filepath
+            filepath: args.filepath,
           };
         }
 
@@ -231,7 +256,7 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
             success: true,
             operation: 'exists',
             filepath: args.filepath,
-            exists
+            exists,
           };
         }
 
@@ -243,14 +268,17 @@ export class FilesystemActor extends BaseActor<FilesystemArgs, FilesystemOutput>
             success: true,
             operation: 'list',
             filepath: targetPath,
-            entries
+            entries,
           };
         }
 
         default: {
-          throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-            name: 'ValidationError'
-          });
+          throw Object.assign(
+            new Error(`Unsupported operation: ${args.operation}`),
+            {
+              name: 'ValidationError',
+            },
+          );
         }
       }
     } catch (error: unknown) {

@@ -1,6 +1,6 @@
 /**
  * LaTeXPackage Entity
- * 
+ *
  * Represents a LaTeX package with caching information.
  * Used for package management and caching to speed up compilation.
  */
@@ -33,13 +33,7 @@ export class LaTeXPackage {
    * Create a new package reference
    */
   static create(name: string): LaTeXPackage {
-    return new LaTeXPackage(
-      name,
-      PackageStatus.AVAILABLE,
-      {},
-      null,
-      null,
-    );
+    return new LaTeXPackage(name, PackageStatus.AVAILABLE, {}, null, null);
   }
 
   /**

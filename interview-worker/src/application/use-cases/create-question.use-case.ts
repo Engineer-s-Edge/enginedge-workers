@@ -37,4 +37,3 @@ export class CreateQuestionUseCase {
     return await this.questionRepository.save(question);
   }
 }
-

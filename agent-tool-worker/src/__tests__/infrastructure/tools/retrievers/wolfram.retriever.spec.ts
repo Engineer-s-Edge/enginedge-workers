@@ -6,7 +6,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { WolframRetriever, WolframArgs } from '@infrastructure/tools/retrievers/wolfram.retriever';
+import {
+  WolframRetriever,
+  WolframArgs,
+} from '@infrastructure/tools/retrievers/wolfram.retriever';
 
 describe('WolframRetriever', () => {
   let retriever: WolframRetriever;
@@ -44,10 +47,13 @@ describe('WolframRetriever', () => {
   describe('Basic Operations', () => {
     it('should handle service unavailable for basic computational query', async () => {
       const args: WolframArgs = {
-        query: '2 + 2'
+        query: '2 + 2',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       // Service is not running yet, so expect service unavailable error
       expect(result.success).toBe(false);
@@ -56,10 +62,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for solve operation', async () => {
       const args: WolframArgs = {
-        query: 'solve x^2 - 4 = 0'
+        query: 'solve x^2 - 4 = 0',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -67,10 +76,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for integral operation', async () => {
       const args: WolframArgs = {
-        query: 'integrate x^2 dx'
+        query: 'integrate x^2 dx',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -78,10 +90,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for plot operation', async () => {
       const args: WolframArgs = {
-        query: 'plot sin(x)'
+        query: 'plot sin(x)',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -92,10 +107,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable for plaintext format', async () => {
       const args: WolframArgs = {
         query: 'pi to 10 digits',
-        format: 'plaintext'
+        format: 'plaintext',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -104,10 +122,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable for image format', async () => {
       const args: WolframArgs = {
         query: 'plot x^2',
-        format: 'image'
+        format: 'image',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -116,10 +137,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable for mathml format', async () => {
       const args: WolframArgs = {
         query: 'integral of e^x',
-        format: 'mathml'
+        format: 'mathml',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -128,10 +152,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable for json format', async () => {
       const args: WolframArgs = {
         query: 'factor 15',
-        format: 'json'
+        format: 'json',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -141,54 +168,69 @@ describe('WolframRetriever', () => {
   describe('Error Handling', () => {
     it('should handle empty query', async () => {
       const args: WolframArgs = {
-        query: ''
+        query: '',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error!.message).toBe('Query parameter is required and must be a non-empty string');
+      expect(result.error!.message).toBe(
+        'Query parameter is required and must be a non-empty string',
+      );
     });
 
     it('should handle whitespace-only query', async () => {
       const args: WolframArgs = {
-        query: '   '
+        query: '   ',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error!.message).toBe('Query parameter is required and must be a non-empty string');
+      expect(result.error!.message).toBe(
+        'Query parameter is required and must be a non-empty string',
+      );
     });
 
     it('should handle invalid format', async () => {
       const args = {
         query: '2 + 2',
-        format: 'invalid' as unknown as WolframArgs['format']
+        format: 'invalid' as unknown as WolframArgs['format'],
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error!.message).toBe('Invalid format. Must be one of: plaintext, image, mathml, json');
+      expect(result.error!.message).toBe(
+        'Invalid format. Must be one of: plaintext, image, mathml, json',
+      );
     });
   });
 
   describe('RAG Configuration', () => {
     it('should handle service unavailable with RAG configuration', async () => {
       const args: WolframArgs = {
-        query: 'solve x + 1 = 0'
+        query: 'solve x + 1 = 0',
       };
 
       const ragConfig = {
         similarity: 0.8,
         topK: 50,
-        includeMetadata: false
+        includeMetadata: false,
       };
 
       const result = await retriever.execute({
         name: 'wolfram-retriever',
-        args: { ...args, ragConfig }
+        args: { ...args, ragConfig },
       });
 
       expect(result.success).toBe(false);
@@ -200,10 +242,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable with assumptions', async () => {
       const args: WolframArgs = {
         query: 'solve x^2 = -1',
-        assumptions: ['x is complex']
+        assumptions: ['x is complex'],
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -212,10 +257,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable with empty assumptions', async () => {
       const args: WolframArgs = {
         query: '2 * 3',
-        assumptions: []
+        assumptions: [],
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -226,10 +274,13 @@ describe('WolframRetriever', () => {
     it('should handle service unavailable with custom timeout', async () => {
       const args: WolframArgs = {
         query: 'factorial 5',
-        timeout: 60000
+        timeout: 60000,
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -237,10 +288,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable with default timeout', async () => {
       const args: WolframArgs = {
-        query: 'gcd(12, 18)'
+        query: 'gcd(12, 18)',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -250,10 +304,13 @@ describe('WolframRetriever', () => {
   describe('Output Structure', () => {
     it('should handle service unavailable for pods structure', async () => {
       const args: WolframArgs = {
-        query: 'differentiate x^3'
+        query: 'differentiate x^3',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -261,10 +318,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for sources', async () => {
       const args: WolframArgs = {
-        query: 'what is the speed of light'
+        query: 'what is the speed of light',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -272,10 +332,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for processing time', async () => {
       const args: WolframArgs = {
-        query: 'sqrt(16)'
+        query: 'sqrt(16)',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -285,10 +348,13 @@ describe('WolframRetriever', () => {
   describe('Complex Queries', () => {
     it('should handle service unavailable for complex expressions', async () => {
       const args: WolframArgs = {
-        query: 'solve (x^2 + 3x + 2) / (x + 1) = 0 for x'
+        query: 'solve (x^2 + 3x + 2) / (x + 1) = 0 for x',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -296,10 +362,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for calculus operations', async () => {
       const args: WolframArgs = {
-        query: 'limit as x approaches 0 of sin(x)/x'
+        query: 'limit as x approaches 0 of sin(x)/x',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');
@@ -307,10 +376,13 @@ describe('WolframRetriever', () => {
 
     it('should handle service unavailable for statistical queries', async () => {
       const args: WolframArgs = {
-        query: 'mean of {1, 2, 3, 4, 5}'
+        query: 'mean of {1, 2, 3, 4, 5}',
       };
 
-      const result = await retriever.execute({ name: 'wolfram-retriever', args });
+      const result = await retriever.execute({
+        name: 'wolfram-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Wolfram service is not available');

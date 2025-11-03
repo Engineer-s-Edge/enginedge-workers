@@ -11,9 +11,7 @@ describe('EmbedderService Extended Tests Phase 2 (Phase 5)', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        { provide: 'EmbedderService', useValue: mockService },
-      ],
+      providers: [{ provide: 'EmbedderService', useValue: mockService }],
     }).compile();
 
     service = module.get('EmbedderService') as Record<string, unknown>;

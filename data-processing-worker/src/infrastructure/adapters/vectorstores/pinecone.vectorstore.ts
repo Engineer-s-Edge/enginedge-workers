@@ -4,10 +4,10 @@ import { Document } from '@domain/entities/document.entity';
 
 /**
  * Pinecone Vector Store Adapter (DISABLED - Placeholder)
- * 
+ *
  * Pinecone is a managed vector database service.
  * To enable: Install @pinecone-database/pinecone and configure API key.
- * 
+ *
  * Installation: npm install @pinecone-database/pinecone
  */
 @Injectable()
@@ -18,7 +18,9 @@ export class PineconeVectorStoreAdapter implements VectorStorePort {
 
   constructor() {
     if (!this.enabled) {
-      this.logger.warn('Pinecone vector store is DISABLED. To enable, set PINECONE_API_KEY and install dependencies.');
+      this.logger.warn(
+        'Pinecone vector store is DISABLED. To enable, set PINECONE_API_KEY and install dependencies.',
+      );
     }
   }
 
@@ -28,13 +30,15 @@ export class PineconeVectorStoreAdapter implements VectorStorePort {
     metadata?: Record<string, unknown>,
   ): Promise<string[]> {
     if (!this.enabled) {
-      throw new Error('Pinecone vector store is disabled. Enable it by setting PINECONE_API_KEY.');
+      throw new Error(
+        'Pinecone vector store is disabled. Enable it by setting PINECONE_API_KEY.',
+      );
     }
 
     /*
     // Example implementation:
     const { Pinecone } = require('@pinecone-database/pinecone');
-    
+
     const pinecone = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY,
     });
@@ -69,7 +73,7 @@ export class PineconeVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { Pinecone } = require('@pinecone-database/pinecone');
-    
+
     const pinecone = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY,
     });
@@ -103,7 +107,7 @@ export class PineconeVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { Pinecone } = require('@pinecone-database/pinecone');
-    
+
     const pinecone = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY,
     });
@@ -120,16 +124,16 @@ export class PineconeVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { Pinecone } = require('@pinecone-database/pinecone');
-    
+
     const pinecone = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY,
     });
 
     const index = pinecone.index(process.env.PINECONE_INDEX || 'documents');
-    
+
     const fetchResponse = await index.fetch([id]);
     const vector = fetchResponse.records[id];
-    
+
     if (!vector) return null;
 
     return new Document(

@@ -4,9 +4,9 @@ import { IHabitRepository } from '../ports/repositories.port';
 
 /**
  * Habit Application Service
- * 
+ *
  * Business logic for habit management
- * 
+ *
  * Application Layer - Orchestrates domain logic
  */
 @Injectable()

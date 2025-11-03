@@ -1,6 +1,6 @@
 /**
  * Vector Memory Adapter
- * 
+ *
  * Semantic memory that stores messages as embeddings for similarity search.
  * Retrieves relevant past messages based on semantic similarity to current context.
  */
@@ -52,7 +52,10 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
   /**
    * Get messages (returns all messages, use searchSimilar for semantic retrieval)
    */
-  async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     const vectorMessages = this.memory.get(conversationId) || [];
     const messages = vectorMessages.map((vm) => vm.message);
 
@@ -69,7 +72,7 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
   async searchSimilar(
     conversationId: string,
     query: string,
-    topK?: number
+    topK?: number,
   ): Promise<Message[]> {
     const vectorMessages = this.memory.get(conversationId);
 
@@ -190,4 +193,3 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
     return dotProduct / (normA * normB);
   }
 }
-

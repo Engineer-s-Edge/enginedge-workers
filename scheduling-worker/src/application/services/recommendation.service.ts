@@ -49,15 +49,15 @@ export interface UserPatterns {
 
 /**
  * Application Service: ML-Enhanced Recommendation Service
- * 
+ *
  * Combines ML predictions with rule-based scheduling logic to provide
  * intelligent, personalized scheduling recommendations.
- * 
+ *
  * Uses hybrid approach:
  * - ML model provides learned user preferences (60% weight)
  * - Rule-based system provides constraints and fallback (40% weight)
  * - Combination produces optimal recommendations
- * 
+ *
  * @hexagonal-layer Application
  */
 @Injectable()
@@ -74,7 +74,7 @@ export class RecommendationService {
 
   /**
    * Get ML-enhanced recommendations for scheduling tasks
-   * 
+   *
    * @param userId - User ID
    * @param tasks - Tasks to schedule
    * @param calendarEvents - Current calendar events (busy times)
@@ -104,8 +104,15 @@ export class RecommendationService {
     const mlAvailable = await this.mlClient.healthCheck();
 
     if (!mlAvailable) {
-      this.logger.warn('ML service unavailable, falling back to rule-based only');
-      return this.getRuleBasedRecommendations(tasks, calendarEvents, startDate, endDate);
+      this.logger.warn(
+        'ML service unavailable, falling back to rule-based only',
+      );
+      return this.getRuleBasedRecommendations(
+        tasks,
+        calendarEvents,
+        startDate,
+        endDate,
+      );
     }
 
     const recommendations: MLRecommendation[] = [];
@@ -121,7 +128,8 @@ export class RecommendationService {
         );
         recommendations.push(recommendation);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.error(
           `Failed to get recommendation for task ${task.id}: ${message}`,
         );
@@ -292,8 +300,11 @@ export class RecommendationService {
         );
         recommendations.push(rec);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`Failed to get rule-based recommendation: ${message}`);
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(
+          `Failed to get rule-based recommendation: ${message}`,
+        );
       }
     }
 
@@ -343,7 +354,10 @@ export class RecommendationService {
 
     // Find best slot using task scheduler
     let bestSlot = availableSlots[0];
-    let bestScore = this.taskScheduler['scoreSlot'](taskForScheduling, bestSlot);
+    let bestScore = this.taskScheduler['scoreSlot'](
+      taskForScheduling,
+      bestSlot,
+    );
 
     for (const slot of availableSlots.slice(1)) {
       const score = this.taskScheduler['scoreSlot'](taskForScheduling, slot);
@@ -371,24 +385,26 @@ export class RecommendationService {
 
   /**
    * Submit feedback to improve ML model
-   * 
+   *
    * @param feedback - User feedback on scheduled task
    */
   async submitFeedback(feedback: SchedulingFeedback): Promise<void> {
     this.logger.log(
       `Received feedback for task ${feedback.taskId}: ` +
-      `accepted=${feedback.userAccepted}, rating=${feedback.userRating}`,
+        `accepted=${feedback.userAccepted}, rating=${feedback.userRating}`,
     );
 
     // TODO: Send feedback to ML service for model retraining
     // This would be an additional endpoint on the ML service
     // For now, just log it
-    this.logger.debug('Feedback logged (ML service feedback endpoint not implemented)');
+    this.logger.debug(
+      'Feedback logged (ML service feedback endpoint not implemented)',
+    );
   }
 
   /**
    * Analyze user's scheduling patterns
-   * 
+   *
    * @param userId - User ID
    * @returns Pattern analysis
    */
@@ -410,7 +426,9 @@ export class RecommendationService {
   /**
    * Convert string priority to number (1-5)
    */
-  private convertPriorityToNumber(priority?: 'high' | 'medium' | 'low'): number {
+  private convertPriorityToNumber(
+    priority?: 'high' | 'medium' | 'low',
+  ): number {
     switch (priority) {
       case 'high':
         return 5;

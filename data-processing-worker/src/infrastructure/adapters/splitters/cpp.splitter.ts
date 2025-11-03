@@ -38,7 +38,7 @@ export class CppSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -62,9 +62,16 @@ export class CppSplitterAdapter extends TextSplitterPort {
       braceDepth -= (line.match(/}/g) || []).length;
 
       // Check for class/struct/function definition
-      const isDefinition = /^(class|struct|namespace|template|void|int|bool|string|auto)\s+/.test(line.trim());
+      const isDefinition =
+        /^(class|struct|namespace|template|void|int|bool|string|auto)\s+/.test(
+          line.trim(),
+        );
 
-      if (currentSize + lineSize > chunkSize && currentChunk.length > 0 && braceDepth === 0) {
+      if (
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0 &&
+        braceDepth === 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -78,6 +85,6 @@ export class CppSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

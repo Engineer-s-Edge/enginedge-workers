@@ -92,28 +92,24 @@ export class RecursiveUrlLoaderAdapter extends WebLoaderPort {
     try {
       // Load the page
       const pageDocs = await this.cheerioLoader.loadUrl(url, { selector });
-      
+
       if (pageDocs.length > 0) {
         const doc = pageDocs[0];
-        const enrichedDoc = new Document(
-          doc.id,
-          doc.content,
-          {
-            ...doc.metadata,
-            depth: currentDepth,
-            crawler: this.name,
-          },
-        );
+        const enrichedDoc = new Document(doc.id, doc.content, {
+          ...doc.metadata,
+          depth: currentDepth,
+          crawler: this.name,
+        });
         documents.push(enrichedDoc);
       }
 
       // Extract links and crawl recursively
       if (currentDepth < maxDepth && documents.length < maxPages) {
         const links = await this._extractLinks(url, sameOriginOnly);
-        
+
         for (const link of links) {
           if (documents.length >= maxPages) break;
-          
+
           await this._crawl(
             link,
             currentDepth + 1,
@@ -181,8 +177,8 @@ export class RecursiveUrlLoaderAdapter extends WebLoaderPort {
       const urlObj = new URL(url);
       urlObj.hash = '';
       // Remove trailing slash
-      const path = urlObj.pathname.endsWith('/') 
-        ? urlObj.pathname.slice(0, -1) 
+      const path = urlObj.pathname.endsWith('/')
+        ? urlObj.pathname.slice(0, -1)
         : urlObj.pathname;
       return `${urlObj.origin}${path}${urlObj.search}`;
     } catch {
@@ -205,7 +201,7 @@ export class RecursiveUrlLoaderAdapter extends WebLoaderPort {
 
     // Check include patterns (if any)
     if (includePatterns.length > 0) {
-      return includePatterns.some(pattern => pattern.test(url));
+      return includePatterns.some((pattern) => pattern.test(url));
     }
 
     return true;
@@ -227,8 +223,10 @@ export class RecursiveUrlLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

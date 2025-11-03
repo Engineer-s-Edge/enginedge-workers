@@ -4,7 +4,11 @@
 
 import { TemplateService } from '../../../application/services/template.service';
 import { ITemplateRepository } from '../../../domain/ports';
-import { LaTeXTemplate, TemplateCategory, TemplateVariable } from '../../../domain/entities';
+import {
+  LaTeXTemplate,
+  TemplateCategory,
+  TemplateVariable,
+} from '../../../domain/entities';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -27,7 +31,12 @@ describe('TemplateService', () => {
   describe('createTemplate', () => {
     it('should create a public template', async () => {
       const variables: TemplateVariable[] = [
-        { name: 'author', description: 'Author name', required: true, type: 'string' },
+        {
+          name: 'author',
+          description: 'Author name',
+          required: true,
+          type: 'string',
+        },
       ];
 
       const template = await service.createTemplate(
@@ -86,22 +95,41 @@ describe('TemplateService', () => {
   describe('listByCategory', () => {
     it('should list templates by category', async () => {
       const templates = [
-        LaTeXTemplate.create('t1', 'Resume 1', TemplateCategory.RESUME, 'content'),
-        LaTeXTemplate.create('t2', 'Resume 2', TemplateCategory.RESUME, 'content'),
+        LaTeXTemplate.create(
+          't1',
+          'Resume 1',
+          TemplateCategory.RESUME,
+          'content',
+        ),
+        LaTeXTemplate.create(
+          't2',
+          'Resume 2',
+          TemplateCategory.RESUME,
+          'content',
+        ),
       ];
       mockRepository.findByCategory.mockResolvedValue(templates);
 
       const result = await service.listByCategory(TemplateCategory.RESUME);
 
       expect(result).toHaveLength(2);
-      expect(mockRepository.findByCategory).toHaveBeenCalledWith(TemplateCategory.RESUME);
+      expect(mockRepository.findByCategory).toHaveBeenCalledWith(
+        TemplateCategory.RESUME,
+      );
     });
   });
 
   describe('listPublicTemplates', () => {
     it('should list public templates', async () => {
       const templates = [
-        LaTeXTemplate.create('t1', 'Public 1', TemplateCategory.ARTICLE, 'content', [], true),
+        LaTeXTemplate.create(
+          't1',
+          'Public 1',
+          TemplateCategory.ARTICLE,
+          'content',
+          [],
+          true,
+        ),
       ];
       mockRepository.findPublic.mockResolvedValue(templates);
 
@@ -115,7 +143,15 @@ describe('TemplateService', () => {
   describe('listUserTemplates', () => {
     it('should list user templates', async () => {
       const templates = [
-        LaTeXTemplate.create('t1', 'My Template', TemplateCategory.RESUME, 'content', [], false, 'user-1'),
+        LaTeXTemplate.create(
+          't1',
+          'My Template',
+          TemplateCategory.RESUME,
+          'content',
+          [],
+          false,
+          'user-1',
+        ),
       ];
       mockRepository.findByUser.mockResolvedValue(templates);
 
@@ -129,7 +165,12 @@ describe('TemplateService', () => {
   describe('searchTemplates', () => {
     it('should search templates', async () => {
       const templates = [
-        LaTeXTemplate.create('t1', 'Resume Template', TemplateCategory.RESUME, 'content'),
+        LaTeXTemplate.create(
+          't1',
+          'Resume Template',
+          TemplateCategory.RESUME,
+          'content',
+        ),
       ];
       mockRepository.search.mockResolvedValue(templates);
 
@@ -142,7 +183,12 @@ describe('TemplateService', () => {
 
   describe('updateContent', () => {
     it('should update template content', async () => {
-      const template = LaTeXTemplate.create('t1', 'Test', TemplateCategory.ARTICLE, 'old');
+      const template = LaTeXTemplate.create(
+        't1',
+        'Test',
+        TemplateCategory.ARTICLE,
+        'old',
+      );
       mockRepository.findById.mockResolvedValue(template);
 
       const result = await service.updateContent('t1', 'new content');
@@ -154,19 +200,29 @@ describe('TemplateService', () => {
     it('should throw error if template not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.updateContent('t999', 'content'),
-      ).rejects.toThrow('Template t999 not found');
+      await expect(service.updateContent('t999', 'content')).rejects.toThrow(
+        'Template t999 not found',
+      );
     });
   });
 
   describe('updateVariables', () => {
     it('should update template variables', async () => {
-      const template = LaTeXTemplate.create('t1', 'Test', TemplateCategory.RESUME, 'content');
+      const template = LaTeXTemplate.create(
+        't1',
+        'Test',
+        TemplateCategory.RESUME,
+        'content',
+      );
       mockRepository.findById.mockResolvedValue(template);
 
       const newVars: TemplateVariable[] = [
-        { name: 'name', description: 'Full name', required: true, type: 'string' },
+        {
+          name: 'name',
+          description: 'Full name',
+          required: true,
+          type: 'string',
+        },
       ];
 
       const result = await service.updateVariables('t1', newVars);
@@ -178,7 +234,14 @@ describe('TemplateService', () => {
 
   describe('toggleVisibility', () => {
     it('should toggle template from private to public', async () => {
-      const template = LaTeXTemplate.create('t1', 'Test', TemplateCategory.ARTICLE, 'content', [], false);
+      const template = LaTeXTemplate.create(
+        't1',
+        'Test',
+        TemplateCategory.ARTICLE,
+        'content',
+        [],
+        false,
+      );
       mockRepository.findById.mockResolvedValue(template);
 
       const result = await service.toggleVisibility('t1');
@@ -188,7 +251,14 @@ describe('TemplateService', () => {
     });
 
     it('should toggle template from public to private', async () => {
-      const template = LaTeXTemplate.create('t1', 'Test', TemplateCategory.ARTICLE, 'content', [], true);
+      const template = LaTeXTemplate.create(
+        't1',
+        'Test',
+        TemplateCategory.ARTICLE,
+        'content',
+        [],
+        true,
+      );
       mockRepository.findById.mockResolvedValue(template);
 
       const result = await service.toggleVisibility('t1');
@@ -238,7 +308,13 @@ describe('TemplateService', () => {
     it('should clone template to project with variables', async () => {
       const variables: TemplateVariable[] = [
         { name: 'name', description: 'Name', required: true, type: 'string' },
-        { name: 'email', description: 'Email', required: false, type: 'string', defaultValue: 'no-reply@example.com' },
+        {
+          name: 'email',
+          description: 'Email',
+          required: false,
+          type: 'string',
+          defaultValue: 'no-reply@example.com',
+        },
       ];
 
       const template = LaTeXTemplate.create(
@@ -269,7 +345,13 @@ describe('TemplateService', () => {
         { name: 'name', description: 'Name', required: true, type: 'string' },
       ];
 
-      const template = LaTeXTemplate.create('t1', 'Test', TemplateCategory.RESUME, 'content', variables);
+      const template = LaTeXTemplate.create(
+        't1',
+        'Test',
+        TemplateCategory.RESUME,
+        'content',
+        variables,
+      );
       mockRepository.findById.mockResolvedValue(template);
 
       await expect(
@@ -314,7 +396,8 @@ describe('TemplateService', () => {
 
   describe('validateTemplate', () => {
     it('should validate correct template', () => {
-      const content = '\\documentclass{article}\\begin{document}Hello\\end{document}';
+      const content =
+        '\\documentclass{article}\\begin{document}Hello\\end{document}';
 
       const result = service.validateTemplate(content);
 
@@ -337,7 +420,9 @@ describe('TemplateService', () => {
       const result = service.validateTemplate(content);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Template must include \\begin{document}');
+      expect(result.errors).toContain(
+        'Template must include \\begin{document}',
+      );
     });
 
     it('should detect missing end document', () => {
@@ -350,7 +435,8 @@ describe('TemplateService', () => {
     });
 
     it('should detect unmatched braces', () => {
-      const content = '\\documentclass{article}\\begin{document}{Hello\\end{document}';
+      const content =
+        '\\documentclass{article}\\begin{document}{Hello\\end{document}';
 
       const result = service.validateTemplate(content);
 
@@ -363,12 +449,23 @@ describe('TemplateService', () => {
     it('should return template statistics', async () => {
       const variables: TemplateVariable[] = [
         { name: 'name', description: 'Name', required: true, type: 'string' },
-        { name: 'email', description: 'Email', required: false, type: 'string' },
+        {
+          name: 'email',
+          description: 'Email',
+          required: false,
+          type: 'string',
+        },
         { name: 'phone', description: 'Phone', required: true, type: 'string' },
       ];
 
       const content = 'Line 1\nLine 2\nLine 3';
-      const template = LaTeXTemplate.create('t1', 'Test', TemplateCategory.RESUME, content, variables);
+      const template = LaTeXTemplate.create(
+        't1',
+        'Test',
+        TemplateCategory.RESUME,
+        content,
+        variables,
+      );
       mockRepository.findById.mockResolvedValue(template);
 
       const stats = await service.getTemplateStats('t1');
@@ -382,7 +479,9 @@ describe('TemplateService', () => {
     it('should throw error if template not found', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(service.getTemplateStats('t999')).rejects.toThrow('not found');
+      await expect(service.getTemplateStats('t999')).rejects.toThrow(
+        'not found',
+      );
     });
   });
 });

@@ -14,7 +14,9 @@ export class RefreshTokenRepository {
   constructor(private readonly mongo: MongoService) {}
 
   async isRevoked(jti: string): Promise<boolean> {
-    const doc = await this.mongo.collection<RefreshTokenDoc>('refresh_tokens').findOne({ jti });
+    const doc = await this.mongo
+      .collection<RefreshTokenDoc>('refresh_tokens')
+      .findOne({ jti });
     return !!doc?.revoked;
   }
 
@@ -29,10 +31,11 @@ export class RefreshTokenRepository {
       .collection<RefreshTokenDoc>('refresh_tokens')
       .updateOne(
         { jti },
-        { $setOnInsert: { jti, userId, createdAt: new Date() }, $set: { revoked: false, expiresAt } },
+        {
+          $setOnInsert: { jti, userId, createdAt: new Date() },
+          $set: { revoked: false, expiresAt },
+        },
         { upsert: true },
       );
   }
 }
-
-

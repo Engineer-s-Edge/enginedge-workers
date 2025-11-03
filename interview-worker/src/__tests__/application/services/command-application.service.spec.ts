@@ -49,4 +49,3 @@ describe('CommandApplicationService', () => {
     expect(mockProcessCommandUseCase.execute).toHaveBeenCalledWith(mockCommand);
   });
 });
-

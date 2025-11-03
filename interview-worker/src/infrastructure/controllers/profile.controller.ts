@@ -1,6 +1,6 @@
 /**
  * Profile Controller
- * 
+ *
  * REST API endpoints for candidate profile management
  */
 
@@ -30,9 +30,7 @@ export class ProfileController {
   }
 
   @Get('recall')
-  async recallProfile(
-    @Param('sessionId') sessionId: string,
-  ): Promise<{
+  async recallProfile(@Param('sessionId') sessionId: string): Promise<{
     strengths: string[];
     concerns: string[];
     resumeFindings: {
@@ -74,4 +72,3 @@ export class ProfileController {
     );
   }
 }
-

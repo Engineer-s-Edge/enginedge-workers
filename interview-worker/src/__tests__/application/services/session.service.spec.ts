@@ -32,10 +32,16 @@ describe('SessionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SessionService,
-        { provide: 'IInterviewSessionRepository', useValue: mockSessionRepository },
+        {
+          provide: 'IInterviewSessionRepository',
+          useValue: mockSessionRepository,
+        },
         { provide: StartInterviewUseCase, useValue: mockStartInterviewUseCase },
         { provide: PauseInterviewUseCase, useValue: mockPauseInterviewUseCase },
-        { provide: ResumeInterviewUseCase, useValue: mockResumeInterviewUseCase },
+        {
+          provide: ResumeInterviewUseCase,
+          useValue: mockResumeInterviewUseCase,
+        },
         { provide: SkipQuestionUseCase, useValue: mockSkipQuestionUseCase },
         { provide: SubmitResponseUseCase, useValue: mockSubmitResponseUseCase },
       ],
@@ -97,7 +103,9 @@ describe('SessionService', () => {
     const result = await service.pauseSession('test-session');
 
     expect(result.status).toBe('paused');
-    expect(mockPauseInterviewUseCase.execute).toHaveBeenCalledWith('test-session');
+    expect(mockPauseInterviewUseCase.execute).toHaveBeenCalledWith(
+      'test-session',
+    );
   });
 
   it('should resume session', async () => {
@@ -114,7 +122,9 @@ describe('SessionService', () => {
     const result = await service.resumeSession('test-session');
 
     expect(result.status).toBe('in-progress');
-    expect(mockResumeInterviewUseCase.execute).toHaveBeenCalledWith('test-session');
+    expect(mockResumeInterviewUseCase.execute).toHaveBeenCalledWith(
+      'test-session',
+    );
   });
 
   it('should skip question', async () => {
@@ -160,4 +170,3 @@ describe('SessionService', () => {
     expect(mockSubmitResponseUseCase.execute).toHaveBeenCalled();
   });
 });
-

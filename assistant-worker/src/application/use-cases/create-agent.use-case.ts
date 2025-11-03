@@ -21,7 +21,7 @@ export interface CreateAgentRequest {
 
 /**
  * Create Agent Use Case
- * 
+ *
  * Creates a new agent with validation
  */
 @Injectable()
@@ -42,7 +42,7 @@ export class CreateAgentUseCase {
     try {
       // 1. Check if agent with name already exists
       const existing = await this.agentRepository.findByName(request.name);
-      
+
       if (existing) {
         throw new Error(`Agent with name '${request.name}' already exists`);
       }

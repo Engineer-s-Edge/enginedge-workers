@@ -1,11 +1,15 @@
 /**
  * Validation Service Adapter Implementation
- * 
+ *
  * Bridges orchestrator with ValidationService
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { IValidationAdapter, ValidationConfig, ValidationResult } from '../interfaces';
+import {
+  IValidationAdapter,
+  ValidationConfig,
+  ValidationResult,
+} from '../interfaces';
 
 @Injectable()
 export class ValidationAdapter implements IValidationAdapter {
@@ -42,7 +46,9 @@ export class ValidationAdapter implements IValidationAdapter {
     }
   }
 
-  async validateBatch(configs: ValidationConfig[]): Promise<ValidationResult[]> {
+  async validateBatch(
+    configs: ValidationConfig[],
+  ): Promise<ValidationResult[]> {
     try {
       this.logger.log(`Validating batch of ${configs.length} reports`);
 
@@ -81,7 +87,10 @@ export class ValidationAdapter implements IValidationAdapter {
       return 0.85;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Source credibility check failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Source credibility check failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -97,7 +106,10 @@ export class ValidationAdapter implements IValidationAdapter {
       return true;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Finding consistency check failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Finding consistency check failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

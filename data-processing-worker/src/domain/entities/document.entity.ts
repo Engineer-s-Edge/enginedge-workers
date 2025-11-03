@@ -1,6 +1,6 @@
 /**
  * Document Entity - Core domain entity for loaded documents
- * 
+ *
  * Represents a document that has been loaded from various sources
  * (filesystem, web, etc.) with its content and metadata.
  */
@@ -35,12 +35,7 @@ export class Document {
    * Create a new document with updated content
    */
   withContent(newContent: string): Document {
-    return new Document(
-      this.id,
-      newContent,
-      this.metadata,
-      this.createdAt,
-    );
+    return new Document(this.id, newContent, this.metadata, this.createdAt);
   }
 
   /**
@@ -66,7 +61,7 @@ export class Document {
    * Get document word count
    */
   get wordCount(): number {
-    return this.content.split(/\s+/).filter(word => word.length > 0).length;
+    return this.content.split(/\s+/).filter((word) => word.length > 0).length;
   }
 
   /**

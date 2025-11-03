@@ -50,7 +50,10 @@ export class CommandProcessorAdapter implements ICommandProcessor {
         result: resultPayload,
       };
     } catch (error) {
-      this.logger.error(`Error processing task ${taskId}:`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Error processing task ${taskId}:`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return {
         taskId: taskId,
         status: 'FAILURE',

@@ -1,11 +1,15 @@
 /**
  * Scheduled Learning Adapter Implementation
- * 
+ *
  * Bridges orchestrator with ScheduledLearningManager
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { IScheduledLearningAdapter, ScheduleConfig, ScheduleInfo } from '../interfaces';
+import {
+  IScheduledLearningAdapter,
+  ScheduleConfig,
+  ScheduleInfo,
+} from '../interfaces';
 
 @Injectable()
 export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
@@ -38,7 +42,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
       return schedule;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to schedule learning: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to schedule learning: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -81,15 +88,23 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
       // return this.scheduledLearningManager.getUserSchedules(userId);
 
       // Stub implementation
-      return Array.from(this.schedules.values()).filter((s) => s.userId === userId);
+      return Array.from(this.schedules.values()).filter(
+        (s) => s.userId === userId,
+      );
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get user schedules: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get user schedules: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 
-  async updateSchedule(scheduleId: string, config: Partial<ScheduleConfig>): Promise<ScheduleInfo> {
+  async updateSchedule(
+    scheduleId: string,
+    config: Partial<ScheduleConfig>,
+  ): Promise<ScheduleInfo> {
     try {
       this.logger.log(`Updating schedule ${scheduleId}`);
 
@@ -126,7 +141,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
         .slice(0, limit);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get next scheduled runs: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get next scheduled runs: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

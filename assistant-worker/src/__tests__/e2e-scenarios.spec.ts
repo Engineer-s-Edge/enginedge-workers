@@ -31,7 +31,9 @@ describe('End-to-End Scenarios', () => {
         const agent = this.agents.get(agentId);
         if (!agent) throw new Error('Agent not found');
 
-        agent.logs.push(`Execution started with input: ${JSON.stringify(input)}`);
+        agent.logs.push(
+          `Execution started with input: ${JSON.stringify(input)}`,
+        );
         agent.state = 'executing';
 
         const result = {
@@ -88,8 +90,12 @@ describe('End-to-End Scenarios', () => {
       const agent1 = await system.createAgent({ name: 'Agent 1' });
       const agent2 = await system.createAgent({ name: 'Agent 2' });
 
-      const result1 = await system.executeAgent(agent1.id, { prompt: 'Task 1' });
-      const result2 = await system.executeAgent(agent2.id, { prompt: 'Task 2' });
+      const result1 = await system.executeAgent(agent1.id, {
+        prompt: 'Task 1',
+      });
+      const result2 = await system.executeAgent(agent2.id, {
+        prompt: 'Task 2',
+      });
 
       const updated1 = await system.getAgent(agent1.id);
       const updated2 = await system.getAgent(agent2.id);
@@ -108,9 +114,9 @@ describe('End-to-End Scenarios', () => {
     });
 
     it('should throw on execution of non-existent agent', async () => {
-      await expect(system.executeAgent('non-existent', { prompt: 'Test' })).rejects.toThrow(
-        'Agent not found',
-      );
+      await expect(
+        system.executeAgent('non-existent', { prompt: 'Test' }),
+      ).rejects.toThrow('Agent not found');
     });
 
     it('should handle execution errors and maintain state', async () => {
@@ -169,7 +175,9 @@ describe('End-to-End Scenarios', () => {
     it('should handle concurrent create operations', async () => {
       const promises = [];
       for (let i = 0; i < 10; i++) {
-        promises.push(system.executeOperation('create', { name: `Agent ${i}` }));
+        promises.push(
+          system.executeOperation('create', { name: `Agent ${i}` }),
+        );
       }
 
       const results = await Promise.all(promises);
@@ -182,7 +190,9 @@ describe('End-to-End Scenarios', () => {
     it('should handle concurrent execute operations', async () => {
       const promises = [];
       for (let i = 0; i < 5; i++) {
-        promises.push(system.executeOperation('execute', { prompt: `Prompt ${i}` }));
+        promises.push(
+          system.executeOperation('execute', { prompt: `Prompt ${i}` }),
+        );
       }
 
       const results = await Promise.all(promises);
@@ -228,7 +238,9 @@ describe('End-to-End Scenarios', () => {
 
             // Backoff before retry
             if (this.retries < this.maxRetries - 1) {
-              await new Promise((resolve) => setTimeout(resolve, 10 * (this.retries + 1)));
+              await new Promise((resolve) =>
+                setTimeout(resolve, 10 * (this.retries + 1)),
+              );
             }
           }
         }
@@ -274,7 +286,9 @@ describe('End-to-End Scenarios', () => {
         throw new Error('Persistent error');
       };
 
-      await expect(system.executeWithRetry(operation, {})).rejects.toThrow('Persistent error');
+      await expect(system.executeWithRetry(operation, {})).rejects.toThrow(
+        'Persistent error',
+      );
 
       // After exhausting retries, retry count will be at maxRetries (3)
       expect(system.getRetryCount()).toBeLessThanOrEqual(3);
@@ -460,7 +474,9 @@ describe('End-to-End Scenarios', () => {
       expect(agent.status).toBe('created');
 
       // Step 3: Configure agent
-      const configured = await workflow.configureAgent(agent.id, { model: 'gpt-4' });
+      const configured = await workflow.configureAgent(agent.id, {
+        model: 'gpt-4',
+      });
       expect(configured.status).toBe('configured');
 
       // Step 4: Execute agent
@@ -476,9 +492,9 @@ describe('End-to-End Scenarios', () => {
       const agent = await workflow.createAgent('Agent');
 
       // Try to execute without configuration - should fail
-      await expect(workflow.executeAgent(agent.id, { prompt: 'Test' })).rejects.toThrow(
-        'not ready',
-      );
+      await expect(
+        workflow.executeAgent(agent.id, { prompt: 'Test' }),
+      ).rejects.toThrow('not ready');
 
       // Now configure and retry
       await workflow.configureAgent(agent.id, { model: 'gpt-4' });
@@ -495,8 +511,12 @@ describe('End-to-End Scenarios', () => {
       await workflow.configureAgent(agent1.id, { config: 1 });
       await workflow.configureAgent(agent2.id, { config: 2 });
 
-      const result1 = await workflow.executeAgent(agent1.id, { prompt: 'Task1' });
-      const result2 = await workflow.executeAgent(agent2.id, { prompt: 'Task2' });
+      const result1 = await workflow.executeAgent(agent1.id, {
+        prompt: 'Task1',
+      });
+      const result2 = await workflow.executeAgent(agent2.id, {
+        prompt: 'Task2',
+      });
 
       expect(result1.agentId).toBe(agent1.id);
       expect(result2.agentId).toBe(agent2.id);
@@ -532,15 +552,21 @@ describe('End-to-End Scenarios', () => {
     });
 
     it('should handle validation errors', async () => {
-      await expect(system.handleValidationError({})).rejects.toThrow('Name is required');
-      await expect(system.handleValidationError({ name: 'ab' })).rejects.toThrow('too short');
+      await expect(system.handleValidationError({})).rejects.toThrow(
+        'Name is required',
+      );
+      await expect(
+        system.handleValidationError({ name: 'ab' }),
+      ).rejects.toThrow('too short');
 
       const result = await system.handleValidationError({ name: 'Valid' });
       expect(result.valid).toBe(true);
     });
 
     it('should handle not found errors', async () => {
-      await expect(system.handleNotFoundError('missing')).rejects.toThrow('not found');
+      await expect(system.handleNotFoundError('missing')).rejects.toThrow(
+        'not found',
+      );
 
       const result = await system.handleNotFoundError('exists');
       expect(result.found).toBe(true);
@@ -571,7 +597,7 @@ describe('End-to-End Scenarios', () => {
       }): Promise<any> {
         const docId = `doc-${Date.now()}`;
         const chunks = this.chunkDocument(document.content, 500);
-        
+
         const processed = {
           success: true,
           documentId: docId,
@@ -587,10 +613,11 @@ describe('End-to-End Scenarios', () => {
         };
 
         this.documents.set(docId, processed);
-        
+
         // Store conversation documents
         if (document.conversationId) {
-          const convDocs = this.conversations.get(document.conversationId) || [];
+          const convDocs =
+            this.conversations.get(document.conversationId) || [];
           convDocs.push(docId);
           this.conversations.set(document.conversationId, convDocs);
         }
@@ -625,7 +652,7 @@ describe('End-to-End Scenarios', () => {
 
         // Find conversation documents
         const convDocs = this.conversations.get(request.conversationId) || [];
-        
+
         // Search vectors from conversation documents
         const results: any[] = [];
         this.vectors.forEach((vector, vectorId) => {
@@ -633,7 +660,10 @@ describe('End-to-End Scenarios', () => {
             vector.conversationId === request.conversationId &&
             vector.userId === request.userId
           ) {
-            const similarity = this.cosineSimilarity(queryEmbedding, vector.embedding);
+            const similarity = this.cosineSimilarity(
+              queryEmbedding,
+              vector.embedding,
+            );
             if (similarity >= threshold) {
               results.push({
                 id: vectorId,
@@ -813,7 +843,8 @@ describe('End-to-End Scenarios', () => {
     it('should process document and make it searchable in conversation', async () => {
       // Process document
       const result = await ragSystem.processDocumentForRAG({
-        content: 'The Quick Brown Fox jumps over the lazy dog. This is a test document about animals.',
+        content:
+          'The Quick Brown Fox jumps over the lazy dog. This is a test document about animals.',
         userId,
         conversationId,
         metadata: { title: 'Test Document' },
@@ -873,7 +904,7 @@ describe('End-to-End Scenarios', () => {
       // Both searches should only return results from their respective conversations
       expect(result1.conversationId).toBe(conv1);
       expect(result2.conversationId).toBe(conv2);
-      
+
       // At least one should have results (mock embeddings may match differently)
       const totalResults = result1.results.length + result2.results.length;
       expect(totalResults).toBeGreaterThanOrEqual(0); // Isolation verified by conversationId
@@ -883,14 +914,16 @@ describe('End-to-End Scenarios', () => {
     it('should handle Expert Agent RAG integration workflow', async () => {
       // Setup: Process documents
       await ragSystem.processDocumentForRAG({
-        content: 'Artificial Intelligence is transforming industries. Machine learning models are becoming more sophisticated.',
+        content:
+          'Artificial Intelligence is transforming industries. Machine learning models are becoming more sophisticated.',
         userId,
         conversationId,
         metadata: { title: 'AI Overview' },
       });
 
       await ragSystem.processDocumentForRAG({
-        content: 'Neural networks are the foundation of deep learning. They consist of layers of interconnected nodes.',
+        content:
+          'Neural networks are the foundation of deep learning. They consist of layers of interconnected nodes.',
         userId,
         conversationId,
         metadata: { title: 'Neural Networks' },
@@ -933,7 +966,9 @@ describe('End-to-End Scenarios', () => {
         similarityThreshold: 0.5,
       });
 
-      expect(lowThreshold.results.length).toBeGreaterThanOrEqual(highThreshold.results.length);
+      expect(lowThreshold.results.length).toBeGreaterThanOrEqual(
+        highThreshold.results.length,
+      );
     });
 
     // Test ID: rag-e2e-005
@@ -986,7 +1021,9 @@ describe('End-to-End Scenarios', () => {
       const openaiModels = await ragSystem.getEmbeddingModels('openai');
 
       expect(openaiModels.success).toBe(true);
-      expect(openaiModels.models.every((m: any) => m.provider === 'openai')).toBe(true);
+      expect(
+        openaiModels.models.every((m: any) => m.provider === 'openai'),
+      ).toBe(true);
     });
 
     // Test ID: rag-e2e-008
@@ -1044,7 +1081,8 @@ describe('End-to-End Scenarios', () => {
     // Test ID: rag-e2e-012
     it('should handle multiple queries in Expert Agent research', async () => {
       await ragSystem.processDocumentForRAG({
-        content: 'Cloud computing enables scalable infrastructure. AWS, Azure, and GCP are major providers.',
+        content:
+          'Cloud computing enables scalable infrastructure. AWS, Azure, and GCP are major providers.',
         userId,
         conversationId,
       });
@@ -1182,8 +1220,9 @@ describe('End-to-End Scenarios', () => {
       // Should return at least one result
       expect(pythonSearch.results.length).toBeGreaterThan(0);
       // Results should contain relevant content (either Python or JavaScript)
-      const hasRelevantContent = pythonSearch.results.some((r: any) => 
-        r.content.includes('Python') || r.content.includes('JavaScript')
+      const hasRelevantContent = pythonSearch.results.some(
+        (r: any) =>
+          r.content.includes('Python') || r.content.includes('JavaScript'),
       );
       expect(hasRelevantContent).toBe(true);
     });
@@ -1330,14 +1369,16 @@ describe('End-to-End Scenarios', () => {
     it('should complete full RAG workflow with Expert Agent', async () => {
       // Step 1: Process multiple documents
       await ragSystem.processDocumentForRAG({
-        content: 'Docker containers provide isolated environments for applications',
+        content:
+          'Docker containers provide isolated environments for applications',
         userId,
         conversationId,
         metadata: { title: 'Docker Basics' },
       });
 
       await ragSystem.processDocumentForRAG({
-        content: 'Container orchestration with Kubernetes manages deployment at scale',
+        content:
+          'Container orchestration with Kubernetes manages deployment at scale',
         userId,
         conversationId,
         metadata: { title: 'Kubernetes Guide' },
@@ -1351,8 +1392,10 @@ describe('End-to-End Scenarios', () => {
 
       // Step 4: Validate results
       expect(research.sourcesFound).toBeGreaterThan(0);
-      expect(research.totalMatches).toBeGreaterThanOrEqual(research.sourcesFound);
-      
+      expect(research.totalMatches).toBeGreaterThanOrEqual(
+        research.sourcesFound,
+      );
+
       // Step 5: Verify source quality
       research.sources.forEach((source: any) => {
         expect(source.url).toMatch(/^doc:\/\//);

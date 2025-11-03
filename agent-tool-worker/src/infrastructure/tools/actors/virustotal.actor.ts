@@ -6,10 +6,19 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type VirusTotalOperation = 'scan-file' | 'get-scan-report' | 'scan-url' | 'get-url-report' | 'get-file-behaviors' | 'get-domain-report';
+export type VirusTotalOperation =
+  | 'scan-file'
+  | 'get-scan-report'
+  | 'scan-url'
+  | 'get-url-report'
+  | 'get-file-behaviors'
+  | 'get-domain-report';
 
 export interface VirusTotalArgs {
   operation: VirusTotalOperation;
@@ -46,9 +55,13 @@ export interface VirusTotalOutput extends ToolOutput {
 }
 
 @Injectable()
-export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput> {
+export class VirusTotalActor extends BaseActor<
+  VirusTotalArgs,
+  VirusTotalOutput
+> {
   readonly name = 'virustotal-actor';
-  readonly description = 'Provides integration with VirusTotal API for file scanning and analysis';
+  readonly description =
+    'Provides integration with VirusTotal API for file scanning and analysis';
 
   readonly errorEvents: ErrorEvent[];
 
@@ -64,7 +77,11 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('AuthenticationError', 'Invalid or missing API key', false),
+      new ErrorEvent(
+        'AuthenticationError',
+        'Invalid or missing API key',
+        false,
+      ),
       new ErrorEvent('RateLimitError', 'API rate limit exceeded', true),
       new ErrorEvent('NetworkError', 'Network connectivity issue', true),
       new ErrorEvent('ValidationError', 'Invalid request parameters', false),
@@ -81,7 +98,14 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         properties: {
           operation: {
             type: 'string',
-            enum: ['scan-file', 'get-scan-report', 'scan-url', 'get-url-report', 'get-file-behaviors', 'get-domain-report']
+            enum: [
+              'scan-file',
+              'get-scan-report',
+              'scan-url',
+              'get-url-report',
+              'get-file-behaviors',
+              'get-domain-report',
+            ],
           },
           apiKey: { type: 'string' },
           fileContent: { type: 'string' },
@@ -89,9 +113,9 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
           resource: { type: 'string' },
           url: { type: 'string', format: 'uri' },
           domain: { type: 'string' },
-          scanId: { type: 'string' }
+          scanId: { type: 'string' },
         },
-        required: ['operation']
+        required: ['operation'],
       },
       {
         type: 'object',
@@ -99,7 +123,14 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
           success: { type: 'boolean' },
           operation: {
             type: 'string',
-            enum: ['scan-file', 'get-scan-report', 'scan-url', 'get-url-report', 'get-file-behaviors', 'get-domain-report']
+            enum: [
+              'scan-file',
+              'get-scan-report',
+              'scan-url',
+              'get-url-report',
+              'get-file-behaviors',
+              'get-domain-report',
+            ],
           },
           scanId: { type: 'string' },
           resource: { type: 'string' },
@@ -108,13 +139,13 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
           positives: { type: 'number' },
           total: { type: 'number' },
           detected: { type: 'boolean' },
-          permalink: { type: 'string', format: 'uri' }
+          permalink: { type: 'string', format: 'uri' },
         },
-        required: ['success', 'operation']
+        required: ['success', 'operation'],
       },
       [],
       ActorCategory.EXTERNAL_SECURITY,
-      true
+      true,
     );
 
     super(metadata, errorEvents);
@@ -127,7 +158,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
     // Validate authentication
     if (!args.apiKey) {
       throw Object.assign(new Error('VirusTotal API key is required'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
@@ -145,16 +176,19 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
       case 'get-domain-report':
         return this.getDomainReport(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
   private async scanFile(args: VirusTotalArgs): Promise<VirusTotalOutput> {
     if (!args.fileContent) {
       throw Object.assign(new Error('File content is required for scanning'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -168,7 +202,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         operation: 'scan-file',
         scanId,
         resource,
-        permalink: `https://www.virustotal.com/gui/file/${resource}`
+        permalink: `https://www.virustotal.com/gui/file/${resource}`,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -178,7 +212,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
   private async getScanReport(args: VirusTotalArgs): Promise<VirusTotalOutput> {
     if (!args.resource) {
       throw Object.assign(new Error('Resource identifier is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -194,10 +228,14 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         positives: 0,
         total: 70,
         scans: {
-          'Bkav': { detected: false, version: '1.3.0.9899', result: null },
-          'Lionic': { detected: false, version: '7.4', result: null },
-          'MicroWorld-eScan': { detected: false, version: '14.0.297.0', result: null }
-        }
+          Bkav: { detected: false, version: '1.3.0.9899', result: null },
+          Lionic: { detected: false, version: '7.4', result: null },
+          'MicroWorld-eScan': {
+            detected: false,
+            version: '14.0.297.0',
+            result: null,
+          },
+        },
       };
 
       return {
@@ -207,7 +245,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         positives: 0,
         total: 70,
         detected: false,
-        permalink: `https://www.virustotal.com/gui/file/${args.resource}`
+        permalink: `https://www.virustotal.com/gui/file/${args.resource}`,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -217,7 +255,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
   private async scanUrl(args: VirusTotalArgs): Promise<VirusTotalOutput> {
     if (!args.url) {
       throw Object.assign(new Error('URL is required for scanning'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -231,7 +269,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         operation: 'scan-url',
         scanId,
         resource,
-        permalink: `https://www.virustotal.com/gui/url/${resource}`
+        permalink: `https://www.virustotal.com/gui/url/${resource}`,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -241,7 +279,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
   private async getUrlReport(args: VirusTotalArgs): Promise<VirusTotalOutput> {
     if (!args.resource && !args.url) {
       throw Object.assign(new Error('Resource identifier or URL is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -255,10 +293,10 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         positives: 0,
         total: 85,
         scans: {
-          'ADMINUSLabs': { detected: false, result: 'clean site' },
+          ADMINUSLabs: { detected: false, result: 'clean site' },
           'AegisLab WebGuard': { detected: false, result: 'clean site' },
-          'AlienVault': { detected: false, result: 'clean site' }
-        }
+          AlienVault: { detected: false, result: 'clean site' },
+        },
       };
 
       return {
@@ -268,17 +306,19 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         positives: 0,
         total: 85,
         detected: false,
-        permalink: `https://www.virustotal.com/gui/url/${mockReport.resource}`
+        permalink: `https://www.virustotal.com/gui/url/${mockReport.resource}`,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async getFileBehaviors(args: VirusTotalArgs): Promise<VirusTotalOutput> {
+  private async getFileBehaviors(
+    args: VirusTotalArgs,
+  ): Promise<VirusTotalOutput> {
     if (!args.resource) {
       throw Object.assign(new Error('Resource identifier is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -291,29 +331,31 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
           behaviors: [
             'Creates files in user directory',
             'Modifies registry keys',
-            'Establishes network connections'
+            'Establishes network connections',
           ],
           signatures: [
             { name: 'Creates files in user directory', severity: 'low' },
-            { name: 'Modifies registry keys', severity: 'medium' }
-          ]
-        }
+            { name: 'Modifies registry keys', severity: 'medium' },
+          ],
+        },
       ];
 
       return {
         success: true,
         operation: 'get-file-behaviors',
-        behaviors: mockBehaviors
+        behaviors: mockBehaviors,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async getDomainReport(args: VirusTotalArgs): Promise<VirusTotalOutput> {
+  private async getDomainReport(
+    args: VirusTotalArgs,
+  ): Promise<VirusTotalOutput> {
     if (!args.domain) {
       throw Object.assign(new Error('Domain is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -326,21 +368,21 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         undetected_downloaded_samples: 0,
         undetected_communicating_samples: 0,
         categories: {
-          'Webroot': 'uncategorized',
-          'BitDefender': 'uncategorized',
-          'Forcepoint ThreatSeeker': 'uncategorized'
+          Webroot: 'uncategorized',
+          BitDefender: 'uncategorized',
+          'Forcepoint ThreatSeeker': 'uncategorized',
         },
         popularity_ranks: {
-          'Statvoo': { rank: 12345 },
-          'Cisco Umbrella': { rank: 23456 }
+          Statvoo: { rank: 12345 },
+          'Cisco Umbrella': { rank: 23456 },
         },
         last_analysis_stats: {
           harmless: 85,
           malicious: 0,
           suspicious: 1,
           undetected: 14,
-          timeout: 0
-        }
+          timeout: 0,
+        },
       };
 
       return {
@@ -350,7 +392,7 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
         positives: 0,
         total: 100,
         detected: false,
-        permalink: `https://www.virustotal.com/gui/domain/${args.domain}`
+        permalink: `https://www.virustotal.com/gui/domain/${args.domain}`,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -359,40 +401,50 @@ export class VirusTotalActor extends BaseActor<VirusTotalArgs, VirusTotalOutput>
 
   private handleApiError(error: unknown): Error {
     // In a real implementation, this would parse VirusTotal API errors
-    const errorMessage = error instanceof Error ? error.message : 'Unknown API error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown API error';
 
     if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-      return Object.assign(new Error('Invalid API key or insufficient privileges'), {
-        name: 'AuthenticationError'
-      });
+      return Object.assign(
+        new Error('Invalid API key or insufficient privileges'),
+        {
+          name: 'AuthenticationError',
+        },
+      );
     }
 
     if (errorMessage.includes('204') || errorMessage.includes('No Content')) {
       return Object.assign(new Error('Resource not found'), {
-        name: 'NotFoundError'
+        name: 'NotFoundError',
       });
     }
 
-    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests')) {
+    if (
+      errorMessage.includes('429') ||
+      errorMessage.includes('Too Many Requests')
+    ) {
       return Object.assign(new Error('API rate limit exceeded'), {
-        name: 'RateLimitError'
+        name: 'RateLimitError',
       });
     }
 
-    if (errorMessage.includes('quota') || errorMessage.includes('limit exceeded')) {
+    if (
+      errorMessage.includes('quota') ||
+      errorMessage.includes('limit exceeded')
+    ) {
       return Object.assign(new Error('API quota exceeded'), {
-        name: 'QuotaExceededError'
+        name: 'QuotaExceededError',
       });
     }
 
     if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       return Object.assign(new Error('Network connectivity issue'), {
-        name: 'NetworkError'
+        name: 'NetworkError',
       });
     }
 
     return Object.assign(new Error(`VirusTotal API error: ${errorMessage}`), {
-      name: 'ApiError'
+      name: 'ApiError',
     });
   }
 }

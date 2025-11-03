@@ -1,6 +1,6 @@
 /**
  * LaTeXDocument Entity
- * 
+ *
  * Represents a LaTeX document with all necessary metadata for compilation.
  * This is the core domain entity for single-file LaTeX documents.
  */
@@ -81,9 +81,7 @@ export class LaTeXDocument {
   /**
    * Update compilation settings
    */
-  updateSettings(
-    settings: Partial<LaTeXCompilationSettings>,
-  ): LaTeXDocument {
+  updateSettings(settings: Partial<LaTeXCompilationSettings>): LaTeXDocument {
     return new LaTeXDocument(
       this.id,
       this.content,
@@ -177,9 +175,7 @@ export class LaTeXDocument {
     const begins = (this.content.match(/\\begin\{/g) || []).length;
     const ends = (this.content.match(/\\end\{/g) || []).length;
     if (begins !== ends) {
-      errors.push(
-        `Unbalanced environments: ${begins} \\begin, ${ends} \\end`,
-      );
+      errors.push(`Unbalanced environments: ${begins} \\begin, ${ends} \\end`);
     }
 
     return {

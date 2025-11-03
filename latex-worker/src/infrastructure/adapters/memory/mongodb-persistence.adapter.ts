@@ -1,6 +1,6 @@
 /**
  * MongoDB Persistence Adapter - STUB
- * 
+ *
  * TODO: Implement MongoDB persistence for LaTeX documents, projects, templates
  * This is a placeholder from the template and will be implemented in Phase 2.
  */

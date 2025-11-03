@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ILogger } from '../ports/logger.port';
 import { IAgentRepository } from '../ports/agent.repository';
 import { BaseAgent } from '@domain/agents/agent.base';
@@ -12,7 +18,7 @@ import { CreateAgentDTO, UpdateAgentDTO } from '../dto';
 
 /**
  * AgentService - Core agent management
- * 
+ *
  * Responsibilities:
  * - CRUD operations for agents
  * - Agent registry (in-memory cache)
@@ -32,7 +38,9 @@ export class AgentService {
     private readonly agentRepository: IAgentRepository,
     private readonly agentFactory: AgentFactory,
   ) {
-    this.logger.info('AgentService initialized', { agentsInRegistry: this.agentRegistry.size });
+    this.logger.info('AgentService initialized', {
+      agentsInRegistry: this.agentRegistry.size,
+    });
   }
 
   /**
@@ -46,7 +54,9 @@ export class AgentService {
       );
 
       if (existingAgent) {
-        throw new ConflictException(`Agent with name '${dto.name}' already exists`);
+        throw new ConflictException(
+          `Agent with name '${dto.name}' already exists`,
+        );
       }
 
       // Create agent config
@@ -81,7 +91,7 @@ export class AgentService {
         dto.name,
         this.mapAgentType(dto.agentType),
         config,
-        capability
+        capability,
       );
 
       // Persist to repository
@@ -90,35 +100,45 @@ export class AgentService {
       // Save to registry
       this.agentRegistry.set(agent.id, agent);
 
-      this.logger.info('Agent created', { agentId: agent.id, name: agent.name, userId });
+      this.logger.info('Agent created', {
+        agentId: agent.id,
+        name: agent.name,
+        userId,
+      });
 
       return agent;
     } catch (error) {
-      this.logger.error('Failed to create agent', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to create agent',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
 
-  private mapAgentType(type: string): typeof AgentType[keyof typeof AgentType] {
-    const typeMap: Record<string, typeof AgentType[keyof typeof AgentType]> = {
-      'react': AgentType.REACT,
-      'graph': AgentType.GRAPH,
-      'expert': AgentType.EXPERT,
-      'genius': AgentType.GENIUS,
-      'collective': AgentType.COLLECTIVE,
-      'manager': AgentType.MANAGER,
-    };
+  private mapAgentType(
+    type: string,
+  ): (typeof AgentType)[keyof typeof AgentType] {
+    const typeMap: Record<string, (typeof AgentType)[keyof typeof AgentType]> =
+      {
+        react: AgentType.REACT,
+        graph: AgentType.GRAPH,
+        expert: AgentType.EXPERT,
+        genius: AgentType.GENIUS,
+        collective: AgentType.COLLECTIVE,
+        manager: AgentType.MANAGER,
+      };
     return typeMap[type] || AgentType.REACT;
   }
 
   private getExecutionModel(type: string): string {
     const modelMap: Record<string, string> = {
-      'react': 'chain-of-thought',
-      'graph': 'dag',
-      'expert': 'research',
-      'genius': 'learning',
-      'collective': 'coordination',
-      'manager': 'hierarchical',
+      react: 'chain-of-thought',
+      graph: 'dag',
+      expert: 'research',
+      genius: 'learning',
+      collective: 'coordination',
+      manager: 'hierarchical',
     };
     return modelMap[type] || 'chain-of-thought';
   }
@@ -133,7 +153,9 @@ export class AgentService {
 
       if (!agent) {
         // Load from repository
-        const foundAgent = await this.agentRepository.findById(agentId as AgentId);
+        const foundAgent = await this.agentRepository.findById(
+          agentId as AgentId,
+        );
         if (foundAgent) {
           agent = foundAgent;
           this.agentRegistry.set(agentId, foundAgent);
@@ -146,7 +168,10 @@ export class AgentService {
 
       return agent;
     } catch (error) {
-      this.logger.error('Failed to get agent', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to get agent',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -154,7 +179,10 @@ export class AgentService {
   /**
    * List agents for user
    */
-  async listAgents(userId: string, filter?: { type?: string; active?: boolean }): Promise<Agent[]> {
+  async listAgents(
+    userId: string,
+    filter?: { type?: string; active?: boolean },
+  ): Promise<Agent[]> {
     try {
       let agents = Array.from(this.agentRegistry.values());
 
@@ -164,9 +192,14 @@ export class AgentService {
         agents = agents.filter((a) => a.agentType === agentType);
       }
 
-      return agents.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return agents.sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
     } catch (error) {
-      this.logger.error('Failed to list agents', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to list agents',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -174,7 +207,11 @@ export class AgentService {
   /**
    * Update agent
    */
-  async updateAgent(agentId: string, dto: UpdateAgentDTO, userId: string): Promise<Agent> {
+  async updateAgent(
+    agentId: string,
+    dto: UpdateAgentDTO,
+    userId: string,
+  ): Promise<Agent> {
     try {
       let agent = await this.getAgent(agentId, userId);
 
@@ -194,7 +231,10 @@ export class AgentService {
 
       return agent;
     } catch (error) {
-      this.logger.error('Failed to update agent', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to update agent',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -217,7 +257,10 @@ export class AgentService {
 
       this.logger.info('Agent deleted', { agentId, userId });
     } catch (error) {
-      this.logger.error('Failed to delete agent', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to delete agent',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -243,11 +286,17 @@ export class AgentService {
       // Cache instance
       this.agentInstances.set(agentId, instance);
 
-      this.logger.debug('Agent instance created', { agentId, type: agent.agentType });
+      this.logger.debug('Agent instance created', {
+        agentId,
+        type: agent.agentType,
+      });
 
       return instance;
     } catch (error) {
-      this.logger.error('Failed to get agent instance', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to get agent instance',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -265,7 +314,11 @@ export class AgentService {
       const instance = await this.getAgentInstance(agentId, userId);
       const agent = await this.getAgent(agentId, userId);
 
-      this.logger.info('Executing agent', { agentId, userId, inputLength: input.length });
+      this.logger.info('Executing agent', {
+        agentId,
+        userId,
+        inputLength: input.length,
+      });
 
       // Execute
       const result = await instance.execute(input, context);
@@ -275,7 +328,10 @@ export class AgentService {
 
       return result;
     } catch (error) {
-      this.logger.error('Failed to execute agent', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to execute agent',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -302,7 +358,10 @@ export class AgentService {
 
       // Note: execution stats would be tracked separately in a metrics system
     } catch (error) {
-      this.logger.error('Failed to stream agent', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to stream agent',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -339,7 +398,10 @@ export class AgentService {
 
       return instance.getState();
     } catch (error) {
-      this.logger.error('Failed to get agent state', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to get agent state',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -357,9 +419,15 @@ export class AgentService {
 
       this.sessionAgents.delete(sessionId);
 
-      this.logger.debug('Session released', { sessionId, agentCount: agentIds.length });
+      this.logger.debug('Session released', {
+        sessionId,
+        agentCount: agentIds.length,
+      });
     } catch (error) {
-      this.logger.error('Failed to release session', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to release session',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }

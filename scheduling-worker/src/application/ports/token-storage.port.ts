@@ -1,6 +1,6 @@
 /**
  * Token Storage Port
- * 
+ *
  * Abstract interface for storing and retrieving OAuth tokens
  * Allows for different storage implementations (MongoDB, Redis, etc.)
  */
@@ -40,7 +40,10 @@ export interface ITokenStorage {
   /**
    * Retrieve tokens for a specific calendar account
    */
-  getAccountTokens(userId: string, accountId: string): Promise<GoogleOAuthTokens | null>;
+  getAccountTokens(
+    userId: string,
+    accountId: string,
+  ): Promise<GoogleOAuthTokens | null>;
 
   /**
    * List all calendar accounts for a user

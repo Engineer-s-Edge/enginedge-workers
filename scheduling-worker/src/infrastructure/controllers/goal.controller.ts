@@ -11,9 +11,20 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { GoalService } from '../../application/services/goal.service';
-import { Goal, GoalStatus, GoalPriority, Milestone } from '../../domain/entities/goal.entity';
+import {
+  Goal,
+  GoalStatus,
+  GoalPriority,
+  Milestone,
+} from '../../domain/entities/goal.entity';
 
 // DTOs for API documentation
 class CreateGoalDto {
@@ -128,9 +139,9 @@ export class GoalController {
     this.logger.log(`Fetching goals for user ${userId}, status: ${status}`);
 
     const goals = await this.goalService.getUserGoals(userId);
-    
+
     if (status) {
-      return goals.filter(g => g.status === status);
+      return goals.filter((g) => g.status === status);
     }
 
     return goals;
@@ -147,7 +158,7 @@ export class GoalController {
   @ApiResponse({ status: 404, description: 'Goal not found' })
   async getGoal(@Param('id') id: string): Promise<Goal> {
     this.logger.log(`Fetching goal ${id}`);
-    
+
     // Note: This requires a repository method that doesn't exist yet
     throw new Error('Method not implemented - repository.findById needed');
   }
@@ -179,7 +190,7 @@ export class GoalController {
   @ApiResponse({ status: 404, description: 'Goal not found' })
   async deleteGoal(@Param('id') id: string): Promise<void> {
     this.logger.log(`Deleting goal ${id}`);
-    
+
     // Note: This requires a repository.delete method
     throw new Error('Method not implemented - repository.delete needed');
   }
@@ -236,7 +247,9 @@ export class GoalController {
     @Param('milestoneId') milestoneId: string,
     @Body() dto: CompleteMilestoneDto,
   ): Promise<Goal> {
-    this.logger.log(`Completing milestone ${milestoneId} for goal ${goalId}${dto.notes ? ` with notes: ${dto.notes}` : ''}`);
+    this.logger.log(
+      `Completing milestone ${milestoneId} for goal ${goalId}${dto.notes ? ` with notes: ${dto.notes}` : ''}`,
+    );
 
     return this.goalService.completeMilestone(goalId, milestoneId);
   }
@@ -269,7 +282,9 @@ export class GoalController {
     type: GoalProgressResponse,
   })
   @ApiResponse({ status: 404, description: 'Goal not found' })
-  async getProgressSummary(@Param('id') id: string): Promise<GoalProgressResponse> {
+  async getProgressSummary(
+    @Param('id') id: string,
+  ): Promise<GoalProgressResponse> {
     this.logger.log(`Fetching progress summary for goal ${id}`);
 
     // Note: Need to fetch goal first
@@ -293,7 +308,12 @@ export class GoalController {
   @Get('user/:userId/due-soon')
   @ApiOperation({ summary: 'Get goals due soon for a user' })
   @ApiParam({ name: 'userId', type: String })
-  @ApiQuery({ name: 'days', required: false, type: Number, description: 'Number of days ahead to look (default: 7)' })
+  @ApiQuery({
+    name: 'days',
+    required: false,
+    type: Number,
+    description: 'Number of days ahead to look (default: 7)',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of goals due soon',
@@ -303,7 +323,9 @@ export class GoalController {
     @Param('userId') userId: string,
     @Query('days') days: number = 7,
   ): Promise<Goal[]> {
-    this.logger.log(`Fetching goals due within ${days} days for user ${userId}`);
+    this.logger.log(
+      `Fetching goals due within ${days} days for user ${userId}`,
+    );
 
     const allGoals = await this.goalService.getActiveGoals(userId);
     return allGoals.filter((goal) => goal.isDueSoon(days));
@@ -321,7 +343,7 @@ export class GoalController {
     this.logger.log(`Fetching goals by priority for user ${userId}`);
 
     const goals = await this.goalService.getActiveGoals(userId);
-    
+
     // Sort by priority (5 = highest, 1 = lowest)
     return goals.sort((a, b) => b.priority - a.priority);
   }

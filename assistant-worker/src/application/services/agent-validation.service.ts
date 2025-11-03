@@ -1,6 +1,6 @@
 /**
  * Agent Validation Service
- * 
+ *
  * Validates agent configurations, options, and requests.
  */
 
@@ -21,7 +21,10 @@ export class AgentValidationService {
   /**
    * Validate agent options before creation
    */
-  validateAgentOptions(options: AgentOptions): { valid: boolean; errors: string[] } {
+  validateAgentOptions(options: AgentOptions): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!options.name || options.name.trim().length === 0) {
@@ -36,9 +39,18 @@ export class AgentValidationService {
       errors.push('Agent type is required');
     }
 
-    const validTypes = ['react', 'graph', 'expert', 'genius', 'collective', 'manager'];
+    const validTypes = [
+      'react',
+      'graph',
+      'expert',
+      'genius',
+      'collective',
+      'manager',
+    ];
     if (options.type && !validTypes.includes(options.type)) {
-      errors.push(`Invalid agent type. Must be one of: ${validTypes.join(', ')}`);
+      errors.push(
+        `Invalid agent type. Must be one of: ${validTypes.join(', ')}`,
+      );
     }
 
     if (!options.userId || options.userId.trim().length === 0) {
@@ -92,7 +104,10 @@ export class AgentValidationService {
   /**
    * Validate tool calls
    */
-  validateToolCalls(toolCalls: unknown[]): { valid: boolean; errors: string[] } {
+  validateToolCalls(toolCalls: unknown[]): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!Array.isArray(toolCalls)) {
@@ -102,7 +117,7 @@ export class AgentValidationService {
 
     for (let i = 0; i < toolCalls.length; i++) {
       const call = toolCalls[i] as any;
-      
+
       if (!call.name) {
         errors.push(`Tool call ${i}: name is required`);
       }
@@ -125,7 +140,10 @@ export class AgentValidationService {
   /**
    * Validate memory configuration
    */
-  validateMemoryConfig(memoryConfig: unknown): { valid: boolean; errors: string[] } {
+  validateMemoryConfig(memoryConfig: unknown): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!memoryConfig || typeof memoryConfig !== 'object') {
@@ -135,17 +153,32 @@ export class AgentValidationService {
     const config = memoryConfig as any;
 
     if (config.type) {
-      const validTypes = ['buffer', 'window', 'summary', 'vector', 'entity', 'graph'];
+      const validTypes = [
+        'buffer',
+        'window',
+        'summary',
+        'vector',
+        'entity',
+        'graph',
+      ];
       if (!validTypes.includes(config.type)) {
-        errors.push(`Invalid memory type. Must be one of: ${validTypes.join(', ')}`);
+        errors.push(
+          `Invalid memory type. Must be one of: ${validTypes.join(', ')}`,
+        );
       }
     }
 
-    if (config.maxMessages && (typeof config.maxMessages !== 'number' || config.maxMessages < 1)) {
+    if (
+      config.maxMessages &&
+      (typeof config.maxMessages !== 'number' || config.maxMessages < 1)
+    ) {
       errors.push('maxMessages must be a positive number');
     }
 
-    if (config.maxTokens && (typeof config.maxTokens !== 'number' || config.maxTokens < 1)) {
+    if (
+      config.maxTokens &&
+      (typeof config.maxTokens !== 'number' || config.maxTokens < 1)
+    ) {
       errors.push('maxTokens must be a positive number');
     }
 
@@ -157,7 +190,10 @@ export class AgentValidationService {
 
   // Private validation methods for each agent type
 
-  private validateReActConfig(config: Record<string, unknown>, errors: string[]): void {
+  private validateReActConfig(
+    config: Record<string, unknown>,
+    errors: string[],
+  ): void {
     if (config.maxIterations && typeof config.maxIterations !== 'number') {
       errors.push('ReAct agent: maxIterations must be a number');
     }
@@ -171,14 +207,17 @@ export class AgentValidationService {
     }
   }
 
-  private validateGraphConfig(config: Record<string, unknown>, errors: string[]): void {
+  private validateGraphConfig(
+    config: Record<string, unknown>,
+    errors: string[],
+  ): void {
     if (config.workflow && typeof config.workflow !== 'object') {
       errors.push('Graph agent: workflow must be an object');
     }
 
     if (config.workflow) {
       const workflow = config.workflow as any;
-      
+
       if (!workflow.nodes || !Array.isArray(workflow.nodes)) {
         errors.push('Graph agent: workflow must have a nodes array');
       }
@@ -189,19 +228,37 @@ export class AgentValidationService {
     }
   }
 
-  private validateExpertConfig(config: Record<string, unknown>, errors: string[]): void {
+  private validateExpertConfig(
+    config: Record<string, unknown>,
+    errors: string[],
+  ): void {
     if (config.maxSources && typeof config.maxSources !== 'number') {
       errors.push('Expert agent: maxSources must be a number');
     }
 
-    if (config.researchDepth && !['shallow', 'medium', 'deep'].includes(config.researchDepth as string)) {
-      errors.push('Expert agent: researchDepth must be shallow, medium, or deep');
+    if (
+      config.researchDepth &&
+      !['shallow', 'medium', 'deep'].includes(config.researchDepth as string)
+    ) {
+      errors.push(
+        'Expert agent: researchDepth must be shallow, medium, or deep',
+      );
     }
   }
 
-  private validateGeniusConfig(config: Record<string, unknown>, errors: string[]): void {
-    if (config.learningMode && !['user-directed', 'autonomous', 'scheduled'].includes(config.learningMode as string)) {
-      errors.push('Genius agent: learningMode must be user-directed, autonomous, or scheduled');
+  private validateGeniusConfig(
+    config: Record<string, unknown>,
+    errors: string[],
+  ): void {
+    if (
+      config.learningMode &&
+      !['user-directed', 'autonomous', 'scheduled'].includes(
+        config.learningMode as string,
+      )
+    ) {
+      errors.push(
+        'Genius agent: learningMode must be user-directed, autonomous, or scheduled',
+      );
     }
 
     if (config.expertPoolSize && typeof config.expertPoolSize !== 'number') {
@@ -209,19 +266,39 @@ export class AgentValidationService {
     }
   }
 
-  private validateCollectiveConfig(config: Record<string, unknown>, errors: string[]): void {
+  private validateCollectiveConfig(
+    config: Record<string, unknown>,
+    errors: string[],
+  ): void {
     if (config.maxAgents && typeof config.maxAgents !== 'number') {
       errors.push('Collective agent: maxAgents must be a number');
     }
 
-    if (config.coordinationStrategy && !['sequential', 'parallel', 'hierarchical'].includes(config.coordinationStrategy as string)) {
-      errors.push('Collective agent: coordinationStrategy must be sequential, parallel, or hierarchical');
+    if (
+      config.coordinationStrategy &&
+      !['sequential', 'parallel', 'hierarchical'].includes(
+        config.coordinationStrategy as string,
+      )
+    ) {
+      errors.push(
+        'Collective agent: coordinationStrategy must be sequential, parallel, or hierarchical',
+      );
     }
   }
 
-  private validateManagerConfig(config: Record<string, unknown>, errors: string[]): void {
-    if (config.decompositionStrategy && !['functional', 'hierarchical', 'temporal'].includes(config.decompositionStrategy as string)) {
-      errors.push('Manager agent: decompositionStrategy must be functional, hierarchical, or temporal');
+  private validateManagerConfig(
+    config: Record<string, unknown>,
+    errors: string[],
+  ): void {
+    if (
+      config.decompositionStrategy &&
+      !['functional', 'hierarchical', 'temporal'].includes(
+        config.decompositionStrategy as string,
+      )
+    ) {
+      errors.push(
+        'Manager agent: decompositionStrategy must be functional, hierarchical, or temporal',
+      );
     }
 
     if (config.maxSubAgents && typeof config.maxSubAgents !== 'number') {
@@ -229,4 +306,3 @@ export class AgentValidationService {
     }
   }
 }
-

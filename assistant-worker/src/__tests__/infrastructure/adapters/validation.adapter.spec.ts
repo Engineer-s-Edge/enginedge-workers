@@ -193,7 +193,10 @@ describe('ValidationAdapter', () => {
 
   describe('checkSourceCredibility', () => {
     it('should return credibility score', async () => {
-      const score = await adapter.checkSourceCredibility(['arxiv.org', 'scholar.google.com']);
+      const score = await adapter.checkSourceCredibility([
+        'arxiv.org',
+        'scholar.google.com',
+      ]);
 
       expect(typeof score).toBe('number');
       expect(score).toBeGreaterThanOrEqual(0);
@@ -221,7 +224,10 @@ describe('ValidationAdapter', () => {
     });
 
     it('should handle dubious sources', async () => {
-      const score = await adapter.checkSourceCredibility(['random-blog.xyz', 'fake.net']);
+      const score = await adapter.checkSourceCredibility([
+        'random-blog.xyz',
+        'fake.net',
+      ]);
 
       expect(typeof score).toBe('number');
     });
@@ -229,7 +235,10 @@ describe('ValidationAdapter', () => {
 
   describe('checkFindingConsistency', () => {
     it('should return boolean consistency check', async () => {
-      const result = await adapter.checkFindingConsistency(['Finding 1', 'Finding 2']);
+      const result = await adapter.checkFindingConsistency([
+        'Finding 1',
+        'Finding 2',
+      ]);
 
       expect(typeof result).toBe('boolean');
     });
@@ -286,12 +295,15 @@ describe('ValidationAdapter', () => {
     });
 
     it('should handle concurrent validations', async () => {
-      const configs: ValidationConfig[] = Array.from({ length: 10 }, (_, i) => ({
-        topic: `Topic ${i}`,
-        sources: ['source'],
-        findings: ['finding'],
-        confidence: 0.8,
-      }));
+      const configs: ValidationConfig[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          topic: `Topic ${i}`,
+          sources: ['source'],
+          findings: ['finding'],
+          confidence: 0.8,
+        }),
+      );
 
       const promises = configs.map((c) => adapter.validate(c));
 

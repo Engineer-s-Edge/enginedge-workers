@@ -49,7 +49,9 @@ export class JobPostingParsedSchema {
   provenance?: any[];
 }
 
-const JobPostingParsedSchemaFactory = SchemaFactory.createForClass(JobPostingParsedSchema);
+const JobPostingParsedSchemaFactory = SchemaFactory.createForClass(
+  JobPostingParsedSchema,
+);
 
 @Schema({ timestamps: true })
 export class JobPostingSchema extends Document {
@@ -81,10 +83,13 @@ export class JobPostingSchema extends Document {
   updatedAt: Date;
 }
 
-export const JobPostingSchemaFactory = SchemaFactory.createForClass(JobPostingSchema);
+export const JobPostingSchemaFactory =
+  SchemaFactory.createForClass(JobPostingSchema);
 
 // Add indexes
 JobPostingSchemaFactory.index({ userId: 1, createdAt: -1 });
 JobPostingSchemaFactory.index({ url: 1 });
-JobPostingSchemaFactory.index({ 'parsed.role.titleRaw': 'text', 'parsed.company.hiringOrganization': 'text' });
-
+JobPostingSchemaFactory.index({
+  'parsed.role.titleRaw': 'text',
+  'parsed.company.hiringOrganization': 'text',
+});

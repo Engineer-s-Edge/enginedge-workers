@@ -65,9 +65,13 @@ describe('Health Checks', () => {
     });
 
     it('should return error details on failure', async () => {
-      healthController.getHealth = jest.fn().mockRejectedValue(new Error('Service unavailable'));
+      healthController.getHealth = jest
+        .fn()
+        .mockRejectedValue(new Error('Service unavailable'));
 
-      await expect(healthController.getHealth()).rejects.toThrow('Service unavailable');
+      await expect(healthController.getHealth()).rejects.toThrow(
+        'Service unavailable',
+      );
     });
   });
 
@@ -94,7 +98,9 @@ describe('Health Checks', () => {
     });
 
     it('should mark as dead when process is down', async () => {
-      healthController.getLiveness = jest.fn().mockResolvedValue({ alive: false });
+      healthController.getLiveness = jest
+        .fn()
+        .mockResolvedValue({ alive: false });
 
       const response = await healthController.getLiveness();
       expect(response.alive).toBe(false);
@@ -107,7 +113,9 @@ describe('Health Checks', () => {
 
       const timeoutPromise = Promise.race([
         healthController.getLiveness(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), 100),
+        ),
       ]);
 
       await expect(timeoutPromise).rejects.toThrow('Timeout');
@@ -164,9 +172,13 @@ describe('Health Checks', () => {
     });
 
     it('should handle readiness check errors', async () => {
-      healthController.getReadiness = jest.fn().mockRejectedValue(new Error('Check failed'));
+      healthController.getReadiness = jest
+        .fn()
+        .mockRejectedValue(new Error('Check failed'));
 
-      await expect(healthController.getReadiness()).rejects.toThrow('Check failed');
+      await expect(healthController.getReadiness()).rejects.toThrow(
+        'Check failed',
+      );
     });
   });
 
@@ -231,13 +243,13 @@ describe('Health Checks', () => {
 
     it('should check all dependencies in parallel', async () => {
       const startTime = Date.now();
-      
+
       healthController.checkDependencies = jest.fn().mockImplementation(() =>
         Promise.resolve({
           database: { responseTime: 10 },
           cache: { responseTime: 10 },
           messaging: { responseTime: 10 },
-        })
+        }),
       );
 
       await healthController.checkDependencies();
@@ -342,26 +354,36 @@ describe('Health Checks', () => {
     });
 
     it('should handle timeout errors', async () => {
-      healthController.checkDependencies = jest.fn().mockRejectedValue(new Error('Timeout'));
+      healthController.checkDependencies = jest
+        .fn()
+        .mockRejectedValue(new Error('Timeout'));
 
-      await expect(healthController.checkDependencies()).rejects.toThrow('Timeout');
+      await expect(healthController.checkDependencies()).rejects.toThrow(
+        'Timeout',
+      );
     });
 
     it('should handle network errors', async () => {
-      healthController.getReadiness = jest.fn().mockRejectedValue(new Error('Network unreachable'));
+      healthController.getReadiness = jest
+        .fn()
+        .mockRejectedValue(new Error('Network unreachable'));
 
-      await expect(healthController.getReadiness()).rejects.toThrow('Network unreachable');
+      await expect(healthController.getReadiness()).rejects.toThrow(
+        'Network unreachable',
+      );
     });
 
     it('should recover from transient failures', async () => {
       let callCount = 0;
-      healthController.checkDependencies = jest.fn().mockImplementation(async () => {
-        callCount++;
-        if (callCount === 1) {
-          throw new Error('Transient failure');
-        }
-        return { status: 'recovered' };
-      });
+      healthController.checkDependencies = jest
+        .fn()
+        .mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            throw new Error('Transient failure');
+          }
+          return { status: 'recovered' };
+        });
 
       await expect(healthController.checkDependencies()).rejects.toThrow();
       const result = await healthController.checkDependencies();
@@ -381,17 +403,21 @@ describe('Health Checks', () => {
     });
 
     it('should handle check timeout gracefully', async () => {
-      healthController.checkDependencies = jest.fn().mockImplementation(async () => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({ status: 'timeout' });
-          }, 5000);
+      healthController.checkDependencies = jest
+        .fn()
+        .mockImplementation(async () => {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({ status: 'timeout' });
+            }, 5000);
+          });
         });
-      });
 
       const timeoutPromise = Promise.race([
         healthController.checkDependencies(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Health check timeout')), 100)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Health check timeout')), 100),
+        ),
       ]);
 
       await expect(timeoutPromise).rejects.toThrow('Health check timeout');
@@ -420,7 +446,7 @@ describe('Health Checks', () => {
 
     it('should use consistent status values', async () => {
       const validStatuses = ['healthy', 'degraded', 'unhealthy'];
-      
+
       healthController.getHealth = jest.fn().mockResolvedValue({
         status: 'healthy',
       });
@@ -463,8 +489,12 @@ describe('Health Checks', () => {
     });
 
     it('should differentiate liveness and readiness', async () => {
-      healthController.getLiveness = jest.fn().mockResolvedValue({ alive: true });
-      healthController.getReadiness = jest.fn().mockResolvedValue({ ready: false });
+      healthController.getLiveness = jest
+        .fn()
+        .mockResolvedValue({ alive: true });
+      healthController.getReadiness = jest
+        .fn()
+        .mockResolvedValue({ ready: false });
 
       const liveness = await healthController.getLiveness();
       const readiness = await healthController.getReadiness();

@@ -1,11 +1,21 @@
 /**
  * Expert Agent Controller
- * 
+ *
  * Specialized endpoints for Expert (research) agents.
  * Handles AIM-SHOOT-SKIN research methodology.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { ILogger } from '@application/ports/logger.port';
@@ -27,12 +37,15 @@ export class ExpertAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createExpertAgent(@Body() body: {
-    name: string;
-    userId: string;
-    maxSources?: number;
-    researchDepth?: 'shallow' | 'medium' | 'deep';
-  }) {
+  async createExpertAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      maxSources?: number;
+      researchDepth?: 'shallow' | 'medium' | 'deep';
+    },
+  ) {
     this.logger.info('Creating Expert agent', { name: body.name });
 
     const config = {
@@ -61,7 +74,8 @@ export class ExpertAgentController {
   @HttpCode(HttpStatus.OK)
   async conductResearch(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       query: string;
       userId: string;
       phases?: Array<'aim' | 'shoot' | 'skin'>;
@@ -92,7 +106,7 @@ export class ExpertAgentController {
     this.logger.info('Getting research sources', { agentId });
 
     const agent = await this.agentService.getAgent(agentId, userId);
-    
+
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
@@ -145,7 +159,8 @@ export class ExpertAgentController {
   @HttpCode(HttpStatus.OK)
   async synthesizeReport(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       format?: 'markdown' | 'html' | 'pdf';
     },
@@ -160,4 +175,3 @@ export class ExpertAgentController {
     };
   }
 }
-

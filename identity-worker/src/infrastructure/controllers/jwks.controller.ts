@@ -9,5 +9,3 @@ export class JwksController {
     return this.jwt.getJwks();
   }
 }
-
-

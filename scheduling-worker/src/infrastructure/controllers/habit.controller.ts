@@ -11,9 +11,19 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { HabitService } from '../../application/services/habit.service';
-import { Habit, HabitFrequency, HabitPriority } from '../../domain/entities/habit.entity';
+import {
+  Habit,
+  HabitFrequency,
+  HabitPriority,
+} from '../../domain/entities/habit.entity';
 
 // DTOs for API documentation
 class CreateHabitDto {
@@ -128,7 +138,7 @@ export class HabitController {
   @ApiResponse({ status: 404, description: 'Habit not found' })
   async getHabit(@Param('id') id: string): Promise<Habit> {
     this.logger.log(`Fetching habit ${id}`);
-    
+
     // Note: This requires a repository method that doesn't exist yet
     // For now, we'll throw an error
     throw new Error('Method not implemented - repository.findById needed');
@@ -162,7 +172,7 @@ export class HabitController {
   @ApiResponse({ status: 404, description: 'Habit not found' })
   async deleteHabit(@Param('id') id: string): Promise<void> {
     this.logger.log(`Deleting habit ${id}`);
-    
+
     // Note: This requires a repository.delete method
     throw new Error('Method not implemented - repository.delete needed');
   }
@@ -180,12 +190,11 @@ export class HabitController {
     @Param('id') id: string,
     @Body() dto: CompleteHabitDto,
   ): Promise<Habit> {
-    this.logger.log(`Completing habit ${id} for date ${dto.date || new Date()}`);
-
-    return this.habitService.completeHabit(
-      id,
-      dto.notes,
+    this.logger.log(
+      `Completing habit ${id} for date ${dto.date || new Date()}`,
     );
+
+    return this.habitService.completeHabit(id, dto.notes);
   }
 
   @Get(':id/stats')
@@ -213,9 +222,10 @@ export class HabitController {
       completionRate: stats.completionRate30Days,
       currentStreak: stats.currentStreak,
       longestStreak: stats.longestStreak,
-      lastCompletedAt: habit.completions && habit.completions.length > 0 
-        ? habit.completions[habit.completions.length - 1].date 
-        : undefined,
+      lastCompletedAt:
+        habit.completions && habit.completions.length > 0
+          ? habit.completions[habit.completions.length - 1].date
+          : undefined,
     };
   }
 
@@ -233,7 +243,9 @@ export class HabitController {
     @Query('date') dateStr?: string,
   ): Promise<Habit[]> {
     const date = dateStr ? new Date(dateStr) : new Date();
-    this.logger.log(`Fetching unmet habits for user ${userId} on ${date.toISOString()}`);
+    this.logger.log(
+      `Fetching unmet habits for user ${userId} on ${date.toISOString()}`,
+    );
 
     return this.habitService.getUnmetHabits(userId);
   }

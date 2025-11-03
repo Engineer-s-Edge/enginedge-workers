@@ -246,8 +246,7 @@ describe('NewsIntegrationAdapter', () => {
 
       for (const topic of topics) {
         expect(
-          newsMap.get(topic) === undefined ||
-            Array.isArray(newsMap.get(topic)),
+          newsMap.get(topic) === undefined || Array.isArray(newsMap.get(topic)),
         ).toBe(true);
       }
     });
@@ -367,9 +366,7 @@ describe('NewsIntegrationAdapter', () => {
     it('should handle rapid news fetches', async () => {
       const fetches = [];
       for (let i = 0; i < 20; i++) {
-        fetches.push(
-          adapter.fetchRecentNews(`Topic-${i}`, 3),
-        );
+        fetches.push(adapter.fetchRecentNews(`Topic-${i}`, 3));
       }
 
       const results = await Promise.all(fetches);

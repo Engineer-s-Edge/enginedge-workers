@@ -1,27 +1,45 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, Producer, EachMessagePayload } from 'kafkajs';
 import { MessageBrokerPort } from '../../application/ports/message-broker.port';
 
 /**
  * Kafka Message Broker Adapter
- * 
+ *
  * Implements MessageBrokerPort using Apache Kafka.
  * Handles async compilation requests/responses.
  */
 @Injectable()
-export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleInit, OnModuleDestroy {
+export class KafkaMessageBrokerAdapter
+  implements MessageBrokerPort, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(KafkaMessageBrokerAdapter.name);
   private kafka: Kafka;
   private producer!: Producer;
   private consumer!: Consumer;
   private connected = false;
-  private subscriptions = new Map<string, (message: unknown) => Promise<void>>();
+  private subscriptions = new Map<
+    string,
+    (message: unknown) => Promise<void>
+  >();
 
   constructor(private readonly configService: ConfigService) {
-    const brokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(',');
-    const clientId = this.configService.get<string>('KAFKA_CLIENT_ID', 'latex-worker');
-    const groupId = this.configService.get<string>('KAFKA_GROUP_ID', 'latex-worker-group');
+    const brokers = this.configService
+      .get<string>('KAFKA_BROKERS', 'localhost:9092')
+      .split(',');
+    const clientId = this.configService.get<string>(
+      'KAFKA_CLIENT_ID',
+      'latex-worker',
+    );
+    const groupId = this.configService.get<string>(
+      'KAFKA_GROUP_ID',
+      'latex-worker-group',
+    );
 
     this.kafka = new Kafka({
       clientId,
@@ -117,14 +135,19 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
         ],
       });
 
-      this.logger.debug(`Sent message to topic ${topic}: ${messageValue.substring(0, 100)}...`);
+      this.logger.debug(
+        `Sent message to topic ${topic}: ${messageValue.substring(0, 100)}...`,
+      );
     } catch (error) {
       this.logger.error(`Failed to send message to topic ${topic}`, error);
       throw error;
     }
   }
 
-  async subscribe(topic: string, handler: (message: unknown) => Promise<void>): Promise<void> {
+  async subscribe(
+    topic: string,
+    handler: (message: unknown) => Promise<void>,
+  ): Promise<void> {
     if (!this.connected) {
       throw new Error('Not connected to Kafka');
     }
@@ -157,7 +180,9 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
       const messageValue = message.value?.toString() || '{}';
       const parsedMessage = JSON.parse(messageValue);
 
-      this.logger.debug(`Received message from topic ${topic} (partition ${partition}): ${messageValue.substring(0, 100)}...`);
+      this.logger.debug(
+        `Received message from topic ${topic} (partition ${partition}): ${messageValue.substring(0, 100)}...`,
+      );
 
       // Find and execute handler for this topic
       const handler = this.subscriptions.get(topic);

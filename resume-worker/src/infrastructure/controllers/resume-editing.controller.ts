@@ -6,21 +6,22 @@ import { ResumeVersioningService } from '../../application/services/resume-versi
 export class ResumeEditingController {
   constructor(
     private readonly editingService: ResumeEditingService,
-    private readonly versioningService: ResumeVersioningService
+    private readonly versioningService: ResumeVersioningService,
   ) {}
 
   @Post('apply')
   async applyEdit(
     @Param('resumeId') resumeId: string,
-    @Body() body: {
+    @Body()
+    body: {
       operation: any;
       createVersion?: boolean;
-    }
+    },
   ) {
     return this.editingService.applyEdit(
       resumeId,
       body.operation,
-      body.createVersion
+      body.createVersion,
     );
   }
 
@@ -47,7 +48,7 @@ export class ResumeEditingController {
   @Get('versions/:versionNumber')
   async getVersion(
     @Param('resumeId') resumeId: string,
-    @Param('versionNumber') versionNumber: number
+    @Param('versionNumber') versionNumber: number,
   ) {
     return this.versioningService.getVersion(resumeId, versionNumber);
   }
@@ -55,7 +56,7 @@ export class ResumeEditingController {
   @Post('versions/:versionNumber/rollback')
   async rollback(
     @Param('resumeId') resumeId: string,
-    @Param('versionNumber') versionNumber: number
+    @Param('versionNumber') versionNumber: number,
   ) {
     return this.versioningService.rollbackToVersion(resumeId, versionNumber);
   }
@@ -64,9 +65,8 @@ export class ResumeEditingController {
   async compareVersions(
     @Param('resumeId') resumeId: string,
     @Param('version1') version1: number,
-    @Param('version2') version2: number
+    @Param('version2') version2: number,
   ) {
     return this.versioningService.compareVersions(resumeId, version1, version2);
   }
 }
-

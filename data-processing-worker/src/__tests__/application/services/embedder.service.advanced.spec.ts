@@ -5,7 +5,10 @@ describe('EmbedderService Advanced (Phase 5 - Embedders Extended)', () => {
   let service: EmbedderService;
   const mockEmbedder = {
     embedText: jest.fn().mockResolvedValue([0.1, 0.2, 0.3]),
-    embedBatch: jest.fn().mockResolvedValue([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]),
+    embedBatch: jest.fn().mockResolvedValue([
+      [0.1, 0.2, 0.3],
+      [0.4, 0.5, 0.6],
+    ]),
   };
   const mockFactory: any = {
     getDefaultEmbedder: jest.fn().mockReturnValue(mockEmbedder),

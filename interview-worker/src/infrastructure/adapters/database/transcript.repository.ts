@@ -51,7 +51,10 @@ export class MongoTranscriptRepository
       );
       return transcript;
     } catch (error) {
-      this.logger.error(`Failed to save transcript: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save transcript: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -64,15 +67,26 @@ export class MongoTranscriptRepository
       return {
         sessionId: doc.sessionId as string,
         messages: (doc.messages as Record<string, unknown>[]).map((msg) => ({
-          timestamp: msg.timestamp ? new Date(msg.timestamp as string) : new Date(),
+          timestamp: msg.timestamp
+            ? new Date(msg.timestamp as string)
+            : new Date(),
           speaker: msg.speaker as 'candidate' | 'agent',
           text: msg.text as string,
-          type: msg.type as 'user-input' | 'voice-transcription' | 'agent-response' | 'followup',
-          followupForQuestionId: msg.followupForQuestionId as string | undefined,
+          type: msg.type as
+            | 'user-input'
+            | 'voice-transcription'
+            | 'agent-response'
+            | 'followup',
+          followupForQuestionId: msg.followupForQuestionId as
+            | string
+            | undefined,
         })),
       };
     } catch (error) {
-      this.logger.error(`Failed to find transcript: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find transcript: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -100,7 +114,10 @@ export class MongoTranscriptRepository
         { upsert: true },
       );
     } catch (error) {
-      this.logger.error(`Failed to append message: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to append message: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -132,17 +149,27 @@ export class MongoTranscriptRepository
       return {
         sessionId: result.sessionId as string,
         messages: (result.messages as Record<string, unknown>[]).map((msg) => ({
-          timestamp: msg.timestamp ? new Date(msg.timestamp as string) : new Date(),
+          timestamp: msg.timestamp
+            ? new Date(msg.timestamp as string)
+            : new Date(),
           speaker: msg.speaker as 'candidate' | 'agent',
           text: msg.text as string,
-          type: msg.type as 'user-input' | 'voice-transcription' | 'agent-response' | 'followup',
-          followupForQuestionId: msg.followupForQuestionId as string | undefined,
+          type: msg.type as
+            | 'user-input'
+            | 'voice-transcription'
+            | 'agent-response'
+            | 'followup',
+          followupForQuestionId: msg.followupForQuestionId as
+            | string
+            | undefined,
         })),
       };
     } catch (error) {
-      this.logger.error(`Failed to update transcript: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to update transcript: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

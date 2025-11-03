@@ -12,7 +12,7 @@ declare module 'express-serve-static-core' {
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     // Use existing correlation ID from header or generate new one
-    const correlationId = 
+    const correlationId =
       (req.headers['x-correlation-id'] as string) ||
       (req.headers['x-request-id'] as string) ||
       randomUUID();

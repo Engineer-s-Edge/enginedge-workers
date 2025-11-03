@@ -17,7 +17,8 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const { method, url } = request;
-    const correlationId = (request as any).correlationId || request.headers['x-correlation-id'];
+    const correlationId =
+      (request as any).correlationId || request.headers['x-correlation-id'];
     const startTime = Date.now();
 
     this.logger.info('LoggingInterceptor: Incoming request', {

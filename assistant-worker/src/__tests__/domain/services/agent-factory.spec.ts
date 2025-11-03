@@ -25,7 +25,9 @@ describe('Domain Services - AgentFactory', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -71,7 +73,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 60000,
         });
 
-        const agent = Agent.create('ReAct Agent', AgentType.REACT, baseConfig, capability);
+        const agent = Agent.create(
+          'ReAct Agent',
+          AgentType.REACT,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agentInstance).toBeDefined();
@@ -92,7 +99,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 60000,
         });
 
-        const agent = Agent.create('ReAct Agent', AgentType.REACT, baseConfig, capability);
+        const agent = Agent.create(
+          'ReAct Agent',
+          AgentType.REACT,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agent.capability).toBeDefined();
@@ -116,7 +128,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 120000,
         });
 
-        const agent = Agent.create('Expert Agent', AgentType.EXPERT, baseConfig, capability);
+        const agent = Agent.create(
+          'Expert Agent',
+          AgentType.EXPERT,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agentInstance).toBeDefined();
@@ -137,7 +154,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 120000,
         });
 
-        const agent = Agent.create('Expert Agent', AgentType.EXPERT, baseConfig, capability);
+        const agent = Agent.create(
+          'Expert Agent',
+          AgentType.EXPERT,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agent.capability).toBeDefined();
@@ -161,7 +183,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 300000,
         });
 
-        const agent = Agent.create('Genius Agent', AgentType.GENIUS, baseConfig, capability);
+        const agent = Agent.create(
+          'Genius Agent',
+          AgentType.GENIUS,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agentInstance).toBeDefined();
@@ -182,7 +209,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 300000,
         });
 
-        const agent = Agent.create('Genius Agent', AgentType.GENIUS, baseConfig, capability);
+        const agent = Agent.create(
+          'Genius Agent',
+          AgentType.GENIUS,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agent.capability).toBeDefined();
@@ -205,7 +237,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 180000,
         });
 
-        const agent = Agent.create('Graph Agent', AgentType.GRAPH, baseConfig, capability);
+        const agent = Agent.create(
+          'Graph Agent',
+          AgentType.GRAPH,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agentInstance).toBeDefined();
@@ -226,7 +263,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 180000,
         });
 
-        const agent = Agent.create('Graph Agent', AgentType.GRAPH, baseConfig, capability);
+        const agent = Agent.create(
+          'Graph Agent',
+          AgentType.GRAPH,
+          baseConfig,
+          capability,
+        );
         const agentInstance = factory.createInstance(agent);
 
         expect(agent.capability).toBeDefined();
@@ -252,7 +294,12 @@ describe('Domain Services - AgentFactory', () => {
       });
 
       expect(() => {
-        const agent = Agent.create('Bad Collective', AgentType.COLLECTIVE, baseConfig, capability);
+        const agent = Agent.create(
+          'Bad Collective',
+          AgentType.COLLECTIVE,
+          baseConfig,
+          capability,
+        );
         factory.createInstance(agent);
       }).toThrow('Collective agents must have at least one child agent');
     });
@@ -272,7 +319,12 @@ describe('Domain Services - AgentFactory', () => {
       });
 
       expect(() => {
-        const agent = Agent.create('Bad Collective', AgentType.COLLECTIVE, baseConfig, capability);
+        const agent = Agent.create(
+          'Bad Collective',
+          AgentType.COLLECTIVE,
+          baseConfig,
+          capability,
+        );
         factory.createInstance(agent);
       }).toThrow('Collective agents must have at least one child agent');
     });
@@ -295,7 +347,12 @@ describe('Domain Services - AgentFactory', () => {
       });
 
       expect(() => {
-        const agent = Agent.create('Agent', AgentType.REACT, AgentConfig.create({ model: '' }), capability);
+        const agent = Agent.create(
+          'Agent',
+          AgentType.REACT,
+          AgentConfig.create({ model: '' }),
+          capability,
+        );
         factory.createInstance(agent);
       }).toThrow();
     });
@@ -303,7 +360,10 @@ describe('Domain Services - AgentFactory', () => {
 
   describe('Configuration Preservation', () => {
     it('should preserve model in agent config', () => {
-      const config = AgentConfig.create({ model: 'claude-3', temperature: 0.5 });
+      const config = AgentConfig.create({
+        model: 'claude-3',
+        temperature: 0.5,
+      });
       const capability = AgentCapability.create({
         executionModel: 'chain-of-thought',
         canUseTools: true,
@@ -379,8 +439,18 @@ describe('Domain Services - AgentFactory', () => {
         timeoutMs: 60000,
       });
 
-      const agent1 = Agent.create('Agent 1', AgentType.REACT, baseConfig, capability);
-      const agent2 = Agent.create('Agent 2', AgentType.REACT, baseConfig, capability);
+      const agent1 = Agent.create(
+        'Agent 1',
+        AgentType.REACT,
+        baseConfig,
+        capability,
+      );
+      const agent2 = Agent.create(
+        'Agent 2',
+        AgentType.REACT,
+        baseConfig,
+        capability,
+      );
 
       expect(agent1.id).not.toBe(agent2.id);
     });
@@ -399,8 +469,18 @@ describe('Domain Services - AgentFactory', () => {
         timeoutMs: 60000,
       });
 
-      const agent1 = Agent.create('Same Name', AgentType.REACT, baseConfig, capability);
-      const agent2 = Agent.create('Same Name', AgentType.REACT, baseConfig, capability);
+      const agent1 = Agent.create(
+        'Same Name',
+        AgentType.REACT,
+        baseConfig,
+        capability,
+      );
+      const agent2 = Agent.create(
+        'Same Name',
+        AgentType.REACT,
+        baseConfig,
+        capability,
+      );
 
       expect(agent1.name).toBe(agent2.name);
       expect(agent1.id).not.toBe(agent2.id);
@@ -431,7 +511,12 @@ describe('Domain Services - AgentFactory', () => {
           timeoutMs: 60000,
         });
 
-        const agent = Agent.create(`${type} Agent`, type, baseConfig, capability);
+        const agent = Agent.create(
+          `${type} Agent`,
+          type,
+          baseConfig,
+          capability,
+        );
         agents.push(agent);
       }
 
@@ -459,7 +544,12 @@ describe('Domain Services - AgentFactory', () => {
       });
 
       for (let i = 0; i < 100; i++) {
-        const agent = Agent.create(`Agent ${i}`, AgentType.REACT, baseConfig, capability);
+        const agent = Agent.create(
+          `Agent ${i}`,
+          AgentType.REACT,
+          baseConfig,
+          capability,
+        );
         agents.push(agent);
       }
 

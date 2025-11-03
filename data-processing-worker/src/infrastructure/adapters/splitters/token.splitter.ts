@@ -27,7 +27,11 @@ export class TokenSplitterAdapter extends TextSplitterPort {
     const chunks: DocumentChunk[] = [];
 
     for (const doc of documents) {
-      const docChunks = this._splitByTokens(doc.content, chunkSize, chunkOverlap);
+      const docChunks = this._splitByTokens(
+        doc.content,
+        chunkSize,
+        chunkOverlap,
+      );
 
       for (let i = 0; i < docChunks.length; i++) {
         chunks.push(
@@ -68,13 +72,13 @@ export class TokenSplitterAdapter extends TextSplitterPort {
 
     const chunks: string[] = [];
     const words = text.split(/\s+/);
-    
+
     let currentChunk = '';
     let currentTokens = 0;
-    
+
     for (const word of words) {
       const wordTokens = Math.ceil(word.length / approxCharsPerToken);
-      
+
       if (currentTokens + wordTokens <= chunkSize) {
         currentChunk += (currentChunk ? ' ' : '') + word;
         currentTokens += wordTokens;
@@ -82,10 +86,12 @@ export class TokenSplitterAdapter extends TextSplitterPort {
         if (currentChunk) {
           chunks.push(currentChunk);
         }
-        
+
         // Handle overlap
         if (chunkOverlap > 0) {
-          const overlapWords = currentChunk.split(/\s+/).slice(-Math.ceil(chunkOverlap / 10));
+          const overlapWords = currentChunk
+            .split(/\s+/)
+            .slice(-Math.ceil(chunkOverlap / 10));
           currentChunk = overlapWords.join(' ') + ' ' + word;
           currentTokens = Math.ceil(currentChunk.length / approxCharsPerToken);
         } else {
@@ -94,11 +100,11 @@ export class TokenSplitterAdapter extends TextSplitterPort {
         }
       }
     }
-    
+
     if (currentChunk) {
       chunks.push(currentChunk);
     }
-    
-    return chunks.filter(c => c.length > 0);
+
+    return chunks.filter((c) => c.length > 0);
   }
 }

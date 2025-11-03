@@ -1,6 +1,6 @@
 /**
  * Integration Test Utilities
- * 
+ *
  * Helper functions and fixtures for integration testing.
  */
 
@@ -27,7 +27,7 @@ export async function createTestApp(): Promise<INestApplication> {
  */
 export const testFixtures = {
   userId: 'test-user-123',
-  
+
   agentConfigs: {
     react: {
       name: 'Test ReAct Agent',
@@ -72,8 +72,14 @@ export const testFixtures = {
 
   knowledgeGraph: {
     concept: 'Artificial Intelligence',
-    observations: ['Neural networks process data', 'Machine learning improves with data'],
-    patterns: ['Data quality affects performance', 'More layers enable complex patterns'],
+    observations: [
+      'Neural networks process data',
+      'Machine learning improves with data',
+    ],
+    patterns: [
+      'Data quality affects performance',
+      'More layers enable complex patterns',
+    ],
     models: ['Deep learning architecture', 'Transformer model'],
     theories: ['Universal approximation theorem', 'Information theory'],
     principles: ['Learning from experience', 'Pattern recognition'],
@@ -87,7 +93,7 @@ export const testFixtures = {
 export async function waitFor(
   condition: () => boolean | Promise<boolean>,
   timeoutMs: number = 5000,
-  intervalMs: number = 100
+  intervalMs: number = 100,
 ): Promise<void> {
   const startTime = Date.now();
 
@@ -104,7 +110,10 @@ export async function waitFor(
 /**
  * Clean up test data
  */
-export async function cleanupTestData(app: INestApplication, agentIds: string[]): Promise<void> {
+export async function cleanupTestData(
+  app: INestApplication,
+  agentIds: string[],
+): Promise<void> {
   // Clean up agents
   for (const agentId of agentIds) {
     try {
@@ -118,9 +127,12 @@ export async function cleanupTestData(app: INestApplication, agentIds: string[])
 /**
  * Assert response structure
  */
-export function assertValidResponse(response: any, expectedKeys: string[]): void {
+export function assertValidResponse(
+  response: any,
+  expectedKeys: string[],
+): void {
   expect(response).toBeDefined();
-  
+
   for (const key of expectedKeys) {
     expect(response).toHaveProperty(key);
   }
@@ -139,4 +151,3 @@ export function createMockLLMResponse(content: string): any {
     },
   };
 }
-

@@ -39,4 +39,3 @@ describe('QuestionSeedController', () => {
     expect(mockQuestionService.createQuestion).toHaveBeenCalled();
   });
 });
-

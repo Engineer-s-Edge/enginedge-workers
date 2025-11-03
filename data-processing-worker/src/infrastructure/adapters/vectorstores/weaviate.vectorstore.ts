@@ -4,10 +4,10 @@ import { Document } from '@domain/entities/document.entity';
 
 /**
  * Weaviate Vector Store Adapter (DISABLED - Placeholder)
- * 
+ *
  * Weaviate is an open-source vector database with GraphQL API.
  * To enable: Install weaviate-ts-client and configure endpoint.
- * 
+ *
  * Installation: npm install weaviate-ts-client
  */
 @Injectable()
@@ -18,7 +18,9 @@ export class WeaviateVectorStoreAdapter implements VectorStorePort {
 
   constructor() {
     if (!this.enabled) {
-      this.logger.warn('Weaviate vector store is DISABLED. To enable, set WEAVIATE_URL and install dependencies.');
+      this.logger.warn(
+        'Weaviate vector store is DISABLED. To enable, set WEAVIATE_URL and install dependencies.',
+      );
     }
   }
 
@@ -28,12 +30,14 @@ export class WeaviateVectorStoreAdapter implements VectorStorePort {
     metadata?: Record<string, unknown>,
   ): Promise<string[]> {
     if (!this.enabled) {
-      throw new Error('Weaviate vector store is disabled. Enable it by setting WEAVIATE_URL.');
+      throw new Error(
+        'Weaviate vector store is disabled. Enable it by setting WEAVIATE_URL.',
+      );
     }
 
     /*
     const weaviate = require('weaviate-ts-client');
-    
+
     const client = weaviate.client({
       scheme: 'http',
       host: process.env.WEAVIATE_URL || 'localhost:8080',
@@ -74,7 +78,7 @@ export class WeaviateVectorStoreAdapter implements VectorStorePort {
 
     /*
     const weaviate = require('weaviate-ts-client');
-    
+
     const client = weaviate.client({
       scheme: 'http',
       host: process.env.WEAVIATE_URL || 'localhost:8080',
@@ -115,7 +119,7 @@ export class WeaviateVectorStoreAdapter implements VectorStorePort {
 
     /*
     const weaviate = require('weaviate-ts-client');
-    
+
     const client = weaviate.client({
       scheme: 'http',
       host: process.env.WEAVIATE_URL || 'localhost:8080',
@@ -140,7 +144,7 @@ export class WeaviateVectorStoreAdapter implements VectorStorePort {
 
     /*
     const weaviate = require('weaviate-ts-client');
-    
+
     const client = weaviate.client({
       scheme: 'http',
       host: process.env.WEAVIATE_URL || 'localhost:8080',

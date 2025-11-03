@@ -1,5 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILLMProvider, LLMRequest, LLMResponse, LLMStreamChunk } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMRequest,
+  LLMResponse,
+  LLMStreamChunk,
+} from '@application/ports/llm-provider.port';
 import { ILogger } from '@application/ports/logger.port';
 
 interface NvidiaMessage {
@@ -25,7 +30,7 @@ interface NvidiaResponse {
 
 /**
  * NVIDIA NIM LLM Adapter
- * 
+ *
  * Implements ILLMProvider for NVIDIA's NIM (NVIDIA Inference Microservices)
  * Uses OpenAI-compatible API endpoint
  */
@@ -39,8 +44,9 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
     private readonly logger: ILogger,
   ) {
     this.apiKey = process.env.NVIDIA_API_KEY || '';
-    this.baseUrl = process.env.NVIDIA_API_URL || 'https://integrate.api.nvidia.com/v1';
-    
+    this.baseUrl =
+      process.env.NVIDIA_API_URL || 'https://integrate.api.nvidia.com/v1';
+
     if (!this.apiKey) {
       this.logger.warn('NvidiaNIMLLMAdapter: NVIDIA API key not configured');
     }
@@ -57,7 +63,7 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -73,16 +79,21 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
         throw new Error(`NVIDIA API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json() as NvidiaResponse;
-      
+      const data = (await response.json()) as NvidiaResponse;
+
       return this.parseResponse(data);
     } catch (error) {
-      this.logger.error('NVIDIA NIM LLM invocation failed', error as Record<string, unknown>);
+      this.logger.error(
+        'NVIDIA NIM LLM invocation failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
 
-  async *invokeStream(request: LLMRequest): AsyncGenerator<LLMStreamChunk, void, unknown> {
+  async *invokeStream(
+    request: LLMRequest,
+  ): AsyncGenerator<LLMStreamChunk, void, unknown> {
     this.logger.debug('NvidiaNIMLLMAdapter: Starting NVIDIA NIM streaming', {
       model: request.model,
     });
@@ -92,7 +103,7 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -118,7 +129,7 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -128,7 +139,7 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             if (data === '[DONE]') {
               yield {
                 content: '',
@@ -164,7 +175,10 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
         }
       }
     } catch (error) {
-      this.logger.error('NVIDIA NIM streaming failed', error as Record<string, unknown>);
+      this.logger.error(
+        'NVIDIA NIM streaming failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -186,7 +200,7 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
     try {
       const response = await fetch(`${this.baseUrl}/models`, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
       });
       return response.ok;
@@ -197,7 +211,7 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
 
   private parseResponse(data: NvidiaResponse): LLMResponse {
     const choice = data.choices[0];
-    
+
     if (!choice) {
       throw new Error('No choices in NVIDIA response');
     }
@@ -208,11 +222,13 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
     return {
       content,
       finishReason,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
-      } : undefined,
+      usage: data.usage
+        ? {
+            promptTokens: data.usage.prompt_tokens,
+            completionTokens: data.usage.completion_tokens,
+            totalTokens: data.usage.total_tokens,
+          }
+        : undefined,
     };
   }
 
@@ -239,10 +255,14 @@ export class NvidiaNIMLLMAdapter implements ILLMProvider {
   }
 
   async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
-    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+    throw new Error(
+      'Speech-to-text not implemented. Use a dedicated STT service.',
+    );
   }
 
   async textToSpeech(text: string, voice?: string): Promise<Buffer> {
-    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+    throw new Error(
+      'Text-to-speech not implemented. Use a dedicated TTS service.',
+    );
   }
 }

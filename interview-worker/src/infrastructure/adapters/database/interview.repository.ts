@@ -41,7 +41,10 @@ export class MongoInterviewRepository
       );
       return interview;
     } catch (error) {
-      this.logger.error(`Failed to save interview: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save interview: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -51,17 +54,26 @@ export class MongoInterviewRepository
       const doc = await this.collection.findOne({ id });
       return doc ? Interview.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find interview: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find interview: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
   async findAll(): Promise<Interview[]> {
     try {
-      const docs = await this.collection.find({}).sort({ createdAt: -1 }).toArray();
+      const docs = await this.collection
+        .find({})
+        .sort({ createdAt: -1 })
+        .toArray();
       return docs.map((doc) => Interview.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find all interviews: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find all interviews: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -87,7 +99,10 @@ export class MongoInterviewRepository
 
       return result ? Interview.fromObject(result) : null;
     } catch (error) {
-      this.logger.error(`Failed to update interview: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to update interview: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -97,9 +112,11 @@ export class MongoInterviewRepository
       const result = await this.collection.deleteOne({ id });
       return result.deletedCount > 0;
     } catch (error) {
-      this.logger.error(`Failed to delete interview: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to delete interview: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

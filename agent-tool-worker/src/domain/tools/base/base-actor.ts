@@ -7,11 +7,15 @@
 
 import { BaseTool } from './base-tool';
 import { ToolOutput } from '../../entities/tool.entities';
-import { ActorConfig, ErrorEvent } from '../../value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '../../value-objects/tool-config.value-objects';
 
-export abstract class BaseActor<TArgs = unknown, TOutput extends ToolOutput = ToolOutput>
-  extends BaseTool<TArgs, TOutput>
-{
+export abstract class BaseActor<
+  TArgs = unknown,
+  TOutput extends ToolOutput = ToolOutput,
+> extends BaseTool<TArgs, TOutput> {
   /** Always 'actor'; actors do not use retrieverConfig */
   readonly type = 'actor' as const;
 

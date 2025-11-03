@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FilesystemLoaderPort } from '../../../../domain/ports/loader.port';
-import { Document, DocumentMetadata } from '../../../../domain/entities/document.entity';
+import {
+  Document,
+  DocumentMetadata,
+} from '../../../../domain/entities/document.entity';
 import * as crypto from 'crypto';
 
 /**
@@ -12,7 +15,10 @@ import * as crypto from 'crypto';
 export class WhisperAudioLoaderAdapter extends FilesystemLoaderPort {
   private readonly logger = new Logger(WhisperAudioLoaderAdapter.name);
 
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (source instanceof Blob) {
       const fileName = (options?.fileName as string) || 'audio.mp3';
       return this.loadBlob(source, fileName, options);
@@ -20,12 +26,20 @@ export class WhisperAudioLoaderAdapter extends FilesystemLoaderPort {
     throw new Error('Whisper loader only supports Blob input.');
   }
 
-  async loadBlob(blob: Blob, fileName: string, options?: Record<string, unknown>): Promise<Document[]> {
-    this.logger.log(`Loading audio blob for Whisper transcription: ${fileName}`);
-    
+  async loadBlob(
+    blob: Blob,
+    fileName: string,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
+    this.logger.log(
+      `Loading audio blob for Whisper transcription: ${fileName}`,
+    );
+
     // TODO: Integrate with OpenAI Whisper API
-    this.logger.warn('Whisper integration not yet implemented - returning empty document');
-    
+    this.logger.warn(
+      'Whisper integration not yet implemented - returning empty document',
+    );
+
     const metadata: DocumentMetadata = {
       source: fileName,
       sourceType: 'file',
@@ -35,19 +49,28 @@ export class WhisperAudioLoaderAdapter extends FilesystemLoaderPort {
       ...(options?.metadata as Record<string, unknown>),
     };
 
-    return [new Document(
-      this.generateDocumentId(fileName, 0),
-      '[Audio transcription pending - Whisper integration required]',
-      metadata,
-    )];
+    return [
+      new Document(
+        this.generateDocumentId(fileName, 0),
+        '[Audio transcription pending - Whisper integration required]',
+        metadata,
+      ),
+    ];
   }
 
   supports(source: string | Blob): boolean {
     if (source instanceof Blob) {
-      return source.type.startsWith('audio/') || source.type.startsWith('video/');
+      return (
+        source.type.startsWith('audio/') || source.type.startsWith('video/')
+      );
     }
     const ext = source.toLowerCase();
-    return ext.endsWith('.mp3') || ext.endsWith('.wav') || ext.endsWith('.m4a') || ext.endsWith('.mp4');
+    return (
+      ext.endsWith('.mp3') ||
+      ext.endsWith('.wav') ||
+      ext.endsWith('.m4a') ||
+      ext.endsWith('.mp4')
+    );
   }
 
   getSupportedTypes(): string[] {

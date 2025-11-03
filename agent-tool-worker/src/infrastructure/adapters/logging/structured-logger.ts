@@ -3,7 +3,7 @@ import { ILogger } from '@application/ports/logger.port';
 
 /**
  * Structured Logger Implementation
- * 
+ *
  * Logs in JSON format with correlation IDs for distributed tracing
  */
 @Injectable()
@@ -76,7 +76,7 @@ export class StructuredLogger implements ILogger {
     };
 
     const output = JSON.stringify(logEntry);
-    
+
     switch (level) {
       case 'ERROR':
       case 'FATAL':

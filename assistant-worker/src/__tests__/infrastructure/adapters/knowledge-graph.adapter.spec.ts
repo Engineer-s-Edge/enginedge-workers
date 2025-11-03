@@ -1,6 +1,6 @@
 /**
  * Knowledge Graph Adapter Tests
- * 
+ *
  * Tests for KnowledgeGraphAdapter covering:
  * - Happy path operations
  * - Error scenarios
@@ -133,14 +133,20 @@ describe('KnowledgeGraphAdapter', () => {
     });
 
     it('should handle nonexistent user', async () => {
-      const reports = await adapter.getRecentResearchReports('nonexistent-user', 10);
+      const reports = await adapter.getRecentResearchReports(
+        'nonexistent-user',
+        10,
+      );
 
       expect(Array.isArray(reports)).toBe(true);
     });
 
     it('should handle different limit values', async () => {
       for (const limit of [1, 5, 10, 100]) {
-        const reports = await adapter.getRecentResearchReports('user-123', limit);
+        const reports = await adapter.getRecentResearchReports(
+          'user-123',
+          limit,
+        );
         expect(reports.length).toBeLessThanOrEqual(limit);
       }
     });
@@ -362,7 +368,7 @@ describe('KnowledgeGraphAdapter', () => {
 
       expect(Array.isArray(results)).toBe(true);
       // Should find 'AI' if it's in the initialized topics
-      expect(results.some(r => r.toLowerCase().includes('ai'))).toBe(true);
+      expect(results.some((r) => r.toLowerCase().includes('ai'))).toBe(true);
     });
 
     it('stub getTopicDetails should return object with topic field', async () => {

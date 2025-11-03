@@ -1,9 +1,26 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, Patch, Post, Query } from '@nestjs/common';
-import { IUserRepository, USER_REPOSITORY } from '../../application/ports/user-repository.port';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  IUserRepository,
+  USER_REPOSITORY,
+} from '../../application/ports/user-repository.port';
 
 @Controller('internal/users')
 export class UsersController {
-  constructor(@Inject(USER_REPOSITORY) private readonly users: IUserRepository) {}
+  constructor(
+    @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+  ) {}
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getById(@Param('id') id: string) {
@@ -37,5 +54,3 @@ export class UsersController {
     return {};
   }
 }
-
-

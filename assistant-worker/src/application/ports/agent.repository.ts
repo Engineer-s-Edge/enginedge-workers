@@ -2,7 +2,7 @@ import { Agent } from '../../domain/entities/agent.entity';
 
 /**
  * Agent Repository Port - Interface for agent persistence
- * 
+ *
  * Infrastructure layer will implement this interface
  */
 export interface IAgentRepository {

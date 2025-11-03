@@ -1,6 +1,6 @@
 /**
  * Collective Agent Types - Multi-Agent Orchestration
- * 
+ *
  * Defines types for coordinating multiple agents, distributing tasks,
  * aggregating results, and managing sub-agent lifecycle.
  */
@@ -109,7 +109,11 @@ export interface SubAgentStats {
  */
 export interface ConflictResolution {
   readonly conflictId: string;
-  readonly conflictType: 'contradiction' | 'disagreement' | 'timeout' | 'failure';
+  readonly conflictType:
+    | 'contradiction'
+    | 'disagreement'
+    | 'timeout'
+    | 'failure';
   readonly involvedAgents: readonly string[];
   readonly resolution: 'consensus' | 'voting' | 'escalation' | 'fallback';
   readonly selectedResult: unknown;
@@ -205,7 +209,13 @@ export interface CollectiveExecutionResult {
  * State update for collective streaming
  */
 export interface CollectiveStateUpdate {
-  readonly state: 'coordinating' | 'distributing' | 'aggregating' | 'resolving' | 'complete' | 'error';
+  readonly state:
+    | 'coordinating'
+    | 'distributing'
+    | 'aggregating'
+    | 'resolving'
+    | 'complete'
+    | 'error';
   readonly agent_id: string;
   readonly data: {
     readonly phase: string;

@@ -1,6 +1,6 @@
 /**
  * LLM Controller
- * 
+ *
  * REST API endpoints for direct LLM calls.
  * Used by other services (e.g., interview-worker) to call LLMs through assistant-worker.
  */
@@ -29,9 +29,7 @@ export class LLMCompletionDto {
 
 @Controller('llm')
 export class LLMController {
-  constructor(
-    private readonly llmApplicationService: LLMApplicationService,
-  ) {}
+  constructor(private readonly llmApplicationService: LLMApplicationService) {}
 
   /**
    * POST /llm/complete - Complete LLM request
@@ -56,9 +54,18 @@ export class LLMController {
    */
   @Post('process')
   async processLLMRequest(
-    @Body() body: { prompt: string; model: string; parameters?: Record<string, unknown> },
+    @Body()
+    body: {
+      prompt: string;
+      model: string;
+      parameters?: Record<string, unknown>;
+    },
   ) {
     const { prompt, model, parameters } = body;
-    return await this.llmApplicationService.processLLMRequest(prompt, model, parameters);
+    return await this.llmApplicationService.processLLMRequest(
+      prompt,
+      model,
+      parameters,
+    );
   }
 }

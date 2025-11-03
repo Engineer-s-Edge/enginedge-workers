@@ -16,7 +16,12 @@ describe('WorkerThreadPool', () => {
     mockLogger.setLevel.mockImplementation(() => {});
     mockLogger.getLevel.mockReturnValue('info');
 
-    pool = new WorkerThreadPool(mockLogger, { minWorkers: 1, maxWorkers: 1, idleTimeout: 1000, taskTimeout: 5000 });
+    pool = new WorkerThreadPool(mockLogger, {
+      minWorkers: 1,
+      maxWorkers: 1,
+      idleTimeout: 1000,
+      taskTimeout: 5000,
+    });
   });
 
   afterEach(async () => {
@@ -30,7 +35,10 @@ describe('WorkerThreadPool', () => {
     });
 
     it('should initialize with custom config', () => {
-      const customPool = new WorkerThreadPool(mockLogger, { minWorkers: 2, maxWorkers: 4 });
+      const customPool = new WorkerThreadPool(mockLogger, {
+        minWorkers: 2,
+        maxWorkers: 4,
+      });
       expect(customPool).toBeDefined();
     });
 
@@ -44,7 +52,7 @@ describe('WorkerThreadPool', () => {
   describe('executeTask', () => {
     it('should execute task successfully', async () => {
       const task = { test: 'data' };
-      
+
       try {
         await pool.executeTask(task);
       } catch {
@@ -54,7 +62,7 @@ describe('WorkerThreadPool', () => {
 
     it('should handle task execution with priority', async () => {
       const task = { test: 'priority' };
-      
+
       try {
         await pool.executeTask(task, 10);
       } catch {
@@ -75,7 +83,7 @@ describe('WorkerThreadPool', () => {
 
     it('should track worker counts correctly', () => {
       const stats = pool.getStats();
-      
+
       expect(stats.totalWorkers).toBeGreaterThanOrEqual(0);
       expect(stats.queuedTasks).toBe(0);
     });
@@ -90,7 +98,7 @@ describe('WorkerThreadPool', () => {
 
     it('should handle shutdown with queued tasks', async () => {
       pool.executeTask({ test: 'data' }).catch(() => {});
-      
+
       await pool.onModuleDestroy();
 
       expect(mockLogger.info).toHaveBeenCalled();
@@ -127,7 +135,7 @@ describe('WorkerThreadPool', () => {
     it('should queue tasks when workers are busy', async () => {
       const tasks = Array.from({ length: 10 }, (_, i) => ({ id: `task-${i}` }));
 
-      const promises = tasks.map(t => pool.executeTask(t).catch(() => {}));
+      const promises = tasks.map((t) => pool.executeTask(t).catch(() => {}));
 
       await Promise.all(promises);
     });
@@ -135,7 +143,7 @@ describe('WorkerThreadPool', () => {
     it('should prioritize high priority tasks', async () => {
       await pool.executeTask({ data: 'low' }, 1).catch(() => {});
       await pool.executeTask({ data: 'high' }, 100).catch(() => {});
-      
+
       const stats = pool.getStats();
       expect(stats).toBeDefined();
     });

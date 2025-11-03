@@ -25,7 +25,7 @@ export class ResumeEditingService {
   constructor(
     @InjectModel('Resume')
     private readonly resumeModel: Model<Resume>,
-    private readonly versioningService: ResumeVersioningService
+    private readonly versioningService: ResumeVersioningService,
   ) {}
 
   /**
@@ -34,7 +34,7 @@ export class ResumeEditingService {
   async applyEdit(
     resumeId: string,
     operation: EditOperation,
-    createVersion: boolean = false
+    createVersion: boolean = false,
   ): Promise<Resume> {
     this.logger.log(`Applying ${operation.type} edit to resume ${resumeId}`);
 
@@ -73,7 +73,7 @@ export class ResumeEditingService {
       return this.versioningService.createVersion(resumeId, {
         content: newContent,
         changes: `Applied ${operation.type} edit`,
-        createdBy: 'user'
+        createdBy: 'user',
       });
     } else {
       resume.latexContent = newContent;
@@ -147,7 +147,10 @@ export class ResumeEditingService {
     }
 
     const before = content.substring(0, operation.location.start);
-    const text = content.substring(operation.location.start, operation.location.end);
+    const text = content.substring(
+      operation.location.start,
+      operation.location.end,
+    );
     const after = content.substring(operation.location.end);
 
     return `${before}\\textbf{${text}}${after}`;
@@ -162,7 +165,10 @@ export class ResumeEditingService {
     }
 
     const before = content.substring(0, operation.location.start);
-    const text = content.substring(operation.location.start, operation.location.end);
+    const text = content.substring(
+      operation.location.start,
+      operation.location.end,
+    );
     const after = content.substring(operation.location.end);
 
     return `${before}\\textit{${text}}${after}`;
@@ -172,7 +178,11 @@ export class ResumeEditingService {
    * Replace text.
    */
   private applyReplace(content: string, operation: EditOperation): string {
-    if (!operation.location.start || !operation.location.end || !operation.content) {
+    if (
+      !operation.location.start ||
+      !operation.location.end ||
+      !operation.content
+    ) {
       throw new Error('Start, end, and content required for replace operation');
     }
 
@@ -187,7 +197,9 @@ export class ResumeEditingService {
    */
   private applyInsert(content: string, operation: EditOperation): string {
     if (!operation.location.start || !operation.content) {
-      throw new Error('Start position and content required for insert operation');
+      throw new Error(
+        'Start position and content required for insert operation',
+      );
     }
 
     const before = content.substring(0, operation.location.start);
@@ -259,8 +271,7 @@ export class ResumeEditingService {
   getStackSizes(resumeId: string): { undoSize: number; redoSize: number } {
     return {
       undoSize: this.undoStacks.get(resumeId)?.length || 0,
-      redoSize: this.redoStacks.get(resumeId)?.length || 0
+      redoSize: this.redoStacks.get(resumeId)?.length || 0,
     };
   }
 }
-

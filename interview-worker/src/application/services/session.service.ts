@@ -1,6 +1,6 @@
 /**
  * Session Service
- * 
+ *
  * Application service for managing interview sessions.
  */
 
@@ -68,4 +68,3 @@ export class SessionService {
     return await this.sessionRepository.findByCandidateId(candidateId);
   }
 }
-

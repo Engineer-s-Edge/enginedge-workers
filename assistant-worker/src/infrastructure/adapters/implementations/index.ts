@@ -1,6 +1,6 @@
 /**
  * Adapter Implementations Index
- * 
+ *
  * Central export point for all adapter implementations
  */
 

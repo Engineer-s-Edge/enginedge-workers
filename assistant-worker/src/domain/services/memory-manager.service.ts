@@ -170,10 +170,13 @@ export class MemoryManager {
 
     return {
       messageCount: context.messages.length,
-      userMessageCount: context.messages.filter(m => m.role === 'user').length,
-      assistantMessageCount: context.messages.filter(m => m.role === 'assistant')
+      userMessageCount: context.messages.filter((m) => m.role === 'user')
         .length,
-      lastMessage: context.messages[context.messages.length - 1]?.content || null,
+      assistantMessageCount: context.messages.filter(
+        (m) => m.role === 'assistant',
+      ).length,
+      lastMessage:
+        context.messages[context.messages.length - 1]?.content || null,
       metadata: context.metadata,
     };
   }
@@ -183,7 +186,7 @@ export class MemoryManager {
    */
   getUserConversations(userId: string): ConversationContext[] {
     return Array.from(this.conversations.values()).filter(
-      c => c.userId === userId,
+      (c) => c.userId === userId,
     );
   }
 

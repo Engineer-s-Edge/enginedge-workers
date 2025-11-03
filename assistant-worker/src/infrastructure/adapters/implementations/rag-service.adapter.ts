@@ -48,7 +48,8 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
         'http://data-processing-worker:3003',
       timeout: this.configService.get<number>('RAG_SERVICE_TIMEOUT') || 30000,
       retries: this.configService.get<number>('RAG_SERVICE_RETRIES') || 3,
-      retryDelay: this.configService.get<number>('RAG_SERVICE_RETRY_DELAY') || 1000,
+      retryDelay:
+        this.configService.get<number>('RAG_SERVICE_RETRY_DELAY') || 1000,
     };
 
     // Create axios instance with retry logic
@@ -70,7 +71,9 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
         return response;
       },
       async (error: AxiosError) => {
-        const config = error.config as (typeof error.config & { __retryCount?: number });
+        const config = error.config as typeof error.config & {
+          __retryCount?: number;
+        };
         if (!config) throw error;
 
         // Retry logic
@@ -89,11 +92,14 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
           return this.httpClient.request(config);
         }
 
-        this.logger.error(`RAG service request failed after ${retryCount} retries`, {
-          url: config.url,
-          error: error.message,
-          status: error.response?.status,
-        });
+        this.logger.error(
+          `RAG service request failed after ${retryCount} retries`,
+          {
+            url: config.url,
+            error: error.message,
+            status: error.response?.status,
+          },
+        );
         throw error;
       },
     );
@@ -108,9 +114,11 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
   /**
    * Process a document for RAG (chunking + embedding + storage)
    */
-  async processDocument(document: RAGDocument): Promise<RAGDocumentProcessingResult> {
+  async processDocument(
+    document: RAGDocument,
+  ): Promise<RAGDocumentProcessingResult> {
     const startTime = Date.now();
-    
+
     try {
       this.logger.log('Processing document for RAG', {
         userId: document.userId,
@@ -124,7 +132,7 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
       );
 
       const durationSeconds = (Date.now() - startTime) / 1000;
-      
+
       // Record metrics
       this.metrics.recordRAGDocumentProcessing(
         'success',
@@ -148,7 +156,7 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
     } catch (error) {
       const durationSeconds = (Date.now() - startTime) / 1000;
       const err = error instanceof Error ? error : new Error(String(error));
-      
+
       // Record error metrics
       this.metrics.recordRAGDocumentProcessing(
         'error',
@@ -164,7 +172,7 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
         '/documents/process-for-rag',
         err.name,
       );
-      
+
       this.logger.error('Failed to process document', {
         error: err.message,
         userId: document.userId,
@@ -177,9 +185,11 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
   /**
    * Search for relevant content in conversation context
    */
-  async searchConversation(request: RAGSearchRequest): Promise<RAGSearchResult> {
+  async searchConversation(
+    request: RAGSearchRequest,
+  ): Promise<RAGSearchResult> {
     const startTime = Date.now();
-    
+
     try {
       this.logger.log('Searching conversation for RAG', {
         conversationId: request.conversationId,
@@ -213,7 +223,7 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
       );
 
       const durationSeconds = (Date.now() - startTime) / 1000;
-      
+
       // Record metrics
       this.metrics.recordRAGSearch(
         'success',
@@ -238,7 +248,7 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
     } catch (error) {
       const durationSeconds = (Date.now() - startTime) / 1000;
       const err = error instanceof Error ? error : new Error(String(error));
-      
+
       // Record error metrics
       this.metrics.recordRAGSearch(
         'error',
@@ -255,7 +265,7 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
         '/vector-store/search-conversations',
         err.name,
       );
-      
+
       this.logger.error('Failed to search conversation', {
         error: err.message,
         conversationId: request.conversationId,
@@ -302,7 +312,9 @@ export class RAGServiceAdapter implements IRAGServiceAdapter {
         error: err.message,
         conversationId: request.conversationId,
       });
-      throw new Error(`Failed to retrieve conversation documents: ${err.message}`);
+      throw new Error(
+        `Failed to retrieve conversation documents: ${err.message}`,
+      );
     }
   }
 

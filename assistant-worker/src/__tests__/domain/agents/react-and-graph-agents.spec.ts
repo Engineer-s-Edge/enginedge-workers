@@ -1,6 +1,6 @@
 /**
  * ReAct and Graph Agent Tests
- * 
+ *
  * Tests for ReAct and Graph agent implementations
  */
 
@@ -11,7 +11,10 @@ import { StateMachine } from '../../../domain/services/state-machine.service';
 import { ResponseParser } from '../../../domain/services/response-parser.service';
 import { PromptBuilder } from '../../../domain/services/prompt-builder.service';
 import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider, LLMResponse } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMResponse,
+} from '@application/ports/llm-provider.port';
 
 describe('ReAct Agent', () => {
   let reactAgent: ReActAgent;
@@ -63,7 +66,7 @@ describe('ReAct Agent', () => {
         temperature: 0.7,
         model: 'gpt-4',
         tools: ['calculator', 'search'],
-      }
+      },
     );
   });
 
@@ -81,7 +84,7 @@ describe('ReAct Agent', () => {
         StateMachine,
         responseParser,
         promptBuilder,
-        {}
+        {},
       );
       expect(agent).toBeDefined();
     });
@@ -119,7 +122,8 @@ describe('ReAct Agent', () => {
       mockLLMProvider.complete = jest
         .fn()
         .mockResolvedValueOnce({
-          content: 'Thought: I need to calculate\nAction: calculator\nAction Input: {"op": "add", "a": 2, "b": 2}',
+          content:
+            'Thought: I need to calculate\nAction: calculator\nAction Input: {"op": "add", "a": 2, "b": 2}',
           role: 'assistant',
         })
         .mockResolvedValueOnce({
@@ -137,7 +141,8 @@ describe('ReAct Agent', () => {
     it('should handle max iterations', async () => {
       // Always return non-final action
       mockLLMProvider.complete = jest.fn().mockResolvedValue({
-        content: 'Thought: Still thinking\nAction: search\nAction Input: {"query": "test"}',
+        content:
+          'Thought: Still thinking\nAction: search\nAction Input: {"query": "test"}',
         role: 'assistant',
       });
 
@@ -151,7 +156,7 @@ describe('ReAct Agent', () => {
   describe('Streaming', () => {
     it('should support streaming execution', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of reactAgent.stream('Test streaming')) {
         chunks.push(chunk);
       }
@@ -161,7 +166,7 @@ describe('ReAct Agent', () => {
 
     it('should emit iteration updates during streaming', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of reactAgent.stream('Stream test')) {
         chunks.push(chunk);
       }
@@ -180,7 +185,9 @@ describe('ReAct Agent', () => {
       await reactAgent.execute('Test');
 
       const finalState = reactAgent.getState();
-      expect(['complete', 'processing', 'error']).toContain(finalState.getCurrentState());
+      expect(['complete', 'processing', 'error']).toContain(
+        finalState.getCurrentState(),
+      );
     });
 
     it('should provide ReAct-specific state', () => {
@@ -199,7 +206,9 @@ describe('ReAct Agent', () => {
 
   describe('Error Handling', () => {
     it('should handle LLM errors', async () => {
-      mockLLMProvider.complete = jest.fn().mockRejectedValue(new Error('LLM error'));
+      mockLLMProvider.complete = jest
+        .fn()
+        .mockRejectedValue(new Error('LLM error'));
 
       await expect(reactAgent.execute('Test')).rejects.toThrow('LLM error');
     });
@@ -282,7 +291,7 @@ describe('Graph Agent', () => {
         allowParallel: true,
         temperature: 0.5,
         model: 'gpt-4',
-      }
+      },
     );
   });
 
@@ -308,9 +317,7 @@ describe('Graph Agent', () => {
           { id: 'start', type: 'start', name: 'Start', config: {} },
           { id: 'end', type: 'end', name: 'End', config: {} },
         ],
-        edges: [
-          { id: 'e1', from: 'start', to: 'end' },
-        ],
+        edges: [{ id: 'e1', from: 'start', to: 'end' }],
         startNode: 'start',
         endNodes: ['end'],
       });
@@ -326,7 +333,12 @@ describe('Graph Agent', () => {
         name: 'Task Graph',
         nodes: [
           { id: 'start', type: 'start', name: 'Start', config: {} },
-          { id: 'task1', type: 'task', name: 'Task 1', config: { prompt: 'Do task 1' } },
+          {
+            id: 'task1',
+            type: 'task',
+            name: 'Task 1',
+            config: { prompt: 'Do task 1' },
+          },
           { id: 'end', type: 'end', name: 'End', config: {} },
         ],
         edges: [
@@ -367,7 +379,7 @@ describe('Graph Agent', () => {
   describe('Streaming', () => {
     it('should support streaming execution', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of graphAgent.stream('Test')) {
         chunks.push(chunk);
       }
@@ -377,7 +389,7 @@ describe('Graph Agent', () => {
 
     it('should emit workflow progress', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of graphAgent.stream('Stream test')) {
         chunks.push(chunk);
       }
@@ -389,7 +401,9 @@ describe('Graph Agent', () => {
 
   describe('Error Handling', () => {
     it('should handle node execution errors', async () => {
-      mockLLMProvider.complete = jest.fn().mockRejectedValue(new Error('Node execution failed'));
+      mockLLMProvider.complete = jest
+        .fn()
+        .mockRejectedValue(new Error('Node execution failed'));
 
       const result = await graphAgent.execute('Test');
       expect(result).toBeDefined();
@@ -411,6 +425,3 @@ describe('Graph Agent', () => {
     });
   });
 });
-
-
-

@@ -4,7 +4,7 @@ import { IAgentRepository } from '@application/ports/agent.repository';
 
 /**
  * In-Memory Agent Repository
- * 
+ *
  * Simple in-memory implementation for development/testing
  * Production would use MongoDB or similar
  */
@@ -52,7 +52,7 @@ export class InMemoryAgentRepository implements IAgentRepository {
     // Apply pagination
     const offset = filters?.offset || 0;
     const limit = filters?.limit || 100;
-    
+
     return agents.slice(offset, offset + limit);
   }
 

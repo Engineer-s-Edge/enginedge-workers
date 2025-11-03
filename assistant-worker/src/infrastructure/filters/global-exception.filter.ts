@@ -38,14 +38,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     };
 
     // Log error with context
-    this.logger.error(
-      'Unhandled exception',
-      {
-        ...errorResponse,
-        stack: exception instanceof Error ? exception.stack : undefined,
-        exception: exception instanceof Error ? exception.message : String(exception),
-      },
-    );
+    this.logger.error('Unhandled exception', {
+      ...errorResponse,
+      stack: exception instanceof Error ? exception.stack : undefined,
+      exception:
+        exception instanceof Error ? exception.message : String(exception),
+    });
 
     response.status(status).json(errorResponse);
   }

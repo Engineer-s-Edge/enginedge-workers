@@ -1,6 +1,6 @@
 /**
  * E2E Scenario Tests
- * 
+ *
  * Comprehensive end-to-end workflow tests
  */
 
@@ -20,7 +20,7 @@ describe('Interview Worker E2E Scenarios', () => {
     // Start MongoDB Memory Server
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
-    
+
     mongoClient = new MongoClient(mongoUri);
     await mongoClient.connect();
 
@@ -144,4 +144,3 @@ describe('Interview Worker E2E Scenarios', () => {
     });
   });
 });
-

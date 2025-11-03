@@ -1,18 +1,21 @@
 import { Controller, Post, Get, Body, Param, Query } from '@nestjs/common';
-import { ResumeEvaluatorService, EvaluateResumeOptions } from '../../application/services/resume-evaluator.service';
+import {
+  ResumeEvaluatorService,
+  EvaluateResumeOptions,
+} from '../../application/services/resume-evaluator.service';
 import { BulletEvaluatorService } from '../../application/services/bullet-evaluator.service';
 
 @Controller('evaluation')
 export class EvaluationController {
   constructor(
     private readonly resumeEvaluatorService: ResumeEvaluatorService,
-    private readonly bulletEvaluatorService: BulletEvaluatorService
+    private readonly bulletEvaluatorService: BulletEvaluatorService,
   ) {}
 
   @Post('resume/:resumeId')
   async evaluateResume(
     @Param('resumeId') resumeId: string,
-    @Body() options: EvaluateResumeOptions
+    @Body() options: EvaluateResumeOptions,
   ) {
     return this.resumeEvaluatorService.evaluateResume(resumeId, options);
   }
@@ -29,34 +32,30 @@ export class EvaluationController {
 
   @Post('bullet')
   async evaluateBullet(
-    @Body() body: {
+    @Body()
+    body: {
       bulletText: string;
       role?: string;
       useLlm?: boolean;
       generateFixes?: boolean;
-    }
+    },
   ) {
     return this.bulletEvaluatorService.evaluateBullet(
       body.bulletText,
       body.role,
       body.useLlm,
-      body.generateFixes
+      body.generateFixes,
     );
   }
 
   @Post('bullets')
   async evaluateBullets(
-    @Body() body: {
-      bullets: string[];
-      role?: string;
-      useLlm?: boolean;
-    }
+    @Body() body: { bullets: string[]; role?: string; useLlm?: boolean },
   ) {
     return this.bulletEvaluatorService.evaluateBullets(
       body.bullets,
       body.role,
-      body.useLlm
+      body.useLlm,
     );
   }
 }
-

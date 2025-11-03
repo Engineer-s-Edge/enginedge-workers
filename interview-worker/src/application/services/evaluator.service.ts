@@ -1,6 +1,6 @@
 /**
  * Evaluator Service
- * 
+ *
  * Evaluates completed interviews using LLM through assistant-worker.
  * Calls assistant-worker's LLM endpoint for compartmentalization.
  */
@@ -8,7 +8,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { InterviewSession, CandidateProfile, Transcript, InterviewReport, InterviewScore } from '../../domain/entities';
+import {
+  InterviewSession,
+  CandidateProfile,
+  Transcript,
+  InterviewReport,
+  InterviewScore,
+} from '../../domain/entities';
 import {
   IInterviewSessionRepository,
   ICandidateProfileRepository,
@@ -57,17 +63,22 @@ export class EvaluatorService {
     }
 
     if (session.status !== 'completed') {
-      throw new Error(`Session must be completed to generate report. Current status: ${session.status}`);
+      throw new Error(
+        `Session must be completed to generate report. Current status: ${session.status}`,
+      );
     }
 
     // Check if report already exists
-    const existingReport = await this.reportRepository.findBySessionId(sessionId);
+    const existingReport =
+      await this.reportRepository.findBySessionId(sessionId);
     if (existingReport) {
       return existingReport;
     }
 
     // Load interview configuration
-    const interview = await this.interviewRepository.findById(session.interviewId);
+    const interview = await this.interviewRepository.findById(
+      session.interviewId,
+    );
     if (!interview) {
       throw new Error(`Interview not found: ${session.interviewId}`);
     }
@@ -79,7 +90,8 @@ export class EvaluatorService {
     }
 
     // Load transcript
-    const transcript = await this.transcriptRepository.findBySessionId(sessionId);
+    const transcript =
+      await this.transcriptRepository.findBySessionId(sessionId);
     if (!transcript) {
       throw new Error(`Transcript not found for session: ${sessionId}`);
     }
@@ -111,8 +123,15 @@ export class EvaluatorService {
 
     // Save report
     await this.reportRepository.save(report);
-    await this.webhookService.triggerWebhooks('report_generated', {sessionId, reportId: report.reportId});
-    await this.notificationService.sendEmailNotification(session.candidateEmail, 'Interview Report Generated', `Your interview report for session ${sessionId} has been generated. You can view it at ${this.configService.get<string>('FRONTEND_URL')}/reports/${report.reportId}`);
+    await this.webhookService.triggerWebhooks('report_generated', {
+      sessionId,
+      reportId: report.reportId,
+    });
+    await this.notificationService.sendEmailNotification(
+      session.candidateEmail,
+      'Interview Report Generated',
+      `Your interview report for session ${sessionId} has been generated. You can view it at ${this.configService.get<string>('FRONTEND_URL')}/reports/${report.reportId}`,
+    );
 
     return report;
   }
@@ -133,7 +152,8 @@ export class EvaluatorService {
       )
       .join('\n');
 
-    const profileText = `Strengths: ${profile.observations.strengths.join(', ')}\n` +
+    const profileText =
+      `Strengths: ${profile.observations.strengths.join(', ')}\n` +
       `Concerns: ${profile.observations.concerns.join(', ')}\n` +
       `Key Insights: ${profile.observations.keyInsights}\n` +
       `Resume Findings - Verified: ${profile.observations.resumeFindings.verified.join(', ')}\n` +
@@ -144,7 +164,8 @@ export class EvaluatorService {
       `Skipped Questions: ${profile.observations.interviewFlow.skippedQuestions}\n` +
       `Pause Duration: ${profile.observations.interviewFlow.pauseDuration}s`;
 
-    const configText = `Interview Type: ${interview.title}\n` +
+    const configText =
+      `Interview Type: ${interview.title}\n` +
       `Phases: ${interview.phases.map((p: any) => `${p.type} (${p.difficulty})`).join(', ')}\n` +
       `Time Elapsed: ${Math.floor(session.timeElapsed / 60)}m ${session.timeElapsed % 60}s\n` +
       `Time Limit: ${interview.config.totalTimeLimit}m\n` +
@@ -203,7 +224,11 @@ Output valid JSON only (no markdown, no code blocks):
         },
       );
 
-      return response.data.content || response.data.output || JSON.stringify(response.data);
+      return (
+        response.data.content ||
+        response.data.output ||
+        JSON.stringify(response.data)
+      );
     } catch (error) {
       throw new Error(
         `Failed to call LLM evaluator: ${error instanceof Error ? error.message : String(error)}`,
@@ -221,7 +246,7 @@ Output valid JSON only (no markdown, no code blocks):
     try {
       // Try to extract JSON from response (handle markdown code blocks)
       let jsonStr = llmResponse.trim();
-      
+
       // Remove markdown code blocks if present
       if (jsonStr.includes('```json')) {
         jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
@@ -234,10 +259,18 @@ Output valid JSON only (no markdown, no code blocks):
       const score: InterviewScore = {
         overall: this.validateScore(parsed.overall),
         byPhase: {
-          behavioral: parsed.byPhase?.behavioral ? this.validateScore(parsed.byPhase.behavioral) : undefined,
-          technical: parsed.byPhase?.technical ? this.validateScore(parsed.byPhase.technical) : undefined,
-          coding: parsed.byPhase?.coding ? this.validateScore(parsed.byPhase.coding) : undefined,
-          systemDesign: parsed.byPhase?.systemDesign ? this.validateScore(parsed.byPhase.systemDesign) : undefined,
+          behavioral: parsed.byPhase?.behavioral
+            ? this.validateScore(parsed.byPhase.behavioral)
+            : undefined,
+          technical: parsed.byPhase?.technical
+            ? this.validateScore(parsed.byPhase.technical)
+            : undefined,
+          coding: parsed.byPhase?.coding
+            ? this.validateScore(parsed.byPhase.coding)
+            : undefined,
+          systemDesign: parsed.byPhase?.systemDesign
+            ? this.validateScore(parsed.byPhase.systemDesign)
+            : undefined,
         },
       };
 
@@ -247,8 +280,11 @@ Output valid JSON only (no markdown, no code blocks):
       };
     } catch (error) {
       // Fallback parsing if JSON extraction fails
-      this.logger.warn('Failed to parse LLM response as JSON, using fallback', { error, response: llmResponse });
-      
+      this.logger.warn('Failed to parse LLM response as JSON, using fallback', {
+        error,
+        response: llmResponse,
+      });
+
       // Extract scores using regex as fallback
       const overallMatch = llmResponse.match(/overall.*?(\d+)/i);
       const overall = overallMatch ? parseInt(overallMatch[1], 10) : 50;
@@ -280,4 +316,3 @@ Output valid JSON only (no markdown, no code blocks):
     };
   }
 }
-

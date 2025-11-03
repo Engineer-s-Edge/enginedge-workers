@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 import { FilesystemLoaderPort } from '../../../../domain/ports/loader.port';
-import { Document, DocumentMetadata } from '../../../../domain/entities/document.entity';
+import {
+  Document,
+  DocumentMetadata,
+} from '../../../../domain/entities/document.entity';
 import * as crypto from 'crypto';
 
 /**
  * PDF Document Loader (Infrastructure Layer)
- * 
+ *
  * Loads and parses PDF files using LangChain's PDFLoader.
  * Supports OCR for image extraction (OCR handled via separate service).
  */
@@ -17,12 +20,17 @@ export class PdfLoaderAdapter extends FilesystemLoaderPort {
   /**
    * Load PDF from string path or Blob
    */
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (source instanceof Blob) {
       const fileName = (options?.fileName as string) || 'document.pdf';
       return this.loadBlob(source, fileName, options);
     }
-    throw new Error('PDF loader only supports Blob input. For file paths, convert to Blob first.');
+    throw new Error(
+      'PDF loader only supports Blob input. For file paths, convert to Blob first.',
+    );
   }
 
   /**
@@ -67,11 +75,18 @@ export class PdfLoaderAdapter extends FilesystemLoaderPort {
         return new Document(docId, doc.pageContent, docMetadata);
       });
 
-      this.logger.log(`Successfully loaded ${documents.length} documents from PDF`);
+      this.logger.log(
+        `Successfully loaded ${documents.length} documents from PDF`,
+      );
       return documents;
     } catch (error) {
-      this.logger.error(`Error loading PDF: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
-      throw new Error(`Failed to load PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Error loading PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new Error(
+        `Failed to load PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -96,7 +111,10 @@ export class PdfLoaderAdapter extends FilesystemLoaderPort {
    * Generate unique document ID
    */
   private generateDocumentId(fileName: string, index: number): string {
-    const hash = crypto.createHash('md5').update(`${fileName}-${index}-${Date.now()}`).digest('hex');
+    const hash = crypto
+      .createHash('md5')
+      .update(`${fileName}-${index}-${Date.now()}`)
+      .digest('hex');
     return `pdf-${hash}`;
   }
 }

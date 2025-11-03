@@ -17,7 +17,9 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const { method, url } = request;
-    const correlationId = (request as Request & { correlationId?: string }).correlationId || 'unknown';
+    const correlationId =
+      (request as Request & { correlationId?: string }).correlationId ||
+      'unknown';
 
     const startTime = Date.now();
 

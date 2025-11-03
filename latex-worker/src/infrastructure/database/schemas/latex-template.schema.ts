@@ -58,7 +58,8 @@ export class LaTeXTemplateSchema {
   requiredPackages!: string[];
 }
 
-export const LaTeXTemplateSchemaFactory = SchemaFactory.createForClass(LaTeXTemplateSchema);
+export const LaTeXTemplateSchemaFactory =
+  SchemaFactory.createForClass(LaTeXTemplateSchema);
 
 // Create indexes
 LaTeXTemplateSchemaFactory.index({ category: 1, isPublic: 1 });

@@ -4,7 +4,11 @@
  * Immutable objects representing tool metadata and configuration.
  */
 
-import { ActorCategory, RetrievalType, RAGConfig } from '../entities/tool.entities';
+import {
+  ActorCategory,
+  RetrievalType,
+  RAGConfig,
+} from '../entities/tool.entities';
 
 export class ToolId {
   constructor(private readonly value: string) {

@@ -32,9 +32,9 @@ export class SitemapLoaderAdapter extends WebLoaderPort {
   ): Promise<Document[]> {
     try {
       const urls = await this._parseSitemap(url);
-      
+
       // Filter URLs if filter function provided
-      const filteredUrls = options?.filterUrls 
+      const filteredUrls = options?.filterUrls
         ? urls.filter(options.filterUrls)
         : urls;
 
@@ -45,52 +45,42 @@ export class SitemapLoaderAdapter extends WebLoaderPort {
       // If loadPages is true, fetch content from each URL
       if (options?.loadPages) {
         const documents: Document[] = [];
-        
+
         for (const pageUrl of limitedUrls) {
           try {
             const pageDocs = await this.cheerioLoader.loadUrl(pageUrl);
             if (pageDocs.length > 0) {
               const doc = pageDocs[0];
-              const enrichedDoc = new Document(
-                doc.id,
-                doc.content,
-                {
-                  ...doc.metadata,
-                  sitemapSource: url,
-                  loader: this.name,
-                },
-              );
+              const enrichedDoc = new Document(doc.id, doc.content, {
+                ...doc.metadata,
+                sitemapSource: url,
+                loader: this.name,
+              });
               documents.push(enrichedDoc);
             }
           } catch (error: any) {
             console.warn(`Failed to load page ${pageUrl}: ${error.message}`);
           }
         }
-        
+
         return documents;
       } else {
         // Just return the list of URLs as a single document
         const documentId = `sitemap-${crypto.createHash('md5').update(`${url}-${Date.now()}`).digest('hex')}`;
         return [
-          new Document(
-            documentId,
-            limitedUrls.join('\n'),
-            {
-              source: url,
-              sourceType: 'url',
-              loader: this.name,
-              urlCount: limitedUrls.length,
-              totalUrls: urls.length,
-              urls: limitedUrls,
-              timestamp: new Date().toISOString(),
-            },
-          ),
+          new Document(documentId, limitedUrls.join('\n'), {
+            source: url,
+            sourceType: 'url',
+            loader: this.name,
+            urlCount: limitedUrls.length,
+            totalUrls: urls.length,
+            urls: limitedUrls,
+            timestamp: new Date().toISOString(),
+          }),
         ];
       }
     } catch (error: any) {
-      throw new Error(
-        `Failed to load sitemap: ${error.message}`,
-      );
+      throw new Error(`Failed to load sitemap: ${error.message}`);
     }
   }
 
@@ -115,7 +105,9 @@ export class SitemapLoaderAdapter extends WebLoaderPort {
             const childUrls = await this._parseSitemap(sitemapUrl);
             urls.push(...childUrls);
           } catch (error: any) {
-            console.warn(`Failed to parse child sitemap ${sitemapUrl}: ${error.message}`);
+            console.warn(
+              `Failed to parse child sitemap ${sitemapUrl}: ${error.message}`,
+            );
           }
         }
       }
@@ -142,7 +134,8 @@ export class SitemapLoaderAdapter extends WebLoaderPort {
       const path = urlObj.pathname.toLowerCase();
       return (
         this.supportedProtocols.includes(urlObj.protocol.replace(':', '')) &&
-        (path.includes('sitemap') && path.endsWith('.xml'))
+        path.includes('sitemap') &&
+        path.endsWith('.xml')
       );
     } catch {
       return false;
@@ -153,8 +146,10 @@ export class SitemapLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

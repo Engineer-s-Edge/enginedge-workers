@@ -48,12 +48,18 @@ describe('Agent Use Cases - Business Logic', () => {
         agents.push(agent);
         return agent;
       }),
-      update: jest.fn().mockImplementation(async (id: string, updates: Partial<Agent>) => {
-        const index = agents.findIndex((a) => a.id === id);
-        if (index === -1) throw new Error('Agent not found');
-        agents[index] = { ...agents[index], ...updates, updatedAt: new Date() };
-        return agents[index];
-      }),
+      update: jest
+        .fn()
+        .mockImplementation(async (id: string, updates: Partial<Agent>) => {
+          const index = agents.findIndex((a) => a.id === id);
+          if (index === -1) throw new Error('Agent not found');
+          agents[index] = {
+            ...agents[index],
+            ...updates,
+            updatedAt: new Date(),
+          };
+          return agents[index];
+        }),
       delete: jest.fn().mockImplementation(async (id: string) => {
         agents = agents.filter((a) => a.id !== id);
       }),
@@ -106,7 +112,9 @@ describe('Agent Use Cases - Business Logic', () => {
       const agent = await repository.create({ name: 'Test Agent' });
       const after = new Date();
 
-      expect(agent.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(agent.createdAt.getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
       expect(agent.createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
       expect(agent.updatedAt).toEqual(agent.createdAt);
     });
@@ -257,7 +265,10 @@ describe('Agent Use Cases - Business Logic', () => {
     });
 
     it('should preserve agent state across reads', async () => {
-      const created = await repository.create({ name: 'Test', status: 'active' });
+      const created = await repository.create({
+        name: 'Test',
+        status: 'active',
+      });
 
       const read1 = await repository.findById(created.id);
       const read2 = await repository.findById(created.id);
@@ -359,7 +370,10 @@ describe('Agent Use Cases - Business Logic', () => {
     });
 
     it('should allow status transitions', async () => {
-      const created = await repository.create({ name: 'Agent', status: 'active' });
+      const created = await repository.create({
+        name: 'Agent',
+        status: 'active',
+      });
 
       let updated = await repository.update(created.id, { status: 'paused' });
       expect(updated.status).toBe('paused');
@@ -470,7 +484,10 @@ describe('Agent Use Cases - Business Logic', () => {
     });
 
     it('should free resources after deletion', async () => {
-      const agent = await repository.create({ name: 'Large Agent', config: { large: 'data' } });
+      const agent = await repository.create({
+        name: 'Large Agent',
+        config: { large: 'data' },
+      });
 
       await repository.delete(agent.id);
 
@@ -784,19 +801,25 @@ describe('Agent Use Cases - Business Logic', () => {
   // ===== ERROR HANDLING =====
   describe('Error Handling', () => {
     it('should handle create errors', async () => {
-      const createFailing = jest.fn().mockRejectedValue(new Error('Create failed'));
+      const createFailing = jest
+        .fn()
+        .mockRejectedValue(new Error('Create failed'));
 
       await expect(createFailing()).rejects.toThrow('Create failed');
     });
 
     it('should handle update errors', async () => {
-      const updateFailing = jest.fn().mockRejectedValue(new Error('Update failed'));
+      const updateFailing = jest
+        .fn()
+        .mockRejectedValue(new Error('Update failed'));
 
       await expect(updateFailing()).rejects.toThrow('Update failed');
     });
 
     it('should handle delete errors', async () => {
-      const deleteFailing = jest.fn().mockRejectedValue(new Error('Delete failed'));
+      const deleteFailing = jest
+        .fn()
+        .mockRejectedValue(new Error('Delete failed'));
 
       await expect(deleteFailing()).rejects.toThrow('Delete failed');
     });
@@ -817,7 +840,9 @@ describe('Agent Use Cases - Business Logic', () => {
       const agent = await repository.create({ name: 'Agent' });
       const originalState = await repository.findById(agent.id);
 
-      const updateFailing = jest.fn().mockRejectedValue(new Error('Update failed'));
+      const updateFailing = jest
+        .fn()
+        .mockRejectedValue(new Error('Update failed'));
       await expect(updateFailing()).rejects.toThrow();
 
       const afterError = await repository.findById(agent.id);
@@ -837,7 +862,7 @@ describe('Agent Use Cases - Business Logic', () => {
 
     it('should handle timeout scenarios', async () => {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 100)
+        setTimeout(() => reject(new Error('Timeout')), 100),
       );
 
       await expect(timeoutPromise).rejects.toThrow('Timeout');
@@ -850,7 +875,9 @@ describe('Agent Use Cases - Business Logic', () => {
       };
 
       expect(() => validateAgent({ name: '' })).toThrow('required');
-      expect(() => validateAgent({ name: 'x'.repeat(300) })).toThrow('too long');
+      expect(() => validateAgent({ name: 'x'.repeat(300) })).toThrow(
+        'too long',
+      );
     });
   });
 
@@ -890,7 +917,10 @@ describe('Agent Use Cases - Business Logic', () => {
     });
 
     it('should track state change timestamp', async () => {
-      const agent = await repository.create({ name: 'Agent', status: 'active' });
+      const agent = await repository.create({
+        name: 'Agent',
+        status: 'active',
+      });
       const time1 = agent.updatedAt;
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -902,7 +932,10 @@ describe('Agent Use Cases - Business Logic', () => {
     });
 
     it('should allow any valid state transition', async () => {
-      const agent = await repository.create({ name: 'Agent', status: 'active' });
+      const agent = await repository.create({
+        name: 'Agent',
+        status: 'active',
+      });
       const validStates: Agent['status'][] = ['active', 'paused', 'inactive'];
 
       for (const state of validStates) {
@@ -912,7 +945,10 @@ describe('Agent Use Cases - Business Logic', () => {
     });
 
     it('should maintain history of state changes', async () => {
-      const agent = await repository.create({ name: 'Agent', status: 'active' });
+      const agent = await repository.create({
+        name: 'Agent',
+        status: 'active',
+      });
       const history: Array<{ status: Agent['status']; time: Date }> = [
         { status: agent.status, time: agent.updatedAt },
       ];

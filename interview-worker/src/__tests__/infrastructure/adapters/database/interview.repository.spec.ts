@@ -155,4 +155,3 @@ describe('MongoInterviewRepository', () => {
     expect(retrieved).toBeNull();
   });
 });
-

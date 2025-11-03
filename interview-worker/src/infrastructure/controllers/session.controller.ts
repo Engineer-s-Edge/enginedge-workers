@@ -1,6 +1,6 @@
 /**
  * Session Controller
- * 
+ *
  * REST API endpoints for interview session management
  */
 
@@ -24,9 +24,7 @@ export class SessionController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async startSession(
-    @Body() dto: StartSessionDto,
-  ): Promise<InterviewSession> {
+  async startSession(@Body() dto: StartSessionDto): Promise<InterviewSession> {
     return await this.sessionService.startSession({
       interviewId: dto.interviewId,
       candidateId: dto.candidateId,
@@ -85,4 +83,3 @@ export class SessionController {
     return { success: true };
   }
 }
-

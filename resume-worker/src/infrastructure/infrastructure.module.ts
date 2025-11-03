@@ -13,7 +13,7 @@ import { CoverLetterController } from './controllers/cover-letter.controller';
 
 /**
  * Infrastructure Module
- * 
+ *
  * Contains all adapters, controllers, gateways, and external integrations.
  */
 @Module({
@@ -27,11 +27,7 @@ import { CoverLetterController } from './controllers/cover-letter.controller';
     ResumeEditingController,
     CoverLetterController,
   ],
-  providers: [
-    ResumeIteratorGateway,
-    BulletReviewGateway,
-    ResumeBuilderGateway,
-  ],
+  providers: [ResumeIteratorGateway, BulletReviewGateway, ResumeBuilderGateway],
   exports: [],
 })
 export class InfrastructureModule {}

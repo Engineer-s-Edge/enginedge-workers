@@ -1,5 +1,16 @@
-import { Controller, Post, Get, Delete, Body, Param, Query } from '@nestjs/common';
-import { ResumeTailoringService, TailorResumeRequest } from '../../application/services/resume-tailoring.service';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
+import {
+  ResumeTailoringService,
+  TailorResumeRequest,
+} from '../../application/services/resume-tailoring.service';
 
 @Controller('tailor')
 export class ResumeTailoringController {
@@ -26,4 +37,3 @@ export class ResumeTailoringController {
     return { success: cancelled };
   }
 }
-

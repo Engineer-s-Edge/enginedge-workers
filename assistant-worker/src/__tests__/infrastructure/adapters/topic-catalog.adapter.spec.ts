@@ -153,10 +153,7 @@ describe('TopicCatalogAdapter', () => {
     });
 
     it('should get limited recommendations', async () => {
-      const recommendations = await adapter.getRecommendedTopics(
-        'user-456',
-        5,
-      );
+      const recommendations = await adapter.getRecommendedTopics('user-456', 5);
 
       expect(recommendations.length).toBeLessThanOrEqual(5);
     });

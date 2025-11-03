@@ -1,6 +1,6 @@
 /**
  * Question Seed Controller
- * 
+ *
  * Endpoint to seed the question bank with sample questions.
  * This is a development/admin endpoint.
  */
@@ -40,4 +40,3 @@ export class QuestionSeedController {
     };
   }
 }
-

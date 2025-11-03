@@ -1,11 +1,16 @@
 /**
  * Agent Integration Tests
- * 
+ *
  * End-to-end tests for agent operations.
  */
 
 import { INestApplication } from '@nestjs/common';
-import { createTestApp, testFixtures, cleanupTestData, assertValidResponse } from './test-utils';
+import {
+  createTestApp,
+  testFixtures,
+  cleanupTestData,
+  assertValidResponse,
+} from './test-utils';
 import * as request from 'supertest';
 
 describe('Agent Integration Tests', () => {
@@ -37,7 +42,7 @@ describe('Agent Integration Tests', () => {
 
       assertValidResponse(response.body, ['id', 'name', 'type', 'createdAt']);
       expect(response.body.type).toBe('react');
-      
+
       createdAgentIds.push(response.body.id);
     });
 
@@ -128,7 +133,12 @@ describe('Agent Integration Tests', () => {
         })
         .expect(200);
 
-      assertValidResponse(response.body, ['agentId', 'status', 'output', 'duration']);
+      assertValidResponse(response.body, [
+        'agentId',
+        'status',
+        'output',
+        'duration',
+      ]);
       expect(response.body.agentId).toBe(agentId);
     });
 
@@ -218,4 +228,3 @@ describe('Agent Integration Tests', () => {
     });
   });
 });
-

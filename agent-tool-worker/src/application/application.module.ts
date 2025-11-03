@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services and use cases.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
@@ -18,7 +18,7 @@ import { ToolService } from './services/tool.service';
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers (ILogger, ILLMProvider, IAgentRepository)
  * are automatically available to all modules. No need to import it here.
  */
@@ -26,10 +26,7 @@ import { ToolService } from './services/tool.service';
   imports: [
     DomainModule, // Domain services (AgentFactory, MemoryManager, etc.)
   ],
-  providers: [
-    ToolRegistry,
-    ToolService,
-  ],
+  providers: [ToolRegistry, ToolService],
   exports: [
     // Export domain module so infrastructure can access it
     DomainModule,

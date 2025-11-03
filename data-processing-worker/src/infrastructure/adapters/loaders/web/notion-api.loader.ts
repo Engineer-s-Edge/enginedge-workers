@@ -27,7 +27,9 @@ export class NotionApiLoaderAdapter extends WebLoaderPort {
     try {
       const apiKey = options?.apiKey || process.env.NOTION_API_KEY;
       if (!apiKey) {
-        throw new Error('Notion API key required. Set NOTION_API_KEY env var or pass apiKey option.');
+        throw new Error(
+          'Notion API key required. Set NOTION_API_KEY env var or pass apiKey option.',
+        );
       }
 
       const pageId = this._extractPageId(url);
@@ -38,7 +40,7 @@ export class NotionApiLoaderAdapter extends WebLoaderPort {
       const notionVersion = options?.notionVersion || '2022-06-28';
 
       const headers = {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Notion-Version': notionVersion,
         'Content-Type': 'application/json',
       };
@@ -63,27 +65,21 @@ export class NotionApiLoaderAdapter extends WebLoaderPort {
       const title = this._extractTitle(properties);
 
       const documentId = `notion-api-${crypto.createHash('md5').update(`${pageId}-${Date.now()}`).digest('hex')}`;
-      const document = new Document(
-        documentId,
-        `${title}\n\n${content}`,
-        {
-          source: url,
-          sourceType: 'url',
-          loader: this.name,
-          pageId,
-          title,
-          createdTime: pageResponse.data.created_time,
-          lastEditedTime: pageResponse.data.last_edited_time,
-          archived: pageResponse.data.archived,
-          timestamp: new Date().toISOString(),
-        },
-      );
+      const document = new Document(documentId, `${title}\n\n${content}`, {
+        source: url,
+        sourceType: 'url',
+        loader: this.name,
+        pageId,
+        title,
+        createdTime: pageResponse.data.created_time,
+        lastEditedTime: pageResponse.data.last_edited_time,
+        archived: pageResponse.data.archived,
+        timestamp: new Date().toISOString(),
+      });
 
       return [document];
     } catch (error: any) {
-      throw new Error(
-        `Failed to load Notion content: ${error.message}`,
-      );
+      throw new Error(`Failed to load Notion content: ${error.message}`);
     }
   }
 
@@ -94,14 +90,14 @@ export class NotionApiLoaderAdapter extends WebLoaderPort {
     try {
       const urlObj = new URL(url);
       const pathname = urlObj.pathname;
-      
+
       // Extract ID from URL (last part after the last dash)
       const parts = pathname.split('-');
       const lastPart = parts[parts.length - 1];
-      
+
       // Remove query params if present
       const pageId = lastPart.split('?')[0];
-      
+
       // Notion page IDs are 32 characters (UUID without dashes)
       if (pageId.length === 32) {
         return pageId;
@@ -163,7 +159,10 @@ export class NotionApiLoaderAdapter extends WebLoaderPort {
   canLoad(url: string): boolean {
     try {
       const urlObj = new URL(url);
-      return urlObj.hostname.includes('notion.so') || urlObj.hostname.includes('notion.site');
+      return (
+        urlObj.hostname.includes('notion.so') ||
+        urlObj.hostname.includes('notion.site')
+      );
     } catch {
       return false;
     }
@@ -173,8 +172,10 @@ export class NotionApiLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

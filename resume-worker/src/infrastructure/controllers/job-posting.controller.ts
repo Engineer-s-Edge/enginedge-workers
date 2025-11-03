@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Delete, Body, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { JobPostingService } from '../../application/services/job-posting.service';
 
 @Controller('job-postings')
@@ -7,13 +15,13 @@ export class JobPostingController {
 
   @Post('extract')
   async extractPosting(
-    @Body() body: { userId: string; text: string; url?: string; html?: string }
+    @Body() body: { userId: string; text: string; url?: string; html?: string },
   ) {
     return this.jobPostingService.extractFromText(
       body.userId,
       body.text,
       body.url,
-      body.html
+      body.html,
     );
   }
 
@@ -33,4 +41,3 @@ export class JobPostingController {
     return { success: deleted };
   }
 }
-

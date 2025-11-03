@@ -33,7 +33,9 @@ export class TavilySearchLoaderAdapter extends WebLoaderPort {
     try {
       const apiKey = options?.apiKey || process.env.TAVILY_API_KEY;
       if (!apiKey) {
-        throw new Error('Tavily API key required. Set TAVILY_API_KEY env var or pass apiKey option.');
+        throw new Error(
+          'Tavily API key required. Set TAVILY_API_KEY env var or pass apiKey option.',
+        );
       }
 
       const query = options?.query || this._extractQueryFromUrl(url);
@@ -69,18 +71,14 @@ export class TavilySearchLoaderAdapter extends WebLoaderPort {
       if (response.data.answer) {
         const answerId = `tavily-answer-${crypto.createHash('md5').update(`${query}-${Date.now()}`).digest('hex')}`;
         documents.push(
-          new Document(
-            answerId,
-            response.data.answer,
-            {
-              source: 'tavily-answer',
-              sourceType: 'url',
-              loader: this.name,
-              type: 'answer',
-              query,
-              timestamp: new Date().toISOString(),
-            },
-          ),
+          new Document(answerId, response.data.answer, {
+            source: 'tavily-answer',
+            sourceType: 'url',
+            loader: this.name,
+            type: 'answer',
+            query,
+            timestamp: new Date().toISOString(),
+          }),
         );
       }
 
@@ -93,19 +91,15 @@ export class TavilySearchLoaderAdapter extends WebLoaderPort {
 
         const documentId = `tavily-${crypto.createHash('md5').update(`${result.url}-${Date.now()}`).digest('hex')}`;
         documents.push(
-          new Document(
-            documentId,
-            content,
-            {
-              source: result.url,
-              sourceType: 'url',
-              loader: this.name,
-              title: result.title,
-              score: result.score,
-              query,
-              timestamp: new Date().toISOString(),
-            },
-          ),
+          new Document(documentId, content, {
+            source: result.url,
+            sourceType: 'url',
+            loader: this.name,
+            title: result.title,
+            score: result.score,
+            query,
+            timestamp: new Date().toISOString(),
+          }),
         );
       }
 
@@ -123,7 +117,9 @@ export class TavilySearchLoaderAdapter extends WebLoaderPort {
   private _extractQueryFromUrl(url: string): string {
     try {
       const urlObj = new URL(url);
-      return urlObj.searchParams.get('q') || urlObj.searchParams.get('query') || '';
+      return (
+        urlObj.searchParams.get('q') || urlObj.searchParams.get('query') || ''
+      );
     } catch {
       return '';
     }
@@ -142,8 +138,10 @@ export class TavilySearchLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

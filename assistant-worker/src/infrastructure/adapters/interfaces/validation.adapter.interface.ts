@@ -1,6 +1,6 @@
 /**
  * Validation Service Adapter Interface
- * 
+ *
  * Port interface for research validation
  * Abstracts external ValidationService implementation
  */
@@ -36,8 +36,6 @@ export interface IValidationAdapter {
    * Batch validate multiple reports
    */
   validateBatch(configs: ValidationConfig[]): Promise<ValidationResult[]>;
-
-
 
   /**
    * Check source credibility

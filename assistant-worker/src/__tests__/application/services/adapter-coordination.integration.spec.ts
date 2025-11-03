@@ -1,6 +1,6 @@
 /**
  * Adapter Coordination Integration Tests
- * 
+ *
  * Tests message flow, data consistency, and coordination patterns
  * between all 7 adapters in the orchestrator ecosystem
  */
@@ -31,7 +31,9 @@ describe('Adapter Coordination Tests', () => {
   beforeEach(async () => {
     // Mock providers for testing
     const mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
     };
 
     const mockLogger = {
@@ -66,15 +68,19 @@ describe('Adapter Coordination Tests', () => {
     }).compile();
 
     orchestrator = module.get<GeniusAgentOrchestrator>(GeniusAgentOrchestrator);
-    knowledgeGraphAdapter = module.get<KnowledgeGraphAdapter>(KnowledgeGraphAdapter);
+    knowledgeGraphAdapter = module.get<KnowledgeGraphAdapter>(
+      KnowledgeGraphAdapter,
+    );
     validationAdapter = module.get<ValidationAdapter>(ValidationAdapter);
     expertPoolAdapter = module.get<ExpertPoolAdapter>(ExpertPoolAdapter);
     topicCatalogAdapter = module.get<TopicCatalogAdapter>(TopicCatalogAdapter);
     learningModeAdapter = module.get<LearningModeAdapter>(LearningModeAdapter);
     scheduledLearningAdapter = module.get<ScheduledLearningAdapter>(
-      ScheduledLearningAdapter
+      ScheduledLearningAdapter,
     );
-    newsIntegrationAdapter = module.get<NewsIntegrationAdapter>(NewsIntegrationAdapter);
+    newsIntegrationAdapter = module.get<NewsIntegrationAdapter>(
+      NewsIntegrationAdapter,
+    );
 
     // Spy on adapter methods
     jest.spyOn(knowledgeGraphAdapter, 'getRecentResearchReports');
@@ -90,7 +96,10 @@ describe('Adapter Coordination Tests', () => {
   describe('Adapter Communication Patterns', () => {
     it('should coordinate knowledge graph → validation flow', async () => {
       // Get research from graph
-      const research = await knowledgeGraphAdapter.getRecentResearchReports('user123', 10);
+      const research = await knowledgeGraphAdapter.getRecentResearchReports(
+        'user123',
+        10,
+      );
 
       expect(knowledgeGraphAdapter.getRecentResearchReports).toHaveBeenCalled();
 
@@ -235,7 +244,7 @@ describe('Adapter Coordination Tests', () => {
             sources: [String(item.source || '')],
             confidence: Number(item.relevance || 0.5),
             timestamp: new Date(),
-          }))
+          })),
         );
 
         expect(validated).toBeDefined();
@@ -259,9 +268,9 @@ describe('Adapter Coordination Tests', () => {
   describe('Error Handling Across Adapters', () => {
     it('should isolate adapter failures', async () => {
       // One adapter failure should not cascade
-      jest.spyOn(expertPoolAdapter, 'allocateExperts').mockRejectedValueOnce(
-        new Error('Expert pool unavailable')
-      );
+      jest
+        .spyOn(expertPoolAdapter, 'allocateExperts')
+        .mockRejectedValueOnce(new Error('Expert pool unavailable'));
 
       // Should still be able to get news
       const news = await newsIntegrationAdapter.fetchRecentNews('AI');
@@ -292,7 +301,10 @@ describe('Adapter Coordination Tests', () => {
 
     it('should validate adapter responses match contracts', async () => {
       // Get research
-      const research = await knowledgeGraphAdapter.getRecentResearchReports('user123', 10);
+      const research = await knowledgeGraphAdapter.getRecentResearchReports(
+        'user123',
+        10,
+      );
 
       // Validate against expected structure
       if (research && Array.isArray(research)) {
@@ -359,7 +371,7 @@ describe('Adapter Coordination Tests', () => {
       const operations = Array.from({ length: 10 }, (_, i) =>
         topicCatalogAdapter.trackResearch(`Topic ${i}`, {
           status: 'active',
-        })
+        }),
       );
 
       const results = await Promise.all(operations);
@@ -378,7 +390,10 @@ describe('Adapter Coordination Tests', () => {
       const topics = ['AI', 'ML'];
 
       // 1. Get existing research
-      const existing = await knowledgeGraphAdapter.getRecentResearchReports(userId, 10);
+      const existing = await knowledgeGraphAdapter.getRecentResearchReports(
+        userId,
+        10,
+      );
 
       // 2. Validate
       if (existing && existing.length > 0) {
@@ -446,7 +461,10 @@ describe('Adapter Coordination Tests', () => {
       ];
 
       // Full orchestrated workflow
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -475,12 +493,13 @@ describe('Adapter Coordination Tests', () => {
   describe('Adapter Integration Metrics', () => {
     it('should track adapter call metrics', async () => {
       const userId = 'metric-test';
-      const topics = [
-        { topic: 'AI', complexity: 'L3' as const },
-      ];
+      const topics = [{ topic: 'AI', complexity: 'L3' as const }];
 
       // Execute workflow
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(result).toBeDefined();
     });

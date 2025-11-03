@@ -70,4 +70,3 @@ describe('AzureSpeechAdapter', () => {
     expect(Buffer.isBuffer(result)).toBe(true);
   });
 });
-

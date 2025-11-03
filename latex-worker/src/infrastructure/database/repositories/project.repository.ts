@@ -6,7 +6,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { IProjectRepository } from '../../../domain/ports';
-import { LaTeXProject, ProjectFile as DomainProjectFile, ProjectDependency as DomainProjectDependency } from '../../../domain/entities';
+import {
+  LaTeXProject,
+  ProjectFile as DomainProjectFile,
+  ProjectDependency as DomainProjectDependency,
+} from '../../../domain/entities';
 import {
   LaTeXProjectSchema,
   LaTeXProjectDocument,
@@ -27,8 +31,9 @@ export class MongoDBProjectRepository implements IProjectRepository {
     if (file.type === 'tex') type = 'tex';
     else if (file.type === 'bib') type = 'bib';
     else if (file.type === 'image') type = 'image';
-    else if (file.type === 'cls' || file.type === 'sty' || file.type === 'bst') type = 'style';
-    
+    else if (file.type === 'cls' || file.type === 'sty' || file.type === 'bst')
+      type = 'style';
+
     return {
       path: file.path,
       content: file.content,
@@ -43,7 +48,7 @@ export class MongoDBProjectRepository implements IProjectRepository {
     else if (file.type === 'bib') type = 'bib';
     else if (file.type === 'image') type = 'image';
     else if (file.type === 'style') type = 'sty';
-    
+
     return {
       path: file.path,
       content: file.content,
@@ -52,12 +57,14 @@ export class MongoDBProjectRepository implements IProjectRepository {
   }
 
   // Map schema dependency to domain dependency
-  private mapDependencyToDomain(dep: ProjectDependency): DomainProjectDependency {
+  private mapDependencyToDomain(
+    dep: ProjectDependency,
+  ): DomainProjectDependency {
     let type: DomainProjectDependency['type'] = 'package';
     if (dep.type === 'package') type = 'package';
     else if (dep.type === 'font') type = 'font';
     else if (dep.type === 'binary') type = 'style'; // Map binary to style
-    
+
     return {
       type,
       name: dep.name,
@@ -66,12 +73,14 @@ export class MongoDBProjectRepository implements IProjectRepository {
   }
 
   // Map domain dependency to schema dependency
-  private mapDependencyToSchema(dep: DomainProjectDependency): ProjectDependency {
+  private mapDependencyToSchema(
+    dep: DomainProjectDependency,
+  ): ProjectDependency {
     let type: ProjectDependency['type'] = 'package';
     if (dep.type === 'package') type = 'package';
     else if (dep.type === 'font') type = 'font';
     else if (dep.type === 'style') type = 'package'; // Map style to package
-    
+
     return {
       type,
       name: dep.name,
@@ -85,8 +94,10 @@ export class MongoDBProjectRepository implements IProjectRepository {
       userId: project.userId || 'system',
       name: project.name,
       mainFile: project.mainFile,
-      files: project.files.map(f => this.mapFileToSchema(f)),
-      dependencies: project.dependencies.map(d => this.mapDependencyToSchema(d)),
+      files: project.files.map((f) => this.mapFileToSchema(f)),
+      dependencies: project.dependencies.map((d) =>
+        this.mapDependencyToSchema(d),
+      ),
     };
 
     await this.projectModel.updateOne(
@@ -98,7 +109,7 @@ export class MongoDBProjectRepository implements IProjectRepository {
 
   async findById(id: string): Promise<LaTeXProject | null> {
     const proj = await this.projectModel.findOne({ projectId: id }).exec();
-    
+
     if (!proj) {
       return null;
     }
@@ -112,12 +123,12 @@ export class MongoDBProjectRepository implements IProjectRepository {
     );
 
     // Add additional files
-    proj.files.slice(1).forEach(file => {
+    proj.files.slice(1).forEach((file) => {
       project = project.addFile(this.mapFileToDomain(file));
     });
 
     // Add dependencies
-    proj.dependencies.forEach(dep => {
+    proj.dependencies.forEach((dep) => {
       project = project.addDependency(this.mapDependencyToDomain(dep));
     });
 
@@ -130,7 +141,7 @@ export class MongoDBProjectRepository implements IProjectRepository {
       .sort({ updatedAt: -1 })
       .exec();
 
-    return projects.map(proj => {
+    return projects.map((proj) => {
       let project = LaTeXProject.create(
         proj.projectId,
         proj.name,
@@ -139,11 +150,11 @@ export class MongoDBProjectRepository implements IProjectRepository {
         proj.userId,
       );
 
-      proj.files.slice(1).forEach(file => {
+      proj.files.slice(1).forEach((file) => {
         project = project.addFile(this.mapFileToDomain(file));
       });
 
-      proj.dependencies.forEach(dep => {
+      proj.dependencies.forEach((dep) => {
         project = project.addDependency(this.mapDependencyToDomain(dep));
       });
 
@@ -163,7 +174,7 @@ export class MongoDBProjectRepository implements IProjectRepository {
       .limit(limit)
       .exec();
 
-    return projects.map(proj => {
+    return projects.map((proj) => {
       let project = LaTeXProject.create(
         proj.projectId,
         proj.name,
@@ -172,11 +183,11 @@ export class MongoDBProjectRepository implements IProjectRepository {
         proj.userId,
       );
 
-      proj.files.slice(1).forEach(file => {
+      proj.files.slice(1).forEach((file) => {
         project = project.addFile(this.mapFileToDomain(file));
       });
 
-      proj.dependencies.forEach(dep => {
+      proj.dependencies.forEach((dep) => {
         project = project.addDependency(this.mapDependencyToDomain(dep));
       });
 

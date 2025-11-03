@@ -8,8 +8,8 @@ export class TenantRepository {
   constructor(private readonly mongo: MongoService) {}
 
   async findById(id: string): Promise<Tenant | null> {
-    return this.mongo.collection<Tenant>('tenants').findOne({ _id: new ObjectId(id) } as any);
+    return this.mongo
+      .collection<Tenant>('tenants')
+      .findOne({ _id: new ObjectId(id) } as any);
   }
 }
-
-

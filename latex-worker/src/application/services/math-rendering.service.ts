@@ -100,10 +100,10 @@ export interface PngOptions {
 
 /**
  * Math Rendering Service using KaTeX
- * 
+ *
  * Ultra-fast math rendering (5-10ms per expression) using KaTeX.
  * Designed to handle LLM outputs with mixed text and math.
- * 
+ *
  * Features:
  * - HTML rendering (fastest, ~5ms)
  * - SVG rendering (vector graphics)
@@ -121,7 +121,7 @@ export class MathRenderingService {
 
   /**
    * Render a single math expression to HTML
-   * 
+   *
    * @param latex - LaTeX math expression (without delimiters)
    * @param options - Rendering options
    * @returns Rendered HTML
@@ -131,15 +131,17 @@ export class MathRenderingService {
     options?: RenderOptions,
   ): Promise<RenderedMath> {
     const cacheKey = `html:${latex}:${JSON.stringify(options || {})}`;
-    
+
     // Check cache
     if (this.cache.has(cacheKey)) {
-      this.logger.debug(`Cache hit for expression: ${latex.substring(0, 50)}...`);
+      this.logger.debug(
+        `Cache hit for expression: ${latex.substring(0, 50)}...`,
+      );
       return this.cache.get(cacheKey)!;
     }
 
     const startTime = Date.now();
-    
+
     try {
       const html = katex.renderToString(latex, {
         displayMode: options?.displayMode ?? false,
@@ -160,7 +162,7 @@ export class MathRenderingService {
       };
 
       this.updateCache(cacheKey, result);
-      
+
       this.logger.debug(`Rendered to HTML in ${result.renderTime}ms`);
       return result;
     } catch (error) {
@@ -173,14 +175,16 @@ export class MathRenderingService {
         error: error instanceof Error ? error.message : String(error),
       };
 
-      this.logger.warn(`Failed to render: ${latex.substring(0, 50)}... - ${result.error}`);
+      this.logger.warn(
+        `Failed to render: ${latex.substring(0, 50)}... - ${result.error}`,
+      );
       return result;
     }
   }
 
   /**
    * Render a single math expression to SVG
-   * 
+   *
    * @param latex - LaTeX math expression
    * @param options - Rendering options
    * @returns Rendered SVG
@@ -190,13 +194,13 @@ export class MathRenderingService {
     options?: RenderOptions,
   ): Promise<RenderedMath> {
     const cacheKey = `svg:${latex}:${JSON.stringify(options || {})}`;
-    
+
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;
     }
 
     const startTime = Date.now();
-    
+
     try {
       // First render to HTML
       const html = katex.renderToString(latex, {
@@ -222,7 +226,7 @@ export class MathRenderingService {
       };
 
       this.updateCache(cacheKey, result);
-      
+
       this.logger.debug(`Rendered to SVG in ${result.renderTime}ms`);
       return result;
     } catch (error) {
@@ -235,14 +239,16 @@ export class MathRenderingService {
         error: error instanceof Error ? error.message : String(error),
       };
 
-      this.logger.warn(`Failed to render SVG: ${latex.substring(0, 50)}... - ${result.error}`);
+      this.logger.warn(
+        `Failed to render SVG: ${latex.substring(0, 50)}... - ${result.error}`,
+      );
       return result;
     }
   }
 
   /**
    * Render a single math expression to PNG
-   * 
+   *
    * @param latex - LaTeX math expression
    * @param renderOptions - Rendering options
    * @param pngOptions - PNG output options
@@ -254,11 +260,11 @@ export class MathRenderingService {
     pngOptions?: PngOptions,
   ): Promise<RenderedMath> {
     const startTime = Date.now();
-    
+
     try {
       // First render to SVG
       const svgResult = await this.renderToSvg(latex, renderOptions);
-      
+
       if (svgResult.error) {
         return {
           ...svgResult,
@@ -270,7 +276,7 @@ export class MathRenderingService {
       // Convert SVG to PNG using Sharp
       const scale = pngOptions?.scale ?? 2; // Default 2x for retina
       const svgBuffer = Buffer.from(svgResult.output);
-      
+
       let pipeline = sharp(svgBuffer, { density: 144 * scale });
 
       if (pngOptions?.width || pngOptions?.height) {
@@ -304,14 +310,16 @@ export class MathRenderingService {
         error: error instanceof Error ? error.message : String(error),
       };
 
-      this.logger.warn(`Failed to render PNG: ${latex.substring(0, 50)}... - ${result.error}`);
+      this.logger.warn(
+        `Failed to render PNG: ${latex.substring(0, 50)}... - ${result.error}`,
+      );
       return result;
     }
   }
 
   /**
    * Render multiple expressions in batch
-   * 
+   *
    * @param expressions - Array of math expressions
    * @param format - Output format
    * @param options - Rendering options
@@ -327,12 +335,14 @@ export class MathRenderingService {
     let successful = 0;
     let failed = 0;
 
-    this.logger.log(`Batch rendering ${expressions.length} expressions to ${format}`);
+    this.logger.log(
+      `Batch rendering ${expressions.length} expressions to ${format}`,
+    );
 
     // Render all expressions (KaTeX is so fast we don't need parallelization)
     for (const expr of expressions) {
       let result: RenderedMath;
-      
+
       const exprOptions = { ...options, displayMode: expr.displayMode };
 
       switch (format) {
@@ -347,7 +357,7 @@ export class MathRenderingService {
       }
 
       rendered.push(result);
-      
+
       if (result.error) {
         failed++;
       } else {
@@ -357,7 +367,9 @@ export class MathRenderingService {
 
     const totalTime = Date.now() - startTime;
 
-    this.logger.log(`Batch rendering complete: ${successful}/${expressions.length} successful in ${totalTime}ms (avg: ${(totalTime / expressions.length).toFixed(2)}ms/expr)`);
+    this.logger.log(
+      `Batch rendering complete: ${successful}/${expressions.length} successful in ${totalTime}ms (avg: ${(totalTime / expressions.length).toFixed(2)}ms/expr)`,
+    );
 
     return {
       rendered,
@@ -370,12 +382,12 @@ export class MathRenderingService {
 
   /**
    * Extract math expressions from text
-   * 
+   *
    * Supports:
    * - Inline math: $...$
    * - Display math: $$...$$
    * - LaTeX environments: \begin{equation}...\end{equation}
-   * 
+   *
    * @param text - Input text with embedded math
    * @returns Parsed text with extracted expressions
    */
@@ -386,12 +398,13 @@ export class MathRenderingService {
 
     // Pattern for display math ($$...$$)
     const displayMathPattern = /\$\$([\s\S]*?)\$\$/g;
-    
+
     // Pattern for inline math ($...$) - must not be preceded/followed by $
     const inlineMathPattern = /(?<!\$)\$(?!\$)((?:\\\$|[^$])+?)\$(?!\$)/g;
-    
+
     // Pattern for LaTeX environments
-    const envPattern = /\\begin\{(equation|align|gather|multline|split)\*?\}([\s\S]*?)\\end\{\1\*?\}/g;
+    const envPattern =
+      /\\begin\{(equation|align|gather|multline|split)\*?\}([\s\S]*?)\\end\{\1\*?\}/g;
 
     // Extract display math first ($$...$$)
     let match: RegExpExecArray | null;
@@ -420,9 +433,11 @@ export class MathRenderingService {
     while ((match = inlineMathPattern.exec(text)) !== null) {
       // Make sure this isn't overlapping with display math or environments
       const overlaps = expressions.some(
-        expr => match!.index >= (expr.startIndex ?? 0) && match!.index < (expr.endIndex ?? 0)
+        (expr) =>
+          match!.index >= (expr.startIndex ?? 0) &&
+          match!.index < (expr.endIndex ?? 0),
       );
-      
+
       if (!overlaps) {
         expressions.push({
           content: match[1].trim(),
@@ -440,10 +455,15 @@ export class MathRenderingService {
     // Replace with placeholders
     for (const expr of expressions) {
       const placeholder = `<<MATH_${placeholderIndex++}>>`;
-      textWithPlaceholders = textWithPlaceholders.replace(expr.original!, placeholder);
+      textWithPlaceholders = textWithPlaceholders.replace(
+        expr.original!,
+        placeholder,
+      );
     }
 
-    this.logger.debug(`Extracted ${expressions.length} math expressions (${expressions.filter(e => e.displayMode).length} display, ${expressions.filter(e => !e.displayMode).length} inline)`);
+    this.logger.debug(
+      `Extracted ${expressions.length} math expressions (${expressions.filter((e) => e.displayMode).length} display, ${expressions.filter((e) => !e.displayMode).length} inline)`,
+    );
 
     return {
       original: text,
@@ -454,7 +474,7 @@ export class MathRenderingService {
 
   /**
    * Validate LaTeX math expression
-   * 
+   *
    * @param latex - LaTeX expression to validate
    * @returns True if valid, error message if invalid
    */
@@ -495,8 +515,8 @@ export class MathRenderingService {
     // Wrap KaTeX HTML in an SVG foreignObject
     // This allows the HTML to be embedded in SVG contexts
     const width = 1000; // Default width, will be auto-sized
-    const height = 200;  // Default height
-    
+    const height = 200; // Default height
+
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <foreignObject width="100%" height="100%">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-size: 16px;">
@@ -517,7 +537,7 @@ export class MathRenderingService {
         this.cache.delete(firstKey);
       }
     }
-    
+
     this.cache.set(key, value);
   }
 }

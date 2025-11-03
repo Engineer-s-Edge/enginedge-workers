@@ -7,7 +7,8 @@ export class MongoService implements OnModuleInit, OnModuleDestroy {
   private db!: Db;
 
   async onModuleInit() {
-    const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/identity-service';
+    const uri =
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/identity-service';
     const dbName = process.env.MONGODB_DB || 'identity-service';
     this.client = new MongoClient(uri);
     await this.client.connect();
@@ -33,7 +34,11 @@ export class MongoService implements OnModuleInit, OnModuleDestroy {
       { key: { tenantId: 1 }, name: 'users_tenant_idx' },
     ] as IndexSpecification[] as any);
     await this.collection('oauth_accounts').createIndexes([
-      { key: { provider: 1, providerUserId: 1 }, name: 'oauth_provider_user_unique', unique: true },
+      {
+        key: { provider: 1, providerUserId: 1 },
+        name: 'oauth_provider_user_unique',
+        unique: true,
+      },
       { key: { userId: 1 }, name: 'oauth_user_idx' },
     ] as IndexSpecification[] as any);
     await this.collection('keys').createIndexes([
@@ -41,5 +46,3 @@ export class MongoService implements OnModuleInit, OnModuleDestroy {
     ] as IndexSpecification[] as any);
   }
 }
-
-

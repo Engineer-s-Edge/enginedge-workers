@@ -14,7 +14,9 @@ describe('ExpertPoolAdapter', () => {
 
   beforeEach(async () => {
     const mockLLMProvider: ILLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -140,7 +142,10 @@ describe('ExpertPoolAdapter', () => {
     });
 
     it('should handle nonexistent expert IDs', async () => {
-      const result = await adapter.releaseExperts(['nonexistent-1', 'nonexistent-2']);
+      const result = await adapter.releaseExperts([
+        'nonexistent-1',
+        'nonexistent-2',
+      ]);
 
       expect(typeof result).toBe('boolean');
     });
@@ -218,7 +223,9 @@ describe('ExpertPoolAdapter', () => {
 
       const experts = await adapter.getAvailableExperts();
 
-      expect(experts.length).toBeGreaterThanOrEqual(allocResult.allocated.length);
+      expect(experts.length).toBeGreaterThanOrEqual(
+        allocResult.allocated.length,
+      );
     });
 
     it('should return full expert details', async () => {
@@ -240,7 +247,9 @@ describe('ExpertPoolAdapter', () => {
       const request: ExpertAllocationRequest = { count: 1 };
       const allocResult = await adapter.allocateExperts(request);
 
-      const available = await adapter.isExpertAvailable(allocResult.allocated[0].id);
+      const available = await adapter.isExpertAvailable(
+        allocResult.allocated[0].id,
+      );
 
       expect(available).toBe(true);
     });

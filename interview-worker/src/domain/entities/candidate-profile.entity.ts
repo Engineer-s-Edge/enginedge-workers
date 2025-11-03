@@ -1,6 +1,6 @@
 /**
  * CandidateProfile Entity
- * 
+ *
  * Represents the live observations and insights about a candidate during an interview.
  * This profile is built incrementally by the interview agent as the interview progresses.
  */
@@ -55,7 +55,8 @@ export class CandidateProfile {
       communicationStyle: data.observations?.communicationStyle || '',
       interviewFlow: {
         pausedAt: data.observations?.interviewFlow?.pausedAt || [],
-        skippedQuestions: data.observations?.interviewFlow?.skippedQuestions || 0,
+        skippedQuestions:
+          data.observations?.interviewFlow?.skippedQuestions || 0,
         pauseDuration: data.observations?.interviewFlow?.pauseDuration || 0,
       },
       keyInsights: data.observations?.keyInsights || '',
@@ -67,14 +68,15 @@ export class CandidateProfile {
   /**
    * Append an observation to a category
    */
-  appendObservation(category: 'strengths' | 'concerns' | 'keyInsights', text: string): void {
+  appendObservation(
+    category: 'strengths' | 'concerns' | 'keyInsights',
+    text: string,
+  ): void {
     if (category === 'strengths' || category === 'concerns') {
       this.observations[category].push(text);
     } else if (category === 'keyInsights') {
       const existing = this.observations.keyInsights;
-      this.observations.keyInsights = existing
-        ? `${existing}\n${text}`
-        : text;
+      this.observations.keyInsights = existing ? `${existing}\n${text}` : text;
     }
     this.updatedAt = new Date();
   }
@@ -127,9 +129,12 @@ export class CandidateProfile {
       profileId: data.profileId as string,
       sessionId: data.sessionId as string,
       observations: data.observations as CandidateObservations,
-      createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
-      updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
+      createdAt: data.createdAt
+        ? new Date(data.createdAt as string)
+        : new Date(),
+      updatedAt: data.updatedAt
+        ? new Date(data.updatedAt as string)
+        : new Date(),
     });
   }
 }
-

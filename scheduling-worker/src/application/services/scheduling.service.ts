@@ -1,6 +1,10 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { TimeSlotService, WorkingHours } from './time-slot.service';
-import { TaskSchedulerService, Task, ScheduledTask } from './task-scheduler.service';
+import {
+  TaskSchedulerService,
+  Task,
+  ScheduledTask,
+} from './task-scheduler.service';
 import { HabitService } from './habit.service';
 import { GoalService } from './goal.service';
 import { ICalendarEventRepository } from '../ports/repositories.port';
@@ -58,7 +62,9 @@ export class SchedulingService {
       maxTaskDuration = 120,
     } = options;
 
-    this.logger.log(`Scheduling tasks for user ${userId} on ${date.toDateString()}`);
+    this.logger.log(
+      `Scheduling tasks for user ${userId} on ${date.toDateString()}`,
+    );
 
     // Step 1: Get existing calendar events
     const startOfDay = new Date(date);
@@ -175,7 +181,9 @@ export class SchedulingService {
       createdEvents.push(savedEvent);
     }
 
-    this.logger.log(`Successfully committed ${createdEvents.length} events to calendar`);
+    this.logger.log(
+      `Successfully committed ${createdEvents.length} events to calendar`,
+    );
 
     return createdEvents;
   }
@@ -274,12 +282,17 @@ export class SchedulingService {
     lines.push(`🤖 Auto-scheduled by EnginEdge`);
     lines.push('');
 
-    if (scheduledTask.metadata?.description && typeof scheduledTask.metadata.description === 'string') {
+    if (
+      scheduledTask.metadata?.description &&
+      typeof scheduledTask.metadata.description === 'string'
+    ) {
       lines.push(scheduledTask.metadata.description);
       lines.push('');
     }
 
-    lines.push(`Type: ${scheduledTask.type === 'habit' ? '🔄 Habit' : '🎯 Goal'}`);
+    lines.push(
+      `Type: ${scheduledTask.type === 'habit' ? '🔄 Habit' : '🎯 Goal'}`,
+    );
     lines.push(`Priority: ${'⭐'.repeat(scheduledTask.priority)}`);
     lines.push(`Duration: ${scheduledTask.durationMinutes} minutes`);
 
@@ -370,7 +383,9 @@ export class SchedulingService {
       await this.calendarApi.deleteEvent(calendarId, event.id);
     }
 
-    this.logger.debug(`Removed ${autoScheduledEvents.length} auto-scheduled events`);
+    this.logger.debug(
+      `Removed ${autoScheduledEvents.length} auto-scheduled events`,
+    );
 
     // Re-run scheduling
     return this.scheduleForDate(options);

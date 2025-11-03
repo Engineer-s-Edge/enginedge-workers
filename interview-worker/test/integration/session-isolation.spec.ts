@@ -1,6 +1,6 @@
 /**
  * Session Isolation and Concurrency Tests
- * 
+ *
  * Tests that multiple interview sessions can run simultaneously without interference.
  */
 
@@ -121,7 +121,9 @@ describe('Session Isolation and Concurrency', () => {
 
     // Concurrently resume different sessions
     const resumeResults = await Promise.all(
-      pauseResults.map((session) => sessionService.resumeSession(session.sessionId)),
+      pauseResults.map((session) =>
+        sessionService.resumeSession(session.sessionId),
+      ),
     );
 
     // Verify all resumes succeeded
@@ -199,4 +201,3 @@ describe('Session Isolation and Concurrency', () => {
     }
   });
 });
-

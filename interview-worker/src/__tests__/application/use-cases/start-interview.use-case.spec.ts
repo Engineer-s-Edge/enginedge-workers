@@ -72,8 +72,12 @@ describe('StartInterviewUseCase', () => {
     });
 
     mockInterviewRepository.findById.mockResolvedValue(mockInterview);
-    mockSessionRepository.save.mockImplementation(async (session: any) => session);
-    mockProfileRepository.save.mockImplementation(async (profile: any) => profile);
+    mockSessionRepository.save.mockImplementation(
+      async (session: any) => session,
+    );
+    mockProfileRepository.save.mockImplementation(
+      async (profile: any) => profile,
+    );
     mockTranscriptRepository.save.mockResolvedValue(undefined);
 
     const result = await useCase.execute({
@@ -120,8 +124,12 @@ describe('StartInterviewUseCase', () => {
     });
 
     mockInterviewRepository.findById.mockResolvedValue(mockInterview);
-    mockSessionRepository.save.mockImplementation(async (session: any) => session);
-    mockProfileRepository.save.mockImplementation(async (profile: any) => profile);
+    mockSessionRepository.save.mockImplementation(
+      async (session: any) => session,
+    );
+    mockProfileRepository.save.mockImplementation(
+      async (profile: any) => profile,
+    );
     mockTranscriptRepository.save.mockResolvedValue(undefined);
 
     const result = await useCase.execute({
@@ -133,4 +141,3 @@ describe('StartInterviewUseCase', () => {
     expect(result.communicationMode).toBe('voice');
   });
 });
-

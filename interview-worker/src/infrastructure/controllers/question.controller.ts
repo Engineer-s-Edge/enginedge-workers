@@ -1,6 +1,6 @@
 /**
  * Question Controller
- * 
+ *
  * REST API endpoints for question management
  */
 
@@ -52,7 +52,9 @@ export class QuestionController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createQuestion(@Body() dto: CreateQuestionDto): Promise<InterviewQuestion> {
+  async createQuestion(
+    @Body() dto: CreateQuestionDto,
+  ): Promise<InterviewQuestion> {
     return await this.questionService.createQuestion(
       dto.questionId,
       dto.category,
@@ -128,4 +130,3 @@ export class QuestionController {
     await this.questionService.deleteQuestion(questionId);
   }
 }
-

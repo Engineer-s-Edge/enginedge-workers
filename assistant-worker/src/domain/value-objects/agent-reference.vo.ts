@@ -1,6 +1,6 @@
 /**
  * Agent Reference Value Object
- * 
+ *
  * Safe reference to another agent for composition relationships.
  * Prevents circular references and enables proper dependency tracking.
  */

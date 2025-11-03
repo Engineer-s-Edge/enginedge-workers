@@ -1,6 +1,6 @@
 /**
  * Agent Configuration Service
- * 
+ *
  * Manages agent configurations, defaults, and config merging.
  */
 
@@ -40,7 +40,8 @@ export class AgentConfigurationService {
       case 'react':
         return {
           ...base,
-          systemPrompt: 'You are a helpful AI agent that uses tools to accomplish tasks.',
+          systemPrompt:
+            'You are a helpful AI agent that uses tools to accomplish tasks.',
           maxIterations: 10,
           tools: [],
         };
@@ -55,7 +56,8 @@ export class AgentConfigurationService {
       case 'expert':
         return {
           ...base,
-          systemPrompt: 'You are an expert research agent that conducts thorough investigations.',
+          systemPrompt:
+            'You are an expert research agent that conducts thorough investigations.',
           maxSources: 10,
           researchDepth: 'medium',
         };
@@ -71,7 +73,8 @@ export class AgentConfigurationService {
       case 'collective':
         return {
           ...base,
-          systemPrompt: 'You are a project manager coordinating multiple agents.',
+          systemPrompt:
+            'You are a project manager coordinating multiple agents.',
           maxAgents: 10,
           coordinationStrategy: 'hierarchical',
         };
@@ -92,7 +95,10 @@ export class AgentConfigurationService {
   /**
    * Merge configurations (user config overrides defaults)
    */
-  mergeConfigs(defaultConfig: Partial<AgentConfig>, userConfig?: Partial<AgentConfig>): AgentConfig {
+  mergeConfigs(
+    defaultConfig: Partial<AgentConfig>,
+    userConfig?: Partial<AgentConfig>,
+  ): AgentConfig {
     if (!userConfig) {
       return defaultConfig as AgentConfig;
     }
@@ -102,10 +108,13 @@ export class AgentConfigurationService {
 
     for (const key in userConfig) {
       if (userConfig[key] !== undefined) {
-        if (typeof userConfig[key] === 'object' && !Array.isArray(userConfig[key])) {
+        if (
+          typeof userConfig[key] === 'object' &&
+          !Array.isArray(userConfig[key])
+        ) {
           // Deep merge objects
           merged[key] = {
-            ...(merged[key] as object || {}),
+            ...((merged[key] as object) || {}),
             ...(userConfig[key] as object),
           };
         } else {
@@ -121,7 +130,10 @@ export class AgentConfigurationService {
   /**
    * Validate configuration completeness
    */
-  validateConfiguration(config: Partial<AgentConfig>): { valid: boolean; missing: string[] } {
+  validateConfiguration(config: Partial<AgentConfig>): {
+    valid: boolean;
+    missing: string[];
+  } {
     const required = ['name', 'type', 'userId'];
     const missing: string[] = [];
 
@@ -161,4 +173,3 @@ export class AgentConfigurationService {
     return obj as AgentConfig;
   }
 }
-

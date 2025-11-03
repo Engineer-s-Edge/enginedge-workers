@@ -27,9 +27,7 @@ export class RequestQueue<T = unknown> {
   private waitTimes: number[] = [];
   private readonly maxWaitTimeSamples = 100;
 
-  constructor(
-    @Inject('ILogger') private readonly logger: ILogger,
-  ) {}
+  constructor(@Inject('ILogger') private readonly logger: ILogger) {}
 
   enqueue(
     id: string,
@@ -55,7 +53,11 @@ export class RequestQueue<T = unknown> {
       return a.enqueuedAt.getTime() - b.enqueuedAt.getTime();
     });
 
-    this.logger.debug('RequestQueue: Enqueued request', { id, priority, queueSize: this.queue.length });
+    this.logger.debug('RequestQueue: Enqueued request', {
+      id,
+      priority,
+      queueSize: this.queue.length,
+    });
   }
 
   dequeue(): QueuedRequest<T> | undefined {
@@ -64,8 +66,11 @@ export class RequestQueue<T = unknown> {
       this.processing.add(request.id);
       const waitTime = Date.now() - request.enqueuedAt.getTime();
       this.recordWaitTime(waitTime);
-      
-      this.logger.debug('RequestQueue: Dequeued request', { requestId: request.id, waitTime });
+
+      this.logger.debug('RequestQueue: Dequeued request', {
+        requestId: request.id,
+        waitTime,
+      });
     }
     return request;
   }
@@ -83,8 +88,17 @@ export class RequestQueue<T = unknown> {
       const request = this.findById(id);
       if (request && request.retryCount < request.maxRetries) {
         request.retryCount++;
-        this.enqueue(request.id, request.data, request.priority, request.maxRetries);
-        this.logger.warn('RequestQueue: Request retry', { id, retryCount: request.retryCount, maxRetries: request.maxRetries });
+        this.enqueue(
+          request.id,
+          request.data,
+          request.priority,
+          request.maxRetries,
+        );
+        this.logger.warn('RequestQueue: Request retry', {
+          id,
+          retryCount: request.retryCount,
+          maxRetries: request.maxRetries,
+        });
         return true;
       }
     }
@@ -95,11 +109,11 @@ export class RequestQueue<T = unknown> {
   }
 
   private findById(id: string): QueuedRequest<T> | undefined {
-    return this.queue.find(req => req.id === id);
+    return this.queue.find((req) => req.id === id);
   }
 
   remove(id: string): boolean {
-    const index = this.queue.findIndex(req => req.id === id);
+    const index = this.queue.findIndex((req) => req.id === id);
     if (index !== -1) {
       this.queue.splice(index, 1);
       this.logger.debug('RequestQueue: Removed request', { id });
@@ -122,9 +136,11 @@ export class RequestQueue<T = unknown> {
   }
 
   getMetrics(): QueueMetrics {
-    const avgWaitTime = this.waitTimes.length > 0
-      ? this.waitTimes.reduce((sum, time) => sum + time, 0) / this.waitTimes.length
-      : 0;
+    const avgWaitTime =
+      this.waitTimes.length > 0
+        ? this.waitTimes.reduce((sum, time) => sum + time, 0) /
+          this.waitTimes.length
+        : 0;
 
     return {
       size: this.queue.length,

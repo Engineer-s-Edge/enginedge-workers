@@ -4,7 +4,7 @@ import { EmbedderFactoryService } from './embedder-factory.service';
 
 /**
  * Embedder Service (Application Layer)
- * 
+ *
  * Orchestrates embedder operations including:
  * - Dynamic embedder selection
  * - Batch embedding with caching
@@ -17,9 +17,7 @@ export class EmbedderService {
   private embeddingCache: Map<string, number[]> = new Map();
   private currentEmbedder: EmbedderPort;
 
-  constructor(
-    private readonly embedderFactory: EmbedderFactoryService,
-  ) {
+  constructor(private readonly embedderFactory: EmbedderFactoryService) {
     this.currentEmbedder = this.embedderFactory.getDefaultEmbedder();
     this.logger.log('EmbedderService initialized');
   }
@@ -68,7 +66,9 @@ export class EmbedderService {
     // Deduplicate texts and track indices
     const uniqueTexts = new Map<string, number>();
     const textsToEmbed: string[] = [];
-    const cachedEmbeddings: (number[] | null)[] = new Array(texts.length).fill(null);
+    const cachedEmbeddings: (number[] | null)[] = new Array(texts.length).fill(
+      null,
+    );
 
     for (let i = 0; i < texts.length; i++) {
       const cacheKey = this.getCacheKey(texts[i]);
@@ -103,7 +103,9 @@ export class EmbedderService {
       }
     }
 
-    this.logger.log(`Generated ${result.length} embeddings (${textsToEmbed.length} unique)`);
+    this.logger.log(
+      `Generated ${result.length} embeddings (${textsToEmbed.length} unique)`,
+    );
     return result;
   }
 
@@ -123,7 +125,9 @@ export class EmbedderService {
         const embedder = this.embedderFactory.getEmbedderByProvider(provider);
         return await embedder.embedText(text);
       } catch {
-        this.logger.warn(`Failed to embed with ${provider}, trying next provider`);
+        this.logger.warn(
+          `Failed to embed with ${provider}, trying next provider`,
+        );
       }
     }
 
@@ -138,9 +142,8 @@ export class EmbedderService {
     texts: string[],
     providers: string[] = [],
   ): Promise<Map<string, number[][]>> {
-    const activeProviders = providers.length > 0
-      ? providers
-      : ['openai', 'google'];
+    const activeProviders =
+      providers.length > 0 ? providers : ['openai', 'google'];
 
     const results = new Map<string, number[][]>();
 

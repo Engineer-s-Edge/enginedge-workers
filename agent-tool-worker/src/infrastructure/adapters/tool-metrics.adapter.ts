@@ -22,12 +22,16 @@ export class ToolMetrics implements IToolMetrics {
   /**
    * Record a tool execution
    */
-  async recordExecution(toolName: string, duration: number, success: boolean): Promise<void> {
+  async recordExecution(
+    toolName: string,
+    duration: number,
+    success: boolean,
+  ): Promise<void> {
     const data = this.getOrCreateMetrics(toolName);
-    
+
     data.totalExecutions++;
     data.totalDuration += duration;
-    
+
     if (success) {
       data.successCount++;
     }
@@ -38,10 +42,10 @@ export class ToolMetrics implements IToolMetrics {
    */
   async recordError(toolName: string, error: string): Promise<void> {
     const data = this.getOrCreateMetrics(toolName);
-    
+
     data.errorCount++;
     data.errors.push(error);
-    
+
     // Keep only last 100 errors
     if (data.errors.length > 100) {
       data.errors.shift();
@@ -58,7 +62,7 @@ export class ToolMetrics implements IToolMetrics {
     errorCount: number;
   }> {
     const data = this.metrics.get(toolName);
-    
+
     if (!data) {
       return {
         totalExecutions: 0,
@@ -70,15 +74,19 @@ export class ToolMetrics implements IToolMetrics {
 
     return {
       totalExecutions: data.totalExecutions,
-      successRate: data.totalExecutions > 0 ? data.successCount / data.totalExecutions : 0,
-      averageDuration: data.totalExecutions > 0 ? data.totalDuration / data.totalExecutions : 0,
+      successRate:
+        data.totalExecutions > 0 ? data.successCount / data.totalExecutions : 0,
+      averageDuration:
+        data.totalExecutions > 0
+          ? data.totalDuration / data.totalExecutions
+          : 0,
       errorCount: data.errorCount,
     };
   }
 
   private getOrCreateMetrics(toolName: string): ToolMetricsData {
     let data = this.metrics.get(toolName);
-    
+
     if (!data) {
       data = {
         totalExecutions: 0,
@@ -89,7 +97,7 @@ export class ToolMetrics implements IToolMetrics {
       };
       this.metrics.set(toolName, data);
     }
-    
+
     return data;
   }
 }

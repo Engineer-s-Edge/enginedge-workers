@@ -62,9 +62,9 @@ describe('SkipQuestionUseCase', () => {
   it('should throw error if session not found', async () => {
     mockSessionRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute('non-existent', 'q1'),
-    ).rejects.toThrow('Session not found');
+    await expect(useCase.execute('non-existent', 'q1')).rejects.toThrow(
+      'Session not found',
+    );
   });
 
   it('should throw error if session not in-progress', async () => {
@@ -78,9 +78,9 @@ describe('SkipQuestionUseCase', () => {
 
     mockSessionRepository.findById.mockResolvedValue(mockSession);
 
-    await expect(
-      useCase.execute('test-session', 'q1'),
-    ).rejects.toThrow('Cannot skip question');
+    await expect(useCase.execute('test-session', 'q1')).rejects.toThrow(
+      'Cannot skip question',
+    );
   });
 
   it('should track multiple skipped questions', async () => {
@@ -104,4 +104,3 @@ describe('SkipQuestionUseCase', () => {
     expect(result.skippedQuestions).toHaveLength(2);
   });
 });
-

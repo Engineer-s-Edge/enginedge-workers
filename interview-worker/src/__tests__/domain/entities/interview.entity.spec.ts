@@ -126,4 +126,3 @@ describe('Interview Entity', () => {
     expect(interview.description).toBe('Optional description');
   });
 });
-

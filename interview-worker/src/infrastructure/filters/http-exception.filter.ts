@@ -1,6 +1,6 @@
 /**
  * HTTP Exception Filter
- * 
+ *
  * Global exception handler for HTTP errors.
  */
 
@@ -40,7 +40,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
-      message: typeof message === 'string' ? message : (message as any).message || 'Error',
+      message:
+        typeof message === 'string'
+          ? message
+          : (message as any).message || 'Error',
     };
 
     this.logger.error(
@@ -52,4 +55,3 @@ export class HttpExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorResponse);
   }
 }
-

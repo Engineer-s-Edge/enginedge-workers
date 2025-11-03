@@ -2,11 +2,14 @@ import { Module } from '@nestjs/common';
 import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
 import { RequestQueue } from './request-queue';
 import { ThreadSafeAgentStore } from './thread-safe-agent-store';
-import { BackpressureHandler, BackpressureConfig } from './backpressure-handler';
+import {
+  BackpressureHandler,
+  BackpressureConfig,
+} from './backpressure-handler';
 
 /**
  * Threading Module
- * 
+ *
  * Provides worker thread pool and concurrency management.
  * Uses ILogger from InfrastructureModule (which is @Global).
  */

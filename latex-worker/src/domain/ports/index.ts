@@ -1,6 +1,6 @@
 /**
  * Domain Ports (Interfaces)
- * 
+ *
  * These define the contracts between domain and infrastructure layers.
  */
 

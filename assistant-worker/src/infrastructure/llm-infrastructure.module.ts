@@ -12,13 +12,13 @@ import { ConsoleMessagePublisher } from './adapters/console-message-publisher';
     ProcessLLMRequestUseCase,
     {
       provide: 'ILLMService',
-      useClass: MockLLMService
+      useClass: MockLLMService,
     },
     {
       provide: 'IMessagePublisher',
-      useClass: ConsoleMessagePublisher
-    }
+      useClass: ConsoleMessagePublisher,
+    },
   ],
-  exports: [LLMApplicationService]
+  exports: [LLMApplicationService],
 })
 export class LLMInfrastructureModule {}

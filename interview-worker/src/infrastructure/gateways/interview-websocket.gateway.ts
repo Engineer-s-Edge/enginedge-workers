@@ -1,6 +1,6 @@
 /**
  * Interview WebSocket Gateway
- * 
+ *
  * Handles real-time audio streaming and interview communication via WebSocket.
  */
 
@@ -52,8 +52,9 @@ export class InterviewWebSocketGateway
     private readonly transcriptRepository: ITranscriptRepository,
   ) {
     // Select speech adapter based on config
-    const speechProvider = this.configService.get<string>('SPEECH_PROVIDER') || 'google';
-    
+    const speechProvider =
+      this.configService.get<string>('SPEECH_PROVIDER') || 'google';
+
     if (speechProvider === 'azure') {
       this.speechAdapter = new AzureSpeechAdapter(this.configService);
     } else {
@@ -67,7 +68,7 @@ export class InterviewWebSocketGateway
 
   handleDisconnect(client: InterviewSocket) {
     this.logger.log('Client disconnected', { sessionId: client.sessionId });
-    
+
     // Finalize transcription if buffer exists
     if (client.sessionId && this.audioBuffers.has(client.sessionId)) {
       this.finalizeTranscription(client.sessionId);
@@ -86,7 +87,7 @@ export class InterviewWebSocketGateway
     try {
       client.sessionId = data.sessionId;
       client.candidateId = data.candidateId;
-      
+
       // Initialize audio buffer for this session
       this.audioBuffers.set(data.sessionId, []);
       client.audioBuffer = [];
@@ -94,27 +95,34 @@ export class InterviewWebSocketGateway
       // Verify session exists
       const session = await this.sessionService.getSession(data.sessionId);
       if (!session) {
-        client.send(JSON.stringify({
-          type: 'error',
-          message: 'Session not found',
-        }));
+        client.send(
+          JSON.stringify({
+            type: 'error',
+            message: 'Session not found',
+          }),
+        );
         client.close();
         return;
       }
 
-      client.send(JSON.stringify({
-        type: 'initialized',
-        sessionId: data.sessionId,
-        communicationMode: session.communicationMode,
-      }));
+      client.send(
+        JSON.stringify({
+          type: 'initialized',
+          sessionId: data.sessionId,
+          communicationMode: session.communicationMode,
+        }),
+      );
 
       this.logger.log('Session initialized', { sessionId: data.sessionId });
     } catch (error) {
       this.logger.error('Failed to initialize session', error);
-      client.send(JSON.stringify({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Initialization failed',
-      }));
+      client.send(
+        JSON.stringify({
+          type: 'error',
+          message:
+            error instanceof Error ? error.message : 'Initialization failed',
+        }),
+      );
     }
   }
 
@@ -134,7 +142,7 @@ export class InterviewWebSocketGateway
 
       // Decode base64 audio
       const audioBuffer = Buffer.from(data.audio, 'base64');
-      
+
       // Accumulate audio buffer
       if (!this.audioBuffers.has(sessionId)) {
         this.audioBuffers.set(sessionId, []);
@@ -143,20 +151,26 @@ export class InterviewWebSocketGateway
 
       // Every N chunks or after delay, transcribe
       const buffer = this.audioBuffers.get(sessionId)!;
-      if (buffer.length >= 10) { // Transcribe every 10 chunks (configurable)
+      if (buffer.length >= 10) {
+        // Transcribe every 10 chunks (configurable)
         await this.transcribeAudioChunk(sessionId, Buffer.concat(buffer));
         this.audioBuffers.set(sessionId, []); // Clear buffer
       }
 
-      client.send(JSON.stringify({
-        type: 'audio-received',
-      }));
+      client.send(
+        JSON.stringify({
+          type: 'audio-received',
+        }),
+      );
     } catch (error) {
       this.logger.error('Failed to process audio', error);
-      client.send(JSON.stringify({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Audio processing failed',
-      }));
+      client.send(
+        JSON.stringify({
+          type: 'error',
+          message:
+            error instanceof Error ? error.message : 'Audio processing failed',
+        }),
+      );
     }
   }
 
@@ -182,22 +196,32 @@ export class InterviewWebSocketGateway
         type: 'user-input',
       });
 
-      client.send(JSON.stringify({
-        type: 'message-received',
-      }));
+      client.send(
+        JSON.stringify({
+          type: 'message-received',
+        }),
+      );
     } catch (error) {
       this.logger.error('Failed to process message', error);
-      client.send(JSON.stringify({
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Message processing failed',
-      }));
+      client.send(
+        JSON.stringify({
+          type: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Message processing failed',
+        }),
+      );
     }
   }
 
   /**
    * Transcribe audio chunk and add to transcript
    */
-  private async transcribeAudioChunk(sessionId: string, audioBuffer: Buffer): Promise<void> {
+  private async transcribeAudioChunk(
+    sessionId: string,
+    audioBuffer: Buffer,
+  ): Promise<void> {
     try {
       const session = await this.sessionService.getSession(sessionId);
       if (!session) return;
@@ -205,7 +229,7 @@ export class InterviewWebSocketGateway
       // Use speech adapter to transcribe
       const transcription = await this.speechAdapter.speechToText(
         audioBuffer,
-        'en-US'
+        'en-US',
       );
 
       // Detect filler words (simple regex for now)
@@ -232,11 +256,13 @@ export class InterviewWebSocketGateway
       this.server.clients.forEach((client) => {
         const ws = client as InterviewSocket;
         if (ws.sessionId === sessionId) {
-          ws.send(JSON.stringify({
-            type: 'transcription',
-            text: transcription,
-            fillerWords,
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'transcription',
+              text: transcription,
+              fillerWords,
+            }),
+          );
         }
       });
     } catch (error) {
@@ -279,15 +305,17 @@ export class InterviewWebSocketGateway
   async sendAgentAudio(sessionId: string, text: string): Promise<Buffer> {
     try {
       const audioBuffer = await this.speechAdapter.textToSpeech(text);
-      
+
       // Broadcast audio to client
       this.server.clients.forEach((client) => {
         const ws = client as InterviewSocket;
         if (ws.sessionId === sessionId) {
-          ws.send(JSON.stringify({
-            type: 'agent-audio',
-            audio: audioBuffer.toString('base64'),
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'agent-audio',
+              audio: audioBuffer.toString('base64'),
+            }),
+          );
         }
       });
 
@@ -306,4 +334,3 @@ export class InterviewWebSocketGateway
     }
   }
 }
-

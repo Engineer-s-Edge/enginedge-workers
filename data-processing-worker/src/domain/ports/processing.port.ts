@@ -10,7 +10,10 @@ export abstract class TextSplitterPort {
    * @param options - Splitter-specific options
    * @returns Promise<Document[]> - Array of document chunks
    */
-  abstract splitDocuments(documents: Document[], options?: Record<string, unknown>): Promise<Document[]>;
+  abstract splitDocuments(
+    documents: Document[],
+    options?: Record<string, unknown>,
+  ): Promise<Document[]>;
 
   /**
    * Split text directly into chunks (default implementation extracts from splitDocuments)
@@ -18,15 +21,17 @@ export abstract class TextSplitterPort {
    * @param options - Splitter-specific options
    * @returns Promise<string[]> - Array of text chunks
    */
-  async splitText(text: string, options?: Record<string, unknown>): Promise<string[]> {
+  async splitText(
+    text: string,
+    options?: Record<string, unknown>,
+  ): Promise<string[]> {
     // Default implementation: create temp document, split, extract content
-    const tempDoc = new Document(
-      'temp',
-      text,
-      { source: 'text', sourceType: 'text' as const }
-    );
+    const tempDoc = new Document('temp', text, {
+      source: 'text',
+      sourceType: 'text' as const,
+    });
     const chunks = await this.splitDocuments([tempDoc], options);
-    return chunks.map(chunk => chunk.content);
+    return chunks.map((chunk) => chunk.content);
   }
 }
 

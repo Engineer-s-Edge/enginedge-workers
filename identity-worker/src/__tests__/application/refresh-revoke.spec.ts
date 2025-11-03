@@ -3,9 +3,17 @@ import { JwtIssuerService } from '../../infrastructure/adapters/security/jwt-iss
 
 describe('Refresh/Revoke', () => {
   const mockUsers: any = { findById: jest.fn(), findByEmail: jest.fn() };
-  const mockRoles: any = { listRolesForUser: jest.fn().mockResolvedValue(['user']) };
-  const mockTenants: any = { findById: jest.fn().mockResolvedValue({ slug: 'tenant-a' }) };
-  const mockRefresh: any = { isRevoked: jest.fn().mockResolvedValue(false), revoke: jest.fn(), record: jest.fn() };
+  const mockRoles: any = {
+    listRolesForUser: jest.fn().mockResolvedValue(['user']),
+  };
+  const mockTenants: any = {
+    findById: jest.fn().mockResolvedValue({ slug: 'tenant-a' }),
+  };
+  const mockRefresh: any = {
+    isRevoked: jest.fn().mockResolvedValue(false),
+    revoke: jest.fn(),
+    record: jest.fn(),
+  };
   const jwt = new JwtIssuerService({} as any);
   let service: IdentityService;
 
@@ -15,11 +23,19 @@ describe('Refresh/Revoke', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new IdentityService({} as any, jwt, mockRoles, mockTenants, mockRefresh);
+    service = new IdentityService(
+      {} as any,
+      jwt,
+      mockRoles,
+      mockTenants,
+      mockRefresh,
+    );
   });
 
   it('rotates refresh tokens and issues new access', async () => {
-    mockUsers.findById = jest.fn().mockResolvedValue({ _id: 'u1', tenantId: 't1' });
+    mockUsers.findById = jest
+      .fn()
+      .mockResolvedValue({ _id: 'u1', tenantId: 't1' });
     const refresh = await jwt.issueRefresh('u1', '1h');
     const res = await service.refresh(refresh);
     expect(res.accessToken).toBeDefined();
@@ -27,5 +43,3 @@ describe('Refresh/Revoke', () => {
     expect(mockRefresh.revoke).toHaveBeenCalled();
   });
 });
-
-

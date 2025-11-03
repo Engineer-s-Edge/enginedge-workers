@@ -7,8 +7,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseRetriever } from '../../../domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '../../../domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '../../../domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '../../../domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '../../../domain/entities/tool.entities';
 import axios, { AxiosResponse } from 'axios';
 
 export interface GoogleCalendarArgs {
@@ -116,52 +123,56 @@ export interface GoogleCalendarOutput extends ToolOutput {
 }
 
 @Injectable()
-export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, GoogleCalendarOutput> {
+export class GoogleCalendarRetriever extends BaseRetriever<
+  GoogleCalendarArgs,
+  GoogleCalendarOutput
+> {
   readonly inputSchema = {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'Search query for event titles, descriptions, or attendees'
+        description:
+          'Search query for event titles, descriptions, or attendees',
       },
       calendar_id: {
         type: 'string',
         description: 'Calendar ID to search (defaults to primary)',
-        default: 'primary'
+        default: 'primary',
       },
       time_min: {
         type: 'string',
         description: 'ISO 8601 start time for search range',
-        format: 'date-time'
+        format: 'date-time',
       },
       time_max: {
         type: 'string',
         description: 'ISO 8601 end time for search range',
-        format: 'date-time'
+        format: 'date-time',
       },
       max_results: {
         type: 'number',
         description: 'Maximum events to return',
         minimum: 1,
         maximum: 2500,
-        default: 25
+        default: 25,
       },
       order_by: {
         type: 'string',
         enum: ['startTime', 'updated'],
-        default: 'startTime'
+        default: 'startTime',
       },
       single_events: {
         type: 'boolean',
         description: 'Expand recurring events',
-        default: true
+        default: true,
       },
       time_zone: {
         type: 'string',
-        description: 'Time zone for response'
-      }
+        description: 'Time zone for response',
+      },
     },
-    required: []
+    required: [],
   };
 
   readonly outputSchema = {
@@ -193,16 +204,17 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
             updated: { type: 'string', format: 'date-time' },
             is_recurring: { type: 'boolean' },
             hangout_link: { type: 'string' },
-            html_link: { type: 'string' }
-          }
-        }
-      }
+            html_link: { type: 'string' },
+          },
+        },
+      },
     },
-    required: ['success', 'calendar_id', 'total_events', 'events']
+    required: ['success', 'calendar_id', 'total_events', 'events'],
   };
 
   readonly name = 'google-calendar-retriever';
-  readonly description = 'Search Google Calendar for events with comprehensive event details and scheduling information';
+  readonly description =
+    'Search Google Calendar for events with comprehensive event details and scheduling information';
   readonly retrievalType: RetrievalType = RetrievalType.API_DATA;
 
   readonly metadata = new RetrieverConfig(
@@ -214,21 +226,39 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
-    new ErrorEvent('google-calendar-auth-failed', 'Google Calendar authentication failed', false),
-    new ErrorEvent('google-calendar-api-error', 'Google Calendar API request failed', true),
-    new ErrorEvent('google-calendar-invalid-calendar', 'Invalid calendar ID provided', false),
-    new ErrorEvent('google-calendar-network-error', 'Network connectivity issue with Google Calendar API', true)
+    new ErrorEvent(
+      'google-calendar-auth-failed',
+      'Google Calendar authentication failed',
+      false,
+    ),
+    new ErrorEvent(
+      'google-calendar-api-error',
+      'Google Calendar API request failed',
+      true,
+    ),
+    new ErrorEvent(
+      'google-calendar-invalid-calendar',
+      'Invalid calendar ID provided',
+      false,
+    ),
+    new ErrorEvent(
+      'google-calendar-network-error',
+      'Network connectivity issue with Google Calendar API',
+      true,
+    ),
   ];
 
   public get caching(): boolean {
     return false; // Calendar data changes frequently
   }
 
-  protected async retrieve(args: GoogleCalendarArgs & { ragConfig: RAGConfig }): Promise<GoogleCalendarOutput> {
+  protected async retrieve(
+    args: GoogleCalendarArgs & { ragConfig: RAGConfig },
+  ): Promise<GoogleCalendarOutput> {
     // Manual input validation
     if (args.time_min && !this.isValidISODate(args.time_min)) {
       throw new Error('Invalid time_min format - must be ISO 8601 date-time');
@@ -253,14 +283,17 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
         time_max: args.time_max,
         total_events: response.data.items?.length || 0,
         next_page_token: response.data.nextPageToken,
-        events: this.transformEvents(response.data.items || [])
+        events: this.transformEvents(response.data.items || []),
       };
     } catch (error: unknown) {
       return this.handleGoogleCalendarError(error);
     }
   }
 
-  private async sendGoogleCalendarRequest(args: GoogleCalendarArgs, calendarId: string): Promise<AxiosResponse<GoogleCalendarApiResponse>> {
+  private async sendGoogleCalendarRequest(
+    args: GoogleCalendarArgs,
+    calendarId: string,
+  ): Promise<AxiosResponse<GoogleCalendarApiResponse>> {
     const accessToken = process.env.GOOGLE_ACCESS_TOKEN;
     if (!accessToken) {
       throw new Error('Google access token not configured');
@@ -270,7 +303,7 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
       key: process.env.GOOGLE_API_KEY || '',
       singleEvents: args.single_events !== false, // Default to true
       orderBy: args.order_by || 'startTime',
-      maxResults: Math.min(args.max_results || 25, 2500)
+      maxResults: Math.min(args.max_results || 25, 2500),
     };
 
     if (args.query) params.q = args.query;
@@ -283,17 +316,19 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
         },
         params,
-        timeout: 30000
-      }
+        timeout: 30000,
+      },
     );
   }
 
-  private transformEvents(events: GoogleCalendarEvent[]): GoogleCalendarOutput['events'] {
-    return events.map(event => ({
+  private transformEvents(
+    events: GoogleCalendarEvent[],
+  ): GoogleCalendarOutput['events'] {
+    return events.map((event) => ({
       event_id: event.id,
       summary: event.summary,
       description: event.description,
@@ -306,23 +341,27 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
       status: event.status,
       created: event.created,
       updated: event.updated,
-      creator: event.creator ? {
-        email: event.creator.email,
-        display_name: event.creator.displayName
-      } : undefined,
-      organizer: event.organizer ? {
-        email: event.organizer.email,
-        display_name: event.organizer.displayName
-      } : undefined,
-      attendees: event.attendees?.map(attendee => ({
+      creator: event.creator
+        ? {
+            email: event.creator.email,
+            display_name: event.creator.displayName,
+          }
+        : undefined,
+      organizer: event.organizer
+        ? {
+            email: event.organizer.email,
+            display_name: event.organizer.displayName,
+          }
+        : undefined,
+      attendees: event.attendees?.map((attendee) => ({
         email: attendee.email,
         display_name: attendee.displayName,
-        response_status: attendee.responseStatus
+        response_status: attendee.responseStatus,
       })),
       is_recurring: !!(event.recurrence && event.recurrence.length > 0),
       recurring_event_id: event.recurringEventId,
       hangout_link: event.hangoutLink,
-      html_link: event.htmlLink
+      html_link: event.htmlLink,
     }));
   }
 
@@ -333,10 +372,14 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
 
       if (status === 401 || status === 403) {
         // Authentication or authorization error
-        throw new Error('Google Calendar authentication failed - check access token');
+        throw new Error(
+          'Google Calendar authentication failed - check access token',
+        );
       } else if (status === 404) {
         // Calendar not found
-        throw new Error('Calendar not found - check calendar ID and permissions');
+        throw new Error(
+          'Calendar not found - check calendar ID and permissions',
+        );
       } else if (status === 429) {
         // Quota exceeded
         throw new Error('Google Calendar API quota exceeded - retry later');
@@ -347,12 +390,17 @@ export class GoogleCalendarRetriever extends BaseRetriever<GoogleCalendarArgs, G
     } else if (error instanceof Error) {
       if (error.message.includes('timeout')) {
         throw new Error('Google Calendar API request timeout');
-      } else if (error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+      } else if (
+        error.message.includes('network') ||
+        error.message.includes('ECONNREFUSED')
+      ) {
         throw new Error('Network connectivity issue with Google Calendar API');
       }
     }
 
-    throw new Error('Unknown error occurred while accessing Google Calendar API');
+    throw new Error(
+      'Unknown error occurred while accessing Google Calendar API',
+    );
   }
 
   private isValidISODate(dateString: string): boolean {

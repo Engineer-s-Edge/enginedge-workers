@@ -1,11 +1,15 @@
 /**
  * News Integration Adapter Implementation
- * 
+ *
  * Bridges orchestrator with NewsIntegrationService
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { INewsIntegrationAdapter, NewsArticle, NewsAnalysis } from '../interfaces';
+import {
+  INewsIntegrationAdapter,
+  NewsArticle,
+  NewsAnalysis,
+} from '../interfaces';
 
 @Injectable()
 export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
@@ -26,7 +30,10 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       return (this.newsCache.get(topic) || []).slice(0, limit);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to fetch recent news: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to fetch recent news: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -66,7 +73,9 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
     }
   }
 
-  async getTrendingTopics(limit = 5): Promise<Array<{ topic: string; frequency: number }>> {
+  async getTrendingTopics(
+    limit = 5,
+  ): Promise<Array<{ topic: string; frequency: number }>> {
     try {
       this.logger.log(`Getting ${limit} trending topics`);
 
@@ -82,7 +91,10 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
         }));
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get trending topics: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get trending topics: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -111,7 +123,10 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
     }
   }
 
-  async fetchNewsForTopics(topics: string[], limit = 10): Promise<Map<string, NewsArticle[]>> {
+  async fetchNewsForTopics(
+    topics: string[],
+    limit = 10,
+  ): Promise<Map<string, NewsArticle[]>> {
     try {
       this.logger.log(`Fetching news for ${topics.length} topics`);
 
@@ -126,7 +141,10 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       return result;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to fetch news for topics: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to fetch news for topics: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -142,7 +160,10 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       return Array.from(this.newsCache.keys()).slice(0, 5);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to detect emerging topics: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to detect emerging topics: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -168,7 +189,10 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       return sentiments;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get sentiment analysis: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get sentiment analysis: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

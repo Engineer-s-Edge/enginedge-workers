@@ -116,7 +116,9 @@ export class FontService {
       }
 
       // Detect \setmainfont
-      const mainFontMatch = content.match(/\\setmainfont(?:\[[^\]]*\])?\{([^}]+)\}/);
+      const mainFontMatch = content.match(
+        /\\setmainfont(?:\[[^\]]*\])?\{([^}]+)\}/,
+      );
       if (mainFontMatch) {
         mainFont = mainFontMatch[1];
         fonts.add(mainFont);
@@ -124,7 +126,9 @@ export class FontService {
       }
 
       // Detect \setsansfont
-      const sansFontMatch = content.match(/\\setsansfont(?:\[[^\]]*\])?\{([^}]+)\}/);
+      const sansFontMatch = content.match(
+        /\\setsansfont(?:\[[^\]]*\])?\{([^}]+)\}/,
+      );
       if (sansFontMatch) {
         sansFont = sansFontMatch[1];
         fonts.add(sansFont);
@@ -132,7 +136,9 @@ export class FontService {
       }
 
       // Detect \setmonofont
-      const monoFontMatch = content.match(/\\setmonofont(?:\[[^\]]*\])?\{([^}]+)\}/);
+      const monoFontMatch = content.match(
+        /\\setmonofont(?:\[[^\]]*\])?\{([^}]+)\}/,
+      );
       if (monoFontMatch) {
         monoFont = monoFontMatch[1];
         fonts.add(monoFont);
@@ -140,7 +146,8 @@ export class FontService {
       }
 
       // Detect \newfontfamily
-      const fontFamilyPattern = /\\newfontfamily\\[a-zA-Z]+(?:\[[^\]]*\])?\{([^}]+)\}/g;
+      const fontFamilyPattern =
+        /\\newfontfamily\\[a-zA-Z]+(?:\[[^\]]*\])?\{([^}]+)\}/g;
       let match;
       while ((match = fontFamilyPattern.exec(content)) !== null) {
         fonts.add(match[1]);
@@ -163,7 +170,8 @@ export class FontService {
         requiresUnicode,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.warn(`Failed to detect fonts: ${errorMessage}`);
       return {
         fonts: [],
@@ -177,10 +185,7 @@ export class FontService {
    * Check if a font is available (system or TeX font)
    */
   isFontAvailable(fontFamily: string): boolean {
-    return (
-      this.systemFonts.has(fontFamily) ||
-      this.texFonts.has(fontFamily)
-    );
+    return this.systemFonts.has(fontFamily) || this.texFonts.has(fontFamily);
   }
 
   /**
@@ -210,7 +215,9 @@ export class FontService {
     sourceDir: string,
     targetDir: string,
   ): Promise<FontInstallResult> {
-    this.logger.log(`Installing ${fontFiles.length} font files to ${targetDir}`);
+    this.logger.log(
+      `Installing ${fontFiles.length} font files to ${targetDir}`,
+    );
 
     const installedFonts: string[] = [];
     const errors: string[] = [];
@@ -242,7 +249,8 @@ export class FontService {
 
           this.logger.log(`Installed font: ${fontFamily}`);
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           errors.push(`Failed to install ${fontFile}: ${errorMessage}`);
         }
       }
@@ -254,7 +262,8 @@ export class FontService {
         installDir: fontsDir,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         success: false,
         installedFonts: [],
@@ -417,7 +426,8 @@ export class FontService {
 
       return fontFiles;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.warn(`Failed to find font files: ${errorMessage}`);
       return [];
     }

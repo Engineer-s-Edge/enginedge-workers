@@ -79,4 +79,3 @@ export interface EvaluationReport {
 }
 
 export type EvaluationReportDocument = EvaluationReport & Document;
-

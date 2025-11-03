@@ -1,9 +1,9 @@
 /**
  * Agent Capability Value Object
- * 
+ *
  * Describes the capabilities and constraints of an agent type.
  * Immutable and used for validation and capability checking.
- * 
+ *
  * IMPORTANT: These capabilities apply ONLY to individual agent types
  * (ReAct, Graph, Expert, Genius). Collective is an orchestrator that
  * coordinates MEMBER agents - it does NOT have capabilities itself.
@@ -18,7 +18,7 @@ export type ExecutionModel =
 
 /**
  * ACTUAL memory types from enginedge-core infrastructure
- * 
+ *
  * These correspond to concrete implementations in memory.service.ts:
  * - buffer: Fixed-size message buffer
  * - buffer_window: Token-limited window
@@ -215,19 +215,19 @@ export class AgentCapability {
 
   /**
    * Collective DOES NOT have a capability
-   * 
+   *
    * Collective is an ORCHESTRATOR that coordinates member agents.
    * Each member agent has its own AgentCapability.
    * Collective itself does not execute - it delegates to member agents.
-   * 
+   *
    * @deprecated This method should never be called
    * @throws Always throws an error
    */
   static forCollective(): never {
     throw new Error(
       'Collective agents do NOT have capabilities. ' +
-      'Collective is an orchestrator that coordinates member agents. ' +
-      'Each member agent has its own AgentCapability.'
+        'Collective is an orchestrator that coordinates member agents. ' +
+        'Each member agent has its own AgentCapability.',
     );
   }
 
@@ -248,7 +248,9 @@ export class AgentCapability {
   /**
    * Check if can perform an operation
    */
-  canPerform(operation: 'stream' | 'pause' | 'coordinate' | 'use-tools'): boolean {
+  canPerform(
+    operation: 'stream' | 'pause' | 'coordinate' | 'use-tools',
+  ): boolean {
     switch (operation) {
       case 'stream':
         return this.canStreamResults;

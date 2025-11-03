@@ -6,7 +6,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotionRetriever, NotionArgs } from '@infrastructure/tools/retrievers/notion.retriever';
+import {
+  NotionRetriever,
+  NotionArgs,
+} from '@infrastructure/tools/retrievers/notion.retriever';
 import axios from 'axios';
 
 // Mock axios
@@ -48,8 +51,12 @@ describe('NotionRetriever', () => {
     it('should have error events configured', () => {
       expect(retriever.errorEvents).toBeDefined();
       expect(retriever.errorEvents.length).toBeGreaterThan(0);
-      expect(retriever.errorEvents.some(e => e.name === 'notion-auth-failed')).toBe(true);
-      expect(retriever.errorEvents.some(e => e.name === 'notion-rate-limit')).toBe(true);
+      expect(
+        retriever.errorEvents.some((e) => e.name === 'notion-auth-failed'),
+      ).toBe(true);
+      expect(
+        retriever.errorEvents.some((e) => e.name === 'notion-rate-limit'),
+      ).toBe(true);
     });
 
     it('should have correct retrieval type and caching settings', () => {
@@ -62,39 +69,52 @@ describe('NotionRetriever', () => {
     it('should reject max_results greater than 100', async () => {
       const args: NotionArgs = {
         query: 'test',
-        max_results: 101
+        max_results: 101,
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('max_results must be between 1 and 100');
+      expect(result.error!.message).toContain(
+        'max_results must be between 1 and 100',
+      );
     });
 
     it('should reject max_results less than 1', async () => {
       const args: NotionArgs = {
         query: 'test',
-        max_results: 0
+        max_results: 0,
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('max_results must be between 1 and 100');
+      expect(result.error!.message).toContain(
+        'max_results must be between 1 and 100',
+      );
     });
 
     it('should accept valid max_results', async () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
         query: 'test',
-        max_results: 50
+        max_results: 50,
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
       expect(result.success).toBe(true);
     });
   });
@@ -116,21 +136,24 @@ describe('NotionRetriever', () => {
               properties: {
                 title: {
                   type: 'title',
-                  title: [{ type: 'text', text: { content: 'Test Page' } }]
-                }
+                  title: [{ type: 'text', text: { content: 'Test Page' } }],
+                },
               },
-              url: 'https://notion.so/test-page'
-            }
+              url: 'https://notion.so/test-page',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'Test Page'
+        query: 'Test Page',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_results).toBe(1);
@@ -141,12 +164,12 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        database_id: 'db-abc123'
+        database_id: 'db-abc123',
       };
 
       await retriever.execute({ name: 'notion-retriever', args });
@@ -160,22 +183,25 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
         database_id: 'db-123',
         filter: {
           property: 'Status',
-          select: { equals: 'Done' }
-        }
+          select: { equals: 'Done' },
+        },
       };
 
       await retriever.execute({ name: 'notion-retriever', args });
 
       expect(mockedAxios.post).toHaveBeenCalled();
-      const callData = mockedAxios.post.mock.calls[0][1] as Record<string, unknown>;
+      const callData = mockedAxios.post.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
       expect(callData.filter).toBeDefined();
     });
 
@@ -183,25 +209,32 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
         database_id: 'db-123',
         sort: [
           { property: 'Name', direction: 'ascending' },
-          { property: 'Created', direction: 'descending' }
-        ]
+          { property: 'Created', direction: 'descending' },
+        ],
       };
 
       await retriever.execute({ name: 'notion-retriever', args });
 
       expect(mockedAxios.post).toHaveBeenCalled();
-      const callData = mockedAxios.post.mock.calls[0][1] as Record<string, unknown>;
-      expect((callData.sorts as Array<unknown>)).toHaveLength(2);
-      expect(((callData.sorts as Array<Record<string, unknown>>)[0]).property).toBe('Name');
-      expect(((callData.sorts as Array<Record<string, unknown>>)[0]).direction).toBe('ascending');
+      const callData = mockedAxios.post.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(callData.sorts as Array<unknown>).toHaveLength(2);
+      expect(
+        (callData.sorts as Array<Record<string, unknown>>)[0].property,
+      ).toBe('Name');
+      expect(
+        (callData.sorts as Array<Record<string, unknown>>)[0].direction,
+      ).toBe('ascending');
     });
   });
 
@@ -223,22 +256,25 @@ describe('NotionRetriever', () => {
                 title: {
                   type: 'title',
                   title: [
-                    { type: 'text', text: { content: 'Project Overview' } }
-                  ]
-                }
+                    { type: 'text', text: { content: 'Project Overview' } },
+                  ],
+                },
               },
-              url: 'https://notion.so/project-overview'
-            }
+              url: 'https://notion.so/project-overview',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'Project'
+        query: 'Project',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.pages[0].title).toBe('Project Overview');
@@ -263,22 +299,25 @@ describe('NotionRetriever', () => {
                   title: [
                     { type: 'text', text: { content: 'Multi ' } },
                     { type: 'text', text: { content: 'Part ' } },
-                    { type: 'text', text: { content: 'Title' } }
-                  ]
-                }
+                    { type: 'text', text: { content: 'Title' } },
+                  ],
+                },
               },
-              url: 'https://notion.so/multi-part'
-            }
+              url: 'https://notion.so/multi-part',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'Multi'
+        query: 'Multi',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.pages[0].title).toBe('Multi Part Title');
@@ -298,18 +337,21 @@ describe('NotionRetriever', () => {
               parent: { type: 'page_id', page_id: 'parent-id' },
               archived: false,
               properties: {},
-              url: 'https://notion.so/abc123def456'
-            }
+              url: 'https://notion.so/abc123def456',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       const page = result.output!.pages[0];
@@ -333,18 +375,21 @@ describe('NotionRetriever', () => {
               parent: { type: 'page_id' },
               archived: true,
               properties: {},
-              url: 'https://notion.so/archived'
-            }
+              url: 'https://notion.so/archived',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'archived'
+        query: 'archived',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.pages[0].archived).toBe(true);
@@ -366,19 +411,22 @@ describe('NotionRetriever', () => {
               parent: { type: 'page_id' },
               archived: false,
               properties: {},
-              url: 'https://notion.so/page1'
-            }
+              url: 'https://notion.so/page1',
+            },
           ],
           has_more: true,
-          next_cursor: 'NEXT_PAGE_CURSOR_123'
-        }
+          next_cursor: 'NEXT_PAGE_CURSOR_123',
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.has_more).toBe(true);
@@ -389,19 +437,22 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
         query: 'test',
-        start_cursor: 'CURSOR_FROM_PREVIOUS'
+        start_cursor: 'CURSOR_FROM_PREVIOUS',
       };
 
       await retriever.execute({ name: 'notion-retriever', args });
 
       expect(mockedAxios.post).toHaveBeenCalled();
-      const callData = mockedAxios.post.mock.calls[0][1] as Record<string, unknown>;
+      const callData = mockedAxios.post.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
       expect(callData.start_cursor).toBe('CURSOR_FROM_PREVIOUS');
     });
   });
@@ -411,10 +462,13 @@ describe('NotionRetriever', () => {
       delete process.env.NOTION_API_TOKEN;
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('token');
@@ -425,15 +479,18 @@ describe('NotionRetriever', () => {
         isAxiosError: true,
         response: {
           status: 401,
-          data: { message: 'Invalid token' }
-        }
+          data: { message: 'Invalid token' },
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('authentication failed');
@@ -444,15 +501,18 @@ describe('NotionRetriever', () => {
         isAxiosError: true,
         response: {
           status: 403,
-          data: { message: 'Permission denied' }
-        }
+          data: { message: 'Permission denied' },
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('authentication failed');
@@ -465,15 +525,18 @@ describe('NotionRetriever', () => {
         isAxiosError: true,
         response: {
           status: 404,
-          data: { message: 'Database not found' }
-        }
+          data: { message: 'Database not found' },
+        },
       });
 
       const args: NotionArgs = {
-        database_id: 'invalid-db-id'
+        database_id: 'invalid-db-id',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('database not found');
@@ -486,15 +549,18 @@ describe('NotionRetriever', () => {
         isAxiosError: true,
         response: {
           status: 429,
-          data: { message: 'Rate limit exceeded' }
-        }
+          data: { message: 'Rate limit exceeded' },
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('rate limit exceeded');
@@ -507,16 +573,19 @@ describe('NotionRetriever', () => {
         isAxiosError: true,
         response: {
           status: 400,
-          data: { message: 'Invalid filter format' }
-        }
+          data: { message: 'Invalid filter format' },
+        },
       });
 
       const args: NotionArgs = {
         database_id: 'db-123',
-        filter: { invalid: 'format' }
+        filter: { invalid: 'format' },
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('API error');
@@ -526,14 +595,17 @@ describe('NotionRetriever', () => {
   describe('Error Handling - Network', () => {
     it('should handle network timeout', async () => {
       mockedAxios.post.mockRejectedValueOnce(
-        new Error('timeout of 30000ms exceeded')
+        new Error('timeout of 30000ms exceeded'),
       );
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('timeout');
@@ -541,14 +613,17 @@ describe('NotionRetriever', () => {
 
     it('should handle ECONNREFUSED network error', async () => {
       mockedAxios.post.mockRejectedValueOnce(
-        new Error('ECONNREFUSED: Connection refused')
+        new Error('ECONNREFUSED: Connection refused'),
       );
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Network connectivity');
@@ -572,25 +647,30 @@ describe('NotionRetriever', () => {
               properties: {
                 title: {
                   type: 'title',
-                  title: [{ type: 'text', text: { content: 'Metadata Test' } }]
+                  title: [{ type: 'text', text: { content: 'Metadata Test' } }],
                 },
                 description: {
                   type: 'rich_text',
-                  rich_text: [{ type: 'text', text: { content: 'Test description' } }]
-                }
+                  rich_text: [
+                    { type: 'text', text: { content: 'Test description' } },
+                  ],
+                },
               },
-              url: 'https://notion.so/metadata-test'
-            }
+              url: 'https://notion.so/metadata-test',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'Metadata'
+        query: 'Metadata',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       const page = result.output!.pages[0];
@@ -614,18 +694,21 @@ describe('NotionRetriever', () => {
               parent: { type: 'page_id' },
               archived: false,
               properties: {},
-              url: 'https://notion.so/no-title'
-            }
+              url: 'https://notion.so/no-title',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.pages[0].title).toBeUndefined();
@@ -635,15 +718,18 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'nonexistent'
+        query: 'nonexistent',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_results).toBe(0);
@@ -669,22 +755,28 @@ describe('NotionRetriever', () => {
                 description: {
                   type: 'rich_text',
                   rich_text: [
-                    { type: 'text', text: { content: 'This is a preview text for the page' } }
-                  ]
-                }
+                    {
+                      type: 'text',
+                      text: { content: 'This is a preview text for the page' },
+                    },
+                  ],
+                },
               },
-              url: 'https://notion.so/preview-test'
-            }
+              url: 'https://notion.so/preview-test',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'preview'
+        query: 'preview',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.pages[0].preview).toContain('This is a preview');
@@ -694,12 +786,12 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
       await retriever.execute({ name: 'notion-retriever', args });
@@ -713,12 +805,12 @@ describe('NotionRetriever', () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: {
           results: [],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'test'
+        query: 'test',
       };
 
       await retriever.execute({ name: 'notion-retriever', args });
@@ -741,8 +833,13 @@ describe('NotionRetriever', () => {
               last_edited_by: { object: 'user', id: 'user-1' },
               parent: { type: 'page_id' },
               archived: false,
-              properties: { title: { type: 'title', title: [{ type: 'text', text: { content: 'Page 1' } }] } },
-              url: 'https://notion.so/page1'
+              properties: {
+                title: {
+                  type: 'title',
+                  title: [{ type: 'text', text: { content: 'Page 1' } }],
+                },
+              },
+              url: 'https://notion.so/page1',
             },
             {
               object: 'page',
@@ -753,19 +850,27 @@ describe('NotionRetriever', () => {
               last_edited_by: { object: 'user', id: 'user-1' },
               parent: { type: 'page_id' },
               archived: false,
-              properties: { title: { type: 'title', title: [{ type: 'text', text: { content: 'Page 2' } }] } },
-              url: 'https://notion.so/page2'
-            }
+              properties: {
+                title: {
+                  type: 'title',
+                  title: [{ type: 'text', text: { content: 'Page 2' } }],
+                },
+              },
+              url: 'https://notion.so/page2',
+            },
           ],
-          has_more: false
-        }
+          has_more: false,
+        },
       });
 
       const args: NotionArgs = {
-        query: 'page'
+        query: 'page',
       };
 
-      const result = await retriever.execute({ name: 'notion-retriever', args });
+      const result = await retriever.execute({
+        name: 'notion-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_results).toBe(2);

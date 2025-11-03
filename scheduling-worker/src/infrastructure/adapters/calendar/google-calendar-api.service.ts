@@ -2,13 +2,18 @@ import { Injectable, Logger } from '@nestjs/common';
 import { google, calendar_v3 } from 'googleapis';
 import { GoogleAuthService } from '../auth/google-auth.service';
 import { IGoogleCalendarApiService } from '../../../application/ports/google-calendar.port';
-import { CalendarEvent, EventAttendee, EventReminder, EventRecurrence } from '../../../domain/entities';
+import {
+  CalendarEvent,
+  EventAttendee,
+  EventReminder,
+  EventRecurrence,
+} from '../../../domain/entities';
 
 /**
  * Google Calendar API Service
- * 
+ *
  * Handles all Google Calendar API operations (CRUD for events)
- * 
+ *
  * Infrastructure Adapter - Depends on googleapis library
  */
 @Injectable()
@@ -120,7 +125,10 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
         requestBody: googleEvent,
       });
 
-      const createdEvent = this.mapGoogleEventToEntity(response.data, calendarId);
+      const createdEvent = this.mapGoogleEventToEntity(
+        response.data,
+        calendarId,
+      );
 
       if (!createdEvent) {
         throw new Error('Failed to map created event');
@@ -159,7 +167,10 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
         requestBody: googleEvent,
       });
 
-      const updatedEvent = this.mapGoogleEventToEntity(response.data, calendarId);
+      const updatedEvent = this.mapGoogleEventToEntity(
+        response.data,
+        calendarId,
+      );
 
       if (!updatedEvent) {
         throw new Error('Failed to map updated event');
@@ -237,10 +248,7 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
       return result;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Failed to query free/busy: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error(`Failed to query free/busy: ${err.message}`, err.stack);
       throw error;
     }
   }
@@ -264,9 +272,7 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
         createdEvents.push(created);
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        this.logger.warn(
-          `Failed to create event in batch: ${err.message}`,
-        );
+        this.logger.warn(`Failed to create event in batch: ${err.message}`);
         // Continue with next event
       }
     }
@@ -297,7 +303,9 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
       const end = googleEvent.end?.dateTime || googleEvent.end?.date;
 
       if (!start || !end) {
-        this.logger.warn(`Skipping event ${googleEvent.id} without start/end time`);
+        this.logger.warn(
+          `Skipping event ${googleEvent.id} without start/end time`,
+        );
         return null;
       }
 
@@ -306,7 +314,12 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
         googleEvent.attendees?.map((a) => ({
           email: a.email!,
           displayName: a.displayName || undefined,
-          responseStatus: (a.responseStatus as 'needsAction' | 'declined' | 'tentative' | 'accepted') || 'needsAction',
+          responseStatus:
+            (a.responseStatus as
+              | 'needsAction'
+              | 'declined'
+              | 'tentative'
+              | 'accepted') || 'needsAction',
           optional: a.optional || undefined,
         })) || [];
 
@@ -376,7 +389,9 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
       start: event.startTime
         ? { dateTime: event.startTime.toISOString() }
         : undefined,
-      end: event.endTime ? { dateTime: event.endTime.toISOString() } : undefined,
+      end: event.endTime
+        ? { dateTime: event.endTime.toISOString() }
+        : undefined,
     };
 
     // Map attendees

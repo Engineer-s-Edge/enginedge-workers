@@ -56,7 +56,7 @@ export class RateLimitingService {
 
     // Check requests per second
     if (quota.requestsPerSecond !== undefined) {
-      const recentRequests = timestamps.filter(t => now - t < 1);
+      const recentRequests = timestamps.filter((t) => now - t < 1);
       if (recentRequests.length >= quota.requestsPerSecond) {
         return false;
       }
@@ -64,7 +64,7 @@ export class RateLimitingService {
 
     // Check requests per minute
     if (quota.requestsPerMinute !== undefined) {
-      const recentRequests = timestamps.filter(t => now - t < 60);
+      const recentRequests = timestamps.filter((t) => now - t < 60);
       if (recentRequests.length >= quota.requestsPerMinute) {
         return false;
       }
@@ -72,7 +72,7 @@ export class RateLimitingService {
 
     // Check requests per hour
     if (quota.requestsPerHour !== undefined) {
-      const recentRequests = timestamps.filter(t => now - t < 3600);
+      const recentRequests = timestamps.filter((t) => now - t < 3600);
       if (recentRequests.length >= quota.requestsPerHour) {
         return false;
       }
@@ -98,7 +98,7 @@ export class RateLimitingService {
     timestamps.push(now);
 
     // Clean up old timestamps (older than 1 hour)
-    const recentTimestamps = timestamps.filter(t => now - t < 3600);
+    const recentTimestamps = timestamps.filter((t) => now - t < 3600);
     this.requestTimestamps.set(apiName, recentTimestamps);
   }
 
@@ -110,19 +110,21 @@ export class RateLimitingService {
     const timestamps = this.getRecentTimestamps(apiName, now, 3600);
 
     const currentSecond = quota.requestsPerSecond
-      ? timestamps.filter(t => now - t < 1).length
+      ? timestamps.filter((t) => now - t < 1).length
       : 0;
 
     const currentMinute = quota.requestsPerMinute
-      ? timestamps.filter(t => now - t < 60).length
+      ? timestamps.filter((t) => now - t < 60).length
       : 0;
 
     const currentHour = quota.requestsPerHour
-      ? timestamps.filter(t => now - t < 3600).length
+      ? timestamps.filter((t) => now - t < 3600).length
       : 0;
 
     const canMakeRequest = this.canMakeRequest(apiName, quota);
-    const nextAvailableTime = canMakeRequest ? undefined : this.getWaitTime(apiName, quota);
+    const nextAvailableTime = canMakeRequest
+      ? undefined
+      : this.getWaitTime(apiName, quota);
 
     return {
       currentSecond,
@@ -132,7 +134,7 @@ export class RateLimitingService {
       minuteQuota: quota.requestsPerMinute,
       hourQuota: quota.requestsPerHour,
       canMakeRequest,
-      nextAvailableTime
+      nextAvailableTime,
     };
   }
 
@@ -149,7 +151,7 @@ export class RateLimitingService {
 
     // Check requests per second
     if (quota.requestsPerSecond) {
-      const recentRequests = timestamps.filter(t => now - t < 1);
+      const recentRequests = timestamps.filter((t) => now - t < 1);
       if (recentRequests.length >= quota.requestsPerSecond) {
         const oldestRequest = Math.min(...recentRequests);
         const wait = oldestRequest + 1 - now;
@@ -159,7 +161,7 @@ export class RateLimitingService {
 
     // Check requests per minute
     if (quota.requestsPerMinute) {
-      const recentRequests = timestamps.filter(t => now - t < 60);
+      const recentRequests = timestamps.filter((t) => now - t < 60);
       if (recentRequests.length >= quota.requestsPerMinute) {
         const oldestRequest = Math.min(...recentRequests);
         const wait = oldestRequest + 60 - now;
@@ -169,7 +171,7 @@ export class RateLimitingService {
 
     // Check requests per hour
     if (quota.requestsPerHour) {
-      const recentRequests = timestamps.filter(t => now - t < 3600);
+      const recentRequests = timestamps.filter((t) => now - t < 3600);
       if (recentRequests.length >= quota.requestsPerHour) {
         const oldestRequest = Math.min(...recentRequests);
         const wait = oldestRequest + 3600 - now;
@@ -219,18 +221,21 @@ export class RateLimitingService {
       apiName,
       limit,
       resetTime: now,
-      nextResetTime: resetTime
+      nextResetTime: resetTime,
     });
 
     // Keep only recent resets (last 24 hours)
-    const recentResets = resets.filter(r => now - r.resetTime < 86400);
+    const recentResets = resets.filter((r) => now - r.resetTime < 86400);
     this.quotaResets.set(apiName, recentResets);
   }
 
   /**
    * Get time until next quota reset
    */
-  getTimeUntilReset(apiName: string, limit: 'second' | 'minute' | 'hour'): number {
+  getTimeUntilReset(
+    apiName: string,
+    limit: 'second' | 'minute' | 'hour',
+  ): number {
     const now = Date.now() / 1000;
     let nextReset: number;
 
@@ -252,7 +257,11 @@ export class RateLimitingService {
   /**
    * Check if rate limit is exceeded for specific window
    */
-  isLimitExceeded(apiName: string, limit: 'second' | 'minute' | 'hour', quota: RateLimitQuota): boolean {
+  isLimitExceeded(
+    apiName: string,
+    limit: 'second' | 'minute' | 'hour',
+    quota: RateLimitQuota,
+  ): boolean {
     const now = Date.now() / 1000;
     const timestamps = this.getRecentTimestamps(apiName, now, 3600);
 
@@ -276,14 +285,18 @@ export class RateLimitingService {
 
     if (!maxRequests) return false;
 
-    const recentRequests = timestamps.filter(t => now - t < window);
+    const recentRequests = timestamps.filter((t) => now - t < window);
     return recentRequests.length >= maxRequests;
   }
 
   /**
    * Get percentage of quota used
    */
-  getQuotaPercentage(apiName: string, limit: 'second' | 'minute' | 'hour', quota: RateLimitQuota): number {
+  getQuotaPercentage(
+    apiName: string,
+    limit: 'second' | 'minute' | 'hour',
+    quota: RateLimitQuota,
+  ): number {
     const now = Date.now() / 1000;
     const timestamps = this.getRecentTimestamps(apiName, now, 3600);
 
@@ -307,16 +320,20 @@ export class RateLimitingService {
 
     if (!maxRequests) return 0;
 
-    const recentRequests = timestamps.filter(t => now - t < window);
+    const recentRequests = timestamps.filter((t) => now - t < window);
     return Math.round((recentRequests.length / maxRequests) * 100);
   }
 
   /**
    * Helper: Get recent timestamps
    */
-  private getRecentTimestamps(apiName: string, now: number, windowSize: number): number[] {
+  private getRecentTimestamps(
+    apiName: string,
+    now: number,
+    windowSize: number,
+  ): number[] {
     const allTimestamps = this.requestTimestamps.get(apiName) || [];
-    return allTimestamps.filter(t => now - t < windowSize);
+    return allTimestamps.filter((t) => now - t < windowSize);
   }
 
   /**
@@ -329,7 +346,10 @@ export class RateLimitingService {
   /**
    * Get request count for API
    */
-  getRequestCount(apiName: string, limit?: 'second' | 'minute' | 'hour'): number {
+  getRequestCount(
+    apiName: string,
+    limit?: 'second' | 'minute' | 'hour',
+  ): number {
     const now = Date.now() / 1000;
     const timestamps = this.requestTimestamps.get(apiName) || [];
 
@@ -350,6 +370,6 @@ export class RateLimitingService {
         break;
     }
 
-    return timestamps.filter(t => now - t < window).length;
+    return timestamps.filter((t) => now - t < window).length;
   }
 }

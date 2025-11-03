@@ -1,6 +1,6 @@
 /**
  * Interview Controller
- * 
+ *
  * REST API endpoints for interview configuration management
  */
 
@@ -25,9 +25,7 @@ export class InterviewController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createInterview(
-    @Body() dto: CreateInterviewDto,
-  ): Promise<Interview> {
+  async createInterview(@Body() dto: CreateInterviewDto): Promise<Interview> {
     return await this.interviewService.createInterview(dto);
   }
 
@@ -82,4 +80,3 @@ export class InterviewController {
     await this.interviewService.deleteInterview(id);
   }
 }
-

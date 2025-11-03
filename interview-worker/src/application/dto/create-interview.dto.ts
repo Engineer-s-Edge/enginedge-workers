@@ -2,7 +2,17 @@
  * Create Interview DTO
  */
 
-import { IsString, IsOptional, IsArray, IsObject, IsNumber, ValidateNested, IsEnum, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsObject,
+  IsNumber,
+  ValidateNested,
+  IsEnum,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class InterviewPhaseDto {
@@ -71,10 +81,13 @@ export class ScoringRubricDto {
 
   @IsOptional()
   @IsObject()
-  byPhase?: Record<string, {
-    criteria: string[];
-    weights?: Record<string, number>;
-  }>;
+  byPhase?: Record<
+    string,
+    {
+      criteria: string[];
+      weights?: Record<string, number>;
+    }
+  >;
 }
 
 export class CreateInterviewDto {
@@ -98,4 +111,3 @@ export class CreateInterviewDto {
   @Type(() => ScoringRubricDto)
   rubric!: ScoringRubricDto;
 }
-

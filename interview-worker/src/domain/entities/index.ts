@@ -12,4 +12,3 @@ export * from './interview-report.entity';
 // Re-export Transcript type
 export type { Transcript } from './interview-report.entity';
 export type { TranscriptMessage } from './interview-report.entity';
-

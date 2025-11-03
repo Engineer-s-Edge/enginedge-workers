@@ -1,6 +1,6 @@
 /**
  * Metrics Adapter
- * 
+ *
  * Provides Prometheus metrics for monitoring and observability.
  */
 
@@ -318,7 +318,11 @@ export class MetricsAdapter {
   /**
    * Record response time
    */
-  recordResponseTime(method: string, endpoint: string, durationSeconds: number): void {
+  recordResponseTime(
+    method: string,
+    endpoint: string,
+    durationSeconds: number,
+  ): void {
     this.responseTimeHistogram.observe({ method, endpoint }, durationSeconds);
   }
 
@@ -339,7 +343,11 @@ export class MetricsAdapter {
   /**
    * Record agent execution
    */
-  recordAgentExecution(type: string, status: string, durationSeconds: number): void {
+  recordAgentExecution(
+    type: string,
+    status: string,
+    durationSeconds: number,
+  ): void {
     this.agentExecutionCounter.inc({ type, status });
     this.agentExecutionDuration.observe({ type, status }, durationSeconds);
   }
@@ -347,9 +355,16 @@ export class MetricsAdapter {
   /**
    * Record memory operation
    */
-  recordMemoryOperation(operation: string, memoryType: string, durationSeconds: number): void {
+  recordMemoryOperation(
+    operation: string,
+    memoryType: string,
+    durationSeconds: number,
+  ): void {
     this.memoryOperationsCounter.inc({ operation, memory_type: memoryType });
-    this.memoryOperationDuration.observe({ operation, memory_type: memoryType }, durationSeconds);
+    this.memoryOperationDuration.observe(
+      { operation, memory_type: memoryType },
+      durationSeconds,
+    );
   }
 
   /**
@@ -391,7 +406,11 @@ export class MetricsAdapter {
   /**
    * Record database query
    */
-  recordDBQuery(database: string, operation: string, durationSeconds: number): void {
+  recordDBQuery(
+    database: string,
+    operation: string,
+    durationSeconds: number,
+  ): void {
     this.dbQueryDuration.observe({ database, operation }, durationSeconds);
   }
 
@@ -407,7 +426,12 @@ export class MetricsAdapter {
   /**
    * Record RAG search operation
    */
-  recordRAGSearch(status: 'success' | 'error', conversationId: string, durationSeconds: number, resultCount: number): void {
+  recordRAGSearch(
+    status: 'success' | 'error',
+    conversationId: string,
+    durationSeconds: number,
+    resultCount: number,
+  ): void {
     this.ragSearchCounter.inc({ status, conversation_id: conversationId });
     this.ragSearchDuration.observe({ status }, durationSeconds);
     this.ragSearchResultsHistogram.observe(resultCount);
@@ -416,8 +440,15 @@ export class MetricsAdapter {
   /**
    * Record RAG document processing
    */
-  recordRAGDocumentProcessing(status: 'success' | 'error', conversationId: string, durationSeconds: number): void {
-    this.ragDocumentProcessingCounter.inc({ status, conversation_id: conversationId });
+  recordRAGDocumentProcessing(
+    status: 'success' | 'error',
+    conversationId: string,
+    durationSeconds: number,
+  ): void {
+    this.ragDocumentProcessingCounter.inc({
+      status,
+      conversation_id: conversationId,
+    });
     this.ragDocumentProcessingDuration.observe({ status }, durationSeconds);
   }
 
@@ -440,14 +471,20 @@ export class MetricsAdapter {
   /**
    * Record Kafka message consumed
    */
-  recordKafkaMessageConsumed(topic: string, status: 'success' | 'error' | 'retry'): void {
+  recordKafkaMessageConsumed(
+    topic: string,
+    status: 'success' | 'error' | 'retry',
+  ): void {
     this.kafkaMessagesConsumed.inc({ topic, status });
   }
 
   /**
    * Record Kafka message processing duration
    */
-  recordKafkaMessageProcessingDuration(topic: string, durationSeconds: number): void {
+  recordKafkaMessageProcessingDuration(
+    topic: string,
+    durationSeconds: number,
+  ): void {
     this.kafkaMessageProcessingDuration.observe({ topic }, durationSeconds);
   }
 
@@ -455,7 +492,10 @@ export class MetricsAdapter {
    * Set Kafka consumer lag
    */
   setKafkaConsumerLag(topic: string, partition: number, lag: number): void {
-    this.kafkaConsumerLagGauge.set({ topic, partition: partition.toString() }, lag);
+    this.kafkaConsumerLagGauge.set(
+      { topic, partition: partition.toString() },
+      lag,
+    );
   }
 
   /**
@@ -477,7 +517,11 @@ export class MetricsAdapter {
   /**
    * Record Data Processing Worker request
    */
-  recordDataProcessingRequest(endpoint: string, status: 'success' | 'error', durationSeconds: number): void {
+  recordDataProcessingRequest(
+    endpoint: string,
+    status: 'success' | 'error',
+    durationSeconds: number,
+  ): void {
     this.dataProcessingRequestCounter.inc({ endpoint, status });
     this.dataProcessingRequestDuration.observe({ endpoint }, durationSeconds);
   }
@@ -504,4 +548,3 @@ export class MetricsAdapter {
     }, 10000); // Every 10 seconds
   }
 }
-

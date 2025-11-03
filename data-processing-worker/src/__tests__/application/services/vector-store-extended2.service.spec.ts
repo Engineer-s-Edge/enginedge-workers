@@ -12,9 +12,7 @@ describe('VectorStoreService Extended Tests Phase 2 (Phase 6)', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        { provide: 'VectorStoreService', useValue: mockService },
-      ],
+      providers: [{ provide: 'VectorStoreService', useValue: mockService }],
     }).compile();
 
     service = module.get('VectorStoreService') as Record<string, unknown>;

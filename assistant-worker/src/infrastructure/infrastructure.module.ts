@@ -38,13 +38,13 @@ import {
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
  * Phase 5: Advanced features ⏳
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -57,7 +57,7 @@ import {
     // Core controllers
     AgentController,
     HealthController,
-    
+
     // Agent type controllers (Phase 2)
     ReActAgentController,
     GraphAgentController,
@@ -65,13 +65,13 @@ import {
     GeniusAgentController,
     CollectiveAgentController,
     ManagerAgentController,
-    
+
     // Memory controller (Phase 3)
     MemoryController,
-    
+
     // Knowledge Graph controller (Phase 4)
     KnowledgeGraphController,
-    
+
     // Metrics controller (Phase 6)
     MetricsController,
   ],
@@ -85,13 +85,13 @@ import {
       provide: 'ILogger',
       useClass: ConsoleLoggerAdapter,
     },
-    
+
     // Repository adapters
     {
       provide: 'IAgentRepository',
       useClass: InMemoryAgentRepository,
     },
-    
+
     // Memory adapters (Phase 3)
     BufferMemoryAdapter,
     WindowMemoryAdapter,
@@ -99,20 +99,20 @@ import {
     VectorMemoryAdapter,
     EntityMemoryAdapter,
     MongoDBPersistenceAdapter,
-    
+
     // Memory Service (moved from ApplicationModule to avoid circular dependency)
     MemoryService,
-    
+
     // Knowledge Graph Service (moved from ApplicationModule to avoid circular dependency)
     KnowledgeGraphService,
-    
+
     // Knowledge Graph adapter (Phase 4)
     Neo4jAdapter,
-    
+
     // Streaming adapters (Phase 5)
     SSEStreamAdapter,
     WebSocketAdapter,
-    
+
     // Monitoring adapters (Phase 6)
     MetricsAdapter,
   ],

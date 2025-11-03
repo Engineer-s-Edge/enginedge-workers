@@ -1,5 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILLMProvider, LLMRequest, LLMResponse, LLMStreamChunk } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMRequest,
+  LLMResponse,
+  LLMStreamChunk,
+} from '@application/ports/llm-provider.port';
 import { ILogger } from '@application/ports/logger.port';
 
 interface GoogleMessage {
@@ -33,7 +38,7 @@ interface GoogleStreamResponse {
 
 /**
  * Google Generative AI LLM Adapter
- * 
+ *
  * Implements ILLMProvider for Google's Generative AI API (Gemini models)
  * Supports streaming and token counting
  */
@@ -48,7 +53,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
   ) {
     this.apiKey = process.env.GEMINI_API_KEY || '';
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
-    
+
     if (!this.apiKey) {
       this.logger.warn('GoogleLLMAdapter: Gemini API key not configured');
     }
@@ -62,7 +67,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
 
     try {
       const messages = this.convertMessages(request.messages);
-      
+
       const response = await fetch(
         `${this.baseUrl}/${request.model}:generateContent?key=${this.apiKey}`,
         {
@@ -77,7 +82,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
               maxOutputTokens: request.maxTokens,
             },
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -85,16 +90,21 @@ export class GoogleLLMAdapter implements ILLMProvider {
         throw new Error(`Google API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json() as GoogleResponse;
-      
+      const data = (await response.json()) as GoogleResponse;
+
       return this.parseResponse(data);
     } catch (error) {
-      this.logger.error('Google LLM invocation failed', error as Record<string, unknown>);
+      this.logger.error(
+        'Google LLM invocation failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
 
-  async *invokeStream(request: LLMRequest): AsyncGenerator<LLMStreamChunk, void, unknown> {
+  async *invokeStream(
+    request: LLMRequest,
+  ): AsyncGenerator<LLMStreamChunk, void, unknown> {
     this.logger.debug('GoogleLLMAdapter: Starting Google streaming', {
       model: request.model,
     });
@@ -116,7 +126,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
               maxOutputTokens: request.maxTokens,
             },
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -134,7 +144,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -145,7 +155,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
           if (line.trim()) {
             try {
               const chunk = JSON.parse(line) as GoogleStreamResponse;
-              
+
               if (chunk.candidates?.[0]?.content?.parts?.[0]?.text) {
                 yield {
                   content: chunk.candidates[0].content.parts[0].text,
@@ -167,7 +177,10 @@ export class GoogleLLMAdapter implements ILLMProvider {
         }
       }
     } catch (error) {
-      this.logger.error('Google streaming failed', error as Record<string, unknown>);
+      this.logger.error(
+        'Google streaming failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -188,7 +201,7 @@ export class GoogleLLMAdapter implements ILLMProvider {
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`,
       );
       return response.ok;
     } catch {
@@ -196,7 +209,9 @@ export class GoogleLLMAdapter implements ILLMProvider {
     }
   }
 
-  private convertMessages(messages: Array<{ role: string; content: string }>): GoogleMessage[] {
+  private convertMessages(
+    messages: Array<{ role: string; content: string }>,
+  ): GoogleMessage[] {
     return messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : msg.role,
       parts: [{ text: msg.content }],
@@ -213,11 +228,13 @@ export class GoogleLLMAdapter implements ILLMProvider {
     return {
       content,
       finishReason: 'stop',
-      usage: data.usageMetadata ? {
-        promptTokens: data.usageMetadata.prompt_token_count,
-        completionTokens: data.usageMetadata.candidates_token_count || 0,
-        totalTokens: data.usageMetadata.total_token_count,
-      } : undefined,
+      usage: data.usageMetadata
+        ? {
+            promptTokens: data.usageMetadata.prompt_token_count,
+            completionTokens: data.usageMetadata.candidates_token_count || 0,
+            totalTokens: data.usageMetadata.total_token_count,
+          }
+        : undefined,
     };
   }
 
@@ -245,10 +262,14 @@ export class GoogleLLMAdapter implements ILLMProvider {
   }
 
   async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
-    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+    throw new Error(
+      'Speech-to-text not implemented. Use a dedicated STT service.',
+    );
   }
 
   async textToSpeech(text: string, voice?: string): Promise<Buffer> {
-    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+    throw new Error(
+      'Text-to-speech not implemented. Use a dedicated TTS service.',
+    );
   }
 }

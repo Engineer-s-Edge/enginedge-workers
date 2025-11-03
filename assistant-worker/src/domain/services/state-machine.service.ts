@@ -1,6 +1,6 @@
 /**
  * State Machine Service
- * 
+ *
  * Centralized state transition validation and management.
  * Ensures all agents follow proper state machine rules.
  */
@@ -46,7 +46,13 @@ export class StateMachineService {
     const currentState = request.agent.getState().getCurrentState();
 
     // Validate transition
-    if (!this.isTransitionValid(currentState, request.targetState, request.agent.agentType)) {
+    if (
+      !this.isTransitionValid(
+        currentState,
+        request.targetState,
+        request.agent.agentType,
+      )
+    ) {
       return {
         allowed: false,
         reason: `Cannot transition from '${currentState}' to '${request.targetState}'`,
@@ -56,10 +62,9 @@ export class StateMachineService {
     // Use AgentState's transitionTo method
     let newState: AgentState;
     try {
-      newState = request.agent.getState().transitionTo(
-        request.targetState,
-        request.metadata,
-      );
+      newState = request.agent
+        .getState()
+        .transitionTo(request.targetState, request.metadata);
     } catch (error) {
       return {
         allowed: false,
@@ -102,7 +107,9 @@ export class StateMachineService {
     };
 
     const transitions =
-      agentType === AgentType.COLLECTIVE ? collectiveTransitions : baseTransitions;
+      agentType === AgentType.COLLECTIVE
+        ? collectiveTransitions
+        : baseTransitions;
 
     return (transitions[from] || []).includes(to);
   }

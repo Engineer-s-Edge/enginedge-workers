@@ -48,7 +48,7 @@ describe('Phase 7 - Advanced Integration Tests', () => {
 
     it('int-adv-009: validates output at each stage', async () => {
       const stages = ['loaded', 'split', 'embedded', 'stored'];
-      expect(stages.every(s => s.length > 0)).toBe(true);
+      expect(stages.every((s) => s.length > 0)).toBe(true);
     });
 
     it('int-adv-010: completes full integration cycle', async () => {

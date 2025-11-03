@@ -1,11 +1,21 @@
 /**
  * ReAct Agent Controller
- * 
+ *
  * Specialized endpoints for ReAct (Reasoning + Acting) agents.
  * Handles chain-of-thought reasoning and tool execution.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from '@application/use-cases/stream-agent-execution.use-case';
@@ -29,13 +39,16 @@ export class ReActAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createReActAgent(@Body() body: {
-    name: string;
-    userId: string;
-    maxIterations?: number;
-    tools?: string[];
-    temperature?: number;
-  }) {
+  async createReActAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      maxIterations?: number;
+      tools?: string[];
+      temperature?: number;
+    },
+  ) {
     this.logger.info('Creating ReAct agent', { name: body.name });
 
     const config = {
@@ -65,7 +78,8 @@ export class ReActAgentController {
   @HttpCode(HttpStatus.OK)
   async executeWithReasoning(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       input: string;
       userId: string;
       showReasoning?: boolean;
@@ -97,7 +111,7 @@ export class ReActAgentController {
     this.logger.info('Getting reasoning history', { agentId });
 
     const agent = await this.agentService.getAgent(agentId, userId);
-    
+
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
@@ -117,12 +131,16 @@ export class ReActAgentController {
   @HttpCode(HttpStatus.OK)
   async addTool(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       toolName: string;
     },
   ) {
-    this.logger.info('Adding tool to ReAct agent', { agentId, tool: body.toolName });
+    this.logger.info('Adding tool to ReAct agent', {
+      agentId,
+      tool: body.toolName,
+    });
 
     // Update agent config to include new tool
     return {
@@ -138,4 +156,3 @@ export class ReActAgentController {
     return [];
   }
 }
-

@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services and use cases.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Services:
  * - LoaderRegistryService: Manages document loaders
  * - DocumentProcessingService: Main orchestration service
@@ -23,14 +23,12 @@ import { EmbedderService } from './services/embedder.service';
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers are automatically available.
  * Default implementations are aliased here for dependency injection.
  */
 @Module({
-  imports: [
-    DomainModule,
-  ],
+  imports: [DomainModule],
   providers: [
     LoaderRegistryService,
     DocumentProcessingService,

@@ -1,6 +1,6 @@
 /**
  * ReAct Agent - Reasoning + Acting Pattern
- * 
+ *
  * Implements the ReAct (Reasoning + Acting) agent:
  * 1. Thought: LLM generates reasoning
  * 2. Action: Decide what action to take (tool or final answer)
@@ -54,7 +54,7 @@ export interface ReActResult extends ExecutionResult {
 
 /**
  * ReAct Agent - Reasoning + Acting Pattern
- * 
+ *
  * Implements the ReAct (Reasoning + Acting) agent:
  * 1. Thought: LLM generates reasoning
  * 2. Action: Decide what action to take (tool or final answer)
@@ -99,7 +99,8 @@ export class ReActAgent extends BaseAgent {
       this.observations = [];
 
       // Build initial prompt
-      const systemPrompt = this.config.systemPrompt || this.getDefaultSystemPrompt();
+      const systemPrompt =
+        this.config.systemPrompt || this.getDefaultSystemPrompt();
       let currentInput = input;
       let iteration = 0;
       const maxIterations = this.config.maxIterations || 10;
@@ -147,8 +148,14 @@ export class ReActAgent extends BaseAgent {
             context,
           );
           this.observations.push(observation);
-          this.addThinkingStep(`Observation: ${JSON.stringify(observation.result)}`);
-          this.recordToolExecution(action.toolName, action.input, observation.result);
+          this.addThinkingStep(
+            `Observation: ${JSON.stringify(observation.result)}`,
+          );
+          this.recordToolExecution(
+            action.toolName,
+            action.input,
+            observation.result,
+          );
 
           // Add observation to context for next iteration
           currentInput = `Previous thought: ${thought}\n${
@@ -158,7 +165,10 @@ export class ReActAgent extends BaseAgent {
       }
 
       // Max iterations reached
-      this.logger.warn('ReAct: Max iterations reached', { maxIterations, iteration });
+      this.logger.warn('ReAct: Max iterations reached', {
+        maxIterations,
+        iteration,
+      });
       return {
         status: 'error',
         output: `Agent reached maximum iterations (${maxIterations}) without finding final answer`,
@@ -185,7 +195,8 @@ export class ReActAgent extends BaseAgent {
     try {
       yield `ReAct Agent Starting\n`;
 
-      const systemPrompt = this.config.systemPrompt || this.getDefaultSystemPrompt();
+      const systemPrompt =
+        this.config.systemPrompt || this.getDefaultSystemPrompt();
       let currentInput = input;
       let iteration = 0;
       const maxIterations = this.config.maxIterations || 10;
@@ -222,7 +233,11 @@ export class ReActAgent extends BaseAgent {
             context,
           );
           yield `Observation: ${JSON.stringify(observation.result)}\n`;
-          this.recordToolExecution(action.toolName, action.input, observation.result);
+          this.recordToolExecution(
+            action.toolName,
+            action.input,
+            observation.result,
+          );
 
           currentInput = `Previous thought: ${thought}\n${
             action.toolName
@@ -281,12 +296,16 @@ export class ReActAgent extends BaseAgent {
       }
 
       // Look for Action pattern: Action: tool_name
-      const actionMatch = response.match(/Action\s*:\s*([a-zA-Z_]\w+)\s*(?:\n|$)/);
+      const actionMatch = response.match(
+        /Action\s*:\s*([a-zA-Z_]\w+)\s*(?:\n|$)/,
+      );
       if (actionMatch) {
         const toolName = actionMatch[1];
 
         // Extract Action Input
-        const inputMatch = response.match(/Action\s+Input\s*:\s*(.+?)(?:\n|$)/is);
+        const inputMatch = response.match(
+          /Action\s+Input\s*:\s*(.+?)(?:\n|$)/is,
+        );
         let input = {};
 
         if (inputMatch) {

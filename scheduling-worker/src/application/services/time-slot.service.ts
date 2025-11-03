@@ -153,10 +153,15 @@ export class TimeSlotService {
       const current = sorted[i];
       const previous = merged[merged.length - 1];
 
-      if (current.overlapsWith(previous) || this.isAdjacent(previous, current)) {
+      if (
+        current.overlapsWith(previous) ||
+        this.isAdjacent(previous, current)
+      ) {
         // Merge with previous slot
         const newEnd =
-          current.endTime > previous.endTime ? current.endTime : previous.endTime;
+          current.endTime > previous.endTime
+            ? current.endTime
+            : previous.endTime;
         merged[merged.length - 1] = new TimeSlot(previous.startTime, newEnd);
       } else {
         merged.push(current);

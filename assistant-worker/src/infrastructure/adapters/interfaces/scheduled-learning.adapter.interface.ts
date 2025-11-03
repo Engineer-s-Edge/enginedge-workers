@@ -1,6 +1,6 @@
 /**
  * Scheduled Learning Adapter Interface
- * 
+ *
  * Port interface for cron-based learning scheduling
  * Abstracts external ScheduledLearningManager implementation
  */
@@ -48,7 +48,10 @@ export interface IScheduledLearningAdapter {
   /**
    * Update schedule
    */
-  updateSchedule(scheduleId: string, config: Partial<ScheduleConfig>): Promise<ScheduleInfo>;
+  updateSchedule(
+    scheduleId: string,
+    config: Partial<ScheduleConfig>,
+  ): Promise<ScheduleInfo>;
 
   /**
    * Get next scheduled runs

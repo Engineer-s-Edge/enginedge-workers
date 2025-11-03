@@ -1,13 +1,17 @@
 /**
  * Coordination Context Value Object
- * 
+ *
  * Collective-specific context for multi-agent coordination.
  * Manages task graph, agent assignments, and coordination state.
  */
 
 import { TaskConfig } from './task-config.vo';
 
-export type CoordinationStrategy = 'voting' | 'consensus' | 'hierarchical' | 'sequential';
+export type CoordinationStrategy =
+  | 'voting'
+  | 'consensus'
+  | 'hierarchical'
+  | 'sequential';
 
 export interface CoordinationContextProps {
   strategy: CoordinationStrategy;
@@ -65,7 +69,7 @@ export class CoordinationContext {
     // Validate no tasks are orphaned
     const assignedTasks = new Set<string>();
     for (const tasks of props.childAgentAssignments.values()) {
-      tasks.forEach(t => assignedTasks.add(t));
+      tasks.forEach((t) => assignedTasks.add(t));
     }
 
     for (const taskId of props.taskGraph.keys()) {
@@ -111,7 +115,7 @@ export class CoordinationContext {
   getTasksForAgent(agentId: string): readonly TaskConfig[] {
     const taskIds = this.childAgentAssignments.get(agentId) || [];
     return taskIds
-      .map(id => this.taskGraph.get(id))
+      .map((id) => this.taskGraph.get(id))
       .filter((task): task is TaskConfig => task !== undefined);
   }
 
@@ -197,16 +201,20 @@ export class CoordinationContext {
   /**
    * Get events by type
    */
-  getEventsByType(type: CoordinationEvent['type']): readonly CoordinationEvent[] {
-    return this.eventLog.filter(e => e.type === type);
+  getEventsByType(
+    type: CoordinationEvent['type'],
+  ): readonly CoordinationEvent[] {
+    return this.eventLog.filter((e) => e.type === type);
   }
 
   /**
    * Check if coordination is currently active (has tasks in progress)
    */
   hasActiveTasks(): boolean {
-    return this.getEventsByType('task-started').length >
-      this.getEventsByType('task-completed').length;
+    return (
+      this.getEventsByType('task-started').length >
+      this.getEventsByType('task-completed').length
+    );
   }
 
   /**

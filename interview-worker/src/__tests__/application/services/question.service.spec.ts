@@ -97,7 +97,10 @@ describe('QuestionService', () => {
 
     mockQuestionRepository.findByCategory.mockResolvedValue(mockQuestions);
 
-    const result = await service.getQuestionsByCategory('tech-trivia', 'medium');
+    const result = await service.getQuestionsByCategory(
+      'tech-trivia',
+      'medium',
+    );
 
     expect(result).toHaveLength(1);
     expect(result[0].category).toBe('tech-trivia');
@@ -133,4 +136,3 @@ describe('QuestionService', () => {
     expect(mockQuestionRepository.delete).toHaveBeenCalledWith('q1');
   });
 });
-

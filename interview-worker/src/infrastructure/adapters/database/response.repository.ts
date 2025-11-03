@@ -43,7 +43,10 @@ export class MongoInterviewResponseRepository
       );
       return response;
     } catch (error) {
-      this.logger.error(`Failed to save response: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save response: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -53,7 +56,10 @@ export class MongoInterviewResponseRepository
       const doc = await this.collection.findOne({ responseId });
       return doc ? InterviewResponse.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find response: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find response: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -66,7 +72,10 @@ export class MongoInterviewResponseRepository
         .toArray();
       return docs.map((doc) => InterviewResponse.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find responses by session: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find responses by session: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -76,7 +85,10 @@ export class MongoInterviewResponseRepository
       const docs = await this.collection.find({ questionId }).toArray();
       return docs.map((doc) => InterviewResponse.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find responses by question: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find responses by question: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -92,7 +104,10 @@ export class MongoInterviewResponseRepository
       });
       return doc ? InterviewResponse.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find response by session and question: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find response by session and question: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -115,9 +130,11 @@ export class MongoInterviewResponseRepository
 
       return result ? InterviewResponse.fromObject(result) : null;
     } catch (error) {
-      this.logger.error(`Failed to update response: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to update response: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

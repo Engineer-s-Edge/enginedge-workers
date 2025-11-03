@@ -9,12 +9,29 @@ import {
   Query,
   Logger,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { SchedulingService, ScheduleOptions, SchedulePreview } from '../../application/services/scheduling.service';
-import { TaskCompletionService, CompletionStats } from '../../application/services/task-completion.service';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBody,
+} from '@nestjs/swagger';
+import {
+  SchedulingService,
+  ScheduleOptions,
+  SchedulePreview,
+} from '../../application/services/scheduling.service';
+import {
+  TaskCompletionService,
+  CompletionStats,
+} from '../../application/services/task-completion.service';
 import { TimeSlotService } from '../../application/services/time-slot.service';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
-import { Task, ScheduledTask } from '../../application/services/task-scheduler.service';
+import {
+  Task,
+  ScheduledTask,
+} from '../../application/services/task-scheduler.service';
 
 class ScheduleRequestDto {
   userId!: string;
@@ -60,7 +77,9 @@ export class SchedulingController {
     status: 200,
     description: 'Schedule preview generated',
   })
-  async previewSchedule(@Body() dto: ScheduleRequestDto): Promise<SchedulePreview> {
+  async previewSchedule(
+    @Body() dto: ScheduleRequestDto,
+  ): Promise<SchedulePreview> {
     this.logger.log(`Generating schedule preview for user ${dto.userId}`);
 
     const options = this.dtoToOptions(dto);
@@ -84,12 +103,12 @@ export class SchedulingController {
   }
 
   @Get('today')
-  @ApiOperation({ summary: 'Get today\'s scheduled items' })
+  @ApiOperation({ summary: "Get today's scheduled items" })
   @ApiQuery({ name: 'userId', required: true })
   @ApiQuery({ name: 'calendarId', required: false })
   @ApiResponse({
     status: 200,
-    description: 'Today\'s schedule',
+    description: "Today's schedule",
   })
   async getTodaySchedule(
     @Query('userId') userId: string,
@@ -181,7 +200,9 @@ export class SchedulingController {
     status: 200,
     description: 'Task marked as skipped',
   })
-  async skipTask(@Body() dto: { scheduledTask: ScheduledTask; reason?: string }) {
+  async skipTask(
+    @Body() dto: { scheduledTask: ScheduledTask; reason?: string },
+  ) {
     this.logger.log(`Skipping task "${dto.scheduledTask.title}"`);
 
     return this.taskCompletionService.skipTask(dto.scheduledTask, dto.reason);
@@ -221,7 +242,9 @@ export class SchedulingController {
     @Query('date') date: string,
     @Query('duration') duration: number,
   ) {
-    this.logger.log(`Getting available slots for duration ${duration} on ${date}`);
+    this.logger.log(
+      `Getting available slots for duration ${duration} on ${date}`,
+    );
 
     const startDate = new Date(date);
     const endDate = new Date(startDate);
@@ -242,7 +265,10 @@ export class SchedulingController {
       properties: {
         userId: { type: 'string' },
         conflictingTasks: { type: 'array' },
-        strategy: { type: 'string', enum: ['priority', 'deadline', 'duration'] },
+        strategy: {
+          type: 'string',
+          enum: ['priority', 'deadline', 'duration'],
+        },
       },
     },
   })
@@ -250,12 +276,17 @@ export class SchedulingController {
     status: 200,
     description: 'Conflicts resolved',
   })
-  async resolveConflicts(@Body() dto: {
-    userId: string;
-    conflictingTasks: ScheduledTask[];
-    strategy: 'priority' | 'deadline' | 'duration';
-  }) {
-    this.logger.log(`Resolving conflicts for ${dto.userId} with strategy: ${dto.strategy}`);
+  async resolveConflicts(
+    @Body()
+    dto: {
+      userId: string;
+      conflictingTasks: ScheduledTask[];
+      strategy: 'priority' | 'deadline' | 'duration';
+    },
+  ) {
+    this.logger.log(
+      `Resolving conflicts for ${dto.userId} with strategy: ${dto.strategy}`,
+    );
 
     // Sort tasks based on resolution strategy
     const sorted = [...dto.conflictingTasks].sort((a, b) => {
@@ -279,13 +310,14 @@ export class SchedulingController {
       userId: dto.userId,
       calendarId: dto.calendarId,
       date: dto.date ? new Date(dto.date) : new Date(),
-      workingHours: dto.workingHoursStart && dto.workingHoursEnd
-        ? {
-            startHour: dto.workingHoursStart,
-            endHour: dto.workingHoursEnd,
-            daysOfWeek: dto.workingDays || [1, 2, 3, 4, 5],
-          }
-        : undefined,
+      workingHours:
+        dto.workingHoursStart && dto.workingHoursEnd
+          ? {
+              startHour: dto.workingHoursStart,
+              endHour: dto.workingHoursEnd,
+              daysOfWeek: dto.workingDays || [1, 2, 3, 4, 5],
+            }
+          : undefined,
       bufferMinutes: dto.bufferMinutes,
       includeWeekends: dto.includeWeekends,
       maxTaskDuration: dto.maxTaskDuration,

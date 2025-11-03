@@ -55,9 +55,7 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
 
       return documents;
     } catch (error: any) {
-      throw new Error(
-        `Failed to load YouTube content: ${error.message}`,
-      );
+      throw new Error(`Failed to load YouTube content: ${error.message}`);
     }
   }
 
@@ -98,26 +96,22 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
       const content = `Title: ${snippet.title}\n\nDescription: ${snippet.description}`;
 
       const documentId = `youtube-${crypto.createHash('md5').update(`${videoId}-${Date.now()}`).digest('hex')}`;
-      return new Document(
-        documentId,
-        content,
-        {
-          source: `https://www.youtube.com/watch?v=${videoId}`,
-          sourceType: 'url',
-          loader: this.name,
-          type: 'metadata',
-          videoId,
-          title: snippet.title,
-          description: snippet.description,
-          channelTitle: snippet.channelTitle,
-          publishedAt: snippet.publishedAt,
-          duration: contentDetails.duration,
-          viewCount: statistics.viewCount,
-          likeCount: statistics.likeCount,
-          commentCount: statistics.commentCount,
-          timestamp: new Date().toISOString(),
-        },
-      );
+      return new Document(documentId, content, {
+        source: `https://www.youtube.com/watch?v=${videoId}`,
+        sourceType: 'url',
+        loader: this.name,
+        type: 'metadata',
+        videoId,
+        title: snippet.title,
+        description: snippet.description,
+        channelTitle: snippet.channelTitle,
+        publishedAt: snippet.publishedAt,
+        duration: contentDetails.duration,
+        viewCount: statistics.viewCount,
+        likeCount: statistics.likeCount,
+        commentCount: statistics.commentCount,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error: any) {
       console.warn(`Failed to load YouTube metadata: ${error.message}`);
       return null;
@@ -146,9 +140,9 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
       const transcript = await YoutubeTranscript.fetchTranscript(videoId, {
         lang: language,
       });
-      
+
       const content = transcript.map((item: any) => item.text).join(' ');
-      
+
       return new Document({
         content,
         metadata: {
@@ -211,8 +205,10 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

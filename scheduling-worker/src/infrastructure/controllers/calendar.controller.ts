@@ -1,13 +1,32 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { IGoogleAuthService, IGoogleCalendarApiService } from '../../application/ports/google-calendar.port';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Logger,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import {
+  IGoogleAuthService,
+  IGoogleCalendarApiService,
+} from '../../application/ports/google-calendar.port';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
 
 /**
  * Calendar Controller
- * 
+ *
  * REST API endpoints for Google Calendar integration
- * 
+ *
  * Infrastructure Layer - HTTP adapter
  */
 @ApiTags('calendar')
@@ -65,11 +84,16 @@ export class CalendarController {
   ) {
     this.logger.log(`Listing events for calendar: ${calendarId}`);
 
-    const options: { maxResults?: number; timeMin?: Date; timeMax?: Date } = { maxResults };
+    const options: { maxResults?: number; timeMin?: Date; timeMax?: Date } = {
+      maxResults,
+    };
     if (timeMin) options.timeMin = new Date(timeMin);
     if (timeMax) options.timeMax = new Date(timeMax);
 
-    const events = await this.googleCalendarService.listEvents(calendarId, options);
+    const events = await this.googleCalendarService.listEvents(
+      calendarId,
+      options,
+    );
     return { events };
   }
 
@@ -86,7 +110,10 @@ export class CalendarController {
     @Query('calendarId') calendarId = 'primary',
   ) {
     this.logger.log(`Getting event: ${eventId}`);
-    const event = await this.googleCalendarService.getEvent(calendarId, eventId);
+    const event = await this.googleCalendarService.getEvent(
+      calendarId,
+      eventId,
+    );
     return { event };
   }
 
@@ -101,7 +128,10 @@ export class CalendarController {
     @Query('calendarId') calendarId = 'primary',
   ) {
     this.logger.log(`Creating event in calendar: ${calendarId}`);
-    const event = await this.googleCalendarService.createEvent(calendarId, eventData);
+    const event = await this.googleCalendarService.createEvent(
+      calendarId,
+      eventData,
+    );
     return { event };
   }
 
@@ -156,7 +186,9 @@ export class CalendarController {
       timeMax: string;
     },
   ) {
-    this.logger.log(`Querying free/busy for ${data.calendarIds.length} calendars`);
+    this.logger.log(
+      `Querying free/busy for ${data.calendarIds.length} calendars`,
+    );
 
     const result = await this.googleCalendarService.queryFreeBusy(
       data.calendarIds,

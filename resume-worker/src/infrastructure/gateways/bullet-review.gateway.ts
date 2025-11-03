@@ -13,7 +13,7 @@ import { ExperienceBankService } from '../../application/services/experience-ban
 
 interface ReviewSession {
   userId: string;
-  bulletQueue: string[];  // IDs of bullets to review
+  bulletQueue: string[]; // IDs of bullets to review
   currentBulletId: string | null;
   reviewedCount: number;
 }
@@ -24,16 +24,16 @@ interface ReviewSession {
     origin: '*',
   },
 })
-export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class BulletReviewGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(BulletReviewGateway.name);
   private sessions = new Map<string, ReviewSession>();
 
-  constructor(
-    private readonly experienceBankService: ExperienceBankService
-  ) {}
+  constructor(private readonly experienceBankService: ExperienceBankService) {}
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -46,11 +46,12 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
 
   @SubscribeMessage('start-review')
   async handleStartReview(
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       userId: string;
-      bulletIds?: string[];  // Specific bullets, or null for all unreviewed
+      bulletIds?: string[]; // Specific bullets, or null for all unreviewed
     },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     this.logger.log(`Starting review session for user ${data.userId}`);
 
@@ -61,9 +62,9 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
     } else {
       // Get all unreviewed bullets
       const unreviewed = await this.experienceBankService.list(data.userId, {
-        reviewed: false
+        reviewed: false,
       });
-      bulletIds = unreviewed.map(b => b._id.toString());
+      bulletIds = unreviewed.map((b) => b._id.toString());
     }
 
     // Create session
@@ -71,7 +72,7 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
       userId: data.userId,
       bulletQueue: bulletIds,
       currentBulletId: null,
-      reviewedCount: 0
+      reviewedCount: 0,
     };
 
     this.sessions.set(client.id, session);
@@ -83,7 +84,7 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('user-response')
   async handleUserResponse(
     @MessageBody() data: { response: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const session = this.sessions.get(client.id);
     if (!session || !session.currentBulletId) {
@@ -98,15 +99,16 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
 
     // For now, simulate agent response
     client.emit('agent-question', {
-      question: 'Can you provide more details about the specific metrics you achieved?',
-      thinking: false
+      question:
+        'Can you provide more details about the specific metrics you achieved?',
+      thinking: false,
     });
   }
 
   @SubscribeMessage('approve-bullet')
   async handleApproveBullet(
     @MessageBody() data: { bulletId: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const session = this.sessions.get(client.id);
     if (!session) {
@@ -128,7 +130,7 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
   @SubscribeMessage('reject-bullet')
   async handleRejectBullet(
     @MessageBody() data: { bulletId: string; reason?: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const session = this.sessions.get(client.id);
     if (!session) {
@@ -146,9 +148,7 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   @SubscribeMessage('skip-bullet')
-  async handleSkipBullet(
-    @ConnectedSocket() client: Socket
-  ) {
+  async handleSkipBullet(@ConnectedSocket() client: Socket) {
     const session = this.sessions.get(client.id);
     if (!session) {
       client.emit('error', { message: 'No active session' });
@@ -168,7 +168,7 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
       this.logger.log(`Stopping review session for user ${session.userId}`);
       client.emit('review-summary', {
         reviewedCount: session.reviewedCount,
-        remainingCount: session.bulletQueue.length
+        remainingCount: session.bulletQueue.length,
       });
       this.sessions.delete(client.id);
     }
@@ -188,7 +188,7 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
     if (session.bulletQueue.length === 0) {
       // No more bullets
       client.emit('review-complete', {
-        reviewedCount: session.reviewedCount
+        reviewedCount: session.reviewedCount,
       });
       this.sessions.delete(sessionId);
       return;
@@ -210,14 +210,13 @@ export class BulletReviewGateway implements OnGatewayConnection, OnGatewayDiscon
       bulletId: bullet._id.toString(),
       bulletText: bullet.bulletText,
       metadata: bullet.metadata,
-      remainingCount: session.bulletQueue.length
+      remainingCount: session.bulletQueue.length,
     });
 
     // Send initial agent question
     client.emit('agent-question', {
       question: `Let's verify this bullet point: "${bullet.bulletText}". Can you walk me through what you actually did here?`,
-      thinking: false
+      thinking: false,
     });
   }
 }
-

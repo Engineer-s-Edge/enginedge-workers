@@ -109,7 +109,7 @@ describe('CompilationJob Entity', () => {
     it('job-008: should record completion time', () => {
       const job = CompilationJob.create('job-008', 'doc-008').start();
       const before = new Date();
-      
+
       const completed = job.complete({
         success: true,
         compilationTime: 2000,
@@ -118,12 +118,16 @@ describe('CompilationJob Entity', () => {
         warnings: [],
         logs: mockLog,
       });
-      
+
       const after = new Date();
 
       expect(completed.completedAt).not.toBeNull();
-      expect(completed.completedAt!.getTime()).toBeGreaterThanOrEqual(before.getTime());
-      expect(completed.completedAt!.getTime()).toBeLessThanOrEqual(after.getTime());
+      expect(completed.completedAt!.getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
+      expect(completed.completedAt!.getTime()).toBeLessThanOrEqual(
+        after.getTime(),
+      );
     });
   });
 
@@ -144,9 +148,9 @@ describe('CompilationJob Entity', () => {
 
     it('job-010: should calculate compilation time on failure', async () => {
       const job = CompilationJob.create('job-010', 'doc-010').start();
-      
+
       // Wait 10ms to ensure measurable time
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       const failed = job.fail([], mockLog);
 
       expect(failed.result?.compilationTime).toBeGreaterThan(0);
@@ -252,9 +256,9 @@ describe('CompilationJob Entity', () => {
 
     it('job-022: should calculate duration for completed job', async () => {
       const job = CompilationJob.create('job-022', 'doc-022').start();
-      
+
       // Wait 10ms to ensure measurable duration
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       const completed = job.complete({
         success: true,
         compilationTime: 1000,

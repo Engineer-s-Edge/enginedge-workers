@@ -1,11 +1,21 @@
 /**
  * Manager Agent Controller
- * 
+ *
  * Specialized endpoints for Manager (task coordination) agents.
  * Handles task breakdown and sub-agent coordination.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { ILogger } from '@application/ports/logger.port';
@@ -27,12 +37,15 @@ export class ManagerAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createManagerAgent(@Body() body: {
-    name: string;
-    userId: string;
-    decompositionStrategy?: 'functional' | 'hierarchical' | 'temporal';
-    maxSubAgents?: number;
-  }) {
+  async createManagerAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      decompositionStrategy?: 'functional' | 'hierarchical' | 'temporal';
+      maxSubAgents?: number;
+    },
+  ) {
     this.logger.info('Creating Manager agent', { name: body.name });
 
     const config = {
@@ -61,7 +74,8 @@ export class ManagerAgentController {
   @HttpCode(HttpStatus.OK)
   async decomposeTask(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       masterTask: string;
     },
@@ -83,7 +97,8 @@ export class ManagerAgentController {
   @HttpCode(HttpStatus.OK)
   async coordinateExecution(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       task: string;
       strategy?: 'sequential' | 'parallel' | 'hierarchical';
@@ -130,7 +145,8 @@ export class ManagerAgentController {
   @HttpCode(HttpStatus.OK)
   async aggregateResults(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       subtaskResults: any[];
     },
@@ -144,4 +160,3 @@ export class ManagerAgentController {
     };
   }
 }
-

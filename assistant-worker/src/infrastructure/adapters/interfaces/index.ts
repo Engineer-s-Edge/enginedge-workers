@@ -1,6 +1,6 @@
 /**
  * Adapter Interfaces Index
- * 
+ *
  * Central export point for all adapter port interfaces
  */
 

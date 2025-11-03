@@ -140,7 +140,8 @@ describe('InterviewController', () => {
 
     await controller.deleteInterview('test-id');
 
-    expect(mockInterviewService.deleteInterview).toHaveBeenCalledWith('test-id');
+    expect(mockInterviewService.deleteInterview).toHaveBeenCalledWith(
+      'test-id',
+    );
   });
 });
-

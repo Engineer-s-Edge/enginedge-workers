@@ -1,6 +1,6 @@
 /**
  * Node FileSystem Adapter
- * 
+ *
  * Implements file system operations for LaTeX compilation.
  */
 

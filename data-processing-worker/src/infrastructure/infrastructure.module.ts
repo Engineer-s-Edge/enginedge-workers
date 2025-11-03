@@ -9,7 +9,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '../application/application.module';
 
 // Database Schemas
-import { DocumentModel, DocumentSchema } from './database/schemas/document.schema';
+import {
+  DocumentModel,
+  DocumentSchema,
+} from './database/schemas/document.schema';
 
 // Controllers
 import { DocumentController } from './controllers/document.controller';
@@ -78,7 +81,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
 
 /**
  * Infrastructure module - All adapters and implementations
- * 
+ *
  * Phase 1: Document Loaders (10 filesystem loaders) ✅
  * Phase 2: Web Loaders (2+ web loaders) ✅
  * Phase 3: Text Splitters ✅
@@ -86,7 +89,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
  * Phase 5: Vector Stores (MongoDB) ✅
  * Phase 6: Kafka Integration ✅
  * Phase 7: REST API Controllers ✅
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -97,11 +100,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     ]),
     ApplicationModule,
   ],
-  controllers: [
-    DocumentController,
-    VectorStoreController,
-    EmbedderController,
-  ],
+  controllers: [DocumentController, VectorStoreController, EmbedderController],
   providers: [
     // Filesystem Loaders
     PdfLoaderAdapter,
@@ -114,7 +113,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     ObsidianLoaderAdapter,
     WhisperAudioLoaderAdapter,
     UnstructuredLoaderAdapter,
-    
+
     // Web Loaders (13 total)
     CheerioWebLoaderAdapter,
     PlaywrightWebLoaderAdapter,
@@ -129,7 +128,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     YoutubeLoaderAdapter,
     HtmlLoaderAdapter,
     NotionApiLoaderAdapter,
-    
+
     // Text Splitters (13 total)
     RecursiveCharacterSplitterAdapter,
     CharacterSplitterAdapter,
@@ -144,14 +143,14 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     LatexSplitterAdapter,
     MarkdownSplitterAdapter,
     HtmlSplitterAdapter,
-    
+
     // Embedders
     OpenAIEmbedderAdapter,
     GoogleEmbedderAdapter,
     CohereEmbedderAdapter,
     HuggingFaceEmbedderAdapter,
     LocalEmbedderAdapter,
-    
+
     // Vector Stores (6 total - MongoDB ENABLED, others disabled)
     MongoDBVectorStoreAdapter,
     PineconeVectorStoreAdapter,
@@ -159,7 +158,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     PgVectorStoreAdapter,
     QdrantVectorStoreAdapter,
     ChromaDBVectorStoreAdapter,
-    
+
     // Messaging
     KafkaDataProcessingAdapter,
   ],

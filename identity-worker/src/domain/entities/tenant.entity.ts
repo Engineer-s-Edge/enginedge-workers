@@ -3,5 +3,3 @@ export interface Tenant {
   name: string;
   slug: string;
 }
-
-

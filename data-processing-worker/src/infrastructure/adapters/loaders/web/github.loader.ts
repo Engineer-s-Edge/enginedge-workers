@@ -29,9 +29,9 @@ export class GithubLoaderAdapter extends WebLoaderPort {
   ): Promise<Document[]> {
     try {
       const { owner, repo, path, type } = this._parseGithubUrl(url);
-      
+
       const headers: Record<string, string> = {
-        'Accept': 'application/vnd.github.v3+json',
+        Accept: 'application/vnd.github.v3+json',
       };
 
       if (options?.accessToken) {
@@ -62,9 +62,7 @@ export class GithubLoaderAdapter extends WebLoaderPort {
 
       return documents;
     } catch (error: any) {
-      throw new Error(
-        `Failed to load GitHub content: ${error.message}`,
-      );
+      throw new Error(`Failed to load GitHub content: ${error.message}`);
     }
   }
 
@@ -87,26 +85,24 @@ export class GithubLoaderAdapter extends WebLoaderPort {
       }
 
       // Decode base64 content
-      const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+      const content = Buffer.from(response.data.content, 'base64').toString(
+        'utf-8',
+      );
 
       const documentId = `github-${crypto.createHash('md5').update(`${owner}/${repo}/${path}-${Date.now()}`).digest('hex')}`;
-      return new Document(
-        documentId,
-        content,
-        {
-          source: response.data.html_url,
-          sourceType: 'url',
-          loader: this.name,
-          owner,
-          repo,
-          path: response.data.path,
-          branch,
-          fileName: response.data.name,
-          size: response.data.size,
-          sha: response.data.sha,
-          timestamp: new Date().toISOString(),
-        },
-      );
+      return new Document(documentId, content, {
+        source: response.data.html_url,
+        sourceType: 'url',
+        loader: this.name,
+        owner,
+        repo,
+        path: response.data.path,
+        branch,
+        fileName: response.data.name,
+        size: response.data.size,
+        sha: response.data.sha,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error: any) {
       console.warn(`Failed to load file ${path}: ${error.message}`);
       return null;
@@ -131,11 +127,13 @@ export class GithubLoaderAdapter extends WebLoaderPort {
       const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
       const response = await axios.get(apiUrl, { headers });
 
-      const items = Array.isArray(response.data) ? response.data : [response.data];
+      const items = Array.isArray(response.data)
+        ? response.data
+        : [response.data];
 
       for (const item of items) {
         // Check ignore paths
-        if (ignorePaths.some(ignore => item.path.includes(ignore))) {
+        if (ignorePaths.some((ignore) => item.path.includes(ignore))) {
           continue;
         }
 
@@ -148,7 +146,13 @@ export class GithubLoaderAdapter extends WebLoaderPort {
             }
           }
 
-          const doc = await this._loadFile(owner, repo, item.path, branch, headers);
+          const doc = await this._loadFile(
+            owner,
+            repo,
+            item.path,
+            branch,
+            headers,
+          );
           if (doc) documents.push(doc);
         } else if (item.type === 'dir' && recursive) {
           await this._loadDirectory(
@@ -179,7 +183,7 @@ export class GithubLoaderAdapter extends WebLoaderPort {
     type: 'file' | 'dir' | 'repo';
   } {
     const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/').filter(p => p);
+    const pathParts = urlObj.pathname.split('/').filter((p) => p);
 
     if (pathParts.length < 2) {
       throw new Error('Invalid GitHub URL: must contain owner and repo');
@@ -215,8 +219,10 @@ export class GithubLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

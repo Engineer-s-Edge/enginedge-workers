@@ -49,7 +49,8 @@ export class CommandProcessorAdapter implements ICommandProcessor {
             confidence: payload?.confidence || 0.95,
             operation: payload?.operation || 'extract',
             language: payload?.language || 'eng',
-            message: 'OCR processing not yet fully implemented - returning placeholder',
+            message:
+              'OCR processing not yet fully implemented - returning placeholder',
           };
           break;
 
@@ -63,7 +64,10 @@ export class CommandProcessorAdapter implements ICommandProcessor {
         result: resultPayload,
       };
     } catch (error) {
-      this.logger.error(`Error processing task ${taskId}:`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Error processing task ${taskId}:`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return {
         taskId: taskId,
         status: 'FAILURE',

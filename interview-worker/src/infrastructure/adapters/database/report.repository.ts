@@ -41,7 +41,10 @@ export class MongoInterviewReportRepository
       );
       return report;
     } catch (error) {
-      this.logger.error(`Failed to save report: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save report: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -51,7 +54,10 @@ export class MongoInterviewReportRepository
       const doc = await this.collection.findOne({ reportId });
       return doc ? InterviewReport.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find report: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find report: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -61,7 +67,10 @@ export class MongoInterviewReportRepository
       const doc = await this.collection.findOne({ sessionId });
       return doc ? InterviewReport.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find report by session: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find report by session: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -71,9 +80,11 @@ export class MongoInterviewReportRepository
       const result = await this.collection.deleteOne({ reportId });
       return result.deletedCount > 0;
     } catch (error) {
-      this.logger.error(`Failed to delete report: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to delete report: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

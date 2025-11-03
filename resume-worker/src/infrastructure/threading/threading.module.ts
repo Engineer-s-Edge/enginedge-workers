@@ -3,7 +3,7 @@ import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
 
 /**
  * Threading Module
- * 
+ *
  * Provides worker thread pool and concurrency management.
  * Uses ILogger from InfrastructureModule (which is @Global).
  */
@@ -20,8 +20,6 @@ import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
     },
     WorkerThreadPool,
   ],
-  exports: [
-    WorkerThreadPool,
-  ],
+  exports: [WorkerThreadPool],
 })
 export class ThreadingModule {}

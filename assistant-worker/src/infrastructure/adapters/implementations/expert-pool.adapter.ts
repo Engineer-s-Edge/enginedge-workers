@@ -22,10 +22,14 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
   private readonly logger = new Logger(ExpertPoolAdapter.name);
 
   constructor(private readonly expertPoolManager: ExpertPoolManager) {
-    this.logger.log('Expert Pool Adapter initialized with real ExpertPoolManager');
+    this.logger.log(
+      'Expert Pool Adapter initialized with real ExpertPoolManager',
+    );
   }
 
-  async allocateExperts(request: ExpertAllocationRequest): Promise<AllocationResult> {
+  async allocateExperts(
+    request: ExpertAllocationRequest,
+  ): Promise<AllocationResult> {
     try {
       this.logger.log(
         `Allocating ${request.count} experts with specialization: ${request.specialization || 'any'}`,
@@ -35,13 +39,15 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       const result = await this.expertPoolManager.allocateExperts(request);
 
       // Convert internal representation to adapter interface
-      const allocated: ExpertAgent[] = result.allocated.map((expert: ExpertAgentInstance) => ({
-        id: expert.id,
-        specialization: expert.specialization,
-        complexity: expert.complexity,
-        availability: expert.availability,
-        expertise: expert.expertise,
-      }));
+      const allocated: ExpertAgent[] = result.allocated.map(
+        (expert: ExpertAgentInstance) => ({
+          id: expert.id,
+          specialization: expert.specialization,
+          complexity: expert.complexity,
+          availability: expert.availability,
+          expertise: expert.expertise,
+        }),
+      );
 
       return {
         allocated,
@@ -71,7 +77,10 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       return await this.expertPoolManager.getAvailableCount();
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get available count: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get available count: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -107,7 +116,10 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       }));
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get available experts: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get available experts: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -117,9 +129,11 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       return await this.expertPoolManager.isExpertAvailable(expertId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to check expert availability: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to check expert availability: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 }
-

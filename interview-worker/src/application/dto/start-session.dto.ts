@@ -14,4 +14,3 @@ export class StartSessionDto {
   @IsEnum(['voice', 'text'])
   communicationMode!: 'voice' | 'text';
 }
-

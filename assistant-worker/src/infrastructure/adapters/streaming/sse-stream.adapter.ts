@@ -1,6 +1,6 @@
 /**
  * Server-Sent Events (SSE) Stream Adapter
- * 
+ *
  * Provides real-time streaming of agent execution updates to clients.
  * Supports progress updates, token streaming, and event notifications.
  */
@@ -9,7 +9,14 @@ import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 
 export interface StreamEvent {
-  type: 'start' | 'progress' | 'token' | 'thought' | 'tool' | 'complete' | 'error';
+  type:
+    | 'start'
+    | 'progress'
+    | 'token'
+    | 'thought'
+    | 'tool'
+    | 'complete'
+    | 'error';
   data: any;
   timestamp: Date;
 }
@@ -66,7 +73,7 @@ export class SSEStreamAdapter {
    */
   sendToStream(streamId: string, event: StreamEvent): boolean {
     const res = this.activeStreams.get(streamId);
-    
+
     if (!res) {
       return false;
     }
@@ -111,7 +118,12 @@ export class SSEStreamAdapter {
   /**
    * Send tool execution update
    */
-  sendToolExecution(streamId: string, toolName: string, args: any, result?: any): boolean {
+  sendToolExecution(
+    streamId: string,
+    toolName: string,
+    args: any,
+    result?: any,
+  ): boolean {
     return this.sendToStream(streamId, {
       type: 'tool',
       data: { toolName, args, result },
@@ -140,7 +152,7 @@ export class SSEStreamAdapter {
    */
   sendError(streamId: string, error: string | Error): boolean {
     const errorMessage = typeof error === 'string' ? error : error.message;
-    
+
     const sent = this.sendToStream(streamId, {
       type: 'error',
       data: { error: errorMessage },
@@ -158,7 +170,7 @@ export class SSEStreamAdapter {
    */
   closeStream(streamId: string): void {
     const res = this.activeStreams.get(streamId);
-    
+
     if (res) {
       res.end();
       this.activeStreams.delete(streamId);
@@ -189,4 +201,3 @@ export class SSEStreamAdapter {
     this.activeStreams.clear();
   }
 }
-

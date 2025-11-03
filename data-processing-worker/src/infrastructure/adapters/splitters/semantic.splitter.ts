@@ -52,7 +52,7 @@ export class SemanticSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -71,17 +71,17 @@ export class SemanticSplitterAdapter extends TextSplitterPort {
     respectSentences: boolean,
   ): string[] {
     const chunks: string[] = [];
-    
+
     // Split by paragraphs first
     const paragraphs = respectParagraphs ? text.split(/\n\n+/) : [text];
-    
+
     let currentChunk = '';
-    
+
     for (const paragraph of paragraphs) {
       if (respectSentences) {
         // Split paragraph into sentences
         const sentences = this._splitIntoSentences(paragraph);
-        
+
         for (const sentence of sentences) {
           if ((currentChunk + sentence).length <= chunkSize) {
             currentChunk += (currentChunk ? ' ' : '') + sentence;
@@ -89,10 +89,11 @@ export class SemanticSplitterAdapter extends TextSplitterPort {
             if (currentChunk) {
               chunks.push(currentChunk.trim());
             }
-            
+
             // Handle overlap
             if (chunkOverlap > 0 && currentChunk.length > chunkOverlap) {
-              const overlapSentences = this._splitIntoSentences(currentChunk).slice(-2);
+              const overlapSentences =
+                this._splitIntoSentences(currentChunk).slice(-2);
               currentChunk = overlapSentences.join(' ') + ' ' + sentence;
             } else {
               currentChunk = sentence;
@@ -111,12 +112,12 @@ export class SemanticSplitterAdapter extends TextSplitterPort {
         }
       }
     }
-    
+
     if (currentChunk) {
       chunks.push(currentChunk.trim());
     }
-    
-    return chunks.filter(c => c.length > 0);
+
+    return chunks.filter((c) => c.length > 0);
   }
 
   /**
@@ -125,6 +126,6 @@ export class SemanticSplitterAdapter extends TextSplitterPort {
   private _splitIntoSentences(text: string): string[] {
     // Simple sentence splitting (can be improved with NLP)
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-    return sentences.map(s => s.trim()).filter(s => s.length > 0);
+    return sentences.map((s) => s.trim()).filter((s) => s.length > 0);
   }
 }

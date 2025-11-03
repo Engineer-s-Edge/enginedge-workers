@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services and use cases.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Phase 1: Google Calendar Integration ✅
  * Phase 2: Habits & Goals ✅
  * Phase 3: Scheduling Engine ✅
@@ -26,7 +26,7 @@ import { RecommendationService } from './services/recommendation.service';
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers (ILogger, repositories)
  * are automatically available to all modules. No need to import it here.
  */
@@ -48,7 +48,7 @@ import { RecommendationService } from './services/recommendation.service';
   exports: [
     // Export domain module so infrastructure can access it
     DomainModule,
-    
+
     // Export services for other modules
     HabitService,
     GoalService,

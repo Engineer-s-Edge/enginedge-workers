@@ -1,13 +1,17 @@
 /**
  * Goal Entity
- * 
+ *
  * Represents a long-term goal with milestones and progress tracking
- * 
+ *
  * Domain Entity - No infrastructure dependencies
  */
 
 export type GoalPriority = 1 | 2 | 3 | 4 | 5; // 1 = lowest, 5 = highest
-export type GoalStatus = 'not_started' | 'in_progress' | 'completed' | 'abandoned';
+export type GoalStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'completed'
+  | 'abandoned';
 
 export interface Milestone {
   id: string;
@@ -150,7 +154,9 @@ export class Goal {
    * Add or update a milestone
    */
   updateMilestone(milestone: Milestone): Goal {
-    const existingIndex = this.milestones.findIndex((m) => m.id === milestone.id);
+    const existingIndex = this.milestones.findIndex(
+      (m) => m.id === milestone.id,
+    );
 
     const newMilestones = [...this.milestones];
     if (existingIndex >= 0) {
@@ -295,7 +301,9 @@ export class Goal {
       this.id,
       this.userId,
       updates.title ?? this.title,
-      updates.description !== undefined ? updates.description : this.description,
+      updates.description !== undefined
+        ? updates.description
+        : this.description,
       updates.priority ?? this.priority,
       updates.status ?? this.status,
       updates.targetDate !== undefined ? updates.targetDate : this.targetDate,

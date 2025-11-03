@@ -1,6 +1,6 @@
 /**
  * Agent Session Service
- * 
+ *
  * Manages agent sessions, instance tracking, and user interaction handling.
  */
 
@@ -91,7 +91,7 @@ export class AgentSessionService {
    */
   getAgentInstance(agentId: string, userId: string): AgentSession | undefined {
     const instanceKey = this.generateInstanceKey(agentId, userId);
-    
+
     for (const session of this.sessions.values()) {
       if (session.instanceKey === instanceKey && session.status === 'active') {
         return session;
@@ -104,12 +104,9 @@ export class AgentSessionService {
   /**
    * Update session status
    */
-  updateSessionStatus(
-    sessionId: string,
-    status: AgentSession['status'],
-  ): void {
+  updateSessionStatus(sessionId: string, status: AgentSession['status']): void {
     const session = this.sessions.get(sessionId);
-    
+
     if (session) {
       session.status = status;
       session.lastActivityAt = new Date();
@@ -126,7 +123,7 @@ export class AgentSessionService {
    */
   updateSessionActivity(sessionId: string): void {
     const session = this.sessions.get(sessionId);
-    
+
     if (session) {
       session.lastActivityAt = new Date();
     }
@@ -204,12 +201,9 @@ export class AgentSessionService {
   /**
    * Resolve user interaction
    */
-  resolveUserInteraction(
-    interactionId: string,
-    response: unknown,
-  ): void {
+  resolveUserInteraction(interactionId: string, response: unknown): void {
     const interaction = this.interactions.get(interactionId);
-    
+
     if (interaction) {
       interaction.status = 'resolved';
       interaction.response = response;
@@ -226,7 +220,7 @@ export class AgentSessionService {
    */
   cancelUserInteraction(interactionId: string): void {
     const interaction = this.interactions.get(interactionId);
-    
+
     if (interaction) {
       interaction.status = 'cancelled';
       interaction.resolvedAt = new Date();
@@ -272,4 +266,3 @@ export class AgentSessionService {
     return `interaction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
-

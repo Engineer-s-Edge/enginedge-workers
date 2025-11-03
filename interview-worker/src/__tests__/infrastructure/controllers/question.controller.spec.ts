@@ -123,7 +123,10 @@ describe('QuestionController', () => {
 
     mockQuestionService.getQuestionsByCategory.mockResolvedValue(mockQuestions);
 
-    const result = await controller.getQuestionsByCategory('tech-trivia', 'easy');
+    const result = await controller.getQuestionsByCategory(
+      'tech-trivia',
+      'easy',
+    );
 
     expect(result).toHaveLength(1);
     expect(mockQuestionService.getQuestionsByCategory).toHaveBeenCalledWith(
@@ -159,4 +162,3 @@ describe('QuestionController', () => {
     expect(mockQuestionService.deleteQuestion).toHaveBeenCalledWith('q1');
   });
 });
-

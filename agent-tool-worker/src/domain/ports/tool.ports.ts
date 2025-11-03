@@ -14,7 +14,11 @@ export interface ITool {
 
   execute(call: ToolCall): Promise<ToolResult>;
   validate(input: unknown): boolean;
-  setDependencies?(validator: IToolValidator, cache?: IToolCache, metrics?: IToolMetrics): void;
+  setDependencies?(
+    validator: IToolValidator,
+    cache?: IToolCache,
+    metrics?: IToolMetrics,
+  ): void;
 }
 
 export interface IActor extends ITool {
@@ -41,7 +45,11 @@ export interface IToolCache {
 }
 
 export interface IToolMetrics {
-  recordExecution(toolName: string, duration: number, success: boolean): Promise<void>;
+  recordExecution(
+    toolName: string,
+    duration: number,
+    success: boolean,
+  ): Promise<void>;
   recordError(toolName: string, error: string): Promise<void>;
   getMetrics(toolName: string): Promise<{
     totalExecutions: number;

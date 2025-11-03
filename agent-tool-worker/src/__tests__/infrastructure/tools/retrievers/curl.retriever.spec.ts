@@ -5,7 +5,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { CurlRetriever, CurlArgs } from '@infrastructure/tools/retrievers/curl.retriever';
+import {
+  CurlRetriever,
+  CurlArgs,
+} from '@infrastructure/tools/retrievers/curl.retriever';
 import axios from 'axios';
 
 jest.mock('axios');
@@ -48,7 +51,7 @@ describe('CurlRetriever', () => {
   describe('Input Validation', () => {
     it('should reject invalid URL', async () => {
       const args: CurlArgs = {
-        url: 'not-a-valid-url'
+        url: 'not-a-valid-url',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -61,11 +64,11 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'success' }
+        data: { message: 'success' },
       });
 
       const args: CurlArgs = {
-        url: 'http://httpbin.org/get'
+        url: 'http://httpbin.org/get',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -78,11 +81,11 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'success' }
+        data: { message: 'success' },
       });
 
       const args: CurlArgs = {
-        url: 'https://httpbin.org/get'
+        url: 'https://httpbin.org/get',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -97,12 +100,12 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'success' }
+        data: { message: 'success' },
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/get',
-        method: 'GET'
+        method: 'GET',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -115,13 +118,13 @@ describe('CurlRetriever', () => {
         status: 201,
         statusText: 'Created',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'created' }
+        data: { message: 'created' },
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/post',
         method: 'POST',
-        body: { test: 'data' }
+        body: { test: 'data' },
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -134,13 +137,13 @@ describe('CurlRetriever', () => {
         status: 405,
         statusText: 'Method Not Allowed',
         headers: { 'content-type': 'text/html' },
-        data: '<html>Method not allowed</html>'
+        data: '<html>Method not allowed</html>',
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/put',
         method: 'PUT',
-        body: 'test data'
+        body: 'test data',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -153,12 +156,12 @@ describe('CurlRetriever', () => {
         status: 405,
         statusText: 'Method Not Allowed',
         headers: { 'content-type': 'text/html' },
-        data: '<html>Method not allowed</html>'
+        data: '<html>Method not allowed</html>',
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/delete',
-        method: 'DELETE'
+        method: 'DELETE',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -173,15 +176,15 @@ describe('CurlRetriever', () => {
         status: 401,
         statusText: 'Unauthorized',
         headers: { 'content-type': 'text/html' },
-        data: '<html>Unauthorized</html>'
+        data: '<html>Unauthorized</html>',
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/get',
         headers: {
-          'Authorization': 'Bearer token123',
-          'X-Custom-Header': 'custom-value'
-        }
+          Authorization: 'Bearer token123',
+          'X-Custom-Header': 'custom-value',
+        },
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -194,15 +197,15 @@ describe('CurlRetriever', () => {
         status: 400,
         statusText: 'Bad Request',
         headers: { 'content-type': 'text/html' },
-        data: '<html>Bad Request</html>'
+        data: '<html>Bad Request</html>',
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/get',
         params: {
           param1: 'value1',
-          param2: 'value2'
-        }
+          param2: 'value2',
+        },
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -217,7 +220,7 @@ describe('CurlRetriever', () => {
         status: 400,
         statusText: 'Bad Request',
         headers: { 'content-type': 'text/html' },
-        data: '<html>Bad Request</html>'
+        data: '<html>Bad Request</html>',
       });
 
       const args: CurlArgs = {
@@ -225,8 +228,8 @@ describe('CurlRetriever', () => {
         method: 'POST',
         body: {
           name: 'John Doe',
-          email: 'john@example.com'
-        }
+          email: 'john@example.com',
+        },
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -239,14 +242,14 @@ describe('CurlRetriever', () => {
         status: 400,
         statusText: 'Bad Request',
         headers: { 'content-type': 'text/html' },
-        data: '<html>Bad Request</html>'
+        data: '<html>Bad Request</html>',
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/post',
         method: 'POST',
         body: '<xml><data>test</data></xml>',
-        headers: { 'Content-Type': 'application/xml' }
+        headers: { 'Content-Type': 'application/xml' },
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -261,12 +264,12 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'delayed response' }
+        data: { message: 'delayed response' },
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/delay/1',
-        timeout: 5000
+        timeout: 5000,
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -279,12 +282,12 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'redirected' }
+        data: { message: 'redirected' },
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/redirect/1',
-        followRedirects: true
+        followRedirects: true,
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -297,12 +300,12 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'success' }
+        data: { message: 'success' },
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/get',
-        verifySSL: true
+        verifySSL: true,
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -317,22 +320,22 @@ describe('CurlRetriever', () => {
         status: 200,
         statusText: 'OK',
         headers: { 'content-type': 'application/json' },
-        data: { message: 'success' }
+        data: { message: 'success' },
       });
 
       const args: CurlArgs = {
-        url: 'https://httpbin.org/get'
+        url: 'https://httpbin.org/get',
       };
 
       const ragConfig = {
         similarity: 0.8,
         topK: 50,
-        includeMetadata: false
+        includeMetadata: false,
       };
 
       const result = await retriever.execute({
         name: 'curl-retriever',
-        args: { ...args, ragConfig }
+        args: { ...args, ragConfig },
       });
       expect(result.success).toBe(true);
       expect(result.output!.statusCode).toBe(200);
@@ -343,11 +346,11 @@ describe('CurlRetriever', () => {
     it('should handle network connectivity issues', async () => {
       mockedAxios.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: CurlArgs = {
-        url: 'http://non-existent-domain-12345.com'
+        url: 'http://non-existent-domain-12345.com',
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });
@@ -358,12 +361,12 @@ describe('CurlRetriever', () => {
     it('should handle timeout errors', async () => {
       mockedAxios.mockRejectedValueOnce({
         code: 'ETIMEDOUT',
-        message: 'Timeout occurred'
+        message: 'Timeout occurred',
       });
 
       const args: CurlArgs = {
         url: 'https://httpbin.org/delay/10',
-        timeout: 1000
+        timeout: 1000,
       };
 
       const result = await retriever.execute({ name: 'curl-retriever', args });

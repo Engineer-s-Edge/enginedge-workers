@@ -75,10 +75,7 @@ export class ExperienceBankController {
 
   @Patch(':id/review')
   @HttpCode(HttpStatus.OK)
-  async markReviewed(
-    @Param('id') id: string,
-    @Body() dto: MarkReviewedDto,
-  ) {
+  async markReviewed(@Param('id') id: string, @Body() dto: MarkReviewedDto) {
     await this.experienceBankService.markReviewed(
       new Types.ObjectId(id),
       dto.reviewed,
@@ -99,4 +96,3 @@ export class ExperienceBankController {
     await this.experienceBankService.delete(new Types.ObjectId(id));
   }
 }
-

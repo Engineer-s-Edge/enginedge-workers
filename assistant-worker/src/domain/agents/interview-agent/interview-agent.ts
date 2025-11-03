@@ -1,6 +1,6 @@
 /**
  * Interview Agent
- * 
+ *
  * Specialized agent for conducting AI-powered mock interviews.
  * Manages interview flow, tracks time, asks questions, and builds candidate profiles.
  */
@@ -9,13 +9,20 @@ import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult } from '../../entities';
 import { ILogger } from '@application/ports/logger.port';
 import { ILLMProvider, LLMRequest } from '@application/ports/llm-provider.port';
-import { InterviewAgentConfig, InterviewContext } from './interview-agent.types';
+import {
+  InterviewAgentConfig,
+  InterviewContext,
+} from './interview-agent.types';
 import axios from 'axios';
 
 export class InterviewAgent extends BaseAgent {
   private config: InterviewAgentConfig;
   private interviewContext: InterviewContext | null = null;
-  private conversationMemory: Array<{ role: string; content: string; timestamp: Date }> = [];
+  private conversationMemory: Array<{
+    role: string;
+    content: string;
+    timestamp: Date;
+  }> = [];
   private profileMemory: {
     strengths: string[];
     concerns: string[];
@@ -35,7 +42,8 @@ export class InterviewAgent extends BaseAgent {
   ) {
     super(llmProvider, logger);
     this.config = {
-      interviewWorkerBaseUrl: process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
+      interviewWorkerBaseUrl:
+        process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
       temperature: 0.7,
       model: 'gpt-4',
       difficulty: 'medium',
@@ -50,7 +58,7 @@ export class InterviewAgent extends BaseAgent {
   async initializeContext(): Promise<void> {
     try {
       const baseUrl = this.config.interviewWorkerBaseUrl!;
-      
+
       // Get session details
       const sessionResponse = await axios.get(
         `${baseUrl}/sessions/${this.config.sessionId}`,
@@ -65,13 +73,21 @@ export class InterviewAgent extends BaseAgent {
 
       // Get current phase info
       const currentPhaseData = interview.phases[session.currentPhase || 0];
-      
+
       // Calculate questions remaining (simplified - would need actual question tracking)
-      const questionsRemainingInPhase = Math.max(0, 
-        (currentPhaseData?.questionCount || 0) - (session.currentQuestion ? 1 : 0)
+      const questionsRemainingInPhase = Math.max(
+        0,
+        (currentPhaseData?.questionCount || 0) -
+          (session.currentQuestion ? 1 : 0),
       );
-      const totalQuestions = interview.phases.reduce((sum: number, p: any) => sum + p.questionCount, 0);
-      const questionsRemainingTotal = Math.max(0, totalQuestions - (session.currentQuestion ? 1 : 0));
+      const totalQuestions = interview.phases.reduce(
+        (sum: number, p: any) => sum + p.questionCount,
+        0,
+      );
+      const questionsRemainingTotal = Math.max(
+        0,
+        totalQuestions - (session.currentQuestion ? 1 : 0),
+      );
 
       this.interviewContext = {
         sessionId: this.config.sessionId,
@@ -91,7 +107,9 @@ export class InterviewAgent extends BaseAgent {
       // Load profile memory
       await this.loadProfileMemory();
 
-      this.logger.debug('Interview context initialized', { context: this.interviewContext });
+      this.logger.debug('Interview context initialized', {
+        context: this.interviewContext,
+      });
     } catch (error) {
       this.logger.error('Failed to initialize interview context', { error });
       throw error;
@@ -108,7 +126,7 @@ export class InterviewAgent extends BaseAgent {
         `${baseUrl}/sessions/${this.config.sessionId}/profile/recall`,
       );
       const profile = profileResponse.data;
-      
+
       this.profileMemory = {
         strengths: profile.strengths || [],
         concerns: profile.concerns || [],
@@ -116,7 +134,9 @@ export class InterviewAgent extends BaseAgent {
         keyInsights: profile.keyInsights || '',
       };
     } catch (error) {
-      this.logger.warn('Failed to load profile memory, using empty profile', { error });
+      this.logger.warn('Failed to load profile memory, using empty profile', {
+        error,
+      });
     }
   }
 
@@ -210,19 +230,23 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
    */
   private formatProfileMemory(): string {
     const parts: string[] = [];
-    
+
     if (this.profileMemory.strengths.length > 0) {
-      parts.push(`Strengths:\n${this.profileMemory.strengths.map(s => `- ${s}`).join('\n')}`);
+      parts.push(
+        `Strengths:\n${this.profileMemory.strengths.map((s) => `- ${s}`).join('\n')}`,
+      );
     }
-    
+
     if (this.profileMemory.concerns.length > 0) {
-      parts.push(`Concerns:\n${this.profileMemory.concerns.map(c => `- ${c}`).join('\n')}`);
+      parts.push(
+        `Concerns:\n${this.profileMemory.concerns.map((c) => `- ${c}`).join('\n')}`,
+      );
     }
-    
+
     if (this.profileMemory.keyInsights) {
       parts.push(`Key Insights: ${this.profileMemory.keyInsights}`);
     }
-    
+
     return parts.length > 0 ? parts.join('\n\n') : 'No observations yet.';
   }
 
@@ -235,7 +259,7 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
   ): Promise<ExecutionResult> {
     try {
       await this.initializeContext();
-      
+
       // Add to conversation memory
       this.conversationMemory.push({
         role: 'candidate',
@@ -245,11 +269,11 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
 
       // Build prompt
       const systemPrompt = this.buildSystemPrompt();
-      
+
       // Build messages from conversation history
       const messages: LLMRequest['messages'] = [
         { role: 'system', content: systemPrompt },
-        ...this.conversationMemory.slice(-10).map(m => ({
+        ...this.conversationMemory.slice(-10).map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),
@@ -272,9 +296,14 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
       // Handle tool calls
       if (response.toolCalls && response.toolCalls.length > 0) {
         const toolResults = await Promise.all(
-          response.toolCalls.map(tc => this.executeTool(tc.function.name, JSON.parse(tc.function.arguments || '{}'))),
+          response.toolCalls.map((tc) =>
+            this.executeTool(
+              tc.function.name,
+              JSON.parse(tc.function.arguments || '{}'),
+            ),
+          ),
         );
-        
+
         // Add tool results to conversation
         this.conversationMemory.push({
           role: 'assistant',
@@ -325,7 +354,7 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
   ): AsyncGenerator<string> {
     try {
       await this.initializeContext();
-      
+
       this.conversationMemory.push({
         role: 'candidate',
         content: input,
@@ -335,7 +364,7 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
       const systemPrompt = this.buildSystemPrompt();
       const messages: LLMRequest['messages'] = [
         { role: 'system', content: systemPrompt },
-        ...this.conversationMemory.slice(-10).map(m => ({
+        ...this.conversationMemory.slice(-10).map((m) => ({
           role: m.role as 'user' | 'assistant',
           content: m.content,
         })),
@@ -373,7 +402,8 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
         type: 'function',
         function: {
           name: 'append_observation',
-          description: 'Record an observation about the candidate (strength, concern, or key insight)',
+          description:
+            'Record an observation about the candidate (strength, concern, or key insight)',
           parameters: {
             type: 'object',
             properties: {
@@ -395,7 +425,8 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
         type: 'function',
         function: {
           name: 'recall_profile',
-          description: 'Get the current candidate profile summary including strengths, concerns, and insights',
+          description:
+            'Get the current candidate profile summary including strengths, concerns, and insights',
           parameters: {
             type: 'object',
             properties: {},
@@ -407,7 +438,8 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
         type: 'function',
         function: {
           name: 'get_followup_count',
-          description: 'Get the number of follow-up questions asked for a specific question',
+          description:
+            'Get the number of follow-up questions asked for a specific question',
           parameters: {
             type: 'object',
             properties: {
@@ -424,7 +456,8 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
         type: 'function',
         function: {
           name: 'check_followup_limit',
-          description: 'Check if more follow-up questions are allowed for a question',
+          description:
+            'Check if more follow-up questions are allowed for a question',
           parameters: {
             type: 'object',
             properties: {
@@ -482,4 +515,3 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
     }
   }
 }
-

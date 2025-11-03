@@ -44,7 +44,24 @@ import { OCRRetriever } from './retrievers/ocr.retriever';
     // Register tool with ToolRegistry on module initialization
     {
       provide: 'TOOL_REGISTRATION',
-      useFactory: (filesystemActor: FilesystemActor, terminalActor: TerminalActor, httpRequestActor: HttpRequestActor, internalTodoActor: InternalTodoActor, localDBActor: LocalDBActor, notionActor: NotionActor, googleCalendarActor: GoogleCalendarActor, googleDriveActor: GoogleDriveActor, todoistActor: TodoistActor, virusTotalActor: VirusTotalActor, mermaidActor: MermaidActor, wolframRetriever: WolframRetriever, filesystemRetriever: FilesystemRetriever, localDBRetriever: LocalDBRetriever, ocrRetriever: OCRRetriever, toolRegistry: ToolRegistry) => {
+      useFactory: (
+        filesystemActor: FilesystemActor,
+        terminalActor: TerminalActor,
+        httpRequestActor: HttpRequestActor,
+        internalTodoActor: InternalTodoActor,
+        localDBActor: LocalDBActor,
+        notionActor: NotionActor,
+        googleCalendarActor: GoogleCalendarActor,
+        googleDriveActor: GoogleDriveActor,
+        todoistActor: TodoistActor,
+        virusTotalActor: VirusTotalActor,
+        mermaidActor: MermaidActor,
+        wolframRetriever: WolframRetriever,
+        filesystemRetriever: FilesystemRetriever,
+        localDBRetriever: LocalDBRetriever,
+        ocrRetriever: OCRRetriever,
+        toolRegistry: ToolRegistry,
+      ) => {
         // Register tools with the registry
         toolRegistry.registerTool(filesystemActor);
         toolRegistry.registerTool(terminalActor);
@@ -63,7 +80,24 @@ import { OCRRetriever } from './retrievers/ocr.retriever';
         toolRegistry.registerTool(ocrRetriever);
         return 'tools-registered';
       },
-      inject: [FilesystemActor, TerminalActor, HttpRequestActor, InternalTodoActor, LocalDBActor, NotionActor, GoogleCalendarActor, GoogleDriveActor, TodoistActor, VirusTotalActor, MermaidActor, WolframRetriever, FilesystemRetriever, LocalDBRetriever, OCRRetriever, ToolRegistry],
+      inject: [
+        FilesystemActor,
+        TerminalActor,
+        HttpRequestActor,
+        InternalTodoActor,
+        LocalDBActor,
+        NotionActor,
+        GoogleCalendarActor,
+        GoogleDriveActor,
+        TodoistActor,
+        VirusTotalActor,
+        MermaidActor,
+        WolframRetriever,
+        FilesystemRetriever,
+        LocalDBRetriever,
+        OCRRetriever,
+        ToolRegistry,
+      ],
     },
   ],
   exports: [

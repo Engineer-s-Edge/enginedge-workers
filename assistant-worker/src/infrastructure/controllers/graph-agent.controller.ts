@@ -1,11 +1,21 @@
 /**
  * Graph Agent Controller
- * 
+ *
  * Specialized endpoints for Graph (DAG-based workflow) agents.
  * Handles workflow execution, checkpointing, and user interaction nodes.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { ILogger } from '@application/ports/logger.port';
@@ -27,26 +37,33 @@ export class GraphAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createGraphAgent(@Body() body: {
-    name: string;
-    userId: string;
-    workflow: {
-      nodes: Array<{
-        id: string;
-        type: string;
-        config?: any;
-      }>;
-      edges: Array<{
-        from: string;
-        to: string;
-        condition?: string;
-      }>;
-    };
-  }) {
+  async createGraphAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      workflow: {
+        nodes: Array<{
+          id: string;
+          type: string;
+          config?: any;
+        }>;
+        edges: Array<{
+          from: string;
+          to: string;
+          condition?: string;
+        }>;
+      };
+    },
+  ) {
     this.logger.info('Creating Graph agent', { name: body.name });
 
     const agent = await this.agentService.createAgent(
-      { name: body.name, agentType: 'graph', config: { workflow: body.workflow } },
+      {
+        name: body.name,
+        agentType: 'graph',
+        config: { workflow: body.workflow },
+      },
       body.userId,
     );
 
@@ -66,7 +83,8 @@ export class GraphAgentController {
   @HttpCode(HttpStatus.OK)
   async executeWorkflow(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       input: string;
       userId: string;
       startNode?: string;
@@ -97,7 +115,7 @@ export class GraphAgentController {
     this.logger.info('Getting workflow state', { agentId });
 
     const agent = await this.agentService.getAgent(agentId, userId);
-    
+
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
@@ -117,7 +135,8 @@ export class GraphAgentController {
   @HttpCode(HttpStatus.CREATED)
   async createCheckpoint(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       name?: string;
     },
@@ -139,12 +158,16 @@ export class GraphAgentController {
   @HttpCode(HttpStatus.OK)
   async resumeFromCheckpoint(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       checkpointId: string;
     },
   ) {
-    this.logger.info('Resuming from checkpoint', { agentId, checkpointId: body.checkpointId });
+    this.logger.info('Resuming from checkpoint', {
+      agentId,
+      checkpointId: body.checkpointId,
+    });
 
     return {
       success: true,
@@ -159,13 +182,17 @@ export class GraphAgentController {
   @HttpCode(HttpStatus.OK)
   async provideUserInput(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       nodeId: string;
       input: any;
     },
   ) {
-    this.logger.info('Providing user input to workflow node', { agentId, nodeId: body.nodeId });
+    this.logger.info('Providing user input to workflow node', {
+      agentId,
+      nodeId: body.nodeId,
+    });
 
     return {
       success: true,
@@ -173,4 +200,3 @@ export class GraphAgentController {
     };
   }
 }
-

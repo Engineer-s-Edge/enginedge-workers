@@ -1,15 +1,15 @@
-import { 
-  Controller, 
-  Post, 
-  Get, 
-  Body, 
-  Param, 
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
   HttpException,
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { 
-  RecommendationService, 
+import {
+  RecommendationService,
   MLRecommendation,
   SchedulingFeedback,
   UserPatterns,
@@ -49,14 +49,14 @@ class SubmitFeedbackDto {
 
 /**
  * Infrastructure Controller: ML Scheduling Controller
- * 
+ *
  * Provides ML-enhanced scheduling recommendations and user feedback endpoints.
- * 
+ *
  * Endpoints:
  * - POST /ml/recommendations - Get ML-powered task recommendations
  * - POST /ml/feedback - Submit user feedback on scheduled tasks
  * - GET /ml/analysis/:userId - Get user scheduling pattern analysis
- * 
+ *
  * @hexagonal-layer Infrastructure
  */
 @Controller('ml')
@@ -70,16 +70,16 @@ export class MLController {
 
   /**
    * Get ML-enhanced scheduling recommendations
-   * 
+   *
    * POST /ml/recommendations
-   * 
+   *
    * Body: {
    *   userId: string,
    *   tasks: Array<{ id, title, description?, estimatedDuration, priority?, deadline? }>,
    *   startDate: ISO string,
    *   endDate: ISO string
    * }
-   * 
+   *
    * Returns: Array<MLRecommendation>
    */
   @Post('recommendations')
@@ -105,7 +105,7 @@ export class MLController {
       // Get current calendar events to determine busy times
       // Note: This gets all events for user, then filters by date range
       const allEvents = await this.calendarRepo.findByUserId(dto.userId);
-      const calendarEvents = allEvents.filter(event => {
+      const calendarEvents = allEvents.filter((event) => {
         return event.startTime < endDate && event.endTime > startDate;
       });
 
@@ -116,13 +116,14 @@ export class MLController {
       }));
 
       // Get recommendations
-      const recommendations = await this.recommendationService.getRecommendations(
-        dto.userId,
-        tasks,
-        calendarEvents,
-        startDate,
-        endDate,
-      );
+      const recommendations =
+        await this.recommendationService.getRecommendations(
+          dto.userId,
+          tasks,
+          calendarEvents,
+          startDate,
+          endDate,
+        );
 
       this.logger.log(`Generated ${recommendations.length} recommendations`);
 
@@ -130,11 +131,11 @@ export class MLController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to get recommendations: ${message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         'Failed to generate recommendations',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -144,9 +145,9 @@ export class MLController {
 
   /**
    * Submit feedback on a scheduled task
-   * 
+   *
    * POST /ml/feedback
-   * 
+   *
    * Body: {
    *   taskId: string,
    *   scheduledSlot: { startTime: ISO, endTime: ISO },
@@ -157,7 +158,7 @@ export class MLController {
    *   actualDuration?: number,
    *   feedback?: string
    * }
-   * 
+   *
    * Returns: { success: boolean, message: string }
    */
   @Post('feedback')
@@ -168,7 +169,10 @@ export class MLController {
       this.logger.log(`Receiving feedback for task ${dto.taskId}`);
 
       // Validate user rating if provided
-      if (dto.userRating !== undefined && (dto.userRating < 1 || dto.userRating > 5)) {
+      if (
+        dto.userRating !== undefined &&
+        (dto.userRating < 1 || dto.userRating > 5)
+      ) {
         throw new HttpException(
           'User rating must be between 1 and 5',
           HttpStatus.BAD_REQUEST,
@@ -187,8 +191,10 @@ export class MLController {
       }
 
       // Import TimeSlot class
-      const { TimeSlot } = await import('../../domain/value-objects/time-slot.value-object');
-      
+      const { TimeSlot } = await import(
+        '../../domain/value-objects/time-slot.value-object'
+      );
+
       const feedback: SchedulingFeedback = {
         taskId: dto.taskId,
         scheduledSlot: new TimeSlot(startTime, endTime),
@@ -209,11 +215,11 @@ export class MLController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to submit feedback: ${message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         'Failed to submit feedback',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -223,9 +229,9 @@ export class MLController {
 
   /**
    * Get user scheduling pattern analysis
-   * 
+   *
    * GET /ml/analysis/:userId
-   * 
+   *
    * Returns: {
    *   preferredHours: number[],
    *   mostProductiveHours: number[],
@@ -240,13 +246,14 @@ export class MLController {
     try {
       this.logger.log(`Getting analysis for user ${userId}`);
 
-      const patterns = await this.recommendationService.analyzeUserPatterns(userId);
+      const patterns =
+        await this.recommendationService.analyzeUserPatterns(userId);
 
       return patterns;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Failed to get user analysis: ${message}`);
-      
+
       throw new HttpException(
         'Failed to retrieve user analysis',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -256,9 +263,9 @@ export class MLController {
 
   /**
    * Health check for ML integration
-   * 
+   *
    * GET /ml/health
-   * 
+   *
    * Returns: { mlServiceAvailable: boolean }
    */
   @Get('health')

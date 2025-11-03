@@ -16,16 +16,15 @@ import { ToolValidator } from './adapters/tool-validator.adapter';
 import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
 
-
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
  * Phase 5: Advanced features ⏳
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -61,11 +60,6 @@ import { ToolMetrics } from './adapters/tool-metrics.adapter';
     },
     MetricsAdapter,
   ],
-  exports: [
-    'ILogger',
-    'IToolValidator',
-    'IToolCache',
-    'IToolMetrics',
-  ],
+  exports: ['ILogger', 'IToolValidator', 'IToolCache', 'IToolMetrics'],
 })
 export class InfrastructureModule {}

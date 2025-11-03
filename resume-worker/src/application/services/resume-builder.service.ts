@@ -42,7 +42,7 @@ export class ResumeBuilderService {
 
   constructor(
     private readonly experienceBankService: ExperienceBankService,
-    private readonly bulletEvaluatorService: BulletEvaluatorService
+    private readonly bulletEvaluatorService: BulletEvaluatorService,
   ) {}
 
   /**
@@ -50,9 +50,11 @@ export class ResumeBuilderService {
    */
   async startSession(
     userId: string,
-    mode: 'interview' | 'codebase' | 'manual'
+    mode: 'interview' | 'codebase' | 'manual',
   ): Promise<BuilderSession> {
-    this.logger.log(`Starting resume builder session for user ${userId} in ${mode} mode`);
+    this.logger.log(
+      `Starting resume builder session for user ${userId} in ${mode} mode`,
+    );
 
     const sessionId = `${userId}-${Date.now()}`;
     const session: BuilderSession = {
@@ -84,14 +86,16 @@ export class ResumeBuilderService {
       role: string;
       dateRange: string;
       rawDescription: string;
-    }
+    },
   ): Promise<BuilderSession> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    this.logger.log(`Adding experience to session ${sessionId}: ${experience.company}`);
+    this.logger.log(
+      `Adding experience to session ${sessionId}: ${experience.company}`,
+    );
 
     // Add to session
     session.collectedData.experiences.push({
@@ -105,7 +109,7 @@ export class ResumeBuilderService {
 
   /**
    * Extract and clean bullets from raw description.
-   * 
+   *
    * This uses NLP and the bullet evaluator to:
    * 1. Extract potential bullet points
    * 2. Clean and format them
@@ -115,20 +119,22 @@ export class ResumeBuilderService {
   async extractBulletsFromDescription(
     sessionId: string,
     experienceIndex: number,
-    rawDescription: string
+    rawDescription: string,
   ): Promise<string[]> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    this.logger.log(`Extracting bullets from description for session ${sessionId}`);
+    this.logger.log(
+      `Extracting bullets from description for session ${sessionId}`,
+    );
 
     // Simple extraction: split by newlines and filter
     const potentialBullets = rawDescription
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 20 && line.length < 200);
+      .map((line) => line.trim())
+      .filter((line) => line.length > 20 && line.length < 200);
 
     // Clean and evaluate each bullet
     const cleanedBullets: string[] = [];
@@ -139,16 +145,19 @@ export class ResumeBuilderService {
         bullet,
         session.collectedData.experiences[experienceIndex]?.role,
         false,
-        true
+        true,
       );
 
       // If bullet passes, use it; otherwise use best fix
       if (evaluation.passed) {
         cleanedBullets.push(bullet);
-      } else if (evaluation.suggestedFixes && evaluation.suggestedFixes.length > 0) {
+      } else if (
+        evaluation.suggestedFixes &&
+        evaluation.suggestedFixes.length > 0
+      ) {
         // Use highest confidence fix
         const bestFix = evaluation.suggestedFixes.reduce((best, fix) =>
-          fix.confidence > best.confidence ? fix : best
+          fix.confidence > best.confidence ? fix : best,
         );
         cleanedBullets.push(bestFix.fixedText);
       }
@@ -156,7 +165,8 @@ export class ResumeBuilderService {
 
     // Update session
     if (session.collectedData.experiences[experienceIndex]) {
-      session.collectedData.experiences[experienceIndex].bullets = cleanedBullets;
+      session.collectedData.experiences[experienceIndex].bullets =
+        cleanedBullets;
       session.updatedAt = new Date();
     }
 
@@ -169,7 +179,7 @@ export class ResumeBuilderService {
   async addBulletToExperience(
     sessionId: string,
     experienceIndex: number,
-    bulletText: string
+    bulletText: string,
   ): Promise<BuilderSession> {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -180,14 +190,16 @@ export class ResumeBuilderService {
       throw new Error(`Experience at index ${experienceIndex} not found`);
     }
 
-    this.logger.log(`Adding bullet to experience ${experienceIndex} in session ${sessionId}`);
+    this.logger.log(
+      `Adding bullet to experience ${experienceIndex} in session ${sessionId}`,
+    );
 
     // Evaluate bullet first
     const evaluation = await this.bulletEvaluatorService.evaluateBullet(
       bulletText,
       session.collectedData.experiences[experienceIndex].role,
       false,
-      false
+      false,
     );
 
     // Add to session
@@ -277,12 +289,12 @@ export class ResumeBuilderService {
 
   /**
    * Analyze codebase and extract work experience.
-   * 
+   *
    * This would integrate with agent-tool-worker's GitHub tools.
    */
   async analyzeCodebase(
     sessionId: string,
-    githubUrl: string
+    githubUrl: string,
   ): Promise<{
     commits: number;
     contributions: string[];
@@ -293,7 +305,9 @@ export class ResumeBuilderService {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    this.logger.log(`Analyzing codebase for session ${sessionId}: ${githubUrl}`);
+    this.logger.log(
+      `Analyzing codebase for session ${sessionId}: ${githubUrl}`,
+    );
 
     // TODO: Integrate with agent-tool-worker
     // For now, return mock data
@@ -342,7 +356,7 @@ export class ResumeBuilderService {
       school: string;
       degree: string;
       graduationDate: string;
-    }
+    },
   ): BuilderSession {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -377,7 +391,7 @@ export class ResumeBuilderService {
       name: string;
       description: string;
       bullets: string[];
-    }
+    },
   ): BuilderSession {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -389,4 +403,3 @@ export class ResumeBuilderService {
     return session;
   }
 }
-

@@ -24,7 +24,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGSearch('success', 'conv-123', 1.5, 5);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('assistant_worker_rag_searches_total');
       expect(metricsOutput).toContain('status="success"');
       expect(metricsOutput).toContain('conversation_id="conv-123"');
@@ -35,7 +35,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGSearch('error', 'conv-456', 0.5, 0);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('assistant_worker_rag_searches_total');
       expect(metricsOutput).toContain('status="error"');
     });
@@ -47,8 +47,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGSearch('success', 'conv-1', 5.0, 15);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_search_duration_seconds');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_search_duration_seconds',
+      );
       expect(metricsOutput).toContain('le="0.1"');
       expect(metricsOutput).toContain('le="5"');
     });
@@ -59,8 +61,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGSearch('success', 'conv-1', 1.0, 10);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_search_results_count');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_search_results_count',
+      );
     });
 
     // Test ID: metrics-rag-005
@@ -68,8 +72,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGDocumentProcessing('success', 'conv-789', 3.5);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_documents_processed_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_documents_processed_total',
+      );
       expect(metricsOutput).toContain('status="success"');
       expect(metricsOutput).toContain('conversation_id="conv-789"');
     });
@@ -79,7 +85,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGDocumentProcessing('error', 'conv-error', 1.0);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('status="error"');
     });
 
@@ -90,8 +96,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGDocumentProcessing('success', 'conv-1', 15.0);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_document_processing_duration_seconds');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_document_processing_duration_seconds',
+      );
       expect(metricsOutput).toContain('le="5"');
       expect(metricsOutput).toContain('le="30"');
     });
@@ -101,8 +109,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.setRAGEmbeddingCacheHitRate(0.75);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_embedding_cache_hit_rate');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_embedding_cache_hit_rate',
+      );
       expect(metricsOutput).toContain('0.75');
     });
 
@@ -113,7 +123,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.setRAGEmbeddingCacheHitRate(0.95);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('0.95');
     });
 
@@ -122,9 +132,11 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordRAGSearch('success', 'conv-empty', 0.5, 0);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('assistant_worker_rag_searches_total');
-      expect(metricsOutput).toContain('assistant_worker_rag_search_results_count');
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_search_results_count',
+      );
     });
   });
 
@@ -135,8 +147,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordKafkaMessageProduced('user-events');
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_kafka_messages_produced_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_kafka_messages_produced_total',
+      );
       expect(metricsOutput).toContain('topic="user-events"');
     });
 
@@ -147,7 +161,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordKafkaMessageProduced('topic-2');
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('topic="topic-1"');
       expect(metricsOutput).toContain('topic="topic-2"');
     });
@@ -157,8 +171,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordKafkaMessageConsumed('tasks', 'success');
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_kafka_messages_consumed_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_kafka_messages_consumed_total',
+      );
       expect(metricsOutput).toContain('topic="tasks"');
       expect(metricsOutput).toContain('status="success"');
     });
@@ -168,7 +184,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordKafkaMessageConsumed('tasks', 'error');
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('status="error"');
     });
 
@@ -177,7 +193,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordKafkaMessageConsumed('tasks', 'retry');
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('status="retry"');
     });
 
@@ -187,8 +203,10 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordKafkaMessageProcessingDuration('events', 1.5);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_kafka_message_processing_duration_seconds');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_kafka_message_processing_duration_seconds',
+      );
       expect(metricsOutput).toContain('topic="events"');
     });
 
@@ -198,7 +216,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.setKafkaConsumerLag('user-events', 1, 50);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('assistant_worker_kafka_consumer_lag');
       expect(metricsOutput).toContain('topic="user-events"');
       expect(metricsOutput).toContain('partition="0"');
@@ -210,7 +228,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordDLQMessage('tasks', 'TimeoutError');
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('assistant_worker_dlq_messages_total');
       expect(metricsOutput).toContain('topic="tasks"');
       expect(metricsOutput).toContain('error_type="TimeoutError"');
@@ -223,7 +241,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordDLQMessage('events', 'TimeoutError');
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('error_type="TimeoutError"');
       expect(metricsOutput).toContain('error_type="ValidationError"');
     });
@@ -235,7 +253,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordMessageRetry('tasks', 3);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('assistant_worker_message_retries_total');
       expect(metricsOutput).toContain('attempt="1"');
       expect(metricsOutput).toContain('attempt="2"');
@@ -247,7 +265,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.setKafkaConsumerLag('high-traffic', 0, 10000);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('10000');
     });
 
@@ -256,7 +274,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.setKafkaConsumerLag('up-to-date', 0, 0);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('topic="up-to-date"');
     });
   });
@@ -265,11 +283,17 @@ describe('Phase 8 Monitoring Metrics', () => {
   describe('Data Processing Worker Metrics', () => {
     // Test ID: metrics-dpw-001
     it('should record successful Data Processing request', async () => {
-      metrics.recordDataProcessingRequest('/documents/process-for-rag', 'success', 2.5);
+      metrics.recordDataProcessingRequest(
+        '/documents/process-for-rag',
+        'success',
+        2.5,
+      );
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_data_processing_requests_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_requests_total',
+      );
       expect(metricsOutput).toContain('endpoint="/documents/process-for-rag"');
       expect(metricsOutput).toContain('status="success"');
     });
@@ -279,7 +303,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordDataProcessingRequest('/vector-store/search', 'error', 1.0);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('status="error"');
     });
 
@@ -290,30 +314,40 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordDataProcessingRequest('/embedders/embed', 'success', 10.0);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_data_processing_request_duration_seconds');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_request_duration_seconds',
+      );
       expect(metricsOutput).toContain('le="2"');
       expect(metricsOutput).toContain('le="10"');
     });
 
     // Test ID: metrics-dpw-004
     it('should record Data Processing errors', async () => {
-      metrics.recordDataProcessingError('/documents/process-for-rag', 'NetworkError');
+      metrics.recordDataProcessingError(
+        '/documents/process-for-rag',
+        'NetworkError',
+      );
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_data_processing_errors_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_errors_total',
+      );
       expect(metricsOutput).toContain('error_type="NetworkError"');
     });
 
     // Test ID: metrics-dpw-005
     it('should track errors by endpoint and type', async () => {
       metrics.recordDataProcessingError('/vector-store/search', 'TimeoutError');
-      metrics.recordDataProcessingError('/vector-store/search', 'ValidationError');
+      metrics.recordDataProcessingError(
+        '/vector-store/search',
+        'ValidationError',
+      );
       metrics.recordDataProcessingError('/embedders/embed', 'TimeoutError');
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('endpoint="/vector-store/search"');
       expect(metricsOutput).toContain('endpoint="/embedders/embed"');
       expect(metricsOutput).toContain('error_type="TimeoutError"');
@@ -322,12 +356,20 @@ describe('Phase 8 Monitoring Metrics', () => {
 
     // Test ID: metrics-dpw-006
     it('should track multiple endpoints', async () => {
-      metrics.recordDataProcessingRequest('/documents/process-for-rag', 'success', 3.0);
-      metrics.recordDataProcessingRequest('/vector-store/search-conversations', 'success', 1.5);
+      metrics.recordDataProcessingRequest(
+        '/documents/process-for-rag',
+        'success',
+        3.0,
+      );
+      metrics.recordDataProcessingRequest(
+        '/vector-store/search-conversations',
+        'success',
+        1.5,
+      );
       metrics.recordDataProcessingRequest('/embedders/models', 'success', 0.1);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('/documents/process-for-rag');
       expect(metricsOutput).toContain('/vector-store/search-conversations');
       expect(metricsOutput).toContain('/embedders/models');
@@ -338,16 +380,22 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordDataProcessingRequest('/embedders/models', 'success', 0.05);
 
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_data_processing_request_duration_seconds');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_request_duration_seconds',
+      );
     });
 
     // Test ID: metrics-dpw-008
     it('should handle slow requests', async () => {
-      metrics.recordDataProcessingRequest('/documents/process-for-rag', 'success', 25.0);
+      metrics.recordDataProcessingRequest(
+        '/documents/process-for-rag',
+        'success',
+        25.0,
+      );
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('le="30"');
     });
   });
@@ -358,17 +406,29 @@ describe('Phase 8 Monitoring Metrics', () => {
     it('should track complete RAG search workflow', async () => {
       // Document processing
       metrics.recordRAGDocumentProcessing('success', 'conv-workflow', 5.0);
-      metrics.recordDataProcessingRequest('/documents/process-for-rag', 'success', 5.0);
-      
+      metrics.recordDataProcessingRequest(
+        '/documents/process-for-rag',
+        'success',
+        5.0,
+      );
+
       // RAG search
       metrics.recordRAGSearch('success', 'conv-workflow', 1.5, 10);
-      metrics.recordDataProcessingRequest('/vector-store/search-conversations', 'success', 1.5);
-      
+      metrics.recordDataProcessingRequest(
+        '/vector-store/search-conversations',
+        'success',
+        1.5,
+      );
+
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_documents_processed_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_documents_processed_total',
+      );
       expect(metricsOutput).toContain('assistant_worker_rag_searches_total');
-      expect(metricsOutput).toContain('assistant_worker_data_processing_requests_total');
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_requests_total',
+      );
     });
 
     // Test ID: metrics-workflow-002
@@ -376,17 +436,17 @@ describe('Phase 8 Monitoring Metrics', () => {
       // Message consumed
       metrics.recordKafkaMessageConsumed('tasks', 'retry');
       metrics.recordMessageRetry('tasks', 1);
-      
+
       // Another retry
       metrics.recordKafkaMessageConsumed('tasks', 'retry');
       metrics.recordMessageRetry('tasks', 2);
-      
+
       // Final DLQ
       metrics.recordKafkaMessageConsumed('tasks', 'error');
       metrics.recordDLQMessage('tasks', 'ProcessingError');
-      
+
       const metricsOutput = await metrics.getMetrics();
-      
+
       expect(metricsOutput).toContain('status="retry"');
       expect(metricsOutput).toContain('status="error"');
       expect(metricsOutput).toContain('assistant_worker_dlq_messages_total');
@@ -397,16 +457,29 @@ describe('Phase 8 Monitoring Metrics', () => {
     it('should track error propagation through stack', async () => {
       // RAG search fails
       metrics.recordRAGSearch('error', 'conv-error', 0.5, 0);
-      
+
       // Data Processing Worker error
-      metrics.recordDataProcessingRequest('/vector-store/search-conversations', 'error', 0.5);
-      metrics.recordDataProcessingError('/vector-store/search-conversations', 'NetworkError');
-      
+      metrics.recordDataProcessingRequest(
+        '/vector-store/search-conversations',
+        'error',
+        0.5,
+      );
+      metrics.recordDataProcessingError(
+        '/vector-store/search-conversations',
+        'NetworkError',
+      );
+
       const metricsOutput = await metrics.getMetrics();
-      
-      expect(metricsOutput).toContain('assistant_worker_rag_searches_total{status="error"');
-      expect(metricsOutput).toContain('assistant_worker_data_processing_requests_total{endpoint="/vector-store/search-conversations",status="error"');
-      expect(metricsOutput).toContain('assistant_worker_data_processing_errors_total');
+
+      expect(metricsOutput).toContain(
+        'assistant_worker_rag_searches_total{status="error"',
+      );
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_requests_total{endpoint="/vector-store/search-conversations",status="error"',
+      );
+      expect(metricsOutput).toContain(
+        'assistant_worker_data_processing_errors_total',
+      );
     });
 
     // Test ID: metrics-workflow-004
@@ -416,7 +489,7 @@ describe('Phase 8 Monitoring Metrics', () => {
       metrics.recordDataProcessingRequest('/embedders/embed', 'success', 0.5);
 
       const metricsOutput = await metrics.getMetrics();
-      
+
       // Should be in Prometheus format
       expect(metricsOutput).toMatch(/# HELP/);
       expect(metricsOutput).toMatch(/# TYPE/);
@@ -426,20 +499,22 @@ describe('Phase 8 Monitoring Metrics', () => {
     // Test ID: metrics-workflow-005
     it('should handle high-volume metrics efficiently', async () => {
       const start = Date.now();
-      
+
       // Simulate high volume
       for (let i = 0; i < 1000; i++) {
         metrics.recordKafkaMessageProduced('high-volume');
         metrics.recordKafkaMessageConsumed('high-volume', 'success');
       }
-      
+
       const duration = Date.now() - start;
-      
+
       // Should complete quickly (< 100ms for 2000 metric recordings)
       expect(duration).toBeLessThan(100);
-      
+
       const metricsOutput = await metrics.getMetrics();
-      expect(metricsOutput).toContain('assistant_worker_kafka_messages_produced_total');
+      expect(metricsOutput).toContain(
+        'assistant_worker_kafka_messages_produced_total',
+      );
     });
   });
 });

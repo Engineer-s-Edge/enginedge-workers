@@ -4,7 +4,11 @@
  * Tests for safe HTTP client functionality with security restrictions.
  */
 
-import { HttpRequestActor, HttpRequestArgs, HttpResponseOutput } from '@infrastructure/tools/actors/http-request.actor';
+import {
+  HttpRequestActor,
+  HttpRequestArgs,
+  HttpResponseOutput,
+} from '@infrastructure/tools/actors/http-request.actor';
 import axios from 'axios';
 
 // Mock axios
@@ -16,7 +20,7 @@ const mockAxiosResponse = {
   status: 200,
   statusText: 'OK',
   headers: {},
-  data: {}
+  data: {},
 };
 
 beforeEach(() => {
@@ -25,8 +29,16 @@ beforeEach(() => {
 });
 
 // Helper function to create axios error mocks
-const createAxiosError = (message: string, code?: string, response?: unknown) => {
-  const error = new Error(message) as Error & { isAxiosError: boolean; code?: string; response?: unknown };
+const createAxiosError = (
+  message: string,
+  code?: string,
+  response?: unknown,
+) => {
+  const error = new Error(message) as Error & {
+    isAxiosError: boolean;
+    code?: string;
+    response?: unknown;
+  };
   error.isAxiosError = true;
   if (code) error.code = code;
   if (response !== undefined) error.response = response;
@@ -47,9 +59,9 @@ describe('HttpRequestActor', () => {
         statusText: 'OK',
         headers: {
           'content-type': 'application/json',
-          'content-length': '123'
+          'content-length': '123',
         },
-        data: { message: 'success' }
+        data: { message: 'success' },
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -57,18 +69,27 @@ describe('HttpRequestActor', () => {
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'https://api.example.com/test'
+        url: 'https://api.example.com/test',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as HttpResponseOutput).statusCode).toBe(200);
       expect((result.output as HttpResponseOutput).statusText).toBe('OK');
-      expect((result.output as HttpResponseOutput).data).toEqual({ message: 'success' });
-      expect((result.output as HttpResponseOutput).contentType).toBe('application/json');
+      expect((result.output as HttpResponseOutput).data).toEqual({
+        message: 'success',
+      });
+      expect((result.output as HttpResponseOutput).contentType).toBe(
+        'application/json',
+      );
       expect((result.output as HttpResponseOutput).contentLength).toBe(123);
-      expect((result.output as HttpResponseOutput).duration).toBeGreaterThanOrEqual(0);
+      expect(
+        (result.output as HttpResponseOutput).duration,
+      ).toBeGreaterThanOrEqual(0);
     });
 
     it('should make a POST request with body', async () => {
@@ -76,7 +97,7 @@ describe('HttpRequestActor', () => {
         status: 201,
         statusText: 'Created',
         headers: { 'content-type': 'application/json' },
-        data: { id: 123, created: true }
+        data: { id: 123, created: true },
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -86,10 +107,13 @@ describe('HttpRequestActor', () => {
         method: 'POST',
         url: 'https://api.example.com/users',
         body: { name: 'John Doe', email: 'john@example.com' },
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as HttpResponseOutput).statusCode).toBe(201);
@@ -101,7 +125,7 @@ describe('HttpRequestActor', () => {
         timeout: 10000,
         maxRedirects: 5,
         maxContentLength: 1024 * 1024,
-        validateStatus: expect.any(Function)
+        validateStatus: expect.any(Function),
       });
     });
 
@@ -110,7 +134,7 @@ describe('HttpRequestActor', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        data: { results: [] }
+        data: { results: [] },
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -119,15 +143,18 @@ describe('HttpRequestActor', () => {
         operation: 'request',
         method: 'GET',
         url: 'https://api.example.com/search',
-        params: { q: 'test query', limit: 10 }
+        params: { q: 'test query', limit: 10 },
       };
 
-      await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(mockedAxios).toHaveBeenCalledWith(
         expect.objectContaining({
-          params: { q: 'test query', limit: 10 }
-        })
+          params: { q: 'test query', limit: 10 },
+        }),
       );
     });
 
@@ -136,7 +163,7 @@ describe('HttpRequestActor', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        data: {}
+        data: {},
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -145,15 +172,18 @@ describe('HttpRequestActor', () => {
         operation: 'request',
         method: 'GET',
         url: 'https://api.example.com/test',
-        timeout: 5000
+        timeout: 5000,
       };
 
-      await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(mockedAxios).toHaveBeenCalledWith(
         expect.objectContaining({
-          timeout: 5000
-        })
+          timeout: 5000,
+        }),
       );
     });
   });
@@ -163,10 +193,13 @@ describe('HttpRequestActor', () => {
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'http://localhost:3000/api'
+        url: 'http://localhost:3000/api',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('blocked for security reasons');
     });
@@ -175,17 +208,20 @@ describe('HttpRequestActor', () => {
       const privateUrls = [
         'http://192.168.1.1/api',
         'http://10.0.0.1/api',
-        'http://172.16.0.1/api'
+        'http://172.16.0.1/api',
       ];
 
       for (const url of privateUrls) {
         const args: HttpRequestArgs = {
           operation: 'request',
           method: 'GET',
-          url
+          url,
         };
 
-        const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+        const result = await actor.execute({
+          name: 'http-request-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
         expect(result.success).toBe(false);
         expect(result.error?.message).toContain('blocked for security reasons');
       }
@@ -199,10 +235,13 @@ describe('HttpRequestActor', () => {
           operation: 'request',
           method: 'GET',
           url: 'https://api.example.com/test',
-          headers: { [header]: 'value' }
+          headers: { [header]: 'value' },
         };
 
-        const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+        const result = await actor.execute({
+          name: 'http-request-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
         expect(result.success).toBe(false);
         expect(result.error?.message).toContain('not allowed');
       }
@@ -212,19 +251,24 @@ describe('HttpRequestActor', () => {
       const invalidUrls = [
         'ftp://example.com/file',
         'file:///etc/passwd',
-        'ws://example.com/socket'
+        'ws://example.com/socket',
       ];
 
       for (const url of invalidUrls) {
         const args: HttpRequestArgs = {
           operation: 'request',
           method: 'GET',
-          url
+          url,
         };
 
-        const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+        const result = await actor.execute({
+          name: 'http-request-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
         expect(result.success).toBe(false);
-        expect(result.error?.message).toContain('Only HTTP and HTTPS protocols are allowed');
+        expect(result.error?.message).toContain(
+          'Only HTTP and HTTPS protocols are allowed',
+        );
       }
     });
 
@@ -232,10 +276,13 @@ describe('HttpRequestActor', () => {
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'not-a-valid-url'
+        url: 'not-a-valid-url',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Invalid URL format');
     });
@@ -247,25 +294,36 @@ describe('HttpRequestActor', () => {
         status: 404,
         statusText: 'Not Found',
         headers: { 'content-type': 'application/json' },
-        data: { error: 'Resource not found' }
+        data: { error: 'Resource not found' },
       };
 
-      const axiosError = createAxiosError('Request failed', undefined, mockErrorResponse);
+      const axiosError = createAxiosError(
+        'Request failed',
+        undefined,
+        mockErrorResponse,
+      );
       mockedAxios.mockRejectedValueOnce(axiosError);
 
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'https://api.example.com/missing'
+        url: 'https://api.example.com/missing',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true); // Tool succeeded in making the request
       expect((result.output as HttpResponseOutput).success).toBe(false); // HTTP request failed
       expect((result.output as HttpResponseOutput).statusCode).toBe(404);
-      expect((result.output as HttpResponseOutput).statusText).toBe('Not Found');
-      expect((result.output as HttpResponseOutput).data).toEqual({ error: 'Resource not found' });
+      expect((result.output as HttpResponseOutput).statusText).toBe(
+        'Not Found',
+      );
+      expect((result.output as HttpResponseOutput).data).toEqual({
+        error: 'Resource not found',
+      });
     });
 
     it('should handle network errors', async () => {
@@ -275,10 +333,13 @@ describe('HttpRequestActor', () => {
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'https://nonexistent-domain-12345.com/api'
+        url: 'https://nonexistent-domain-12345.com/api',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('HTTP request failed');
     });
@@ -291,10 +352,13 @@ describe('HttpRequestActor', () => {
         operation: 'request',
         method: 'GET',
         url: 'https://api.example.com/slow-endpoint',
-        timeout: 1000
+        timeout: 1000,
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });    
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('HTTP request failed');
     });
@@ -306,7 +370,7 @@ describe('HttpRequestActor', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        data: {}
+        data: {},
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -315,15 +379,18 @@ describe('HttpRequestActor', () => {
         operation: 'request',
         method: 'GET',
         url: 'https://api.example.com/test',
-        followRedirects: false
+        followRedirects: false,
       };
 
-      await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(mockedAxios).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxRedirects: 0
-        })
+          maxRedirects: 0,
+        }),
       );
     });
 
@@ -332,7 +399,7 @@ describe('HttpRequestActor', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        data: {}
+        data: {},
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -341,15 +408,18 @@ describe('HttpRequestActor', () => {
         operation: 'request',
         method: 'GET',
         url: 'https://api.example.com/test',
-        maxContentLength: 2048
+        maxContentLength: 2048,
       };
 
-      await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(mockedAxios).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxContentLength: 2048
-        })
+          maxContentLength: 2048,
+        }),
       );
     });
 
@@ -360,10 +430,13 @@ describe('HttpRequestActor', () => {
         operation: 'request',
         method: 'POST',
         url: 'https://api.example.com/test',
-        body: largeBody
+        body: largeBody,
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Request body too large');
     });
@@ -377,9 +450,9 @@ describe('HttpRequestActor', () => {
         headers: {
           'Content-Type': 'application/json',
           'X-Custom-Header': 'value',
-          'AUTHORIZATION': 'Bearer token'
+          AUTHORIZATION: 'Bearer token',
         },
-        data: {}
+        data: {},
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -387,10 +460,13 @@ describe('HttpRequestActor', () => {
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'https://api.example.com/test'
+        url: 'https://api.example.com/test',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       const headers = (result.output as HttpResponseOutput).headers;
       expect(headers['content-type']).toBe('application/json');
@@ -403,9 +479,9 @@ describe('HttpRequestActor', () => {
         status: 200,
         statusText: 'OK',
         headers: {
-          'set-cookie': ['session=abc123', 'theme=dark']
+          'set-cookie': ['session=abc123', 'theme=dark'],
         },
-        data: {}
+        data: {},
       };
 
       mockedAxios.mockResolvedValueOnce(mockResponse);
@@ -413,10 +489,13 @@ describe('HttpRequestActor', () => {
       const args: HttpRequestArgs = {
         operation: 'request',
         method: 'GET',
-        url: 'https://api.example.com/test'
+        url: 'https://api.example.com/test',
       };
 
-      const result = await actor.execute({ name: 'http-request-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'http-request-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       const headers = (result.output as HttpResponseOutput).headers;
       expect(headers['set-cookie']).toBe('session=abc123, theme=dark');

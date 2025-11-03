@@ -7,7 +7,8 @@ import { LaTeXDocument } from '../../../domain/entities';
 describe('LaTeXDocument Entity', () => {
   describe('create', () => {
     it('should create a new LaTeX document with default settings', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}';
       const doc = LaTeXDocument.create('doc-001', content);
 
       expect(doc.id).toBe('doc-001');
@@ -21,7 +22,8 @@ describe('LaTeXDocument Entity', () => {
     });
 
     it('should create document with custom metadata', () => {
-      const content = '\\documentclass{book}\n\\begin{document}\n\\end{document}';
+      const content =
+        '\\documentclass{book}\n\\begin{document}\n\\end{document}';
       const metadata = {
         title: 'My Book',
         author: 'John Doe',
@@ -55,16 +57,20 @@ describe('LaTeXDocument Entity', () => {
     it('should update document content', async () => {
       const doc = LaTeXDocument.create('doc-005', 'old content');
       // Wait 1ms to ensure timestamp difference
-      await new Promise(resolve => setTimeout(resolve, 1));
+      await new Promise((resolve) => setTimeout(resolve, 1));
       const updated = doc.updateContent('new content');
 
       expect(updated.content).toBe('new content');
       expect(updated.id).toBe(doc.id);
-      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(doc.updatedAt.getTime());
+      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        doc.updatedAt.getTime(),
+      );
     });
 
     it('should preserve other properties when updating content', () => {
-      const doc = LaTeXDocument.create('doc-006', 'content', { title: 'Original' });
+      const doc = LaTeXDocument.create('doc-006', 'content', {
+        title: 'Original',
+      });
       const updated = doc.updateContent('new content');
 
       expect(updated.metadata.title).toBe('Original');
@@ -99,7 +105,8 @@ describe('LaTeXDocument Entity', () => {
 
   describe('extractPackages', () => {
     it('should extract single package', () => {
-      const content = '\\documentclass{article}\n\\usepackage{graphicx}\n\\begin{document}\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\usepackage{graphicx}\n\\begin{document}\\end{document}';
       const doc = LaTeXDocument.create('doc-010', content);
 
       const packages = doc.extractPackages();
@@ -132,7 +139,8 @@ describe('LaTeXDocument Entity', () => {
     });
 
     it('should return empty array when no packages', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\\end{document}';
       const doc = LaTeXDocument.create('doc-014', content);
 
       const packages = doc.extractPackages();
@@ -193,7 +201,8 @@ describe('LaTeXDocument Entity', () => {
     });
 
     it('should return false when no bibliography needed', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\nNo citations\n\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\nNo citations\n\\end{document}';
       const doc = LaTeXDocument.create('doc-022', content);
 
       expect(doc.requiresBibliography()).toBe(false);
@@ -237,7 +246,8 @@ describe('LaTeXDocument Entity', () => {
     });
 
     it('should return false for simple documents', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\nSimple text\n\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\nSimple text\n\\end{document}';
       const doc = LaTeXDocument.create('doc-028', content);
 
       expect(doc.requiresMultiplePasses()).toBe(false);
@@ -246,7 +256,8 @@ describe('LaTeXDocument Entity', () => {
 
   describe('validate', () => {
     it('should validate correct document', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\nHello\n\\end{document}';
       const doc = LaTeXDocument.create('doc-029', content);
 
       const result = doc.validate();
@@ -282,21 +293,27 @@ describe('LaTeXDocument Entity', () => {
     });
 
     it('should detect unbalanced braces', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\n\\section{Test\n\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\n\\section{Test\n\\end{document}';
       const doc = LaTeXDocument.create('doc-033', content);
 
       const result = doc.validate();
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('Unbalanced braces'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('Unbalanced braces'))).toBe(
+        true,
+      );
     });
 
     it('should detect unbalanced environments', () => {
-      const content = '\\documentclass{article}\n\\begin{document}\n\\begin{itemize}\n\\end{document}';
+      const content =
+        '\\documentclass{article}\n\\begin{document}\n\\begin{itemize}\n\\end{document}';
       const doc = LaTeXDocument.create('doc-034', content);
 
       const result = doc.validate();
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.includes('Unbalanced environments'))).toBe(true);
+      expect(
+        result.errors.some((e) => e.includes('Unbalanced environments')),
+      ).toBe(true);
     });
 
     it('should handle complex valid document', () => {

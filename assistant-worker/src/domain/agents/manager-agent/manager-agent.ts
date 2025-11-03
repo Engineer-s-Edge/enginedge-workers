@@ -43,7 +43,7 @@ interface ManagerConfig {
 
 /**
  * Manager Agent - Orchestrates complex tasks through decomposition and coordination
- * 
+ *
  * Responsibilities:
  * - Break complex tasks into manageable subtasks
  * - Match subtasks to available agents
@@ -102,7 +102,9 @@ export class ManagerAgent extends BaseAgent {
       // Decompose task
       this.managerState.currentState = ManagerAgentState.DECOMPOSING;
       const decompositionResult = await this.decomposeTask(masterTask, context);
-      this.addThinkingStep(`Decomposed task into ${decompositionResult.subtasks.length} subtasks`);
+      this.addThinkingStep(
+        `Decomposed task into ${decompositionResult.subtasks.length} subtasks`,
+      );
 
       // Create execution plan
       const executionPlan = this.createExecutionPlan(
@@ -114,16 +116,23 @@ export class ManagerAgent extends BaseAgent {
 
       // Coordinate execution
       this.managerState.currentState = ManagerAgentState.COORDINATING;
-      const assignments = await this.coordinateExecution(executionPlan, context);
+      const assignments = await this.coordinateExecution(
+        executionPlan,
+        context,
+      );
       this.managerState.assignments = assignments;
-      this.managerState.completedAssignments = assignments.filter(a => a.status === 'completed');
-      this.managerState.failedAssignments = assignments.filter(a => a.status === 'failed');
+      this.managerState.completedAssignments = assignments.filter(
+        (a) => a.status === 'completed',
+      );
+      this.managerState.failedAssignments = assignments.filter(
+        (a) => a.status === 'failed',
+      );
 
       // Aggregate results
       this.managerState.currentState = ManagerAgentState.AGGREGATING;
       const subtaskResults = assignments
-        .filter(a => a.result)
-        .map(a => a.result!);
+        .filter((a) => a.result)
+        .map((a) => a.result!);
       const aggregatedResult = await this.aggregateResults(
         masterTask,
         subtaskResults,
@@ -134,7 +143,9 @@ export class ManagerAgent extends BaseAgent {
 
       const totalDuration = Date.now() - this.managerState.startTime;
 
-      this.addThinkingStep(`Manager Agent completed - ${subtaskResults.length} subtasks completed`);
+      this.addThinkingStep(
+        `Manager Agent completed - ${subtaskResults.length} subtasks completed`,
+      );
 
       return {
         status: aggregatedResult.status === 'success' ? 'success' : 'error',
@@ -157,7 +168,7 @@ export class ManagerAgent extends BaseAgent {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error('Manager Agent execution failed', { error: errorMsg });
-      
+
       return {
         status: 'error',
         output: `Manager Agent failed: ${errorMsg}`,
@@ -191,18 +202,21 @@ export class ManagerAgent extends BaseAgent {
       yield `Execution Plan: ${executionPlan.planId}\n`;
 
       yield 'Coordinating sub-agent execution...\n';
-      const assignments = await this.coordinateExecution(executionPlan, context);
+      const assignments = await this.coordinateExecution(
+        executionPlan,
+        context,
+      );
       yield `Executed ${assignments.length} assignments\n`;
 
       const subtaskResults = assignments
-        .filter(a => a.result)
-        .map(a => a.result!);
+        .filter((a) => a.result)
+        .map((a) => a.result!);
       const aggregatedResult = await this.aggregateResults(
         masterTask,
         subtaskResults,
         decompositionResult,
       );
-      
+
       yield `\nAggregation complete - Status: ${aggregatedResult.status}\n`;
       yield `Summary: ${aggregatedResult.summary}\n`;
       yield `Confidence: ${(aggregatedResult.confidence * 100).toFixed(1)}%\n`;
@@ -243,10 +257,13 @@ export class ManagerAgent extends BaseAgent {
     masterTask: MasterTask,
     context: ExecutionContext,
   ): Promise<DecompositionResult> {
-    const systemPrompt = this.promptBuilder.buildSystemPrompt('task_decomposition', {
-      taskTitle: masterTask.title,
-      strategy: this.config.decompositionStrategy,
-    });
+    const systemPrompt = this.promptBuilder.buildSystemPrompt(
+      'task_decomposition',
+      {
+        taskTitle: masterTask.title,
+        strategy: this.config.decompositionStrategy,
+      },
+    );
 
     const userPrompt = `Decompose this task into subtasks:\n${masterTask.description}`;
 
@@ -256,7 +273,7 @@ export class ManagerAgent extends BaseAgent {
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      temperature: this.config.temperature as number ?? 0.7,
+      temperature: (this.config.temperature as number) ?? 0.7,
       maxTokens: 2000,
     };
 
@@ -279,14 +296,17 @@ export class ManagerAgent extends BaseAgent {
   /**
    * Extract subtasks from LLM response
    */
-  private extractSubtasks(masterTask: MasterTask, response: unknown): SubTask[] {
+  private extractSubtasks(
+    masterTask: MasterTask,
+    response: unknown,
+  ): SubTask[] {
     const subtasks: SubTask[] = [];
-    
+
     // Simple extraction - in production use more sophisticated parsing
     if (typeof response === 'string') {
-      const lines = response.split('\n').filter(l => l.trim());
+      const lines = response.split('\n').filter((l) => l.trim());
       let index = 1;
-      
+
       for (const line of lines) {
         if (line.trim()) {
           subtasks.push({
@@ -339,7 +359,7 @@ export class ManagerAgent extends BaseAgent {
       taskId: masterTask.id,
       masterTask,
       subtasks,
-      assignments: subtasks.map(st => ({
+      assignments: subtasks.map((st) => ({
         id: `assign-${st.id}`,
         subtaskId: st.id,
         agentId: `agent-default`, // Placeholder
@@ -371,7 +391,7 @@ export class ManagerAgent extends BaseAgent {
         break;
 
       case DecompositionStrategy.PARALLEL:
-        const parallelPromises = plan.subtasks.map(st =>
+        const parallelPromises = plan.subtasks.map((st) =>
           this.executeSubtask(plan, st, context),
         );
         const parallelResults = await Promise.all(parallelPromises);
@@ -382,7 +402,7 @@ export class ManagerAgent extends BaseAgent {
         // Group and execute hierarchically
         const grouped = this.groupSubtasksByDependency(plan.subtasks);
         for (const group of grouped) {
-          const groupPromises = group.map(st =>
+          const groupPromises = group.map((st) =>
             this.executeSubtask(plan, st, context),
           );
           const groupResults = await Promise.all(groupPromises);
@@ -431,7 +451,7 @@ export class ManagerAgent extends BaseAgent {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: subtask.description },
         ],
-        temperature: this.config.temperature as number ?? 0.7,
+        temperature: (this.config.temperature as number) ?? 0.7,
         maxTokens: 1000,
       };
 
@@ -445,7 +465,8 @@ export class ManagerAgent extends BaseAgent {
         agentId: assignment.agentId,
         status: 'success',
         output,
-        executionTime: assignment.completedAt.getTime() - assignment.assignedAt.getTime(),
+        executionTime:
+          assignment.completedAt.getTime() - assignment.assignedAt.getTime(),
         confidence: 0.85,
       };
     } catch (error) {
@@ -475,8 +496,8 @@ export class ManagerAgent extends BaseAgent {
         // Find independent subtasks
         for (const other of subtasks) {
           if (!processed.has(other.id)) {
-            const hasDependency = (other.dependencies || []).some(d =>
-              group.some(s => s.id === d),
+            const hasDependency = (other.dependencies || []).some((d) =>
+              group.some((s) => s.id === d),
             );
             if (!hasDependency) {
               group.push(other);
@@ -501,17 +522,23 @@ export class ManagerAgent extends BaseAgent {
     decompositionResult: DecompositionResult,
   ): Promise<AggregatedTaskResult> {
     const failedSubtasks = subtaskResults
-      .filter(r => r.status !== 'success')
-      .map(r => r.subtaskId);
+      .filter((r) => r.status !== 'success')
+      .map((r) => r.subtaskId);
 
-    const completedCount = subtaskResults.filter(r => r.status === 'success').length;
+    const completedCount = subtaskResults.filter(
+      (r) => r.status === 'success',
+    ).length;
     const totalCount = subtaskResults.length;
     const successRate = totalCount > 0 ? completedCount / totalCount : 0;
     const confidence = decompositionResult.confidence * successRate;
 
     // Synthesize final output
     const finalOutput = this.synthesizeOutput(subtaskResults);
-    const summary = this.generateSummary(masterTask, subtaskResults, decompositionResult);
+    const summary = this.generateSummary(
+      masterTask,
+      subtaskResults,
+      decompositionResult,
+    );
 
     return {
       resultId: `result-${Date.now()}`,
@@ -525,7 +552,10 @@ export class ManagerAgent extends BaseAgent {
       subtaskResults,
       failedSubtasks,
       finalOutput,
-      executionTime: subtaskResults.reduce((sum, r) => sum + r.executionTime, 0),
+      executionTime: subtaskResults.reduce(
+        (sum, r) => sum + r.executionTime,
+        0,
+      ),
       confidence,
       summary,
     };
@@ -536,14 +566,14 @@ export class ManagerAgent extends BaseAgent {
    */
   private synthesizeOutput(results: SubTaskResult[]): unknown {
     return {
-      subtaskOutputs: results.map(r => ({
+      subtaskOutputs: results.map((r) => ({
         subtaskId: r.subtaskId,
         output: r.output,
         confidence: r.confidence,
       })),
       combinedInsights: results
-        .filter(r => typeof r.output === 'string')
-        .map(r => r.output)
+        .filter((r) => typeof r.output === 'string')
+        .map((r) => r.output)
         .join('\n'),
     };
   }
@@ -556,12 +586,14 @@ export class ManagerAgent extends BaseAgent {
     results: SubTaskResult[],
     decomposition: DecompositionResult,
   ): string {
-    const successful = results.filter(r => r.status === 'success').length;
-    const failed = results.filter(r => r.status !== 'success').length;
+    const successful = results.filter((r) => r.status === 'success').length;
+    const failed = results.filter((r) => r.status !== 'success').length;
 
-    return `Completed master task "${masterTask.title}" using ${decomposition.strategy} decomposition. ` +
+    return (
+      `Completed master task "${masterTask.title}" using ${decomposition.strategy} decomposition. ` +
       `Executed ${results.length} subtasks: ${successful} successful, ${failed} failed. ` +
-      `Average confidence: ${((results.reduce((sum, r) => sum + (r.confidence || 0), 0) / results.length) * 100).toFixed(1)}%.`;
+      `Average confidence: ${((results.reduce((sum, r) => sum + (r.confidence || 0), 0) / results.length) * 100).toFixed(1)}%.`
+    );
   }
 
   override getState(): AgentState {

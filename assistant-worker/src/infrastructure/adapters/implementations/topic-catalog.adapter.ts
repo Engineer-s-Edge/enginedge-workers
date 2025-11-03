@@ -1,6 +1,6 @@
 /**
  * Topic Catalog Adapter Implementation
- * 
+ *
  * Bridges orchestrator with TopicCatalogService
  */
 
@@ -93,12 +93,18 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
         .map((t) => t.name);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get recommended topics: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get recommended topics: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 
-  async updateTopic(topic: string, metadata: Partial<TopicMetadata>): Promise<TopicMetadata> {
+  async updateTopic(
+    topic: string,
+    metadata: Partial<TopicMetadata>,
+  ): Promise<TopicMetadata> {
     try {
       this.logger.log(`Updating topic: ${topic}`);
 
@@ -131,12 +137,18 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
         .map((t) => t.name);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get trending topics: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get trending topics: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 
-  async trackResearch(topic: string, researchData: Record<string, unknown>): Promise<boolean> {
+  async trackResearch(
+    topic: string,
+    researchData: Record<string, unknown>,
+  ): Promise<boolean> {
     try {
       this.logger.log(`Tracking research for topic: ${topic}`);
 

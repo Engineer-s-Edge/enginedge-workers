@@ -36,7 +36,8 @@ export class PackageCacheSchema {
   isAvailable!: boolean;
 }
 
-export const PackageCacheSchemaFactory = SchemaFactory.createForClass(PackageCacheSchema);
+export const PackageCacheSchemaFactory =
+  SchemaFactory.createForClass(PackageCacheSchema);
 
 // Create indexes
 PackageCacheSchemaFactory.index({ lastUsedAt: 1 }); // For cleanup of stale packages

@@ -169,4 +169,3 @@ export interface JobPosting {
 }
 
 export type JobPostingDocument = JobPosting & Document;
-

@@ -1,6 +1,6 @@
 /**
  * Application Ports - Interfaces for external dependencies
- * 
+ *
  * These are implemented in the infrastructure layer
  */
 
@@ -78,7 +78,10 @@ export interface IGoogleCalendarApiService {
   /**
    * Create a new event
    */
-  createEvent(calendarId: string, event: Partial<CalendarEvent>): Promise<CalendarEvent>;
+  createEvent(
+    calendarId: string,
+    event: Partial<CalendarEvent>,
+  ): Promise<CalendarEvent>;
 
   /**
    * Update an existing event

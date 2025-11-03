@@ -2,7 +2,7 @@ import { Message } from '../value-objects/message.vo';
 
 /**
  * Agent Memory Entity - Manages conversation history
- * 
+ *
  * Features:
  * - Immutable message history
  * - Automatic truncation at token limit
@@ -24,7 +24,10 @@ export class AgentMemory {
   /**
    * Create from existing messages
    */
-  static fromMessages(messages: Message[], maxMessages: number = 100): AgentMemory {
+  static fromMessages(
+    messages: Message[],
+    maxMessages: number = 100,
+  ): AgentMemory {
     return new AgentMemory(messages, maxMessages);
   }
 
@@ -33,11 +36,12 @@ export class AgentMemory {
    */
   addMessage(message: Message): AgentMemory {
     const newMessages = [...this.messages, message];
-    
+
     // Truncate if exceeds max
-    const truncated = newMessages.length > this.maxMessages
-      ? newMessages.slice(-this.maxMessages)
-      : newMessages;
+    const truncated =
+      newMessages.length > this.maxMessages
+        ? newMessages.slice(-this.maxMessages)
+        : newMessages;
 
     return new AgentMemory(truncated, this.maxMessages);
   }
@@ -71,7 +75,7 @@ export class AgentMemory {
    * Get messages by role
    */
   getMessagesByRole(role: 'user' | 'assistant' | 'system'): readonly Message[] {
-    return this.messages.filter(msg => msg.role === role);
+    return this.messages.filter((msg) => msg.role === role);
   }
 
   /**
@@ -107,7 +111,7 @@ export class AgentMemory {
    */
   toPlainObject(): Record<string, unknown> {
     return {
-      messages: this.messages.map(msg => msg.toPlainObject()),
+      messages: this.messages.map((msg) => msg.toPlainObject()),
       maxMessages: this.maxMessages,
       messageCount: this.messages.length,
     };

@@ -1,6 +1,6 @@
 /**
  * PackageManagerService (Application Layer)
- * 
+ *
  * Manages LaTeX packages with caching to MongoDB.
  * Uses tlmgr (TeX Live Manager) for package installation.
  */
@@ -46,12 +46,18 @@ export class PackageManagerService {
    * Install a LaTeX package
    */
   async install(packageName: string): Promise<LaTeXPackage> {
-    this.logger.log(`Installing package: ${packageName}`, 'PackageManagerService');
+    this.logger.log(
+      `Installing package: ${packageName}`,
+      'PackageManagerService',
+    );
 
     // Check cache first
     const cached = await this.cacheRepo.findByName(packageName);
     if (cached && cached.isInstalled()) {
-      this.logger.log(`Package ${packageName} already installed (cached)`, 'PackageManagerService');
+      this.logger.log(
+        `Package ${packageName} already installed (cached)`,
+        'PackageManagerService',
+      );
       await this.cacheRepo.touch(packageName);
       return cached;
     }
@@ -62,14 +68,20 @@ export class PackageManagerService {
         description: 'Common LaTeX package (pre-installed)',
       });
       await this.cacheRepo.save(pkg);
-      this.logger.log(`Package ${packageName} is pre-installed`, 'PackageManagerService');
+      this.logger.log(
+        `Package ${packageName} is pre-installed`,
+        'PackageManagerService',
+      );
       return pkg;
     }
 
     try {
       // TODO: Execute tlmgr install command in worker thread
       // For now, simulate installation
-      this.logger.log(`Installing ${packageName} via tlmgr...`, 'PackageManagerService');
+      this.logger.log(
+        `Installing ${packageName} via tlmgr...`,
+        'PackageManagerService',
+      );
 
       // Simulate package installation
       const pkg = LaTeXPackage.create(packageName).markInstalled({
@@ -78,7 +90,10 @@ export class PackageManagerService {
       });
 
       await this.cacheRepo.save(pkg);
-      this.logger.log(`Successfully installed: ${packageName}`, 'PackageManagerService');
+      this.logger.log(
+        `Successfully installed: ${packageName}`,
+        'PackageManagerService',
+      );
       return pkg;
     } catch (error) {
       this.logger.error(
@@ -158,7 +173,10 @@ export class PackageManagerService {
 
     try {
       // TODO: Execute tlmgr update --self --all
-      this.logger.log('Package cache updated successfully', 'PackageManagerService');
+      this.logger.log(
+        'Package cache updated successfully',
+        'PackageManagerService',
+      );
     } catch (error) {
       this.logger.error(
         'Failed to update package cache',

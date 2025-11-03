@@ -11,7 +11,11 @@ const mockUsers: any = {
 
 const mockRoles: any = { listRolesForUser: jest.fn().mockResolvedValue([]) };
 const mockTenants: any = { findById: jest.fn().mockResolvedValue(null) };
-const mockRefresh: any = { isRevoked: jest.fn().mockResolvedValue(false), revoke: jest.fn(), record: jest.fn() };
+const mockRefresh: any = {
+  isRevoked: jest.fn().mockResolvedValue(false),
+  revoke: jest.fn(),
+  record: jest.fn(),
+};
 
 describe('IdentityService', () => {
   const jwt = new JwtIssuerService({} as any);
@@ -23,7 +27,13 @@ describe('IdentityService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new IdentityService(mockUsers, jwt, mockRoles, mockTenants, mockRefresh);
+    service = new IdentityService(
+      mockUsers,
+      jwt,
+      mockRoles,
+      mockTenants,
+      mockRefresh,
+    );
   });
 
   it('registers and logs in a user', async () => {
@@ -31,12 +41,14 @@ describe('IdentityService', () => {
     mockUsers.create.mockResolvedValueOnce({ _id: 'u1', email: 'a@b.com' });
     await service.register('a@b.com', 'secret');
 
-    mockUsers.findByEmail.mockResolvedValueOnce({ _id: 'u1', email: 'a@b.com', hashedPassword: '$2b$12$abcdefghijklmnopqrstuv' });
+    mockUsers.findByEmail.mockResolvedValueOnce({
+      _id: 'u1',
+      email: 'a@b.com',
+      hashedPassword: '$2b$12$abcdefghijklmnopqrstuv',
+    });
     // bypass bcrypt compare by using login error path; we won't deeply validate tokens here
     try {
       await service.login('a@b.com', 'wrong');
     } catch {}
   });
 });
-
-

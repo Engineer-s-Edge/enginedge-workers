@@ -1,6 +1,6 @@
 /**
  * Genius Agent - Self-Improving Learning Agent
- * 
+ *
  * Implements a self-improving agent capable of:
  * - Supervised learning with model training and validation
  * - Unsupervised learning with clustering and pattern discovery
@@ -36,7 +36,7 @@ import {
 
 /**
  * Genius Agent - Self-improving learning agent
- * 
+ *
  * Extends BaseAgent with learning capabilities across multiple paradigms.
  */
 export class GeniusAgent extends BaseAgent {
@@ -83,7 +83,10 @@ export class GeniusAgent extends BaseAgent {
       ...this.geniusState,
       models: [...this.geniusState.models, model],
     };
-    this.logger.info('Added model', { modelId: model.modelId, type: model.type });
+    this.logger.info('Added model', {
+      modelId: model.modelId,
+      type: model.type,
+    });
   }
 
   /**
@@ -120,7 +123,10 @@ export class GeniusAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<ExecutionResult> {
     try {
-      this.logger.info('GeniusAgent: Starting learning task', { input, mode: this.geniusState.currentMode });
+      this.logger.info('GeniusAgent: Starting learning task', {
+        input,
+        mode: this.geniusState.currentMode,
+      });
 
       // Determine learning approach based on current mode
       let result: string;
@@ -152,11 +158,16 @@ export class GeniusAgent extends BaseAgent {
         },
       };
     } catch (error) {
-      this.logger.error('GeniusAgent: Learning task failed', error as Record<string, unknown>);
+      this.logger.error(
+        'GeniusAgent: Learning task failed',
+        error as Record<string, unknown>,
+      );
       return {
         status: 'error',
         output: `Learning failed: ${error instanceof Error ? error.message : String(error)}`,
-        error: { message: error instanceof Error ? error.message : String(error) },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       };
     }
   }
@@ -201,7 +212,8 @@ export class GeniusAgent extends BaseAgent {
       messages: [
         {
           role: 'system',
-          content: 'You are a supervised learning expert. Analyze the task and provide a learning strategy.',
+          content:
+            'You are a supervised learning expert. Analyze the task and provide a learning strategy.',
         },
         {
           role: 'user',
@@ -212,25 +224,25 @@ export class GeniusAgent extends BaseAgent {
       maxTokens: 1000,
     });
 
-      // Record learning history
-      this.geniusState = {
-        ...this.geniusState,
-        learningHistory: [
-          ...this.geniusState.learningHistory,
-          {
-            entryId: crypto.randomUUID(),
-            timestamp: new Date(),
-            mode: LearningMode.SUPERVISED,
-            modelId: this.geniusState.activeModel?.modelId || 'default',
-            phase: 'training',
-            input,
-            output: response.content,
-            performance: 0.85,
-          },
-        ],
-      };
+    // Record learning history
+    this.geniusState = {
+      ...this.geniusState,
+      learningHistory: [
+        ...this.geniusState.learningHistory,
+        {
+          entryId: crypto.randomUUID(),
+          timestamp: new Date(),
+          mode: LearningMode.SUPERVISED,
+          modelId: this.geniusState.activeModel?.modelId || 'default',
+          phase: 'training',
+          input,
+          output: response.content,
+          performance: 0.85,
+        },
+      ],
+    };
 
-      return response.content;
+    return response.content;
   }
 
   /**
@@ -242,7 +254,8 @@ export class GeniusAgent extends BaseAgent {
       messages: [
         {
           role: 'system',
-          content: 'You are an unsupervised learning expert. Discover patterns and clusters in the data.',
+          content:
+            'You are an unsupervised learning expert. Discover patterns and clusters in the data.',
         },
         {
           role: 'user',
@@ -265,7 +278,8 @@ export class GeniusAgent extends BaseAgent {
       messages: [
         {
           role: 'system',
-          content: 'You are a reinforcement learning expert. Optimize actions based on rewards.',
+          content:
+            'You are a reinforcement learning expert. Optimize actions based on rewards.',
         },
         {
           role: 'user',
@@ -282,10 +296,12 @@ export class GeniusAgent extends BaseAgent {
   /**
    * Stream supervised learning
    */
-  private async *streamSupervisedLearning(input: string): AsyncGenerator<string> {
+  private async *streamSupervisedLearning(
+    input: string,
+  ): AsyncGenerator<string> {
     yield `📚 Supervised Learning Mode\n`;
     yield `Training on labeled data...\n\n`;
-    
+
     const result = await this.runSupervisedLearning(input);
     yield result;
   }
@@ -293,10 +309,12 @@ export class GeniusAgent extends BaseAgent {
   /**
    * Stream unsupervised learning
    */
-  private async *streamUnsupervisedLearning(input: string): AsyncGenerator<string> {
+  private async *streamUnsupervisedLearning(
+    input: string,
+  ): AsyncGenerator<string> {
     yield `🔍 Unsupervised Learning Mode\n`;
     yield `Discovering patterns...\n\n`;
-    
+
     const result = await this.runUnsupervisedLearning(input);
     yield result;
   }
@@ -304,10 +322,12 @@ export class GeniusAgent extends BaseAgent {
   /**
    * Stream reinforcement learning
    */
-  private async *streamReinforcementLearning(input: string): AsyncGenerator<string> {
+  private async *streamReinforcementLearning(
+    input: string,
+  ): AsyncGenerator<string> {
     yield `🎯 Reinforcement Learning Mode\n`;
     yield `Optimizing actions...\n\n`;
-    
+
     const result = await this.runReinforcementLearning(input);
     yield result;
   }
@@ -315,21 +335,25 @@ export class GeniusAgent extends BaseAgent {
   /**
    * Generate improvement recommendations
    */
-  private async generateRecommendations(): Promise<ImprovementRecommendation[]> {
+  private async generateRecommendations(): Promise<
+    ImprovementRecommendation[]
+  > {
     const recommendations: ImprovementRecommendation[] = [];
 
     // Analyze recent performance
     if (this.geniusState.learningHistory.length > 0) {
-      const avgScore = this.geniusState.learningHistory.reduce(
-        (sum, entry) => sum + entry.performance,
-        0,
-      ) / this.geniusState.learningHistory.length;
+      const avgScore =
+        this.geniusState.learningHistory.reduce(
+          (sum, entry) => sum + entry.performance,
+          0,
+        ) / this.geniusState.learningHistory.length;
 
       if (avgScore < (this.config.qualityThreshold || 0.8)) {
         recommendations.push({
           id: `rec_${Date.now()}`,
           type: 'hyperparameter_tuning',
-          description: 'Consider increasing training iterations or adjusting hyperparameters',
+          description:
+            'Consider increasing training iterations or adjusting hyperparameters',
           priority: 'high',
           expectedImpact: 0.15,
           estimatedEffort: 5,

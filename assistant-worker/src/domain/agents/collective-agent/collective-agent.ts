@@ -1,6 +1,6 @@
 /**
  * Collective Agent - Multi-Agent Orchestration
- * 
+ *
  * Implements multi-agent coordination with task distribution,
  * result aggregation, and conflict resolution.
  */
@@ -46,7 +46,8 @@ export class CollectiveAgent extends BaseAgent {
       pendingAssignments: [],
       completedAssignments: [],
       subAgentStats: [],
-      distributionStrategy: config.defaultStrategy || TaskDistributionStrategy.LOAD_BALANCED,
+      distributionStrategy:
+        config.defaultStrategy || TaskDistributionStrategy.LOAD_BALANCED,
       aggregationMethod: AggregationMethod.CONSENSUS,
       coordinationPattern: CoordinationPattern.PARALLEL,
       conflicts: [],
@@ -81,7 +82,10 @@ export class CollectiveAgent extends BaseAgent {
         },
       ],
     };
-    this.logger.info('Registered sub-agent', { agentId: subAgent.agentId, type: subAgent.type });
+    this.logger.info('Registered sub-agent', {
+      agentId: subAgent.agentId,
+      type: subAgent.type,
+    });
   }
 
   /**
@@ -145,7 +149,8 @@ export class CollectiveAgent extends BaseAgent {
       // Update statistics
       this.collectiveState = {
         ...this.collectiveState,
-        totalTasksProcessed: this.collectiveState.totalTasksProcessed + subtasks.length,
+        totalTasksProcessed:
+          this.collectiveState.totalTasksProcessed + subtasks.length,
       };
 
       return {
@@ -159,11 +164,16 @@ export class CollectiveAgent extends BaseAgent {
         },
       };
     } catch (error) {
-      this.logger.error('CollectiveAgent: Coordination failed', error as Record<string, unknown>);
+      this.logger.error(
+        'CollectiveAgent: Coordination failed',
+        error as Record<string, unknown>,
+      );
       return {
         status: 'error',
         output: `Coordination failed: ${error instanceof Error ? error.message : String(error)}`,
-        error: { message: error instanceof Error ? error.message : String(error) },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       };
     }
   }
@@ -212,7 +222,8 @@ export class CollectiveAgent extends BaseAgent {
       messages: [
         {
           role: 'system',
-          content: 'You are a task decomposition expert. Break down complex tasks into smaller subtasks.',
+          content:
+            'You are a task decomposition expert. Break down complex tasks into smaller subtasks.',
         },
         {
           role: 'user',
@@ -226,12 +237,18 @@ export class CollectiveAgent extends BaseAgent {
     // Parse subtasks from response
     const subtaskLines = response.content
       .split('\n')
-      .filter((line) => line.trim().length > 0 && (line.match(/^\d+\./) || line.match(/^-/)))
+      .filter(
+        (line) =>
+          line.trim().length > 0 && (line.match(/^\d+\./) || line.match(/^-/)),
+      )
       .slice(0, 5);
 
     return subtaskLines.map((line, idx) => ({
       taskId: `task_${idx}`,
-      description: line.replace(/^\d+\.\s*/, '').replace(/^-\s*/, '').trim(),
+      description: line
+        .replace(/^\d+\.\s*/, '')
+        .replace(/^-\s*/, '')
+        .trim(),
       input: line,
       priority: 'medium' as const,
       timeout: 30000,
@@ -243,8 +260,10 @@ export class CollectiveAgent extends BaseAgent {
    * Distribute tasks to sub-agents
    */
   private distributeTasks(tasks: Task[]): TaskAssignment[] {
-    const activeAgents = this.collectiveState.subAgents.filter((sa) => sa.isActive);
-    
+    const activeAgents = this.collectiveState.subAgents.filter(
+      (sa) => sa.isActive,
+    );
+
     if (activeAgents.length === 0) {
       throw new Error('No active sub-agents available');
     }
@@ -269,9 +288,11 @@ export class CollectiveAgent extends BaseAgent {
   /**
    * Execute tasks sequentially
    */
-  private async executeSequential(assignments: TaskAssignment[]): Promise<SubAgentResult[]> {
+  private async executeSequential(
+    assignments: TaskAssignment[],
+  ): Promise<SubAgentResult[]> {
     const results: SubAgentResult[] = [];
-    
+
     for (const assignment of assignments) {
       const result = await this.executeTask(assignment);
       results.push(result);
@@ -283,15 +304,21 @@ export class CollectiveAgent extends BaseAgent {
   /**
    * Execute tasks in parallel
    */
-  private async executeParallel(assignments: TaskAssignment[]): Promise<SubAgentResult[]> {
-    const promises = assignments.map((assignment) => this.executeTask(assignment));
+  private async executeParallel(
+    assignments: TaskAssignment[],
+  ): Promise<SubAgentResult[]> {
+    const promises = assignments.map((assignment) =>
+      this.executeTask(assignment),
+    );
     return Promise.all(promises);
   }
 
   /**
    * Execute a single task
    */
-  private async executeTask(assignment: TaskAssignment): Promise<SubAgentResult> {
+  private async executeTask(
+    assignment: TaskAssignment,
+  ): Promise<SubAgentResult> {
     const startTime = Date.now();
 
     try {
@@ -323,9 +350,12 @@ export class CollectiveAgent extends BaseAgent {
           ...stats,
           tasksCompleted: stats.tasksCompleted + 1,
           averageExecutionTime:
-            (stats.averageExecutionTime * stats.tasksCompleted + executionTime) /
+            (stats.averageExecutionTime * stats.tasksCompleted +
+              executionTime) /
             (stats.tasksCompleted + 1),
-          successRate: (stats.tasksCompleted + 1) / (stats.tasksCompleted + stats.tasksFailed + 1),
+          successRate:
+            (stats.tasksCompleted + 1) /
+            (stats.tasksCompleted + stats.tasksFailed + 1),
           lastTaskAt: new Date(),
         };
         this.collectiveState = {
@@ -406,7 +436,6 @@ export class CollectiveAgent extends BaseAgent {
       confidence: successfulResults.length / results.length,
       conflicts: [],
       timestamp: new Date(),
-      
     };
   }
 }

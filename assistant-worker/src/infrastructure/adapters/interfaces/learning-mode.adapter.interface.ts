@@ -1,6 +1,6 @@
 /**
  * Learning Mode Adapter Interface
- * 
+ *
  * Port interface for learning mode execution
  * Abstracts external LearningModeService implementation
  */

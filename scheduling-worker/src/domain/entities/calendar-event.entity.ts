@@ -1,8 +1,8 @@
 /**
  * Calendar Event Entity
- * 
+ *
  * Represents a calendar event (from Google Calendar or other sources)
- * 
+ *
  * Domain Entity - No infrastructure dependencies
  */
 
@@ -119,7 +119,9 @@ export class CalendarEvent {
       this.id,
       this.calendarId,
       updates.title ?? this.title,
-      updates.description !== undefined ? updates.description : this.description,
+      updates.description !== undefined
+        ? updates.description
+        : this.description,
       this.startTime,
       this.endTime,
       updates.location !== undefined ? updates.location : this.location,

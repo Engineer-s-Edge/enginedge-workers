@@ -58,7 +58,11 @@ export interface IMLModelService {
    */
   predictUserSatisfaction(
     userId: string,
-    proposedSchedule: { taskId: string; slotStartTime: Date; slotEndTime: Date }[],
+    proposedSchedule: {
+      taskId: string;
+      slotStartTime: Date;
+      slotEndTime: Date;
+    }[],
   ): Promise<number>;
 
   /**

@@ -17,7 +17,9 @@ describe('Infrastructure Layer - Controllers', () => {
       ) {}
 
       async create(body: any): Promise<any> {
-        this.logger.info('AgentController: POST /agents - Create agent', { name: body.name });
+        this.logger.info('AgentController: POST /agents - Create agent', {
+          name: body.name,
+        });
         const agent = await this.createUseCase.execute(body);
         return {
           id: agent.id,
@@ -29,15 +31,25 @@ describe('Infrastructure Layer - Controllers', () => {
       }
 
       async execute(agentId: string, body: any): Promise<any> {
-        this.logger.info('AgentController: POST /agents/:id/execute', { agentId });
-        const response = await this.executeUseCase.execute({ agentId, ...body });
+        this.logger.info('AgentController: POST /agents/:id/execute', {
+          agentId,
+        });
+        const response = await this.executeUseCase.execute({
+          agentId,
+          ...body,
+        });
         return response.toPlainObject();
       }
 
       async executeStream(agentId: string, body: any): Promise<any> {
-        this.logger.info('AgentController: POST /agents/:id/execute/stream', { agentId });
+        this.logger.info('AgentController: POST /agents/:id/execute/stream', {
+          agentId,
+        });
         const chunks: any[] = [];
-        for await (const chunk of this.streamUseCase.execute({ agentId, ...body })) {
+        for await (const chunk of this.streamUseCase.execute({
+          agentId,
+          ...body,
+        })) {
           chunks.push(chunk.toPlainObject());
         }
         return { chunks };
@@ -62,7 +74,12 @@ describe('Infrastructure Layer - Controllers', () => {
         warn: jest.fn(),
         debug: jest.fn(),
       };
-      controller = new AgentController(mockExecuteUseCase, mockStreamUseCase, mockCreateUseCase, mockLogger);
+      controller = new AgentController(
+        mockExecuteUseCase,
+        mockStreamUseCase,
+        mockCreateUseCase,
+        mockLogger,
+      );
     });
 
     it('should create agent successfully', async () => {
@@ -85,7 +102,9 @@ describe('Infrastructure Layer - Controllers', () => {
 
     it('should handle agent creation errors', async () => {
       mockCreateUseCase.execute.mockRejectedValue(new Error('Invalid model'));
-      await expect(controller.create({ name: 'Test', model: 'invalid' })).rejects.toThrow('Invalid model');
+      await expect(
+        controller.create({ name: 'Test', model: 'invalid' }),
+      ).rejects.toThrow('Invalid model');
     });
 
     it('should execute agent successfully', async () => {
@@ -123,8 +142,12 @@ describe('Infrastructure Layer - Controllers', () => {
 
     it('should handle execution errors', async () => {
       const agentId = `agent-${Date.now()}-${idCounter++}`;
-      mockExecuteUseCase.execute.mockRejectedValue(new Error('Execution failed'));
-      await expect(controller.execute(agentId, {})).rejects.toThrow('Execution failed');
+      mockExecuteUseCase.execute.mockRejectedValue(
+        new Error('Execution failed'),
+      );
+      await expect(controller.execute(agentId, {})).rejects.toThrow(
+        'Execution failed',
+      );
     });
   });
 
@@ -170,7 +193,9 @@ describe('Infrastructure Layer - Controllers', () => {
 
     it('should log health check', async () => {
       await controller.getHealth();
-      expect(mockLogger.info).toHaveBeenCalledWith('HealthController: GET /health');
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'HealthController: GET /health',
+      );
     });
 
     it('should include valid timestamp', async () => {
@@ -192,7 +217,9 @@ describe('Infrastructure Layer - Controllers', () => {
       }
 
       getMetrics(name?: string): any[] {
-        return name ? this.metrics.filter((m) => m.name === name) : [...this.metrics];
+        return name
+          ? this.metrics.filter((m) => m.name === name)
+          : [...this.metrics];
       }
 
       getAggregated(): Record<string, any> {
@@ -203,7 +230,8 @@ describe('Infrastructure Layer - Controllers', () => {
           }
           aggregated[metric.name].count++;
           aggregated[metric.name].sum += metric.value;
-          aggregated[metric.name].avg = aggregated[metric.name].sum / aggregated[metric.name].count;
+          aggregated[metric.name].avg =
+            aggregated[metric.name].sum / aggregated[metric.name].count;
         }
         return aggregated;
       }
@@ -290,20 +318,29 @@ describe('Infrastructure Layer - Controllers', () => {
     });
 
     it('should throw 404 for missing resource', async () => {
-      await expect(controller.handleNotFound('Agent')).rejects.toThrow('Agent not found');
+      await expect(controller.handleNotFound('Agent')).rejects.toThrow(
+        'Agent not found',
+      );
     });
 
     it('should throw 400 for invalid input', async () => {
-      await expect(controller.handleInvalidInput('email')).rejects.toThrow('Invalid email');
+      await expect(controller.handleInvalidInput('email')).rejects.toThrow(
+        'Invalid email',
+      );
     });
 
     it('should throw 401 for unauthorized', async () => {
-      await expect(controller.handleUnauthorized()).rejects.toThrow('Unauthorized');
+      await expect(controller.handleUnauthorized()).rejects.toThrow(
+        'Unauthorized',
+      );
     });
 
     it('should log errors', async () => {
       await expect(controller.handleNotFound('Test')).rejects.toThrow();
-      expect(mockLogger.error).toHaveBeenCalledWith('Resource not found', 'Test');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Resource not found',
+        'Test',
+      );
     });
   });
 
@@ -313,7 +350,9 @@ describe('Infrastructure Layer - Controllers', () => {
       constructor(private logger: any) {}
 
       async processRequest(request: any): Promise<any> {
-        this.logger.info('LLMController: POST /llm/process', { model: request.model });
+        this.logger.info('LLMController: POST /llm/process', {
+          model: request.model,
+        });
         return {
           id: `response-${Date.now()}`,
           content: `Response to: ${request.prompt}`,

@@ -4,7 +4,10 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { LearningModeAdapter } from '../../../infrastructure/adapters/implementations/learning-mode.adapter';
-import { LearningModeConfig, LearningMode } from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
+import {
+  LearningModeConfig,
+  LearningMode,
+} from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
 
 describe('LearningModeAdapter', () => {
   let adapter: LearningModeAdapter;
@@ -72,11 +75,14 @@ describe('LearningModeAdapter', () => {
     });
 
     it('should handle concurrent executions', async () => {
-      const configs: LearningModeConfig[] = Array.from({ length: 10 }, (_, i) => ({
-        userId: `user-${i}`,
-        mode: 'user-directed' as LearningMode,
-        topics: [`Topic-${i}`],
-      }));
+      const configs: LearningModeConfig[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          userId: `user-${i}`,
+          mode: 'user-directed' as LearningMode,
+          topics: [`Topic-${i}`],
+        }),
+      );
 
       const results = await Promise.all(
         configs.map((c) => adapter.executeLearningMode(c)),
@@ -182,9 +188,7 @@ describe('LearningModeAdapter', () => {
       ];
 
       const promises = modes.flatMap((mode) =>
-        Array.from({ length: 5 }, () =>
-          adapter.getModeStatistics(mode),
-        ),
+        Array.from({ length: 5 }, () => adapter.getModeStatistics(mode)),
       );
 
       const results = await Promise.all(promises);
@@ -249,9 +253,7 @@ describe('LearningModeAdapter', () => {
       const changes = [];
 
       for (let i = 0; i < 20; i++) {
-        changes.push(
-          adapter.switchMode('user-rapid', modes[i % 3]),
-        );
+        changes.push(adapter.switchMode('user-rapid', modes[i % 3]));
       }
 
       const results = await Promise.all(changes);

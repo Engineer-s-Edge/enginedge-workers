@@ -35,12 +35,12 @@ export class CoverLetterService {
   constructor(
     @InjectModel('JobPosting')
     private readonly jobPostingModel: Model<JobPosting>,
-    private readonly experienceBankService: ExperienceBankService
+    private readonly experienceBankService: ExperienceBankService,
   ) {}
 
   /**
    * Generate a cover letter for a job posting.
-   * 
+   *
    * This uses a ReAct agent to:
    * 1. Research the company (using agent-tool-worker)
    * 2. Analyze the job posting
@@ -49,26 +49,28 @@ export class CoverLetterService {
    */
   async generateCoverLetter(
     userId: string,
-    options: GenerateCoverLetterOptions
+    options: GenerateCoverLetterOptions,
   ): Promise<CoverLetter> {
     this.logger.log(`Generating cover letter for user ${userId}`);
 
     // Step 1: Get job posting
-    const jobPosting = await this.jobPostingModel.findById(options.jobPostingId).exec();
+    const jobPosting = await this.jobPostingModel
+      .findById(options.jobPostingId)
+      .exec();
     if (!jobPosting) {
       throw new Error(`Job posting ${options.jobPostingId} not found`);
     }
 
     // Step 2: Research company
     const companyResearch = await this.researchCompany(
-      jobPosting.parsed.company.hiringOrganization || 'Company'
+      jobPosting.parsed.company.hiringOrganization || 'Company',
     );
 
     // Step 3: Find relevant experiences
     const relevantExperiences = await this.findRelevantExperiences(
       userId,
       jobPosting,
-      options.includeExperiences
+      options.includeExperiences,
     );
 
     // Step 4: Generate cover letter
@@ -76,7 +78,7 @@ export class CoverLetterService {
       jobPosting,
       companyResearch,
       relevantExperiences,
-      options
+      options,
     );
 
     // Step 5: Create cover letter document
@@ -89,7 +91,7 @@ export class CoverLetterService {
         position: jobPosting.parsed.role.titleRaw,
         tone: options.tone || 'professional',
         length: options.length || 'medium',
-        experiencesUsed: relevantExperiences.map(e => e._id.toString()),
+        experiencesUsed: relevantExperiences.map((e) => e._id.toString()),
       },
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -128,7 +130,7 @@ export class CoverLetterService {
   private async findRelevantExperiences(
     userId: string,
     jobPosting: JobPosting,
-    specificIds?: string[]
+    specificIds?: string[],
   ): Promise<any[]> {
     this.logger.log('Finding relevant experiences from experience bank');
 
@@ -162,7 +164,7 @@ export class CoverLetterService {
 
     // Deduplicate and take top 5
     const uniqueExperiences = Array.from(
-      new Map(allExperiences.map(e => [e._id.toString(), e])).values()
+      new Map(allExperiences.map((e) => [e._id.toString(), e])).values(),
     ).slice(0, 5);
 
     return uniqueExperiences;
@@ -175,19 +177,31 @@ export class CoverLetterService {
     jobPosting: JobPosting,
     companyResearch: any,
     experiences: any[],
-    options: GenerateCoverLetterOptions
+    options: GenerateCoverLetterOptions,
   ): Promise<string> {
     this.logger.log('Generating cover letter content');
 
     // TODO: Send to assistant-worker agent for generation
     // For now, create template-based content
 
-    const company = jobPosting.parsed.company.hiringOrganization || 'Your Company';
+    const company =
+      jobPosting.parsed.company.hiringOrganization || 'Your Company';
     const position = jobPosting.parsed.role.titleRaw;
 
-    const intro = this.generateIntro(company, position, options.tone || 'professional');
-    const body = this.generateBody(experiences, jobPosting, options.tone || 'professional');
-    const closing = this.generateClosing(company, options.tone || 'professional');
+    const intro = this.generateIntro(
+      company,
+      position,
+      options.tone || 'professional',
+    );
+    const body = this.generateBody(
+      experiences,
+      jobPosting,
+      options.tone || 'professional',
+    );
+    const closing = this.generateClosing(
+      company,
+      options.tone || 'professional',
+    );
 
     return `${intro}\n\n${body}\n\n${closing}`;
   }
@@ -195,7 +209,11 @@ export class CoverLetterService {
   /**
    * Generate introduction paragraph.
    */
-  private generateIntro(company: string, position: string, tone: string): string {
+  private generateIntro(
+    company: string,
+    position: string,
+    tone: string,
+  ): string {
     const intros = {
       professional: `I am writing to express my strong interest in the ${position} position at ${company}. With my proven track record in software development and passion for innovation, I am confident I would be a valuable addition to your team.`,
       casual: `I'm excited to apply for the ${position} role at ${company}! Your company's mission really resonates with me, and I believe my experience would be a great fit.`,
@@ -208,30 +226,32 @@ export class CoverLetterService {
   /**
    * Generate body paragraphs from experiences.
    */
-  private generateBody(experiences: any[], jobPosting: JobPosting, tone: string): string {
+  private generateBody(
+    experiences: any[],
+    jobPosting: JobPosting,
+    tone: string,
+  ): string {
     const paragraphs: string[] = [];
 
     // Group experiences by theme
-    const techExperiences = experiences.filter(e =>
-      e.metadata.category === 'work'
+    const techExperiences = experiences.filter(
+      (e) => e.metadata.category === 'work',
     );
 
     if (techExperiences.length > 0) {
       const bullets = techExperiences
         .slice(0, 3)
-        .map(e => e.bulletText)
+        .map((e) => e.bulletText)
         .join(' Additionally, ');
 
-      paragraphs.push(
-        `In my previous roles, I have ${bullets.toLowerCase()}`
-      );
+      paragraphs.push(`In my previous roles, I have ${bullets.toLowerCase()}`);
     }
 
     // Add skills alignment
     const requiredSkills = jobPosting.parsed.skills.skillsExplicit || [];
     if (requiredSkills.length > 0) {
       paragraphs.push(
-        `I am particularly excited about this opportunity because of my expertise in ${requiredSkills.slice(0, 3).join(', ')}, which aligns perfectly with your requirements.`
+        `I am particularly excited about this opportunity because of my expertise in ${requiredSkills.slice(0, 3).join(', ')}, which aligns perfectly with your requirements.`,
       );
     }
 
@@ -256,7 +276,7 @@ export class CoverLetterService {
    */
   async regenerateCoverLetter(
     coverLetterId: string,
-    options: Partial<GenerateCoverLetterOptions>
+    options: Partial<GenerateCoverLetterOptions>,
   ): Promise<CoverLetter> {
     // TODO: Implement regeneration
     throw new Error('Not implemented');
@@ -267,10 +287,9 @@ export class CoverLetterService {
    */
   async editCoverLetter(
     coverLetterId: string,
-    newContent: string
+    newContent: string,
   ): Promise<CoverLetter> {
     // TODO: Implement editing
     throw new Error('Not implemented');
   }
 }
-

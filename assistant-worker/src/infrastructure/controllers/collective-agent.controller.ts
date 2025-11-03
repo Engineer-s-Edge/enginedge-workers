@@ -1,11 +1,21 @@
 /**
  * Collective Agent Controller
- * 
+ *
  * Specialized endpoints for Collective (multi-agent orchestration) agents.
  * Handles PM-style task decomposition and coordination.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { ILogger } from '@application/ports/logger.port';
@@ -27,12 +37,15 @@ export class CollectiveAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createCollectiveAgent(@Body() body: {
-    name: string;
-    userId: string;
-    maxAgents?: number;
-    coordinationStrategy?: 'sequential' | 'parallel' | 'hierarchical';
-  }) {
+  async createCollectiveAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      maxAgents?: number;
+      coordinationStrategy?: 'sequential' | 'parallel' | 'hierarchical';
+    },
+  ) {
     this.logger.info('Creating Collective agent', { name: body.name });
 
     const config = {
@@ -61,7 +74,8 @@ export class CollectiveAgentController {
   @HttpCode(HttpStatus.OK)
   async orchestrateTask(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       task: string;
       subAgents?: string[];
@@ -105,13 +119,17 @@ export class CollectiveAgentController {
   @HttpCode(HttpStatus.CREATED)
   async addSubAgent(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       subAgentId: string;
       role: string;
     },
   ) {
-    this.logger.info('Adding sub-agent', { agentId, subAgentId: body.subAgentId });
+    this.logger.info('Adding sub-agent', {
+      agentId,
+      subAgentId: body.subAgentId,
+    });
 
     return {
       success: true,
@@ -155,4 +173,3 @@ export class CollectiveAgentController {
     };
   }
 }
-

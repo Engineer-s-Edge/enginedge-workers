@@ -1,6 +1,6 @@
 /**
  * GridFS Service for PDF Storage
- * 
+ *
  * Handles large file storage using MongoDB GridFS
  */
 
@@ -15,9 +15,7 @@ import { IPDFStorage } from '../../../domain/ports';
 export class GridFSService implements IPDFStorage, OnModuleInit {
   private gridFSBucket!: GridFSBucket;
 
-  constructor(
-    @InjectConnection() private readonly connection: Connection,
-  ) {}
+  constructor(@InjectConnection() private readonly connection: Connection) {}
 
   onModuleInit() {
     if (!this.connection.db) {
@@ -31,7 +29,11 @@ export class GridFSService implements IPDFStorage, OnModuleInit {
   /**
    * Store a PDF file in GridFS
    */
-  async store(filename: string, buffer: Buffer, metadata?: any): Promise<string> {
+  async store(
+    filename: string,
+    buffer: Buffer,
+    metadata?: any,
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const readableStream = Readable.from(buffer);
       const uploadStream = this.gridFSBucket.openUploadStream(filename, {
@@ -128,11 +130,7 @@ export class GridFSService implements IPDFStorage, OnModuleInit {
    * List all PDF files (with pagination)
    */
   async list(skip = 0, limit = 50): Promise<any[]> {
-    return await this.gridFSBucket
-      .find()
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+    return await this.gridFSBucket.find().skip(skip).limit(limit).toArray();
   }
 
   /**

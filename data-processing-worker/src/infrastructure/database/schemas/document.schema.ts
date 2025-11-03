@@ -3,7 +3,7 @@ import { Document as MongooseDocument } from 'mongoose';
 
 /**
  * MongoDB Document Schema
- * 
+ *
  * Stores processed documents with optional vector embeddings.
  * Supports MongoDB Atlas Vector Search.
  */

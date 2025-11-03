@@ -23,7 +23,9 @@ describe('MultiFileService', () => {
     it('should analyze single file with no dependencies', async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile.mockResolvedValue(
-        Buffer.from('\\documentclass{article}\n\\begin{document}\nHello\\end{document}'),
+        Buffer.from(
+          '\\documentclass{article}\n\\begin{document}\nHello\\end{document}',
+        ),
       );
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
@@ -39,11 +41,11 @@ describe('MultiFileService', () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile
         .mockResolvedValueOnce(
-          Buffer.from('\\documentclass{article}\n\\include{chapter1}\n\\begin{document}\\end{document}'),
+          Buffer.from(
+            '\\documentclass{article}\n\\include{chapter1}\n\\begin{document}\\end{document}',
+          ),
         )
-        .mockResolvedValueOnce(
-          Buffer.from('\\section{Chapter 1}\nContent'),
-        );
+        .mockResolvedValueOnce(Buffer.from('\\section{Chapter 1}\nContent'));
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
 
@@ -62,11 +64,11 @@ describe('MultiFileService', () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile
         .mockResolvedValueOnce(
-          Buffer.from('\\documentclass{article}\n\\input{preamble.tex}\n\\begin{document}\\end{document}'),
+          Buffer.from(
+            '\\documentclass{article}\n\\input{preamble.tex}\n\\begin{document}\\end{document}',
+          ),
         )
-        .mockResolvedValueOnce(
-          Buffer.from('\\usepackage{amsmath}'),
-        );
+        .mockResolvedValueOnce(Buffer.from('\\usepackage{amsmath}'));
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
 
@@ -85,10 +87,10 @@ describe('MultiFileService', () => {
         .mockResolvedValueOnce(
           Buffer.from(
             '\\documentclass{article}\n' +
-            '\\input{preamble}\n' +
-            '\\include{chapter1}\n' +
-            '\\include{chapter2}\n' +
-            '\\begin{document}\\end{document}',
+              '\\input{preamble}\n' +
+              '\\include{chapter1}\n' +
+              '\\include{chapter2}\n' +
+              '\\begin{document}\\end{document}',
           ),
         )
         .mockResolvedValueOnce(Buffer.from('% preamble'))
@@ -104,15 +106,9 @@ describe('MultiFileService', () => {
     it('should detect nested dependencies (recursive)', async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile
-        .mockResolvedValueOnce(
-          Buffer.from('\\include{chapter1}'),
-        )
-        .mockResolvedValueOnce(
-          Buffer.from('\\input{section1}'),
-        )
-        .mockResolvedValueOnce(
-          Buffer.from('Deep nested content'),
-        );
+        .mockResolvedValueOnce(Buffer.from('\\include{chapter1}'))
+        .mockResolvedValueOnce(Buffer.from('\\input{section1}'))
+        .mockResolvedValueOnce(Buffer.from('Deep nested content'));
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
 
@@ -124,7 +120,9 @@ describe('MultiFileService', () => {
     it('should detect bibliography files', async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile.mockResolvedValue(
-        Buffer.from('\\documentclass{article}\n\\bibliography{references}\n\\begin{document}\\end{document}'),
+        Buffer.from(
+          '\\documentclass{article}\n\\bibliography{references}\n\\begin{document}\\end{document}',
+        ),
       );
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
@@ -154,7 +152,9 @@ describe('MultiFileService', () => {
     it('should detect image files', async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile.mockResolvedValue(
-        Buffer.from('\\includegraphics{figure1.png}\n\\includegraphics[width=5cm]{figure2.jpg}'),
+        Buffer.from(
+          '\\includegraphics{figure1.png}\n\\includegraphics[width=5cm]{figure2.jpg}',
+        ),
       );
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
@@ -208,9 +208,7 @@ describe('MultiFileService', () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile
         .mockResolvedValueOnce(
-          Buffer.from(
-            'Line 1\nLine 2\n\\include{chapter1}\nLine 4',
-          ),
+          Buffer.from('Line 1\nLine 2\n\\include{chapter1}\nLine 4'),
         )
         .mockResolvedValueOnce(Buffer.from('% chapter'));
 
@@ -224,15 +222,15 @@ describe('MultiFileService', () => {
     it('should put main file last (dependent on all others)', async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile
-        .mockResolvedValueOnce(
-          Buffer.from('\\input{a}\n\\input{b}'),
-        )
+        .mockResolvedValueOnce(Buffer.from('\\input{a}\n\\input{b}'))
         .mockResolvedValueOnce(Buffer.from('% a'))
         .mockResolvedValueOnce(Buffer.from('% b'));
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
 
-      expect(graph.compilationOrder[graph.compilationOrder.length - 1]).toBe('main.tex');
+      expect(graph.compilationOrder[graph.compilationOrder.length - 1]).toBe(
+        'main.tex',
+      );
     });
 
     it('should order nested dependencies correctly', async () => {
@@ -240,7 +238,7 @@ describe('MultiFileService', () => {
       mockFileSystem.readFile
         .mockResolvedValueOnce(Buffer.from('\\input{b}')) // main
         .mockResolvedValueOnce(Buffer.from('\\input{c}')) // b
-        .mockResolvedValueOnce(Buffer.from('% leaf'));   // c
+        .mockResolvedValueOnce(Buffer.from('% leaf')); // c
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
 
@@ -316,9 +314,21 @@ describe('MultiFileService', () => {
         mainFile: 'main.tex',
         allFiles: ['main.tex', 'chapter.tex', 'fig.png', 'refs.bib'],
         dependencies: [
-          { sourceFile: 'main.tex', targetFile: 'chapter.tex', type: 'include' as const },
-          { sourceFile: 'main.tex', targetFile: 'fig.png', type: 'image' as const },
-          { sourceFile: 'main.tex', targetFile: 'refs.bib', type: 'bibliography' as const },
+          {
+            sourceFile: 'main.tex',
+            targetFile: 'chapter.tex',
+            type: 'include' as const,
+          },
+          {
+            sourceFile: 'main.tex',
+            targetFile: 'fig.png',
+            type: 'image' as const,
+          },
+          {
+            sourceFile: 'main.tex',
+            targetFile: 'refs.bib',
+            type: 'bibliography' as const,
+          },
         ],
         missingFiles: [],
         compilationOrder: [],
@@ -338,8 +348,16 @@ describe('MultiFileService', () => {
         mainFile: 'main.tex',
         allFiles: ['main.tex', 'refs.bib', 'fig.png'],
         dependencies: [
-          { sourceFile: 'main.tex', targetFile: 'refs.bib', type: 'bibliography' as const },
-          { sourceFile: 'main.tex', targetFile: 'fig.png', type: 'image' as const },
+          {
+            sourceFile: 'main.tex',
+            targetFile: 'refs.bib',
+            type: 'bibliography' as const,
+          },
+          {
+            sourceFile: 'main.tex',
+            targetFile: 'fig.png',
+            type: 'image' as const,
+          },
         ],
         missingFiles: [],
         compilationOrder: [],
@@ -447,9 +465,7 @@ describe('MultiFileService', () => {
     it('should handle .tex files with explicit extension', async () => {
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile
-        .mockResolvedValueOnce(
-          Buffer.from('\\include{chapter1.tex}'),
-        )
+        .mockResolvedValueOnce(Buffer.from('\\include{chapter1.tex}'))
         .mockResolvedValueOnce(Buffer.from('% chapter'));
 
       const graph = await service.analyzeDependencies('main.tex', '/project');
@@ -476,14 +492,16 @@ describe('MultiFileService', () => {
         .mockResolvedValueOnce(
           Buffer.from(
             '\\input{preamble}\n' +
-            '\\include{chapters/ch1}\n' +
-            '\\include{chapters/ch2}\n' +
-            '\\bibliography{refs/main}\n' +
-            '\\includegraphics{images/logo.png}',
+              '\\include{chapters/ch1}\n' +
+              '\\include{chapters/ch2}\n' +
+              '\\bibliography{refs/main}\n' +
+              '\\includegraphics{images/logo.png}',
           ),
         )
         .mockResolvedValueOnce(Buffer.from('% preamble'))
-        .mockResolvedValueOnce(Buffer.from('\\includegraphics{images/fig1.png}'))
+        .mockResolvedValueOnce(
+          Buffer.from('\\includegraphics{images/fig1.png}'),
+        )
         .mockResolvedValueOnce(Buffer.from('% ch2'));
 
       const graph = await service.analyzeDependencies('main.tex', '/project');

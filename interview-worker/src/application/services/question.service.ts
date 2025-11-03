@@ -1,6 +1,6 @@
 /**
  * Question Service
- * 
+ *
  * Application service for managing questions.
  */
 
@@ -51,10 +51,7 @@ export class QuestionService {
     category: QuestionCategory,
     difficulty?: 'easy' | 'medium' | 'hard',
   ): Promise<InterviewQuestion[]> {
-    return await this.questionRepository.findByCategory(
-      category,
-      difficulty,
-    );
+    return await this.questionRepository.findByCategory(category, difficulty);
   }
 
   async selectQuestions(input: {
@@ -79,4 +76,3 @@ export class QuestionService {
     return await this.questionRepository.delete(questionId);
   }
 }
-

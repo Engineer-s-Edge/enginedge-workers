@@ -1,18 +1,20 @@
 /**
  * Project Management Service
- * 
+ *
  * Application layer service for managing LaTeX projects
  */
 
 import { Injectable } from '@nestjs/common';
-import { LaTeXProject, ProjectFile, ProjectDependency } from '../../domain/entities';
+import {
+  LaTeXProject,
+  ProjectFile,
+  ProjectDependency,
+} from '../../domain/entities';
 import { IProjectRepository } from '../../domain/ports';
 
 @Injectable()
 export class ProjectService {
-  constructor(
-    private readonly projectRepository: IProjectRepository,
-  ) {}
+  constructor(private readonly projectRepository: IProjectRepository) {}
 
   /**
    * Create a new single-file project
@@ -40,17 +42,24 @@ export class ProjectService {
     userId?: string,
   ): Promise<LaTeXProject> {
     // Find main file content
-    const mainFileContent = files.find(f => f.path === mainFile)?.content || '';
-    
-    let project = LaTeXProject.create(id, name, mainFile, mainFileContent, userId);
-    
+    const mainFileContent =
+      files.find((f) => f.path === mainFile)?.content || '';
+
+    let project = LaTeXProject.create(
+      id,
+      name,
+      mainFile,
+      mainFileContent,
+      userId,
+    );
+
     // Add all other files
     for (const file of files) {
       if (file.path !== mainFile) {
         project = project.addFile(file);
       }
     }
-    
+
     await this.projectRepository.save(project);
     return project;
   }
@@ -79,10 +88,7 @@ export class ProjectService {
   /**
    * Add a file to a project
    */
-  async addFile(
-    projectId: string,
-    file: ProjectFile,
-  ): Promise<LaTeXProject> {
+  async addFile(projectId: string, file: ProjectFile): Promise<LaTeXProject> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
       throw new Error(`Project ${projectId} not found`);
@@ -106,7 +112,7 @@ export class ProjectService {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    const file = project.files.find(f => f.path === filePath);
+    const file = project.files.find((f) => f.path === filePath);
     if (!file) {
       throw new Error(`File ${filePath} not found in project`);
     }
@@ -123,10 +129,7 @@ export class ProjectService {
   /**
    * Remove a file from a project
    */
-  async removeFile(
-    projectId: string,
-    filePath: string,
-  ): Promise<LaTeXProject> {
+  async removeFile(projectId: string, filePath: string): Promise<LaTeXProject> {
     const project = await this.projectRepository.findById(projectId);
     if (!project) {
       throw new Error(`Project ${projectId} not found`);
@@ -167,7 +170,7 @@ export class ProjectService {
     }
 
     // Verify the file exists in the project
-    const fileExists = project.files.some(f => f.path === mainFile);
+    const fileExists = project.files.some((f) => f.path === mainFile);
     if (!fileExists) {
       throw new Error(`File ${mainFile} not found in project`);
     }
@@ -224,6 +227,6 @@ export class ProjectService {
     if (!project) {
       return false;
     }
-    return project.files.some(f => f.path === filePath);
+    return project.files.some((f) => f.path === filePath);
   }
 }

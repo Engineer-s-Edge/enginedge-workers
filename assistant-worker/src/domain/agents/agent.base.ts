@@ -1,6 +1,12 @@
 import { Injectable, Scope } from '@nestjs/common';
 import { EventEmitter2 } from 'eventemitter2';
-import { ExecutionContext, AgentState, ExecutionResult, Message, AgentStateType } from '../entities';
+import {
+  ExecutionContext,
+  AgentState,
+  ExecutionResult,
+  Message,
+  AgentStateType,
+} from '../entities';
 import { ILogger } from '@application/ports/logger.port';
 import { ILLMProvider } from '@application/ports/llm-provider.port';
 
@@ -30,7 +36,7 @@ interface InternalAgentState {
 
 /**
  * BaseAgent - Abstract base class for all agent types
- * 
+ *
  * Implements core agent lifecycle and execution patterns:
  * - State management (idle, thinking, executing, complete, error)
  * - Message streaming
@@ -116,10 +122,15 @@ export abstract class BaseAgent {
       }
 
       this.internalState.status = 'complete';
-      this.emitEvent('agent:stream_completed', { messagesCount: this.internalState.messageCount });
+      this.emitEvent('agent:stream_completed', {
+        messagesCount: this.internalState.messageCount,
+      });
     } catch (error) {
       this.internalState.status = 'error';
-      if (!(error instanceof Error) || error.message !== 'Agent execution aborted') {
+      if (
+        !(error instanceof Error) ||
+        error.message !== 'Agent execution aborted'
+      ) {
         this.internalState.errors.push({
           message: error instanceof Error ? error.message : String(error),
           timestamp: new Date(),
@@ -134,7 +145,9 @@ export abstract class BaseAgent {
    * Abort execution
    */
   abort(): void {
-    this.logger.debug('Aborting agent execution', { status: this.internalState.status });
+    this.logger.debug('Aborting agent execution', {
+      status: this.internalState.status,
+    });
     this.internalState.status = 'aborted';
     if (this.abortController) {
       this.abortController.abort();
@@ -146,7 +159,10 @@ export abstract class BaseAgent {
    * Check if execution was aborted
    */
   isAborted(): boolean {
-    return this.internalState.status === 'aborted' || (this.abortController?.signal.aborted ?? false);
+    return (
+      this.internalState.status === 'aborted' ||
+      (this.abortController?.signal.aborted ?? false)
+    );
   }
 
   /**
@@ -155,14 +171,14 @@ export abstract class BaseAgent {
   getState(): AgentState {
     // Convert internal state to AgentState class
     const statusMap: Record<string, AgentStateType> = {
-      'idle': 'idle',
-      'thinking': 'processing',
-      'executing': 'processing',
-      'complete': 'complete',
-      'error': 'error',
-      'aborted': 'error',
+      idle: 'idle',
+      thinking: 'processing',
+      executing: 'processing',
+      complete: 'complete',
+      error: 'error',
+      aborted: 'error',
     };
-    
+
     const stateType = statusMap[this.internalState.status] || 'idle';
     const metadata = {
       messageCount: this.internalState.messageCount,
@@ -171,7 +187,7 @@ export abstract class BaseAgent {
       thinkingSteps: this.internalState.thinkingSteps,
       errors: this.internalState.errors,
     };
-    
+
     switch (stateType) {
       case 'idle':
         return AgentState.idle();
@@ -180,7 +196,8 @@ export abstract class BaseAgent {
       case 'complete':
         return AgentState.complete(metadata);
       case 'error':
-        const lastError = this.internalState.errors[this.internalState.errors.length - 1];
+        const lastError =
+          this.internalState.errors[this.internalState.errors.length - 1];
         const errorMessage = lastError?.message || 'Unknown error';
         return AgentState.error(errorMessage, metadata);
       default:
@@ -244,7 +261,9 @@ export abstract class BaseAgent {
       userId: context.userId || 'anonymous',
       conversationId: context.conversationId || `conv_${Date.now()}`,
       sessionId: context.sessionId || `sess_${Date.now()}`,
-      contextId: context.contextId || `ctx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      contextId:
+        context.contextId ||
+        `ctx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       input,
       createdAt: context.createdAt || new Date(),
       updatedAt: new Date(),
@@ -279,7 +298,11 @@ export abstract class BaseAgent {
   /**
    * Record tool execution
    */
-  protected recordToolExecution(toolName: string, input: any, output: any): void {
+  protected recordToolExecution(
+    toolName: string,
+    input: any,
+    output: any,
+  ): void {
     this.internalState.executedTools.push({
       name: toolName,
       input,

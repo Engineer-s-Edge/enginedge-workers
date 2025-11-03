@@ -1,11 +1,21 @@
 /**
  * Genius Agent Controller
- * 
+ *
  * Specialized endpoints for Genius (learning) agents.
  * Handles expert pool management and learning modes.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { ILogger } from '@application/ports/logger.port';
@@ -27,12 +37,15 @@ export class GeniusAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createGeniusAgent(@Body() body: {
-    name: string;
-    userId: string;
-    learningMode?: 'user-directed' | 'autonomous' | 'scheduled';
-    expertPoolSize?: number;
-  }) {
+  async createGeniusAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      learningMode?: 'user-directed' | 'autonomous' | 'scheduled';
+      expertPoolSize?: number;
+    },
+  ) {
     this.logger.info('Creating Genius agent', { name: body.name });
 
     const config = {
@@ -61,7 +74,8 @@ export class GeniusAgentController {
   @HttpCode(HttpStatus.OK)
   async trainAgent(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       trainingData: any[];
       mode: 'supervised' | 'unsupervised' | 'reinforcement';
@@ -101,13 +115,17 @@ export class GeniusAgentController {
   @HttpCode(HttpStatus.CREATED)
   async addExpert(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       expertId: string;
       specialty: string;
     },
   ) {
-    this.logger.info('Adding expert to pool', { agentId, expertId: body.expertId });
+    this.logger.info('Adding expert to pool', {
+      agentId,
+      expertId: body.expertId,
+    });
 
     return {
       success: true,
@@ -140,7 +158,8 @@ export class GeniusAgentController {
   @HttpCode(HttpStatus.OK)
   async validateQuality(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       testData: any[];
     },
@@ -154,4 +173,3 @@ export class GeniusAgentController {
     };
   }
 }
-

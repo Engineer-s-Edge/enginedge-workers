@@ -1,6 +1,6 @@
 /**
  * XeLaTeX Compiler Adapter
- * 
+ *
  * Infrastructure adapter that executes XeLaTeX compilation.
  * Implements the ILaTeXCompiler port from the domain layer.
  */
@@ -8,11 +8,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { spawn } from 'child_process';
 import * as path from 'path';
-import {
-  ILaTeXCompiler,
-  ILogger,
-  IFileSystem,
-} from '../../domain/ports';
+import { ILaTeXCompiler, ILogger, IFileSystem } from '../../domain/ports';
 import {
   LaTeXDocument,
   LaTeXProject,
@@ -90,7 +86,8 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       const pdfFile = path.join(workingDir, 'main.pdf');
       const pdfExists = await this.fs.exists(pdfFile);
 
-      const success = lastResult.exitCode === 0 && pdfExists && errors.length === 0;
+      const success =
+        lastResult.exitCode === 0 && pdfExists && errors.length === 0;
 
       return {
         success,
@@ -114,8 +111,7 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
         passes: 0,
         errors: [
           {
-            message:
-              error instanceof Error ? error.message : 'Unknown error',
+            message: error instanceof Error ? error.message : 'Unknown error',
             severity: 'error',
           },
         ],
@@ -200,7 +196,8 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       const pdfFile = path.join(workingDir, `${mainBasename}.pdf`);
       const pdfExists = await this.fs.exists(pdfFile);
 
-      const success = lastResult.exitCode === 0 && pdfExists && errors.length === 0;
+      const success =
+        lastResult.exitCode === 0 && pdfExists && errors.length === 0;
 
       return {
         success,
@@ -224,8 +221,7 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
         passes: 0,
         errors: [
           {
-            message:
-              error instanceof Error ? error.message : 'Unknown error',
+            message: error instanceof Error ? error.message : 'Unknown error',
             severity: 'error',
           },
         ],
@@ -309,10 +305,7 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
   /**
    * Run BibTeX for bibliography
    */
-  private async runBibTeX(
-    workingDir: string,
-    basename: string,
-  ): Promise<void> {
+  private async runBibTeX(workingDir: string, basename: string): Promise<void> {
     try {
       this.logger.log(
         `Running BibTeX for ${basename}`,
@@ -399,7 +392,7 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       const errorMatch = line.match(/^(.+?):(\d+):\s*(.+)/);
       if (errorMatch) {
         const [, file, lineNum, message] = errorMatch;
-        
+
         // Check if it's an error or warning
         if (message.toLowerCase().includes('error') || line.startsWith('!')) {
           errors.push({
@@ -430,7 +423,10 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       }
 
       // LaTeX Warning pattern
-      if (line.includes('LaTeX Warning:') || line.includes('Package Warning:')) {
+      if (
+        line.includes('LaTeX Warning:') ||
+        line.includes('Package Warning:')
+      ) {
         const warningMatch = line.match(/Warning:\s*(.+)/);
         if (warningMatch) {
           warnings.push({

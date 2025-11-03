@@ -25,7 +25,10 @@ export class ToolValidator implements IToolValidator {
   /**
    * Validates tool output against basic criteria
    */
-  async validateToolOutput(toolName: string, output: unknown): Promise<boolean> {
+  async validateToolOutput(
+    toolName: string,
+    output: unknown,
+  ): Promise<boolean> {
     // Basic validation: ensure output is not null/undefined
     if (output === null || output === undefined) {
       return false;

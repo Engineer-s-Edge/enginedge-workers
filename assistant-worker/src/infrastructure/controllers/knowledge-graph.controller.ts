@@ -1,11 +1,22 @@
 /**
  * Knowledge Graph Controller
- * 
+ *
  * REST API endpoints for knowledge graph management.
  * Supports ICS (Integrated Concept Synthesis) methodology.
  */
 
-import { Controller, Post, Get, Delete, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
 import { ILogger } from '@application/ports/logger.port';
 import { ICSLayer } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
@@ -26,19 +37,25 @@ export class KnowledgeGraphController {
    */
   @Post('nodes')
   @HttpCode(HttpStatus.CREATED)
-  async createNode(@Body() body: {
-    label: string;
-    type: string;
-    layer: ICSLayer;
-    properties?: Record<string, any>;
-  }) {
-    this.logger.info('Creating knowledge graph node', { label: body.label, type: body.type });
+  async createNode(
+    @Body()
+    body: {
+      label: string;
+      type: string;
+      layer: ICSLayer;
+      properties?: Record<string, any>;
+    },
+  ) {
+    this.logger.info('Creating knowledge graph node', {
+      label: body.label,
+      type: body.type,
+    });
 
     const node = await this.knowledgeGraphService.addNode(
       body.label,
       body.type,
       body.layer,
-      body.properties || {}
+      body.properties || {},
     );
 
     return {
@@ -86,19 +103,26 @@ export class KnowledgeGraphController {
    */
   @Post('edges')
   @HttpCode(HttpStatus.CREATED)
-  async createEdge(@Body() body: {
-    from: string;
-    to: string;
-    type: string;
-    properties?: Record<string, any>;
-  }) {
-    this.logger.info('Creating knowledge graph edge', { from: body.from, to: body.to, type: body.type });
+  async createEdge(
+    @Body()
+    body: {
+      from: string;
+      to: string;
+      type: string;
+      properties?: Record<string, any>;
+    },
+  ) {
+    this.logger.info('Creating knowledge graph edge', {
+      from: body.from,
+      to: body.to,
+      type: body.type,
+    });
 
     const edge = await this.knowledgeGraphService.createRelationship(
       body.from,
       body.to,
       body.type,
-      body.properties || {}
+      body.properties || {},
     );
 
     return {
@@ -129,7 +153,7 @@ export class KnowledgeGraphController {
   @Get('query')
   async executeQuery(
     @Query('cypher') cypher: string,
-    @Query('params') params?: string
+    @Query('params') params?: string,
   ) {
     this.logger.info('Executing knowledge graph query', { cypher });
 
@@ -179,13 +203,13 @@ export class KnowledgeGraphController {
   @Get('nodes/:id/neighbors')
   async getNeighbors(
     @Param('id') nodeId: string,
-    @Query('direction') direction?: 'in' | 'out' | 'both'
+    @Query('direction') direction?: 'in' | 'out' | 'both',
   ) {
     this.logger.info('Getting node neighbors', { nodeId, direction });
 
     const neighbors = await this.knowledgeGraphService.getNeighbors(
       nodeId,
-      direction || 'both'
+      direction || 'both',
     );
 
     return {
@@ -201,13 +225,13 @@ export class KnowledgeGraphController {
   @Get('nodes/:id/subgraph')
   async getSubgraph(
     @Param('id') nodeId: string,
-    @Query('depth') depth?: number
+    @Query('depth') depth?: number,
   ) {
     this.logger.info('Getting subgraph', { nodeId, depth });
 
     const subgraph = await this.knowledgeGraphService.getSubgraph(
       nodeId,
-      depth ? parseInt(depth.toString()) : 1
+      depth ? parseInt(depth.toString()) : 1,
     );
 
     return {
@@ -222,9 +246,7 @@ export class KnowledgeGraphController {
    */
   @Post('search')
   @HttpCode(HttpStatus.OK)
-  async searchNodes(@Body() body: {
-    searchTerm: string;
-  }) {
+  async searchNodes(@Body() body: { searchTerm: string }) {
     this.logger.info('Searching nodes', { searchTerm: body.searchTerm });
 
     const nodes = await this.knowledgeGraphService.searchNodes(body.searchTerm);
@@ -255,15 +277,18 @@ export class KnowledgeGraphController {
    */
   @Post('ics/build')
   @HttpCode(HttpStatus.CREATED)
-  async buildICSHierarchy(@Body() body: {
-    concept: string;
-    observations: string[];
-    patterns: string[];
-    models: string[];
-    theories: string[];
-    principles: string[];
-    synthesis: string;
-  }) {
+  async buildICSHierarchy(
+    @Body()
+    body: {
+      concept: string;
+      observations: string[];
+      patterns: string[];
+      models: string[];
+      theories: string[];
+      principles: string[];
+      synthesis: string;
+    },
+  ) {
     this.logger.info('Building ICS hierarchy', { concept: body.concept });
 
     const result = await this.knowledgeGraphService.buildICSHierarchy(
@@ -273,7 +298,7 @@ export class KnowledgeGraphController {
       body.models,
       body.theories,
       body.principles,
-      body.synthesis
+      body.synthesis,
     );
 
     return {
@@ -323,4 +348,3 @@ export class KnowledgeGraphController {
     };
   }
 }
-

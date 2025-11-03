@@ -10,10 +10,10 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.useWebSocketAdapter(new WsAdapter(app));
     app.enableCors();
-    
+
     // Global exception filter
     app.useGlobalFilters(new HttpExceptionFilter());
-    
+
     // Global validation pipe
     app.useGlobalPipes(
       new ValidationPipe({
@@ -22,14 +22,17 @@ async function bootstrap() {
         transform: true,
       }),
     );
-    
+
     // Global logging interceptor
     app.useGlobalInterceptors(new LoggingInterceptor());
-    
+
     const port = process.env.PORT || 3004;
     const server = await app.listen(port);
     Logger.log(`Application running on port ${port}`, 'Bootstrap');
-    Logger.log(`WebSocket available at ws://localhost:${port}/interview`, 'Bootstrap');
+    Logger.log(
+      `WebSocket available at ws://localhost:${port}/interview`,
+      'Bootstrap',
+    );
 
     // Handle termination signals
     const signals = ['SIGTERM', 'SIGINT'];

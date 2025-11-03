@@ -50,7 +50,10 @@ export class ExecuteAgentUseCase {
       });
 
       // Verify agent exists
-      const agent = await this.agentService.getAgent(request.agentId, request.userId);
+      const agent = await this.agentService.getAgent(
+        request.agentId,
+        request.userId,
+      );
       if (!agent) {
         throw new Error(`Agent ${request.agentId} not found`);
       }

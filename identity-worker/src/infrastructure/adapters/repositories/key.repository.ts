@@ -7,12 +7,12 @@ export class KeyRepository {
   constructor(private readonly mongo: MongoService) {}
 
   async getActiveKey(): Promise<SigningKey | null> {
-    return this.mongo.collection<SigningKey>('keys').findOne({}, { sort: { createdAt: -1 } } as any);
+    return this.mongo
+      .collection<SigningKey>('keys')
+      .findOne({}, { sort: { createdAt: -1 } } as any);
   }
 
   async saveKey(key: SigningKey): Promise<void> {
     await this.mongo.collection<SigningKey>('keys').insertOne(key as any);
   }
 }
-
-

@@ -6,5 +6,3 @@ export interface SigningKey {
   createdAt: Date;
   rotatedAt?: Date;
 }
-
-

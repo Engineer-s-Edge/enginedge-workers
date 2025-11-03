@@ -25,7 +25,8 @@ export class ResumeVersionSchema {
   diff?: string;
 }
 
-const ResumeVersionSchemaFactory = SchemaFactory.createForClass(ResumeVersionSchema);
+const ResumeVersionSchemaFactory =
+  SchemaFactory.createForClass(ResumeVersionSchema);
 
 @Schema({ _id: false })
 export class ResumeMetadataSchema {
@@ -51,7 +52,8 @@ export class ResumeMetadataSchema {
   status: string;
 }
 
-const ResumeMetadataSchemaFactory = SchemaFactory.createForClass(ResumeMetadataSchema);
+const ResumeMetadataSchemaFactory =
+  SchemaFactory.createForClass(ResumeMetadataSchema);
 
 @Schema({ timestamps: true })
 export class ResumeSchema extends Document {
@@ -86,4 +88,3 @@ export const ResumeSchemaFactory = SchemaFactory.createForClass(ResumeSchema);
 ResumeSchemaFactory.index({ userId: 1, createdAt: -1 });
 ResumeSchemaFactory.index({ userId: 1, 'metadata.status': 1 });
 ResumeSchemaFactory.index({ 'metadata.jobPostingId': 1 });
-

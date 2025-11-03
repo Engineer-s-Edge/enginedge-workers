@@ -1,5 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { generateKeyPair, exportJWK, SignJWT, jwtVerify, importJWK } from 'jose';
+import {
+  generateKeyPair,
+  exportJWK,
+  SignJWT,
+  jwtVerify,
+  importJWK,
+} from 'jose';
 import { KeyRepository } from '../repositories/key.repository';
 
 @Injectable()
@@ -27,13 +33,30 @@ export class JwtIssuerService implements OnModuleInit {
       this.publicJwk.kid = this.kid;
       this.publicJwk.alg = 'RS256';
       const privJwk = await exportJWK(privateKey);
-      await this.keys.saveKey({ kid: this.kid, publicJwk: this.publicJwk, privateJwkEnc: JSON.stringify(privJwk), createdAt: new Date() } as any);
+      await this.keys.saveKey({
+        kid: this.kid,
+        publicJwk: this.publicJwk,
+        privateJwkEnc: JSON.stringify(privJwk),
+        createdAt: new Date(),
+      } as any);
     }
   }
 
-  async issueJwt(subject: string, tenantId?: string, tenantSlug?: string, roles: string[] = [], expiresIn = '15m') {
+  async issueJwt(
+    subject: string,
+    tenantId?: string,
+    tenantSlug?: string,
+    roles: string[] = [],
+    expiresIn = '15m',
+  ) {
     const now = Math.floor(Date.now() / 1000);
-    const payload: any = { sub: subject, iat: now, tenantId, tenantSlug, roles };
+    const payload: any = {
+      sub: subject,
+      iat: now,
+      tenantId,
+      tenantSlug,
+      roles,
+    };
     const token = await new SignJWT(payload)
       .setProtectedHeader({ alg: 'RS256', kid: this.kid })
       .setIssuedAt()
@@ -56,5 +79,3 @@ export class JwtIssuerService implements OnModuleInit {
     return token;
   }
 }
-
-

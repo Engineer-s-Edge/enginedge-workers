@@ -13,10 +13,14 @@ export class UserRepository implements IUserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.mongo.collection<User>('users').findOne({ _id: new ObjectId(id) } as any);
+    return this.mongo
+      .collection<User>('users')
+      .findOne({ _id: new ObjectId(id) } as any);
   }
 
-  async create(user: Omit<User, '_id' | 'createdAt' | 'updatedAt'> & Partial<User>): Promise<User> {
+  async create(
+    user: Omit<User, '_id' | 'createdAt' | 'updatedAt'> & Partial<User>,
+  ): Promise<User> {
     const doc: User = {
       email: user.email,
       hashedPassword: user.hashedPassword,
@@ -25,7 +29,9 @@ export class UserRepository implements IUserRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    const res = await this.mongo.collection<User>('users').insertOne(doc as any);
+    const res = await this.mongo
+      .collection<User>('users')
+      .insertOne(doc as any);
     return { ...doc, _id: res.insertedId.toHexString() };
   }
 
@@ -33,13 +39,17 @@ export class UserRepository implements IUserRepository {
     updates.updatedAt = new Date();
     const res = await this.mongo
       .collection<User>('users')
-      .findOneAndUpdate({ _id: new ObjectId(id) } as any, { $set: updates }, { returnDocument: 'after' });
+      .findOneAndUpdate(
+        { _id: new ObjectId(id) } as any,
+        { $set: updates },
+        { returnDocument: 'after' },
+      );
     return res.value ?? null;
   }
 
   async delete(id: string): Promise<void> {
-    await this.mongo.collection<User>('users').deleteOne({ _id: new ObjectId(id) } as any);
+    await this.mongo
+      .collection<User>('users')
+      .deleteOne({ _id: new ObjectId(id) } as any);
   }
 }
-
-

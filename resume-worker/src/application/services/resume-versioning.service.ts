@@ -16,7 +16,7 @@ export class ResumeVersioningService {
 
   constructor(
     @InjectModel('Resume')
-    private readonly resumeModel: Model<Resume>
+    private readonly resumeModel: Model<Resume>,
   ) {}
 
   /**
@@ -24,7 +24,7 @@ export class ResumeVersioningService {
    */
   async createVersion(
     resumeId: string,
-    options: CreateVersionOptions
+    options: CreateVersionOptions,
   ): Promise<Resume> {
     this.logger.log(`Creating new version for resume ${resumeId}`);
 
@@ -47,7 +47,7 @@ export class ResumeVersioningService {
       changes: options.changes,
       hash,
       createdBy: options.createdBy,
-      diff
+      diff,
     };
 
     // Update resume
@@ -64,9 +64,11 @@ export class ResumeVersioningService {
    */
   async rollbackToVersion(
     resumeId: string,
-    versionNumber: number
+    versionNumber: number,
   ): Promise<Resume> {
-    this.logger.log(`Rolling back resume ${resumeId} to version ${versionNumber}`);
+    this.logger.log(
+      `Rolling back resume ${resumeId} to version ${versionNumber}`,
+    );
 
     const resume = await this.resumeModel.findById(resumeId).exec();
     if (!resume) {
@@ -74,7 +76,9 @@ export class ResumeVersioningService {
     }
 
     // Find target version
-    const targetVersion = resume.versions.find(v => v.versionNumber === versionNumber);
+    const targetVersion = resume.versions.find(
+      (v) => v.versionNumber === versionNumber,
+    );
     if (!targetVersion) {
       throw new Error(`Version ${versionNumber} not found`);
     }
@@ -83,7 +87,7 @@ export class ResumeVersioningService {
     return this.createVersion(resumeId, {
       content: targetVersion.content,
       changes: `Rolled back to version ${versionNumber}`,
-      createdBy: 'user'
+      createdBy: 'user',
     });
   }
 
@@ -104,14 +108,16 @@ export class ResumeVersioningService {
    */
   async getVersion(
     resumeId: string,
-    versionNumber: number
+    versionNumber: number,
   ): Promise<ResumeVersion | null> {
     const resume = await this.resumeModel.findById(resumeId).exec();
     if (!resume) {
       throw new Error(`Resume ${resumeId} not found`);
     }
 
-    return resume.versions.find(v => v.versionNumber === versionNumber) || null;
+    return (
+      resume.versions.find((v) => v.versionNumber === versionNumber) || null
+    );
   }
 
   /**
@@ -120,7 +126,7 @@ export class ResumeVersioningService {
   async compareVersions(
     resumeId: string,
     version1: number,
-    version2: number
+    version2: number,
   ): Promise<{
     version1: ResumeVersion;
     version2: ResumeVersion;
@@ -131,8 +137,8 @@ export class ResumeVersioningService {
       throw new Error(`Resume ${resumeId} not found`);
     }
 
-    const v1 = resume.versions.find(v => v.versionNumber === version1);
-    const v2 = resume.versions.find(v => v.versionNumber === version2);
+    const v1 = resume.versions.find((v) => v.versionNumber === version1);
+    const v2 = resume.versions.find((v) => v.versionNumber === version2);
 
     if (!v1 || !v2) {
       throw new Error('One or both versions not found');
@@ -143,7 +149,7 @@ export class ResumeVersioningService {
     return {
       version1: v1,
       version2: v2,
-      diff
+      diff,
     };
   }
 
@@ -156,7 +162,7 @@ export class ResumeVersioningService {
 
   /**
    * Calculate diff between two versions.
-   * 
+   *
    * This is a simple line-based diff. For production, consider using
    * a library like 'diff' or 'fast-diff'.
    */
@@ -189,14 +195,16 @@ export class ResumeVersioningService {
    */
   async getDiffFromCurrent(
     resumeId: string,
-    versionNumber: number
+    versionNumber: number,
   ): Promise<string> {
     const resume = await this.resumeModel.findById(resumeId).exec();
     if (!resume) {
       throw new Error(`Resume ${resumeId} not found`);
     }
 
-    const targetVersion = resume.versions.find(v => v.versionNumber === versionNumber);
+    const targetVersion = resume.versions.find(
+      (v) => v.versionNumber === versionNumber,
+    );
     if (!targetVersion) {
       throw new Error(`Version ${versionNumber} not found`);
     }
@@ -204,4 +212,3 @@ export class ResumeVersioningService {
     return this.calculateDiff(targetVersion.content, resume.latexContent);
   }
 }
-

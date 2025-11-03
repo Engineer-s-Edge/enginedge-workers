@@ -26,12 +26,12 @@ export class ResumeEvaluatorService {
     private readonly resumeModel: Model<Resume>,
     @InjectModel('JobPosting')
     private readonly jobPostingModel: Model<JobPosting>,
-    private readonly bulletEvaluatorService: BulletEvaluatorService
+    private readonly bulletEvaluatorService: BulletEvaluatorService,
   ) {}
 
   /**
    * Evaluate an entire resume.
-   * 
+   *
    * This performs:
    * 1. PDF parsing (via NLP service)
    * 2. ATS checks (layout, formatting)
@@ -42,7 +42,7 @@ export class ResumeEvaluatorService {
    */
   async evaluateResume(
     resumeId: string,
-    options: EvaluateResumeOptions
+    options: EvaluateResumeOptions,
   ): Promise<EvaluationReport> {
     this.logger.log(`Evaluating resume ${resumeId} in ${options.mode} mode`);
 
@@ -61,7 +61,7 @@ export class ResumeEvaluatorService {
     const bulletEvaluations = await this.evaluateAllBullets(
       parsedResume,
       options.roleFamily,
-      options.useLlm
+      options.useLlm,
     );
 
     // Step 4: Repetition analysis
@@ -71,7 +71,9 @@ export class ResumeEvaluatorService {
     let alignmentScore = null;
     let coverage = null;
     if (options.mode === 'jd-match' && options.jobPostingId) {
-      const jobPosting = await this.jobPostingModel.findById(options.jobPostingId).exec();
+      const jobPosting = await this.jobPostingModel
+        .findById(options.jobPostingId)
+        .exec();
       if (jobPosting) {
         const alignment = await this.analyzeAlignment(parsedResume, jobPosting);
         alignmentScore = alignment.score;
@@ -89,7 +91,7 @@ export class ResumeEvaluatorService {
       atsChecks,
       bulletEvaluations,
       repetitionAnalysis,
-      alignmentScore
+      alignmentScore,
     );
 
     // Create evaluation report
@@ -103,13 +105,17 @@ export class ResumeEvaluatorService {
         spellcheckPassed: true, // TODO: Implement
         minBulletQuality: scores.avgBulletScore >= 0.7,
         noRepetition: repetitionAnalysis.score >= 0.8,
-        roleAlignment: alignmentScore ? alignmentScore >= 0.7 : null
+        roleAlignment: alignmentScore ? alignmentScore >= 0.7 : null,
       },
-      findings: this.generateFindings(atsChecks, bulletEvaluations, repetitionAnalysis),
+      findings: this.generateFindings(
+        atsChecks,
+        bulletEvaluations,
+        repetitionAnalysis,
+      ),
       coverage,
       repetition: repetitionAnalysis,
       suggestedSwaps: [], // TODO: Implement experience bank integration
-      createdAt: new Date()
+      createdAt: new Date(),
     });
 
     return report.save();
@@ -121,7 +127,7 @@ export class ResumeEvaluatorService {
   private async parseResumePdf(latexContent: string): Promise<any> {
     // TODO: Compile LaTeX to PDF via latex-worker
     // Then send PDF to NLP service for parsing
-    
+
     // For now, return mock data
     return {
       metadata: {
@@ -131,8 +137,8 @@ export class ResumeEvaluatorService {
           tables: false,
           columns: false,
           icons: false,
-          images: false
-        }
+          images: false,
+        },
       },
       sections: {
         contact: {
@@ -140,7 +146,7 @@ export class ResumeEvaluatorService {
           email: 'john@example.com',
           phone: '555-1234',
           linkedin: 'linkedin.com/in/johndoe',
-          github: 'github.com/johndoe'
+          github: 'github.com/johndoe',
         },
         experience: [
           {
@@ -151,21 +157,21 @@ export class ResumeEvaluatorService {
             end: 'Present',
             bullets: [
               'Developed scalable microservices using Node.js',
-              'Improved system performance by 30%'
-            ]
-          }
+              'Improved system performance by 30%',
+            ],
+          },
         ],
         education: [
           {
             school: 'University',
             degree: 'BS Computer Science',
-            grad: '2019'
-          }
+            grad: '2019',
+          },
         ],
         skills_raw: 'Python, JavaScript, React, Node.js, AWS',
-        projects: []
+        projects: [],
       },
-      rawText: 'Resume text...'
+      rawText: 'Resume text...',
     };
   }
 
@@ -176,7 +182,7 @@ export class ResumeEvaluatorService {
     const checks = {
       passed: true,
       issues: [] as string[],
-      warnings: [] as string[]
+      warnings: [] as string[],
     };
 
     // Check font size
@@ -213,7 +219,7 @@ export class ResumeEvaluatorService {
   private async evaluateAllBullets(
     parsedResume: any,
     roleFamily?: string,
-    useLlm?: boolean
+    useLlm?: boolean,
   ): Promise<any[]> {
     const allBullets: string[] = [];
 
@@ -231,7 +237,7 @@ export class ResumeEvaluatorService {
     return this.bulletEvaluatorService.evaluateBullets(
       allBullets,
       roleFamily,
-      useLlm
+      useLlm,
     );
   }
 
@@ -248,13 +254,13 @@ export class ResumeEvaluatorService {
 
     // Simple repetition check: find repeated phrases
     const phrases = new Map<string, number>();
-    
+
     for (const bullet of allBullets) {
       const words = bullet.toLowerCase().split(' ');
-      
+
       // Check 3-word phrases
       for (let i = 0; i < words.length - 2; i++) {
-        const phrase = `${words[i]} ${words[i+1]} ${words[i+2]}`;
+        const phrase = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
         phrases.set(phrase, (phrases.get(phrase) || 0) + 1);
       }
     }
@@ -268,16 +274,20 @@ export class ResumeEvaluatorService {
     }
 
     return {
-      score: repeated.length === 0 ? 1.0 : Math.max(0, 1.0 - repeated.length * 0.1),
+      score:
+        repeated.length === 0 ? 1.0 : Math.max(0, 1.0 - repeated.length * 0.1),
       repeatedPhrases: repeated,
-      diversity: phrases.size / allBullets.length
+      diversity: phrases.size / allBullets.length,
     };
   }
 
   /**
    * Analyze alignment with job posting.
    */
-  private async analyzeAlignment(parsedResume: any, jobPosting: JobPosting): Promise<any> {
+  private async analyzeAlignment(
+    parsedResume: any,
+    jobPosting: JobPosting,
+  ): Promise<any> {
     const requiredSkills = jobPosting.parsed.skills.skillsExplicit || [];
     const resumeText = parsedResume.rawText.toLowerCase();
 
@@ -293,9 +303,10 @@ export class ResumeEvaluatorService {
       }
     }
 
-    const coverageScore = requiredSkills.length > 0
-      ? coveredSkills.length / requiredSkills.length
-      : 1.0;
+    const coverageScore =
+      requiredSkills.length > 0
+        ? coveredSkills.length / requiredSkills.length
+        : 1.0;
 
     return {
       score: coverageScore,
@@ -303,8 +314,8 @@ export class ResumeEvaluatorService {
         requiredSkills,
         coveredSkills,
         missingSkills,
-        coveragePercent: Math.round(coverageScore * 100)
-      }
+        coveragePercent: Math.round(coverageScore * 100),
+      },
     };
   }
 
@@ -314,7 +325,7 @@ export class ResumeEvaluatorService {
   private async generateAutoFixes(
     parsedResume: any,
     bulletEvaluations: any[],
-    atsChecks: any
+    atsChecks: any,
   ): Promise<any[]> {
     const fixes: any[] = [];
 
@@ -328,7 +339,7 @@ export class ResumeEvaluatorService {
             bulletIndex: i,
             description: fix.description,
             latexPatch: `% Replace bullet ${i}\n${fix.fixedText}`,
-            confidence: fix.confidence
+            confidence: fix.confidence,
           });
         }
       }
@@ -344,18 +355,21 @@ export class ResumeEvaluatorService {
     atsChecks: any,
     bulletEvaluations: any[],
     repetitionAnalysis: any,
-    alignmentScore: number | null
+    alignmentScore: number | null,
   ): any {
-    const avgBulletScore = bulletEvaluations.length > 0
-      ? bulletEvaluations.reduce((sum, e) => sum + e.overallScore, 0) / bulletEvaluations.length
-      : 0;
+    const avgBulletScore =
+      bulletEvaluations.length > 0
+        ? bulletEvaluations.reduce((sum, e) => sum + e.overallScore, 0) /
+          bulletEvaluations.length
+        : 0;
 
     const atsScore = atsChecks.passed ? 1.0 : 0.5;
 
-    let overallScore = (avgBulletScore * 0.5) + (atsScore * 0.3) + (repetitionAnalysis.score * 0.2);
+    let overallScore =
+      avgBulletScore * 0.5 + atsScore * 0.3 + repetitionAnalysis.score * 0.2;
 
     if (alignmentScore !== null) {
-      overallScore = (overallScore * 0.7) + (alignmentScore * 0.3);
+      overallScore = overallScore * 0.7 + alignmentScore * 0.3;
     }
 
     return {
@@ -363,14 +377,19 @@ export class ResumeEvaluatorService {
       atsScore: Math.round(atsScore * 100),
       avgBulletScore: Math.round(avgBulletScore * 100),
       repetitionScore: Math.round(repetitionAnalysis.score * 100),
-      alignmentScore: alignmentScore !== null ? Math.round(alignmentScore * 100) : null
+      alignmentScore:
+        alignmentScore !== null ? Math.round(alignmentScore * 100) : null,
     };
   }
 
   /**
    * Generate findings from checks.
    */
-  private generateFindings(atsChecks: any, bulletEvaluations: any[], repetitionAnalysis: any): any[] {
+  private generateFindings(
+    atsChecks: any,
+    bulletEvaluations: any[],
+    repetitionAnalysis: any,
+  ): any[] {
     const findings: any[] = [];
 
     // ATS issues
@@ -380,7 +399,7 @@ export class ResumeEvaluatorService {
         code: 'ATS_INCOMPATIBLE',
         location: null,
         evidence: issue,
-        autoFixes: []
+        autoFixes: [],
       });
     }
 
@@ -393,7 +412,7 @@ export class ResumeEvaluatorService {
           code: 'LOW_QUALITY_BULLET',
           location: { bulletIndex: i },
           evidence: eval.feedback.join('; '),
-          autoFixes: eval.suggestedFixes || []
+          autoFixes: eval.suggestedFixes || [],
         });
       }
     }
@@ -405,7 +424,7 @@ export class ResumeEvaluatorService {
         code: 'REPEATED_PHRASES',
         location: null,
         evidence: `Repeated phrases: ${repetitionAnalysis.repeatedPhrases.join(', ')}`,
-        autoFixes: []
+        autoFixes: [],
       });
     }
 
@@ -429,4 +448,3 @@ export class ResumeEvaluatorService {
       .exec();
   }
 }
-

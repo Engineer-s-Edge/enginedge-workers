@@ -26,7 +26,7 @@ export interface CompileResult {
 
 /**
  * CompileCommandUseCase
- * 
+ *
  * Application layer use case for handling compilation commands.
  * Orchestrates LaTeXCompilerService and returns structured results.
  */
@@ -43,14 +43,10 @@ export class CompileCommandUseCase {
       this.logger.log(`Executing compilation for job ${command.jobId}`);
 
       // Create LaTeXDocument entity
-      let document = LaTeXDocument.create(
-        command.jobId,
-        command.content,
-        {
-          title: command.metadata?.title as string,
-          author: command.metadata?.author as string,
-        },
-      );
+      let document = LaTeXDocument.create(command.jobId, command.content, {
+        title: command.metadata?.title as string,
+        author: command.metadata?.author as string,
+      });
 
       // Override settings if provided
       if (command.settings) {
@@ -71,13 +67,13 @@ export class CompileCommandUseCase {
       // Check success
       if (!result.success) {
         this.logger.warn(
-          `Compilation failed for job ${command.jobId}: ${result.errors.map(e => e.message).join(', ')}`,
+          `Compilation failed for job ${command.jobId}: ${result.errors.map((e) => e.message).join(', ')}`,
         );
 
         return {
           success: false,
-          errors: result.errors.map(e => e.message),
-          warnings: result.warnings.map(w => w.message),
+          errors: result.errors.map((e) => e.message),
+          warnings: result.warnings.map((w) => w.message),
           compilationTime,
           metadata: command.metadata,
         };
@@ -86,23 +82,27 @@ export class CompileCommandUseCase {
       // Success - get PDF path
       const pdfPath = result.pdfPath;
       if (!pdfPath) {
-        this.logger.error(`Compilation succeeded but PDF path is missing for job ${command.jobId}`);
+        this.logger.error(
+          `Compilation succeeded but PDF path is missing for job ${command.jobId}`,
+        );
         return {
           success: false,
           errors: ['PDF generation failed - path is empty'],
-          warnings: result.warnings.map(w => w.message),
+          warnings: result.warnings.map((w) => w.message),
           compilationTime,
           metadata: command.metadata,
         };
       }
 
-      this.logger.log(`Compilation succeeded for job ${command.jobId} in ${compilationTime}ms`);
+      this.logger.log(
+        `Compilation succeeded for job ${command.jobId} in ${compilationTime}ms`,
+      );
 
       return {
         success: true,
         pdfPath,
         errors: [],
-        warnings: result.warnings.map(w => w.message),
+        warnings: result.warnings.map((w) => w.message),
         compilationTime,
         metadata: command.metadata,
       };
@@ -112,7 +112,9 @@ export class CompileCommandUseCase {
 
       return {
         success: false,
-        errors: [error instanceof Error ? error.message : 'Unknown compilation error'],
+        errors: [
+          error instanceof Error ? error.message : 'Unknown compilation error',
+        ],
         warnings: [],
         compilationTime,
         metadata: command.metadata,
@@ -120,5 +122,3 @@ export class CompileCommandUseCase {
     }
   }
 }
-
-

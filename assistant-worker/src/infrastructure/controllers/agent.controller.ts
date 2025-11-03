@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from '@application/use-cases/stream-agent-execution.use-case';
 import { AgentService } from '@application/services/agent.service';
@@ -6,7 +17,7 @@ import { ILogger } from '@application/ports/logger.port';
 
 /**
  * Agent Controller - HTTP API for agent operations (Phase 1 Complete)
- * 
+ *
  * Implements all 7 core Phase 1 endpoints:
  * - POST /agents/create
  * - GET /agents
@@ -31,16 +42,23 @@ export class AgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() body: {
-    name: string;
-    type: 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager';
-    userId: string;
-    config?: Record<string, unknown>;
-  }) {
+  async create(
+    @Body()
+    body: {
+      name: string;
+      type: 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager';
+      userId: string;
+      config?: Record<string, unknown>;
+    },
+  ) {
     this.logger.info('Creating agent', { name: body.name, type: body.type });
 
     const agent = await this.agentService.createAgent(
-      { name: body.name, agentType: body.type, config: (body.config || {}) as any },
+      {
+        name: body.name,
+        agentType: body.type,
+        config: (body.config || {}) as any,
+      },
       body.userId,
     );
 
@@ -104,7 +122,8 @@ export class AgentController {
   @HttpCode(HttpStatus.OK)
   async execute(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       input: string;
       userId: string;
       sessionId?: string;
@@ -133,7 +152,8 @@ export class AgentController {
   @HttpCode(HttpStatus.OK)
   async executeStream(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       input: string;
       userId: string;
       sessionId?: string;

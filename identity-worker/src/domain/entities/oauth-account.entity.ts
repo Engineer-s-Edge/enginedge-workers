@@ -8,5 +8,3 @@ export interface OauthAccount {
   scope?: string;
   expiresAt?: Date;
 }
-
-

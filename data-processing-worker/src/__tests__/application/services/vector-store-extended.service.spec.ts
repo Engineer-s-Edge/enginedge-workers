@@ -5,22 +5,24 @@ describe('VectorStore Service - Extended Tests (vstore-ext-031 to vstore-ext-110
 
   beforeEach(async () => {
     const mockStore = {
-      store: jest.fn().mockResolvedValue({ id: '1', vector: Array(512).fill(0.1) }),
+      store: jest
+        .fn()
+        .mockResolvedValue({ id: '1', vector: Array(512).fill(0.1) }),
       storeBatch: jest.fn().mockResolvedValue([
         { id: '1', vector: Array(512).fill(0.1) },
         { id: '2', vector: Array(512).fill(0.2) },
       ]),
-      search: jest.fn().mockResolvedValue([
-        { id: '1', score: 0.95, metadata: { text: 'match' } },
-      ]),
+      search: jest
+        .fn()
+        .mockResolvedValue([
+          { id: '1', score: 0.95, metadata: { text: 'match' } },
+        ]),
       delete: jest.fn().mockResolvedValue(true),
       clear: jest.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        { provide: 'VectorStore', useValue: mockStore },
-      ],
+      providers: [{ provide: 'VectorStore', useValue: mockStore }],
     }).compile();
 
     service = module.get('VectorStore') as Record<string, unknown>;

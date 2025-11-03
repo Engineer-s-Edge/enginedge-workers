@@ -4,7 +4,9 @@ import { CommandApplicationService } from '@application/services/command-applica
 
 @Controller('command')
 export class CommandController {
-  constructor(private readonly commandApplicationService: CommandApplicationService) {}
+  constructor(
+    private readonly commandApplicationService: CommandApplicationService,
+  ) {}
 
   @Post('process')
   async processCommand(@Body() command: Command): Promise<CommandResult> {

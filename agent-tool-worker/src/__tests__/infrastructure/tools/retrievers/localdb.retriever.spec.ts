@@ -3,7 +3,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { LocalDBRetriever, LocalDBArgs } from '@infrastructure/tools/retrievers/localdb.retriever';
+import {
+  LocalDBRetriever,
+  LocalDBArgs,
+} from '@infrastructure/tools/retrievers/localdb.retriever';
 
 describe('LocalDBRetriever', () => {
   let retriever: LocalDBRetriever;
@@ -19,7 +22,9 @@ describe('LocalDBRetriever', () => {
   describe('Basic Properties', () => {
     it('should have correct name and description', () => {
       expect(retriever.name).toBe('localdb-retriever');
-      expect(retriever.description).toBe('Query and retrieve data from local databases with safe parameterized queries');
+      expect(retriever.description).toBe(
+        'Query and retrieve data from local databases with safe parameterized queries',
+      );
     });
 
     it('should have correct retrieval type and caching settings', () => {
@@ -32,10 +37,13 @@ describe('LocalDBRetriever', () => {
     it('should execute a SELECT query successfully', async () => {
       const args: LocalDBArgs = {
         operation: 'query',
-        query: 'SELECT * FROM users LIMIT 5'
+        query: 'SELECT * FROM users LIMIT 5',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.success).toBe(true);
@@ -50,10 +58,13 @@ describe('LocalDBRetriever', () => {
       const args: LocalDBArgs = {
         operation: 'query',
         query: 'SELECT * FROM users',
-        limit: 1
+        limit: 1,
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.data!.length).toBeLessThanOrEqual(1);
@@ -64,10 +75,13 @@ describe('LocalDBRetriever', () => {
       const args: LocalDBArgs = {
         operation: 'query',
         query: 'SELECT * FROM users LIMIT 2',
-        format: 'csv'
+        format: 'csv',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.format).toBe('csv');
@@ -76,47 +90,65 @@ describe('LocalDBRetriever', () => {
     it('should reject non-SELECT queries for security', async () => {
       const args: LocalDBArgs = {
         operation: 'query',
-        query: 'DROP TABLE users'
+        query: 'DROP TABLE users',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('Only SELECT queries are allowed');
+      expect(result.error!.message).toContain(
+        'Only SELECT queries are allowed',
+      );
     });
 
     it('should reject UPDATE queries', async () => {
       const args: LocalDBArgs = {
         operation: 'query',
-        query: 'UPDATE users SET name = "test"'
+        query: 'UPDATE users SET name = "test"',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('Only SELECT queries are allowed');
+      expect(result.error!.message).toContain(
+        'Only SELECT queries are allowed',
+      );
     });
 
     it('should reject DELETE queries', async () => {
       const args: LocalDBArgs = {
         operation: 'query',
-        query: 'DELETE FROM users WHERE id = 1'
+        query: 'DELETE FROM users WHERE id = 1',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('Only SELECT queries are allowed');
+      expect(result.error!.message).toContain(
+        'Only SELECT queries are allowed',
+      );
     });
   });
 
   describe('Tables Operation', () => {
     it('should list all tables successfully', async () => {
       const args: LocalDBArgs = {
-        operation: 'tables'
+        operation: 'tables',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.success).toBe(true);
@@ -131,10 +163,13 @@ describe('LocalDBRetriever', () => {
     it('should get schema for a table successfully', async () => {
       const args: LocalDBArgs = {
         operation: 'schema',
-        tableName: 'users'
+        tableName: 'users',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.success).toBe(true);
@@ -148,10 +183,13 @@ describe('LocalDBRetriever', () => {
   describe('Error Handling', () => {
     it('should handle unknown operations', async () => {
       const args = {
-        operation: 'unknown'
+        operation: 'unknown',
       } as unknown as LocalDBArgs;
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Unknown operation');
@@ -159,11 +197,14 @@ describe('LocalDBRetriever', () => {
 
     it('should handle missing required parameters for query', async () => {
       const args: LocalDBArgs = {
-        operation: 'query'
+        operation: 'query',
         // missing query parameter
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Query parameter is required');
@@ -171,11 +212,14 @@ describe('LocalDBRetriever', () => {
 
     it('should handle missing required parameters for schema', async () => {
       const args: LocalDBArgs = {
-        operation: 'schema'
+        operation: 'schema',
         // missing tableName parameter
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Table name is required');
@@ -186,18 +230,18 @@ describe('LocalDBRetriever', () => {
     it('should accept RAG configuration parameters', async () => {
       const args: LocalDBArgs = {
         operation: 'query',
-        query: 'SELECT * FROM users LIMIT 5'
+        query: 'SELECT * FROM users LIMIT 5',
       };
 
       const ragConfig = {
         similarity: 0.8,
         topK: 50,
-        includeMetadata: false
+        includeMetadata: false,
       };
 
       const result = await retriever.execute({
         name: 'localdb-retriever',
-        args: { ...args, ragConfig }
+        args: { ...args, ragConfig },
       });
 
       expect(result.success).toBe(true);
@@ -206,10 +250,13 @@ describe('LocalDBRetriever', () => {
 
     it('should use default RAG configuration when none provided', async () => {
       const args: LocalDBArgs = {
-        operation: 'tables'
+        operation: 'tables',
       };
 
-      const result = await retriever.execute({ name: 'localdb-retriever', args });
+      const result = await retriever.execute({
+        name: 'localdb-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       // Should use default RAG config from metadata

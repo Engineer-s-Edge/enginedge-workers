@@ -1,6 +1,6 @@
 /**
  * Memory Service
- * 
+ *
  * Orchestrates conversation memory operations across different memory types.
  * Provides a unified interface for memory management.
  */
@@ -51,9 +51,11 @@ export class MemoryService {
   async addMessage(
     conversationId: string,
     message: Message,
-    memoryType: MemoryType = 'buffer'
+    memoryType: MemoryType = 'buffer',
   ): Promise<void> {
-    this.logger.debug(`Adding message to ${memoryType} memory`, { conversationId });
+    this.logger.debug(`Adding message to ${memoryType} memory`, {
+      conversationId,
+    });
 
     const adapter = this.getAdapter(memoryType);
     await adapter.addMessage(conversationId, message);
@@ -68,7 +70,7 @@ export class MemoryService {
   async getMessages(
     conversationId: string,
     memoryType: MemoryType = 'buffer',
-    limit?: number
+    limit?: number,
   ): Promise<Message[]> {
     const adapter = this.getAdapter(memoryType);
     return await adapter.getMessages(conversationId, limit);
@@ -80,13 +82,16 @@ export class MemoryService {
   async getContext(
     conversationId: string,
     memoryType: MemoryType = 'buffer',
-    query?: string
+    query?: string,
   ): Promise<string> {
     const adapter = this.getAdapter(memoryType);
-    
+
     // Vector memory supports query-based context
     if (memoryType === 'vector' && query) {
-      return await (adapter as VectorMemoryAdapter).getContext(conversationId, query);
+      return await (adapter as VectorMemoryAdapter).getContext(
+        conversationId,
+        query,
+      );
     }
 
     return await adapter.getContext(conversationId);
@@ -97,7 +102,7 @@ export class MemoryService {
    */
   async clearMemory(
     conversationId: string,
-    memoryType: MemoryType = 'buffer'
+    memoryType: MemoryType = 'buffer',
   ): Promise<void> {
     this.logger.info(`Clearing ${memoryType} memory`, { conversationId });
 
@@ -121,7 +126,7 @@ export class MemoryService {
   async searchSimilar(
     conversationId: string,
     query: string,
-    topK?: number
+    topK?: number,
   ): Promise<Message[]> {
     return await this.vectorMemory.searchSimilar(conversationId, query, topK);
   }
@@ -173,7 +178,7 @@ export class MemoryService {
    */
   private getAdapter(memoryType: MemoryType): IMemoryAdapter {
     const adapter = this.memoryAdapters.get(memoryType);
-    
+
     if (!adapter) {
       throw new Error(`Unknown memory type: ${memoryType}`);
     }
@@ -186,7 +191,7 @@ export class MemoryService {
    */
   private async persistIfNeeded(
     conversationId: string,
-    memoryType: MemoryType
+    memoryType: MemoryType,
   ): Promise<void> {
     // Persist every 10 messages or on summary generation
     // This is a simplified version - in production, use more sophisticated logic
@@ -211,7 +216,7 @@ export class MemoryService {
           conversationId,
           'user-id', // TODO: Get from context
           messages,
-          options
+          options,
         );
       }
     } catch (error) {
@@ -219,4 +224,3 @@ export class MemoryService {
     }
   }
 }
-

@@ -20,7 +20,10 @@ export class ProcessCommandUseCase {
 
     // Publish the result asynchronously
     this.messagePublisher.publishResult(result).catch((error) => {
-      this.logger.error(`Failed to publish result for task ${command.taskId}:`, error);
+      this.logger.error(
+        `Failed to publish result for task ${command.taskId}:`,
+        error,
+      );
     });
 
     return result;

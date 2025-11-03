@@ -1,5 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILLMProvider, LLMRequest, LLMResponse, LLMStreamChunk } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMRequest,
+  LLMResponse,
+  LLMStreamChunk,
+} from '@application/ports/llm-provider.port';
 import { ILogger } from '@application/ports/logger.port';
 
 interface OpenAIMessage {
@@ -35,7 +40,7 @@ interface OpenAIResponse {
 
 /**
  * OpenAI LLM Adapter
- * 
+ *
  * Implements ILLMProvider for OpenAI API
  * Includes retry logic, rate limiting, and error handling
  */
@@ -50,7 +55,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
   ) {
     this.apiKey = process.env.OPENAI_API_KEY || '';
     this.baseUrl = process.env.OPENAI_API_URL || 'https://api.openai.com/v1';
-    
+
     if (!this.apiKey) {
       this.logger.warn('OpenAILLMAdapter: OpenAI API key not configured');
     }
@@ -67,7 +72,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -85,15 +90,20 @@ export class OpenAILLMAdapter implements ILLMProvider {
       }
 
       const data = await response.json();
-      
+
       return this.parseResponse(data);
     } catch (error) {
-      this.logger.error('OpenAI LLM invocation failed', error as Record<string, unknown>);
+      this.logger.error(
+        'OpenAI LLM invocation failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
 
-  async *invokeStream(request: LLMRequest): AsyncGenerator<LLMStreamChunk, void, unknown> {
+  async *invokeStream(
+    request: LLMRequest,
+  ): AsyncGenerator<LLMStreamChunk, void, unknown> {
     this.logger.debug('OpenAILLMAdapter: Starting OpenAI streaming', {
       model: request.model,
     });
@@ -103,7 +113,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -130,7 +140,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -140,7 +150,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             if (data === '[DONE]') {
               yield {
                 content: '',
@@ -176,7 +186,10 @@ export class OpenAILLMAdapter implements ILLMProvider {
         }
       }
     } catch (error) {
-      this.logger.error('OpenAI streaming failed', error as Record<string, unknown>);
+      this.logger.error(
+        'OpenAI streaming failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -200,7 +213,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
     try {
       const response = await fetch(`${this.baseUrl}/models`, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
       });
       return response.ok;
@@ -211,30 +224,34 @@ export class OpenAILLMAdapter implements ILLMProvider {
 
   private parseResponse(data: OpenAIResponse): LLMResponse {
     const choice = data.choices[0];
-    
+
     if (!choice) {
       throw new Error('No choices in OpenAI response');
     }
 
     const content = choice.message?.content || '';
     const finishReason = choice.finish_reason;
-    const toolCalls = choice.message?.tool_calls?.map((call: OpenAIToolCall) => ({
-      id: call.id,
-      type: 'function' as const,
-      function: {
-        name: call.function.name,
-        arguments: call.function.arguments,
-      },
-    }));
+    const toolCalls = choice.message?.tool_calls?.map(
+      (call: OpenAIToolCall) => ({
+        id: call.id,
+        type: 'function' as const,
+        function: {
+          name: call.function.name,
+          arguments: call.function.arguments,
+        },
+      }),
+    );
 
     return {
       content,
       finishReason,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
-      } : undefined,
+      usage: data.usage
+        ? {
+            promptTokens: data.usage.prompt_tokens,
+            completionTokens: data.usage.completion_tokens,
+            totalTokens: data.usage.total_tokens,
+          }
+        : undefined,
       toolCalls,
     };
   }
@@ -259,7 +276,7 @@ export class OpenAILLMAdapter implements ILLMProvider {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: request.model,
@@ -321,7 +338,9 @@ export class OpenAILLMAdapter implements ILLMProvider {
    * Use separate STT service (e.g., Google Speech, Azure Speech)
    */
   async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
-    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+    throw new Error(
+      'Speech-to-text not implemented. Use a dedicated STT service.',
+    );
   }
 
   /**
@@ -329,6 +348,8 @@ export class OpenAILLMAdapter implements ILLMProvider {
    * Use separate TTS service (e.g., Google Speech, Azure Speech)
    */
   async textToSpeech(text: string, voice?: string): Promise<Buffer> {
-    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+    throw new Error(
+      'Text-to-speech not implemented. Use a dedicated TTS service.',
+    );
   }
 }

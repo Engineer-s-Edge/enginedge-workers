@@ -31,10 +31,16 @@ import {
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: ExperienceBankItemSchema.name, schema: ExperienceBankItemSchemaFactory },
+      {
+        name: ExperienceBankItemSchema.name,
+        schema: ExperienceBankItemSchemaFactory,
+      },
       { name: ResumeSchema.name, schema: ResumeSchemaFactory },
       { name: JobPostingSchema.name, schema: JobPostingSchemaFactory },
-      { name: EvaluationReportSchema.name, schema: EvaluationReportSchemaFactory },
+      {
+        name: EvaluationReportSchema.name,
+        schema: EvaluationReportSchemaFactory,
+      },
     ]),
     BullModule.registerQueue({
       name: 'resume-tailoring',

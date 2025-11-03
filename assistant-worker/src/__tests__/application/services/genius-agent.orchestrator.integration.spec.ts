@@ -30,7 +30,9 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
   beforeEach(async () => {
     // Create mock adapters with all required methods
     const mockKnowledgeGraphAdapter = {
-      addNode: jest.fn().mockResolvedValue({ id: 'node-1', label: 'test', type: 'concept' }),
+      addNode: jest
+        .fn()
+        .mockResolvedValue({ id: 'node-1', label: 'test', type: 'concept' }),
       getNodesCount: jest.fn().mockResolvedValue(10),
       queryGraph: jest.fn().mockResolvedValue([]),
       getRecentResearchReports: jest.fn().mockResolvedValue([]),
@@ -70,25 +72,49 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
     const mockExpertPoolAdapter = {
       allocateExperts: jest.fn().mockResolvedValue({
         allocated: [
-          { id: 'expert-1', specialization: 'ML', complexity: 4, availability: true, expertise: ['ML'] },
-          { id: 'expert-2', specialization: 'AI', complexity: 5, availability: true, expertise: ['AI'] },
+          {
+            id: 'expert-1',
+            specialization: 'ML',
+            complexity: 4,
+            availability: true,
+            expertise: ['ML'],
+          },
+          {
+            id: 'expert-2',
+            specialization: 'AI',
+            complexity: 5,
+            availability: true,
+            expertise: ['AI'],
+          },
         ],
         failed: [],
         timestamp: new Date(),
       }),
       releaseExperts: jest.fn().mockResolvedValue(true),
       getAvailableCount: jest.fn().mockResolvedValue(10),
-      getExpert: jest.fn().mockResolvedValue({ id: 'expert-1', specialization: 'ML', complexity: 4, availability: true, expertise: ['ML'] }),
+      getExpert: jest
+        .fn()
+        .mockResolvedValue({
+          id: 'expert-1',
+          specialization: 'ML',
+          complexity: 4,
+          availability: true,
+          expertise: ['ML'],
+        }),
       getAvailableExperts: jest.fn().mockResolvedValue([]),
       isExpertAvailable: jest.fn().mockResolvedValue(true),
     };
 
     const mockTopicCatalogAdapter = {
       addTopicResearch: jest.fn().mockResolvedValue({ added: 2, total: 50 }),
-      getTrendingTopics: jest.fn().mockResolvedValue(['AI', 'ML', 'Data Science']),
-      getRecentResearch: jest.fn().mockResolvedValue([
-        { topic: 'AI', count: 5, lastUpdated: new Date() },
-      ]),
+      getTrendingTopics: jest
+        .fn()
+        .mockResolvedValue(['AI', 'ML', 'Data Science']),
+      getRecentResearch: jest
+        .fn()
+        .mockResolvedValue([
+          { topic: 'AI', count: 5, lastUpdated: new Date() },
+        ]),
       trackResearch: jest.fn().mockResolvedValue(true),
       addTopic: jest.fn().mockResolvedValue({
         id: 'topic-1',
@@ -114,7 +140,9 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
     };
 
     const mockScheduledLearningAdapter = {
-      schedule: jest.fn().mockResolvedValue({ scheduled: true, jobId: 'job-123' }),
+      schedule: jest
+        .fn()
+        .mockResolvedValue({ scheduled: true, jobId: 'job-123' }),
     };
 
     const mockNewsIntegrationAdapter = {
@@ -142,8 +170,14 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
         { provide: ExpertPoolAdapter, useValue: mockExpertPoolAdapter },
         { provide: TopicCatalogAdapter, useValue: mockTopicCatalogAdapter },
         { provide: LearningModeAdapter, useValue: mockLearningModeAdapter },
-        { provide: ScheduledLearningAdapter, useValue: mockScheduledLearningAdapter },
-        { provide: NewsIntegrationAdapter, useValue: mockNewsIntegrationAdapter },
+        {
+          provide: ScheduledLearningAdapter,
+          useValue: mockScheduledLearningAdapter,
+        },
+        {
+          provide: NewsIntegrationAdapter,
+          useValue: mockNewsIntegrationAdapter,
+        },
       ],
     }).compile();
 
@@ -166,7 +200,10 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
       const userId = 'user-123';
       const topics = [{ topic: 'Machine Learning', complexity: 'L4' as const }];
 
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -180,7 +217,10 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
         { topic: 'Neural Networks', complexity: 'L4' as const },
       ];
 
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -191,7 +231,10 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
       const userId = 'user-complexity';
       const topics = [{ topic: 'Advanced ML', complexity: 'L5' as const }];
 
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(expertPoolAdapter.allocateExperts).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -205,14 +248,20 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
       const userId = 'user-789';
       const topics = [{ topic: 'AI Ethics', complexity: 'L3' as const }];
 
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(newsIntegrationAdapter.fetchRecentNews).toHaveBeenCalled();
     });
 
     it('should handle empty topics gracefully', async () => {
       const userId = 'user-empty';
-      const topics: Array<{ topic: string; complexity: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' }> = [];
+      const topics: Array<{
+        topic: string;
+        complexity: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+      }> = [];
 
       try {
         await orchestrator.executeUserDirectedLearning(userId, topics);
@@ -245,7 +294,10 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
       const userId = 'user-max-topics';
       const options = { maxTopics: 5 };
 
-      const result = await orchestrator.executeAutonomousLearning(userId, options);
+      const result = await orchestrator.executeAutonomousLearning(
+        userId,
+        options,
+      );
 
       expect(result).toBeDefined();
     });
@@ -276,7 +328,12 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
       const userId = 'user-gap-detection';
 
       knowledgeGraphAdapter.getRecentResearchReports.mockResolvedValue([
-        { topic: 'AI', findings: ['Finding 1'], sources: ['Source 1'], confidence: 0.9 },
+        {
+          topic: 'AI',
+          findings: ['Finding 1'],
+          sources: ['Source 1'],
+          confidence: 0.9,
+        },
       ]);
 
       const result = await orchestrator.detectKnowledgeGaps(userId);
@@ -299,7 +356,9 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
 
   describe('calculateAdaptiveStrategy', () => {
     it('should calculate strategy for single topic', async () => {
-      const topics = [{ topic: 'ML', researchGap: 75, priority: 100, complexity: 4 }];
+      const topics = [
+        { topic: 'ML', researchGap: 75, priority: 100, complexity: 4 },
+      ];
 
       const result = await orchestrator.calculateAdaptiveStrategy(topics);
 

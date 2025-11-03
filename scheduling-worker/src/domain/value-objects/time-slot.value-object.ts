@@ -1,8 +1,8 @@
 /**
  * Time Slot Value Object
- * 
+ *
  * Represents an available time slot for scheduling
- * 
+ *
  * Domain Value Object - Immutable, no infrastructure dependencies
  */
 
@@ -68,7 +68,8 @@ export class TimeSlot {
 
     const beforeSlot =
       time > this.startTime ? new TimeSlot(this.startTime, time) : null;
-    const afterSlot = time < this.endTime ? new TimeSlot(time, this.endTime) : null;
+    const afterSlot =
+      time < this.endTime ? new TimeSlot(time, this.endTime) : null;
 
     return [beforeSlot, afterSlot];
   }
@@ -141,7 +142,8 @@ export class TimeSlot {
       startHour > workStartHour ||
       (startHour === workStartHour && startMin >= workStartMin);
     const isEndDuringWork =
-      endHour < workEndHour || (endHour === workEndHour && endMin <= workEndMin);
+      endHour < workEndHour ||
+      (endHour === workEndHour && endMin <= workEndMin);
 
     return isStartDuringWork && isEndDuringWork;
   }
@@ -205,7 +207,11 @@ export class TimeSlot {
   /**
    * Create a time slot for a specific time range today
    */
-  static createToday(startHour: number, startMin: number, durationMinutes: number): TimeSlot {
+  static createToday(
+    startHour: number,
+    startMin: number,
+    durationMinutes: number,
+  ): TimeSlot {
     const start = new Date();
     start.setHours(startHour, startMin, 0, 0);
 

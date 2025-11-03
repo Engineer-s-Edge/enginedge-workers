@@ -22,16 +22,15 @@ import { TenantRepository } from './adapters/repositories/tenant.repository';
 import { KeyRepository } from './adapters/repositories/key.repository';
 import { RefreshTokenRepository } from './adapters/repositories/refresh-token.repository';
 
-
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
  * Phase 5: Advanced features ⏳
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -57,8 +56,6 @@ import { RefreshTokenRepository } from './adapters/repositories/refresh-token.re
     JwtIssuerService,
     MetricsAdapter,
   ],
-  exports: [
-    
-  ],
+  exports: [],
 })
 export class InfrastructureModule {}

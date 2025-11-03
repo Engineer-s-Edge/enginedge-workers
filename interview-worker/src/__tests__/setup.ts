@@ -56,4 +56,3 @@ export const mockHealthResponse = (overrides?: object) => ({
   },
   ...overrides,
 });
-

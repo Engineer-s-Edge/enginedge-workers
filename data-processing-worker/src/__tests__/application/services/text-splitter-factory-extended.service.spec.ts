@@ -6,7 +6,9 @@ describe('TextSplitterFactoryService Extended Tests (Phase 4)', () => {
   beforeEach(async () => {
     const mockService = {
       getSplitterByType: jest.fn().mockReturnValue({ split: jest.fn() }),
-      getSplitterByFileExtension: jest.fn().mockReturnValue({ split: jest.fn() }),
+      getSplitterByFileExtension: jest
+        .fn()
+        .mockReturnValue({ split: jest.fn() }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -15,11 +17,24 @@ describe('TextSplitterFactoryService Extended Tests (Phase 4)', () => {
       ],
     }).compile();
 
-    service = module.get('TextSplitterFactoryService') as Record<string, unknown>;
+    service = module.get('TextSplitterFactoryService') as Record<
+      string,
+      unknown
+    >;
   });
 
   describe('Language-Specific Splitter Tests', () => {
-    const languages = ['python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'latex', 'markdown', 'html'];
+    const languages = [
+      'python',
+      'javascript',
+      'typescript',
+      'java',
+      'cpp',
+      'go',
+      'latex',
+      'markdown',
+      'html',
+    ];
 
     for (let i = 0; i < 100; i++) {
       const langIndex = i % languages.length;
@@ -27,7 +42,9 @@ describe('TextSplitterFactoryService Extended Tests (Phase 4)', () => {
       const testNum = String(i + 51).padStart(3, '0');
 
       it(`fact-ext-${testNum}: should handle advanced ${lang} splitter scenario ${Math.floor(i / languages.length) + 1}`, () => {
-        const splitter = (service as Record<string, (type: string) => unknown>).getSplitterByType(lang);
+        const splitter = (
+          service as Record<string, (type: string) => unknown>
+        ).getSplitterByType(lang);
         expect(splitter).toBeDefined();
       });
     }

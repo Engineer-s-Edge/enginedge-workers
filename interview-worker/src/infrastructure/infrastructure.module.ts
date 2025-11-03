@@ -42,16 +42,15 @@ import {
   IWebhookRepository,
 } from '@application/ports/repositories.port';
 
-
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
  * Phase 5: Advanced features ⏳
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()

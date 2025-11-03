@@ -1,4 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
 import { IdentityService } from '../../application/services/identity.service';
 
 @Controller('internal/auth')
@@ -36,5 +43,3 @@ export class AuthController {
     return this.identity.revoke(body.refreshToken);
   }
 }
-
-

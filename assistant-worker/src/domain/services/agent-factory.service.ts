@@ -1,6 +1,6 @@
 /**
  * Agent Factory Service
- * 
+ *
  * Responsible for creating agents with proper type initialization and capability assignment.
  * Encapsulates agent creation logic and type-specific setup.
  */
@@ -24,7 +24,7 @@ import { PromptBuilder } from '../services/prompt-builder.service';
 
 /**
  * AgentFactory - Factory for creating agent instances
- * 
+ *
  * Responsibilities:
  * - Create agent instances of all types
  * - Dependency injection for agent dependencies
@@ -35,7 +35,7 @@ import { PromptBuilder } from '../services/prompt-builder.service';
 export class AgentFactory {
   // Note: StateMachineService is not injected as instance because agents need the class constructor
   // Agents use: new StateMachine(...) for their own state management
-  
+
   constructor(
     @Inject('ILogger')
     private readonly logger: ILogger,
@@ -51,7 +51,10 @@ export class AgentFactory {
    */
   createInstance(agent: Agent): BaseAgent {
     try {
-      this.logger.debug('Creating agent instance', { agentId: agent.id, type: agent.agentType });
+      this.logger.debug('Creating agent instance', {
+        agentId: agent.id,
+        type: agent.agentType,
+      });
 
       switch (agent.agentType) {
         case 'react':
@@ -69,10 +72,16 @@ export class AgentFactory {
         case 'interview':
           return this.createInterviewAgent(agent);
         default:
-          throw new BadRequestException(`Unknown agent type: ${agent.agentType}`);
+          throw new BadRequestException(
+            `Unknown agent type: ${agent.agentType}`,
+          );
       }
     } catch (error) {
-      this.logger.error('Failed to create agent instance', { error, agentId: agent.id, type: agent.agentType });
+      this.logger.error('Failed to create agent instance', {
+        error,
+        agentId: agent.id,
+        type: agent.agentType,
+      });
       throw error;
     }
   }
@@ -86,7 +95,8 @@ export class AgentFactory {
       maxIterations: 10,
       temperature: agent.config.temperature || 0.7,
       model: agent.config.model,
-      systemPrompt: agent.config.systemPrompt || this.getDefaultSystemPrompt('react'),
+      systemPrompt:
+        agent.config.systemPrompt || this.getDefaultSystemPrompt('react'),
       tools: [],
     };
 
@@ -160,11 +170,7 @@ export class AgentFactory {
       model: agent.config.model,
     };
 
-    return new GeniusAgent(
-      this.llmProvider,
-      this.logger,
-      config,
-    );
+    return new GeniusAgent(this.llmProvider, this.logger, config);
   }
 
   /**
@@ -179,11 +185,7 @@ export class AgentFactory {
       model: agent.config.model,
     };
 
-    return new CollectiveAgent(
-      this.llmProvider,
-      this.logger,
-      config,
-    );
+    return new CollectiveAgent(this.llmProvider, this.logger, config);
   }
 
   /**
@@ -215,7 +217,10 @@ export class AgentFactory {
    */
   private createInterviewAgent(agent: Agent): InterviewAgent {
     const config = {
-      interviewWorkerBaseUrl: agent.config.interviewWorkerBaseUrl || process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
+      interviewWorkerBaseUrl:
+        agent.config.interviewWorkerBaseUrl ||
+        process.env.INTERVIEW_WORKER_URL ||
+        'http://localhost:3004',
       sessionId: agent.config.sessionId || '',
       interviewId: agent.config.interviewId || '',
       candidateId: agent.config.candidateId || '',
@@ -225,11 +230,7 @@ export class AgentFactory {
       communicationMode: agent.config.communicationMode || 'text',
     };
 
-    return new InterviewAgent(
-      this.llmProvider,
-      this.logger,
-      config,
-    );
+    return new InterviewAgent(this.llmProvider, this.logger, config);
   }
 
   /**

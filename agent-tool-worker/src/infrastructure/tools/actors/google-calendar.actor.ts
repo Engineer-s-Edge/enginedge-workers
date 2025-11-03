@@ -6,10 +6,18 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type GoogleCalendarOperation = 'create-event' | 'update-event' | 'delete-event' | 'get-event' | 'list-events';
+export type GoogleCalendarOperation =
+  | 'create-event'
+  | 'update-event'
+  | 'delete-event'
+  | 'get-event'
+  | 'list-events';
 
 export interface GoogleCalendarArgs {
   operation: GoogleCalendarOperation;
@@ -50,9 +58,13 @@ export interface GoogleCalendarOutput extends ToolOutput {
 }
 
 @Injectable()
-export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCalendarOutput> {
+export class GoogleCalendarActor extends BaseActor<
+  GoogleCalendarArgs,
+  GoogleCalendarOutput
+> {
   readonly name = 'google-calendar-actor';
-  readonly description = 'Provides integration with Google Calendar API for event management';
+  readonly description =
+    'Provides integration with Google Calendar API for event management';
 
   readonly errorEvents: ErrorEvent[];
 
@@ -68,7 +80,11 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('AuthenticationError', 'Invalid or expired access token', false),
+      new ErrorEvent(
+        'AuthenticationError',
+        'Invalid or expired access token',
+        false,
+      ),
       new ErrorEvent('RateLimitError', 'API rate limit exceeded', true),
       new ErrorEvent('NetworkError', 'Network connectivity issue', true),
       new ErrorEvent('ValidationError', 'Invalid request parameters', false),
@@ -83,7 +99,13 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
         properties: {
           operation: {
             type: 'string',
-            enum: ['create-event', 'update-event', 'delete-event', 'get-event', 'list-events']
+            enum: [
+              'create-event',
+              'update-event',
+              'delete-event',
+              'get-event',
+              'list-events',
+            ],
           },
           accessToken: { type: 'string' },
           refreshToken: { type: 'string' },
@@ -93,15 +115,18 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
           startDateTime: { type: 'string', format: 'date-time' },
           endDateTime: { type: 'string', format: 'date-time' },
           timeZone: { type: 'string' },
-          attendees: { type: 'array', items: { type: 'string', format: 'email' } },
+          attendees: {
+            type: 'array',
+            items: { type: 'string', format: 'email' },
+          },
           location: { type: 'string' },
           eventId: { type: 'string' },
           maxResults: { type: 'number', minimum: 1, maximum: 2500 },
           timeMin: { type: 'string', format: 'date-time' },
           timeMax: { type: 'string', format: 'date-time' },
-          q: { type: 'string' }
+          q: { type: 'string' },
         },
-        required: ['operation']
+        required: ['operation'],
       },
       {
         type: 'object',
@@ -109,20 +134,26 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
           success: { type: 'boolean' },
           operation: {
             type: 'string',
-            enum: ['create-event', 'update-event', 'delete-event', 'get-event', 'list-events']
+            enum: [
+              'create-event',
+              'update-event',
+              'delete-event',
+              'get-event',
+              'list-events',
+            ],
           },
           eventId: { type: 'string' },
           htmlLink: { type: 'string', format: 'uri' },
           event: { type: 'object' },
           events: { type: 'array', items: { type: 'object' } },
           nextPageToken: { type: 'string' },
-          deleted: { type: 'boolean' }
+          deleted: { type: 'boolean' },
         },
-        required: ['success', 'operation']
+        required: ['success', 'operation'],
       },
       [],
       ActorCategory.EXTERNAL_PRODUCTIVITY,
-      true
+      true,
     );
 
     super(metadata, errorEvents);
@@ -134,9 +165,12 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
   protected async act(args: GoogleCalendarArgs): Promise<GoogleCalendarOutput> {
     // Validate authentication
     if (!args.accessToken) {
-      throw Object.assign(new Error('Google Calendar access token is required'), {
-        name: 'AuthenticationError'
-      });
+      throw Object.assign(
+        new Error('Google Calendar access token is required'),
+        {
+          name: 'AuthenticationError',
+        },
+      );
     }
 
     switch (args.operation) {
@@ -151,17 +185,32 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
       case 'list-events':
         return this.listEvents(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
-  private async createEvent(args: GoogleCalendarArgs): Promise<GoogleCalendarOutput> {
-    if (!args.calendarId || !args.summary || !args.startDateTime || !args.endDateTime) {
-      throw Object.assign(new Error('Calendar ID, summary, start time, and end time are required for event creation'), {
-        name: 'ValidationError'
-      });
+  private async createEvent(
+    args: GoogleCalendarArgs,
+  ): Promise<GoogleCalendarOutput> {
+    if (
+      !args.calendarId ||
+      !args.summary ||
+      !args.startDateTime ||
+      !args.endDateTime
+    ) {
+      throw Object.assign(
+        new Error(
+          'Calendar ID, summary, start time, and end time are required for event creation',
+        ),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -173,18 +222,23 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
         success: true,
         operation: 'create-event',
         eventId,
-        htmlLink
+        htmlLink,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async updateEvent(args: GoogleCalendarArgs): Promise<GoogleCalendarOutput> {
+  private async updateEvent(
+    args: GoogleCalendarArgs,
+  ): Promise<GoogleCalendarOutput> {
     if (!args.calendarId || !args.eventId) {
-      throw Object.assign(new Error('Calendar ID and event ID are required for event update'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Calendar ID and event ID are required for event update'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -195,18 +249,23 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
         success: true,
         operation: 'update-event',
         eventId: args.eventId,
-        htmlLink
+        htmlLink,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async deleteEvent(args: GoogleCalendarArgs): Promise<GoogleCalendarOutput> {
+  private async deleteEvent(
+    args: GoogleCalendarArgs,
+  ): Promise<GoogleCalendarOutput> {
     if (!args.calendarId || !args.eventId) {
-      throw Object.assign(new Error('Calendar ID and event ID are required for event deletion'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Calendar ID and event ID are required for event deletion'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -214,17 +273,19 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
       return {
         success: true,
         operation: 'delete-event',
-        deleted: true
+        deleted: true,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async getEvent(args: GoogleCalendarArgs): Promise<GoogleCalendarOutput> {
+  private async getEvent(
+    args: GoogleCalendarArgs,
+  ): Promise<GoogleCalendarOutput> {
     if (!args.calendarId || !args.eventId) {
       throw Object.assign(new Error('Calendar ID and event ID are required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -237,24 +298,29 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
         start: { dateTime: '2024-01-15T10:00:00Z' },
         end: { dateTime: '2024-01-15T11:00:00Z' },
         attendees: [],
-        location: 'Conference Room A'
+        location: 'Conference Room A',
       };
 
       return {
         success: true,
         operation: 'get-event',
-        event: mockEvent
+        event: mockEvent,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async listEvents(args: GoogleCalendarArgs): Promise<GoogleCalendarOutput> {
+  private async listEvents(
+    args: GoogleCalendarArgs,
+  ): Promise<GoogleCalendarOutput> {
     if (!args.calendarId) {
-      throw Object.assign(new Error('Calendar ID is required for listing events'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Calendar ID is required for listing events'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -264,20 +330,20 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
           id: 'event-1',
           summary: 'Team Meeting',
           start: { dateTime: '2024-01-15T10:00:00Z' },
-          end: { dateTime: '2024-01-15T11:00:00Z' }
+          end: { dateTime: '2024-01-15T11:00:00Z' },
         },
         {
           id: 'event-2',
           summary: 'Project Review',
           start: { dateTime: '2024-01-16T14:00:00Z' },
-          end: { dateTime: '2024-01-16T15:30:00Z' }
-        }
+          end: { dateTime: '2024-01-16T15:30:00Z' },
+        },
       ];
 
       return {
         success: true,
         operation: 'list-events',
-        events: mockEvents
+        events: mockEvents,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -286,28 +352,32 @@ export class GoogleCalendarActor extends BaseActor<GoogleCalendarArgs, GoogleCal
 
   private handleApiError(error: unknown): Error {
     // In a real implementation, this would parse Google Calendar API errors
-    const errorMessage = error instanceof Error ? error.message : 'Unknown API error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown API error';
 
     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
       return Object.assign(new Error('Invalid or expired access token'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
     if (errorMessage.includes('429') || errorMessage.includes('quota')) {
       return Object.assign(new Error('API rate limit exceeded'), {
-        name: 'RateLimitError'
+        name: 'RateLimitError',
       });
     }
 
     if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       return Object.assign(new Error('Network connectivity issue'), {
-        name: 'NetworkError'
+        name: 'NetworkError',
       });
     }
 
-    return Object.assign(new Error(`Google Calendar API error: ${errorMessage}`), {
-      name: 'ApiError'
-    });
+    return Object.assign(
+      new Error(`Google Calendar API error: ${errorMessage}`),
+      {
+        name: 'ApiError',
+      },
+    );
   }
 }

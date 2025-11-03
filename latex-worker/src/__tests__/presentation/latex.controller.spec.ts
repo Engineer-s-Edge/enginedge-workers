@@ -6,7 +6,10 @@ import { ProjectService } from '../../application/services/project.service';
 import { TemplateService } from '../../application/services/template.service';
 import { MessageBrokerPort } from '../../application/ports/message-broker.port';
 import { LaTeXProject } from '../../domain/entities/latex-project.entity';
-import { LaTeXTemplate, TemplateCategory } from '../../domain/entities/latex-template.entity';
+import {
+  LaTeXTemplate,
+  TemplateCategory,
+} from '../../domain/entities/latex-template.entity';
 
 describe('LaTeXController', () => {
   let controller: LaTeXController;
@@ -92,13 +95,19 @@ describe('LaTeXController', () => {
       expect(compileCommandUseCase.execute).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-123',
-          content: '\\documentclass{article}\\begin{document}Test\\end{document}',
+          content:
+            '\\documentclass{article}\\begin{document}Test\\end{document}',
         }),
       );
     });
 
     it('should pass compilation settings', async () => {
-      const compileResult = { success: true, errors: [], warnings: [], compilationTime: 1000 };
+      const compileResult = {
+        success: true,
+        errors: [],
+        warnings: [],
+        compilationTime: 1000,
+      };
       compileCommandUseCase.execute.mockResolvedValue(compileResult);
 
       await controller.compile({
@@ -140,7 +149,8 @@ describe('LaTeXController', () => {
         expect.objectContaining({
           jobId: expect.any(String),
           userId: 'user-456',
-          content: '\\documentclass{article}\\begin{document}Test\\end{document}',
+          content:
+            '\\documentclass{article}\\begin{document}Test\\end{document}',
         }),
       );
     });
@@ -163,19 +173,29 @@ describe('LaTeXController', () => {
     });
 
     it('should throw error if userId not provided', async () => {
-      await expect(controller.listProjects('')).rejects.toThrow(BadRequestException);
+      await expect(controller.listProjects('')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('createProject', () => {
     it('should create single-file project', async () => {
-      const project = new LaTeXProject('proj-123', 'My Project', 'main.tex', [], [], 'user-123');
+      const project = new LaTeXProject(
+        'proj-123',
+        'My Project',
+        'main.tex',
+        [],
+        [],
+        'user-123',
+      );
       projectService.createProject.mockResolvedValue(project);
 
       const result = await controller.createProject({
         userId: 'user-123',
         name: 'My Project',
-        content: '\\documentclass{article}\\begin{document}Content\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}Content\\end{document}',
       });
 
       expect(result).toEqual(project);
@@ -189,14 +209,25 @@ describe('LaTeXController', () => {
     });
 
     it('should create multi-file project', async () => {
-      const project = new LaTeXProject('proj-456', 'Multi Project', 'main.tex', [], [], 'user-123');
+      const project = new LaTeXProject(
+        'proj-456',
+        'Multi Project',
+        'main.tex',
+        [],
+        [],
+        'user-123',
+      );
       projectService.createMultiFileProject.mockResolvedValue(project);
 
       const result = await controller.createProject({
         userId: 'user-123',
         name: 'Multi Project',
         files: [
-          { path: 'main.tex', content: '\\documentclass{article}', type: 'tex' },
+          {
+            path: 'main.tex',
+            content: '\\documentclass{article}',
+            type: 'tex',
+          },
           { path: 'chapter1.tex', content: '\\chapter{One}', type: 'tex' },
         ],
         mainFile: 'main.tex',
@@ -218,7 +249,13 @@ describe('LaTeXController', () => {
 
   describe('getProject', () => {
     it('should get project by ID', async () => {
-      const project = new LaTeXProject('proj-789', 'Test Project', 'main.tex', [], []);
+      const project = new LaTeXProject(
+        'proj-789',
+        'Test Project',
+        'main.tex',
+        [],
+        [],
+      );
       projectService.getProject.mockResolvedValue(project);
 
       const result = await controller.getProject('proj-789');
@@ -230,13 +267,21 @@ describe('LaTeXController', () => {
     it('should throw NotFoundException if project not found', async () => {
       projectService.getProject.mockResolvedValue(null);
 
-      await expect(controller.getProject('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.getProject('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('deleteProject', () => {
     it('should delete project', async () => {
-      const project = new LaTeXProject('proj-delete', 'Delete Me', 'main.tex', [], []);
+      const project = new LaTeXProject(
+        'proj-delete',
+        'Delete Me',
+        'main.tex',
+        [],
+        [],
+      );
       projectService.getProject.mockResolvedValue(project);
       projectService.deleteProject.mockResolvedValue(undefined);
 
@@ -248,13 +293,21 @@ describe('LaTeXController', () => {
     it('should throw NotFoundException if project not found', async () => {
       projectService.getProject.mockResolvedValue(null);
 
-      await expect(controller.deleteProject('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.deleteProject('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('addProjectFile', () => {
     it('should add file to project', async () => {
-      const updatedProject = new LaTeXProject('proj-123', 'Project', 'main.tex', [], []);
+      const updatedProject = new LaTeXProject(
+        'proj-123',
+        'Project',
+        'main.tex',
+        [],
+        [],
+      );
       projectService.addFile.mockResolvedValue(updatedProject);
 
       const result = await controller.addProjectFile('proj-123', {
@@ -274,35 +327,72 @@ describe('LaTeXController', () => {
 
   describe('updateProjectFile', () => {
     it('should update file in project', async () => {
-      const updatedProject = new LaTeXProject('proj-123', 'Project', 'main.tex', [], []);
+      const updatedProject = new LaTeXProject(
+        'proj-123',
+        'Project',
+        'main.tex',
+        [],
+        [],
+      );
       projectService.updateFile.mockResolvedValue(updatedProject);
 
-      const result = await controller.updateProjectFile('proj-123', 'chapter1.tex', {
-        content: 'Updated content',
-      });
+      const result = await controller.updateProjectFile(
+        'proj-123',
+        'chapter1.tex',
+        {
+          content: 'Updated content',
+        },
+      );
 
       expect(result).toEqual(updatedProject);
-      expect(projectService.updateFile).toHaveBeenCalledWith('proj-123', 'chapter1.tex', 'Updated content');
+      expect(projectService.updateFile).toHaveBeenCalledWith(
+        'proj-123',
+        'chapter1.tex',
+        'Updated content',
+      );
     });
   });
 
   describe('removeProjectFile', () => {
     it('should remove file from project', async () => {
-      const updatedProject = new LaTeXProject('proj-123', 'Project', 'main.tex', [], []);
+      const updatedProject = new LaTeXProject(
+        'proj-123',
+        'Project',
+        'main.tex',
+        [],
+        [],
+      );
       projectService.removeFile.mockResolvedValue(updatedProject);
 
       const result = await controller.removeProjectFile('proj-123', 'old.tex');
 
       expect(result).toEqual(updatedProject);
-      expect(projectService.removeFile).toHaveBeenCalledWith('proj-123', 'old.tex');
+      expect(projectService.removeFile).toHaveBeenCalledWith(
+        'proj-123',
+        'old.tex',
+      );
     });
   });
 
   describe('listTemplates', () => {
     it('should list public templates', async () => {
       const templates: LaTeXTemplate[] = [
-        LaTeXTemplate.create('tpl-1', 'Resume', 'resume' as TemplateCategory, 'content', [], true),
-        LaTeXTemplate.create('tpl-2', 'Article', 'article' as TemplateCategory, 'content', [], true),
+        LaTeXTemplate.create(
+          'tpl-1',
+          'Resume',
+          'resume' as TemplateCategory,
+          'content',
+          [],
+          true,
+        ),
+        LaTeXTemplate.create(
+          'tpl-2',
+          'Article',
+          'article' as TemplateCategory,
+          'content',
+          [],
+          true,
+        ),
       ];
 
       templateService.listPublicTemplates.mockResolvedValue(templates);
@@ -315,12 +405,21 @@ describe('LaTeXController', () => {
 
     it('should list templates by category', async () => {
       const templates: LaTeXTemplate[] = [
-        LaTeXTemplate.create('tpl-1', 'Resume 1', 'resume' as TemplateCategory, 'content', [], true),
+        LaTeXTemplate.create(
+          'tpl-1',
+          'Resume 1',
+          'resume' as TemplateCategory,
+          'content',
+          [],
+          true,
+        ),
       ];
 
       templateService.listByCategory.mockResolvedValue(templates);
 
-      const result = await controller.listTemplates('resume' as TemplateCategory);
+      const result = await controller.listTemplates(
+        'resume' as TemplateCategory,
+      );
 
       expect(result).toEqual(templates);
       expect(templateService.listByCategory).toHaveBeenCalledWith('resume');
@@ -328,21 +427,43 @@ describe('LaTeXController', () => {
 
     it('should list user templates', async () => {
       const templates: LaTeXTemplate[] = [
-        LaTeXTemplate.create('tpl-private', 'My Template', 'custom' as TemplateCategory, 'content', [], false, 'user-123'),
+        LaTeXTemplate.create(
+          'tpl-private',
+          'My Template',
+          'custom' as TemplateCategory,
+          'content',
+          [],
+          false,
+          'user-123',
+        ),
       ];
 
       templateService.listUserTemplates.mockResolvedValue(templates);
 
-      const result = await controller.listTemplates(undefined, 'user-123', false);
+      const result = await controller.listTemplates(
+        undefined,
+        'user-123',
+        false,
+      );
 
       expect(result).toEqual(templates);
-      expect(templateService.listUserTemplates).toHaveBeenCalledWith('user-123');
+      expect(templateService.listUserTemplates).toHaveBeenCalledWith(
+        'user-123',
+      );
     });
   });
 
   describe('createTemplate', () => {
     it('should create template', async () => {
-      const template = LaTeXTemplate.create('tpl-new', 'New Template', 'article' as TemplateCategory, 'content', [], true, 'user-123');
+      const template = LaTeXTemplate.create(
+        'tpl-new',
+        'New Template',
+        'article' as TemplateCategory,
+        'content',
+        [],
+        true,
+        'user-123',
+      );
       templateService.createTemplate.mockResolvedValue(template);
 
       const result = await controller.createTemplate({
@@ -366,7 +487,15 @@ describe('LaTeXController', () => {
     });
 
     it('should create template with variables', async () => {
-      const template = LaTeXTemplate.create('tpl-vars', 'Template with Vars', 'resume' as TemplateCategory, 'content', [], true, 'user-123');
+      const template = LaTeXTemplate.create(
+        'tpl-vars',
+        'Template with Vars',
+        'resume' as TemplateCategory,
+        'content',
+        [],
+        true,
+        'user-123',
+      );
       templateService.createTemplate.mockResolvedValue(template);
 
       await controller.createTemplate({
@@ -375,7 +504,13 @@ describe('LaTeXController', () => {
         content: 'Hello {{name}}',
         category: 'resume' as TemplateCategory,
         variables: [
-          { name: 'name', description: 'Your name', defaultValue: 'John', required: true, type: 'string' },
+          {
+            name: 'name',
+            description: 'Your name',
+            defaultValue: 'John',
+            required: true,
+            type: 'string',
+          },
         ],
       });
 
@@ -385,7 +520,11 @@ describe('LaTeXController', () => {
         'resume',
         'Hello {{name}}',
         expect.arrayContaining([
-          expect.objectContaining({ name: 'name', defaultValue: 'John', required: true }),
+          expect.objectContaining({
+            name: 'name',
+            defaultValue: 'John',
+            required: true,
+          }),
         ]),
         false,
         'user-123',
@@ -395,7 +534,14 @@ describe('LaTeXController', () => {
 
   describe('getTemplate', () => {
     it('should get template by ID', async () => {
-      const template = LaTeXTemplate.create('tpl-get', 'Get Me', 'article' as TemplateCategory, 'content', [], true);
+      const template = LaTeXTemplate.create(
+        'tpl-get',
+        'Get Me',
+        'article' as TemplateCategory,
+        'content',
+        [],
+        true,
+      );
       templateService.getTemplate.mockResolvedValue(template);
 
       const result = await controller.getTemplate('tpl-get');
@@ -407,13 +553,22 @@ describe('LaTeXController', () => {
     it('should throw NotFoundException if template not found', async () => {
       templateService.getTemplate.mockResolvedValue(null);
 
-      await expect(controller.getTemplate('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.getTemplate('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('cloneTemplate', () => {
     it('should clone template to project', async () => {
-      const project = new LaTeXProject('cloned-proj', 'Cloned Project', 'main.tex', [], [], 'user-123');
+      const project = new LaTeXProject(
+        'cloned-proj',
+        'Cloned Project',
+        'main.tex',
+        [],
+        [],
+        'user-123',
+      );
       templateService.cloneToProject.mockResolvedValue(project);
 
       const result = await controller.cloneTemplate('tpl-clone', {
@@ -434,7 +589,14 @@ describe('LaTeXController', () => {
 
   describe('deleteTemplate', () => {
     it('should delete template', async () => {
-      const template = LaTeXTemplate.create('tpl-delete', 'Delete Me', 'article' as TemplateCategory, 'content', [], true);
+      const template = LaTeXTemplate.create(
+        'tpl-delete',
+        'Delete Me',
+        'article' as TemplateCategory,
+        'content',
+        [],
+        true,
+      );
       templateService.getTemplate.mockResolvedValue(template);
       templateService.deleteTemplate.mockResolvedValue(undefined);
 
@@ -446,13 +608,17 @@ describe('LaTeXController', () => {
     it('should throw NotFoundException if template not found', async () => {
       templateService.getTemplate.mockResolvedValue(null);
 
-      await expect(controller.deleteTemplate('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.deleteTemplate('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('downloadPdf', () => {
     it('should throw NotFoundException', async () => {
-      await expect(controller.downloadPdf('job-123')).rejects.toThrow(NotFoundException);
+      await expect(controller.downloadPdf('job-123')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

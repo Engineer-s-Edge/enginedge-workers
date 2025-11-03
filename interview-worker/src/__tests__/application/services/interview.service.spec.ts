@@ -139,4 +139,3 @@ describe('InterviewService', () => {
     expect(mockInterviewRepository.delete).toHaveBeenCalledWith('test-id');
   });
 });
-

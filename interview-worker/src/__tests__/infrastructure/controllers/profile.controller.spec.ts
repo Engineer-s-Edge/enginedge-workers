@@ -156,7 +156,9 @@ describe('ProfileController', () => {
       finding: 'Node.js proficiency',
     });
 
-    expect(result.observations.resumeFindings.verified).toContain('Node.js proficiency');
+    expect(result.observations.resumeFindings.verified).toContain(
+      'Node.js proficiency',
+    );
     expect(mockProfileService.updateResumeFindings).toHaveBeenCalledWith(
       's1',
       'verified',
@@ -164,4 +166,3 @@ describe('ProfileController', () => {
     );
   });
 });
-

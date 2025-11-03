@@ -20,10 +20,11 @@ export class MockLLMAdapter implements ILLMProvider {
    */
   async complete(request: LLMRequest): Promise<LLMResponse> {
     // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Get the last user message
-    const userMessage = request.messages.find(msg => msg.role === 'user')?.content || '';
+    const userMessage =
+      request.messages.find((msg) => msg.role === 'user')?.content || '';
     const content = this.generateMockResponse(userMessage);
 
     return {
@@ -45,7 +46,7 @@ export class MockLLMAdapter implements ILLMProvider {
     const words = response.content.split(' ');
 
     for (const word of words) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
       yield word + ' ';
     }
   }

@@ -1,6 +1,6 @@
 /**
  * Port (Interface) for Message Broker
- * 
+ *
  * This port defines the contract for message broker operations.
  * Infrastructure adapters will implement this interface.
  */
@@ -14,7 +14,10 @@ export interface MessageBrokerPort {
   /**
    * Subscribe to a topic and handle messages
    */
-  subscribe(topic: string, handler: (message: unknown) => Promise<void>): Promise<void>;
+  subscribe(
+    topic: string,
+    handler: (message: unknown) => Promise<void>,
+  ): Promise<void>;
 
   /**
    * Connect to the message broker
@@ -33,4 +36,3 @@ export interface MessageBrokerPort {
 }
 
 export const MESSAGE_BROKER_PORT = Symbol('MESSAGE_BROKER_PORT');
-

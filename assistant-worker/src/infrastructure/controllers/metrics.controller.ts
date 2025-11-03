@@ -1,6 +1,6 @@
 /**
  * Metrics Controller
- * 
+ *
  * Exposes Prometheus metrics endpoint.
  */
 

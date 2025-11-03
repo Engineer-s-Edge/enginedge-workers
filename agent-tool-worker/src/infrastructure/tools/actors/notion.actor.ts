@@ -6,10 +6,19 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type NotionOperation = 'create-page' | 'update-page' | 'get-page' | 'create-database' | 'query-database' | 'update-database-item';
+export type NotionOperation =
+  | 'create-page'
+  | 'update-page'
+  | 'get-page'
+  | 'create-database'
+  | 'query-database'
+  | 'update-database-item';
 
 export interface NotionArgs {
   operation: NotionOperation;
@@ -54,7 +63,8 @@ export interface NotionOutput extends ToolOutput {
 @Injectable()
 export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
   readonly name = 'notion-actor';
-  readonly description = 'Provides integration with Notion API for page and database management';
+  readonly description =
+    'Provides integration with Notion API for page and database management';
 
   readonly errorEvents: ErrorEvent[];
 
@@ -62,10 +72,22 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('NotionAPIError', 'Error communicating with Notion API', false),
-      new ErrorEvent('AuthenticationError', 'Invalid or missing Notion API key', false),
+      new ErrorEvent(
+        'NotionAPIError',
+        'Error communicating with Notion API',
+        false,
+      ),
+      new ErrorEvent(
+        'AuthenticationError',
+        'Invalid or missing Notion API key',
+        false,
+      ),
       new ErrorEvent('ValidationError', 'Invalid request parameters', false),
-      new ErrorEvent('NotFoundError', 'Requested Notion resource not found', false),
+      new ErrorEvent(
+        'NotFoundError',
+        'Requested Notion resource not found',
+        false,
+      ),
       new ErrorEvent('RateLimitError', 'Notion API rate limit exceeded', true),
     ];
 
@@ -80,64 +102,71 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
         properties: {
           operation: {
             type: 'string',
-            enum: ['create-page', 'update-page', 'get-page', 'create-database', 'query-database', 'update-database-item'],
-            description: 'The Notion operation to perform'
+            enum: [
+              'create-page',
+              'update-page',
+              'get-page',
+              'create-database',
+              'query-database',
+              'update-database-item',
+            ],
+            description: 'The Notion operation to perform',
           },
           apiKey: {
             type: 'string',
-            description: 'Notion API key for authentication'
+            description: 'Notion API key for authentication',
           },
           parentId: {
             type: 'string',
-            description: 'Parent page ID for creating pages'
+            description: 'Parent page ID for creating pages',
           },
           title: {
             type: 'string',
             minLength: 1,
             maxLength: 200,
-            description: 'Title for pages or databases'
+            description: 'Title for pages or databases',
           },
           content: {
             type: 'array',
-            description: 'Notion block objects for page content'
+            description: 'Notion block objects for page content',
           },
           properties: {
             type: 'object',
-            description: 'Page or database properties'
+            description: 'Page or database properties',
           },
           pageId: {
             type: 'string',
-            description: 'Page ID for operations'
+            description: 'Page ID for operations',
           },
           databaseTitle: {
             type: 'string',
-            description: 'Title for new database'
+            description: 'Title for new database',
           },
           databaseProperties: {
             type: 'object',
-            description: 'Properties schema for database'
+            description: 'Properties schema for database',
           },
           databaseId: {
             type: 'string',
-            description: 'Database ID for queries'
+            description: 'Database ID for queries',
           },
           filter: {
             type: 'object',
-            description: 'Filter object for database queries'
+            description: 'Filter object for database queries',
           },
           sorts: {
             type: 'array',
-            description: 'Sort specifications for database queries'
+            description: 'Sort specifications for database queries',
           },
           itemId: {
             type: 'string',
-            description: 'Database item ID for updates'
+            description: 'Database item ID for updates',
           },
           itemProperties: {
             type: 'object',
-            description: 'Properties to update on database item'
-          }
-        }
+            description: 'Properties to update on database item',
+          },
+        },
       },
       {
         type: 'object',
@@ -150,8 +179,8 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
           results: { type: 'array' },
           hasMore: { type: 'boolean' },
           nextCursor: { type: 'string' },
-          updated: { type: 'boolean' }
-        }
+          updated: { type: 'boolean' },
+        },
       },
       [
         {
@@ -161,23 +190,27 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
           content: [
             {
               type: 'heading_1',
-              heading_1: { rich_text: [{ type: 'text', text: { content: 'Meeting Notes' } }] }
-            }
-          ]
+              heading_1: {
+                rich_text: [
+                  { type: 'text', text: { content: 'Meeting Notes' } },
+                ],
+              },
+            },
+          ],
         },
         {
           operation: 'query-database',
           databaseId: 'database-id',
-          filter: { property: 'Status', select: { equals: 'In Progress' } }
+          filter: { property: 'Status', select: { equals: 'In Progress' } },
         },
         {
           operation: 'update-database-item',
           itemId: 'item-id',
-          itemProperties: { Status: { select: { name: 'Completed' } } }
-        }
+          itemProperties: { Status: { select: { name: 'Completed' } } },
+        },
       ],
       ActorCategory.EXTERNAL_PRODUCTIVITY,
-      true
+      true,
     );
 
     super(metadata, errorEvents);
@@ -197,7 +230,7 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
     // Validate API key
     if (!args.apiKey) {
       throw Object.assign(new Error('Notion API key is required'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
@@ -215,17 +248,23 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
       case 'update-database-item':
         return this.updateDatabaseItem(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
   private async createPage(args: NotionArgs): Promise<NotionOutput> {
     if (!args.parentId || !args.title) {
-      throw Object.assign(new Error('Parent ID and title are required for page creation'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Parent ID and title are required for page creation'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -234,14 +273,14 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
       const mockResponse = {
         id: `page-${Date.now()}`,
         url: `https://notion.so/${args.title.toLowerCase().replace(/\s+/g, '-')}`,
-        created: true
+        created: true,
       };
 
       return {
         success: true,
         operation: 'create-page',
         id: mockResponse.id,
-        url: mockResponse.url
+        url: mockResponse.url,
       };
     } catch (error: unknown) {
       this.handleApiError(error);
@@ -251,7 +290,7 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
   private async updatePage(args: NotionArgs): Promise<NotionOutput> {
     if (!args.pageId) {
       throw Object.assign(new Error('Page ID is required for page update'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -260,7 +299,7 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
       return {
         success: true,
         operation: 'update-page',
-        updated: true
+        updated: true,
       };
     } catch (error: unknown) {
       this.handleApiError(error);
@@ -270,7 +309,7 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
   private async getPage(args: NotionArgs): Promise<NotionOutput> {
     if (!args.pageId) {
       throw Object.assign(new Error('Page ID is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -280,13 +319,13 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
         id: args.pageId,
         title: 'Sample Page',
         content: [],
-        properties: {}
+        properties: {},
       };
 
       return {
         success: true,
         operation: 'get-page',
-        page: mockPage
+        page: mockPage,
       };
     } catch (error: unknown) {
       this.handleApiError(error);
@@ -295,9 +334,12 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
 
   private async createDatabase(args: NotionArgs): Promise<NotionOutput> {
     if (!args.parentId || !args.databaseTitle) {
-      throw Object.assign(new Error('Parent ID and database title are required'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Parent ID and database title are required'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -305,14 +347,14 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
       const mockResponse = {
         id: `database-${Date.now()}`,
         url: `https://notion.so/${args.databaseTitle.toLowerCase().replace(/\s+/g, '-')}`,
-        created: true
+        created: true,
       };
 
       return {
         success: true,
         operation: 'create-database',
         id: mockResponse.id,
-        url: mockResponse.url
+        url: mockResponse.url,
       };
     } catch (error: unknown) {
       this.handleApiError(error);
@@ -322,7 +364,7 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
   private async queryDatabase(args: NotionArgs): Promise<NotionOutput> {
     if (!args.databaseId) {
       throw Object.assign(new Error('Database ID is required for querying'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -331,15 +373,15 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
       const mockResults = [
         {
           id: 'item-1',
-          properties: { Name: 'Sample Item', Status: 'In Progress' }
-        }
+          properties: { Name: 'Sample Item', Status: 'In Progress' },
+        },
       ];
 
       return {
         success: true,
         operation: 'query-database',
         results: mockResults,
-        hasMore: false
+        hasMore: false,
       };
     } catch (error: unknown) {
       this.handleApiError(error);
@@ -348,9 +390,12 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
 
   private async updateDatabaseItem(args: NotionArgs): Promise<NotionOutput> {
     if (!args.itemId) {
-      throw Object.assign(new Error('Item ID is required for database item update'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Item ID is required for database item update'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -358,7 +403,7 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
       return {
         success: true,
         operation: 'update-database-item',
-        updated: true
+        updated: true,
       };
     } catch (error: unknown) {
       this.handleApiError(error);
@@ -369,21 +414,24 @@ export class NotionActor extends BaseActor<NotionArgs, NotionOutput> {
     const err = error as { response?: { status?: number }; message?: string };
     if (err.response?.status === 401) {
       throw Object.assign(new Error('Invalid Notion API key'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
     if (err.response?.status === 404) {
       throw Object.assign(new Error('Notion resource not found'), {
-        name: 'NotFoundError'
+        name: 'NotFoundError',
       });
     }
     if (err.response?.status === 429) {
       throw Object.assign(new Error('Notion API rate limit exceeded'), {
-        name: 'RateLimitError'
+        name: 'RateLimitError',
       });
     }
-    throw Object.assign(new Error(`Notion API error: ${err.message || 'Unknown error'}`), {
-      name: 'NotionAPIError'
-    });
+    throw Object.assign(
+      new Error(`Notion API error: ${err.message || 'Unknown error'}`),
+      {
+        name: 'NotionAPIError',
+      },
+    );
   }
 }

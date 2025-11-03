@@ -1,5 +1,8 @@
 import { GeniusAgent } from '../../../domain/agents/genius-agent/genius-agent';
-import { LearningMode, ModelType } from '../../../domain/agents/genius-agent/genius-agent.types';
+import {
+  LearningMode,
+  ModelType,
+} from '../../../domain/agents/genius-agent/genius-agent.types';
 import { ILLMProvider } from '../../../application/ports/llm-provider.port';
 import { ILogger } from '../../../application/ports/logger.port';
 
@@ -10,7 +13,9 @@ describe('Genius Agent - Model Management', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -124,7 +129,9 @@ describe('Genius Agent - Learning Modes', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -178,7 +185,9 @@ describe('Genius Agent - Model Execution', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -208,7 +217,7 @@ describe('Genius Agent - Model Execution', () => {
       updatedAt: new Date(),
       hyperparameters: {},
     };
-    
+
     geniusAgent.addModel(model);
     geniusAgent.activateModel('test-model');
     const result = await geniusAgent.execute('Test input');
@@ -223,7 +232,7 @@ describe('Genius Agent - Model Execution', () => {
   test('should support streaming execution', async () => {
     // Test that streaming method exists and can be called
     expect(typeof geniusAgent.stream).toBe('function');
-    
+
     // For now, just verify the method exists
     // The actual streaming implementation may need more complex setup
     expect(geniusAgent.stream).toBeDefined();
@@ -237,7 +246,9 @@ describe('Genius Agent - Advanced Features', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -275,7 +286,9 @@ describe('Genius Agent - Advanced Features', () => {
 
     geniusAgent.addModel(complexModel);
     const state = geniusAgent.getGeniusState();
-    expect(state.models[0].hyperparameters).toEqual(complexModel.hyperparameters);
+    expect(state.models[0].hyperparameters).toEqual(
+      complexModel.hyperparameters,
+    );
   });
 
   test('should handle model versioning', () => {
@@ -311,7 +324,7 @@ describe('Genius Agent - Advanced Features', () => {
     geniusAgent.switchMode(LearningMode.SUPERVISED);
     geniusAgent.switchMode(LearningMode.UNSUPERVISED);
     geniusAgent.switchMode(LearningMode.REINFORCEMENT);
-    
+
     const state = geniusAgent.getGeniusState();
     expect(state.currentMode).toBe(LearningMode.REINFORCEMENT);
   });

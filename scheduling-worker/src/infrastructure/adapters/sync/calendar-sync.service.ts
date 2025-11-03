@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ICalendarSyncService, SyncState } from '../../../application/ports/google-calendar.port';
+import {
+  ICalendarSyncService,
+  SyncState,
+} from '../../../application/ports/google-calendar.port';
 import { IGoogleCalendarApiService } from '../../../application/ports/google-calendar.port';
 import { ICalendarEventRepository } from '../../../application/ports/repositories.port';
 import { CalendarEvent } from '../../../domain/entities/calendar-event.entity';
@@ -15,7 +18,8 @@ export enum ConflictResolutionStrategy {
 export class CalendarSyncService implements ICalendarSyncService {
   private readonly logger = new Logger(CalendarSyncService.name);
   private readonly syncStates = new Map<string, SyncState>();
-  private readonly strategy: ConflictResolutionStrategy = ConflictResolutionStrategy.LAST_WRITE_WINS;
+  private readonly strategy: ConflictResolutionStrategy =
+    ConflictResolutionStrategy.LAST_WRITE_WINS;
 
   constructor(
     private readonly calendarApiService: IGoogleCalendarApiService,
@@ -29,7 +33,9 @@ export class CalendarSyncService implements ICalendarSyncService {
     userId: string,
     calendarId: string = 'primary',
   ): Promise<void> {
-    this.logger.log(`Starting full sync for user ${userId}, calendar ${calendarId}`);
+    this.logger.log(
+      `Starting full sync for user ${userId}, calendar ${calendarId}`,
+    );
     const startTime = Date.now();
 
     try {
@@ -50,9 +56,14 @@ export class CalendarSyncService implements ICalendarSyncService {
       this.syncStates.set(syncKey, syncState);
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Full sync completed in ${duration}ms for user ${userId}`);
+      this.logger.log(
+        `Full sync completed in ${duration}ms for user ${userId}`,
+      );
     } catch (error) {
-      this.logger.error(`Full sync failed for user ${userId}:`, error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        `Full sync failed for user ${userId}:`,
+        error instanceof Error ? error.message : String(error),
+      );
       throw error;
     }
   }
@@ -64,7 +75,9 @@ export class CalendarSyncService implements ICalendarSyncService {
     userId: string,
     calendarId: string = 'primary',
   ): Promise<void> {
-    this.logger.log(`Starting incremental sync for user ${userId}, calendar ${calendarId}`);
+    this.logger.log(
+      `Starting incremental sync for user ${userId}, calendar ${calendarId}`,
+    );
     const startTime = Date.now();
 
     try {
@@ -72,14 +85,20 @@ export class CalendarSyncService implements ICalendarSyncService {
       const syncState = this.syncStates.get(syncKey);
 
       if (!syncState?.lastSyncToken) {
-        this.logger.warn(`No sync token found for ${syncKey}, falling back to full sync`);
+        this.logger.warn(
+          `No sync token found for ${syncKey}, falling back to full sync`,
+        );
         await this.fullSync(userId, calendarId);
         return;
       }
 
       try {
         // Pull changes using sync token
-        await this.pullRemoteChangesIncremental(userId, calendarId, syncState.lastSyncToken);
+        await this.pullRemoteChangesIncremental(
+          userId,
+          calendarId,
+          syncState.lastSyncToken,
+        );
 
         // Push local changes
         await this.pushLocalChanges(userId, calendarId);
@@ -90,11 +109,15 @@ export class CalendarSyncService implements ICalendarSyncService {
         this.syncStates.set(syncKey, syncState);
 
         const duration = Date.now() - startTime;
-        this.logger.log(`Incremental sync completed in ${duration}ms for user ${userId}`);
+        this.logger.log(
+          `Incremental sync completed in ${duration}ms for user ${userId}`,
+        );
       } catch (error) {
         // Handle sync token expiration (410 Gone)
         if (error instanceof Error && error.message.includes('410')) {
-          this.logger.warn(`Sync token expired for ${syncKey}, performing full sync`);
+          this.logger.warn(
+            `Sync token expired for ${syncKey}, performing full sync`,
+          );
           const newSyncState: SyncState = {
             userId,
             calendarId,
@@ -108,7 +131,10 @@ export class CalendarSyncService implements ICalendarSyncService {
         }
       }
     } catch (error) {
-      this.logger.error(`Incremental sync failed for user ${userId}:`, error instanceof Error ? error.message : String(error));
+      this.logger.error(
+        `Incremental sync failed for user ${userId}:`,
+        error instanceof Error ? error.message : String(error),
+      );
       throw error;
     }
   }
@@ -116,7 +142,10 @@ export class CalendarSyncService implements ICalendarSyncService {
   /**
    * Get sync state for a user's calendar
    */
-  async getSyncState(userId: string, calendarId: string): Promise<SyncState | null> {
+  async getSyncState(
+    userId: string,
+    calendarId: string,
+  ): Promise<SyncState | null> {
     const syncKey = this.getSyncKey(userId, calendarId);
     return this.syncStates.get(syncKey) || null;
   }
@@ -129,26 +158,36 @@ export class CalendarSyncService implements ICalendarSyncService {
     remoteEvent: CalendarEvent,
     strategy: ConflictResolutionStrategy = this.strategy,
   ): CalendarEvent {
-    this.logger.debug(`Resolving conflict for event ${localEvent.id} using ${strategy}`);
+    this.logger.debug(
+      `Resolving conflict for event ${localEvent.id} using ${strategy}`,
+    );
 
     switch (strategy) {
       case ConflictResolutionStrategy.LAST_WRITE_WINS:
-        return localEvent.updatedAt > remoteEvent.updatedAt ? localEvent : remoteEvent;
-      
+        return localEvent.updatedAt > remoteEvent.updatedAt
+          ? localEvent
+          : remoteEvent;
+
       case ConflictResolutionStrategy.LOCAL_WINS:
         return localEvent;
-      
+
       case ConflictResolutionStrategy.REMOTE_WINS:
         return remoteEvent;
-      
+
       case ConflictResolutionStrategy.USER_PROMPT:
         // TODO: Emit event via WebSocket for user resolution
-        this.logger.warn('USER_PROMPT strategy not implemented, using LAST_WRITE_WINS');
-        return localEvent.updatedAt > remoteEvent.updatedAt ? localEvent : remoteEvent;
-      
+        this.logger.warn(
+          'USER_PROMPT strategy not implemented, using LAST_WRITE_WINS',
+        );
+        return localEvent.updatedAt > remoteEvent.updatedAt
+          ? localEvent
+          : remoteEvent;
+
       default:
         this.logger.warn(`Unknown strategy ${strategy}, using LAST_WRITE_WINS`);
-        return localEvent.updatedAt > remoteEvent.updatedAt ? localEvent : remoteEvent;
+        return localEvent.updatedAt > remoteEvent.updatedAt
+          ? localEvent
+          : remoteEvent;
     }
   }
 
@@ -164,12 +203,17 @@ export class CalendarSyncService implements ICalendarSyncService {
   /**
    * Pull remote changes from Google Calendar
    */
-  private async pullRemoteChanges(userId: string, calendarId: string): Promise<void> {
+  private async pullRemoteChanges(
+    userId: string,
+    calendarId: string,
+  ): Promise<void> {
     const syncKey = this.getSyncKey(userId, calendarId);
     const syncState = this.syncStates.get(syncKey);
     const timeMin = syncState?.lastSyncTime;
 
-    this.logger.debug(`Pulling remote changes for ${syncKey} since ${timeMin?.toISOString() || 'beginning'}`);
+    this.logger.debug(
+      `Pulling remote changes for ${syncKey} since ${timeMin?.toISOString() || 'beginning'}`,
+    );
 
     const remoteEvents = await this.calendarApiService.listEvents(calendarId, {
       maxResults: 2500,
@@ -190,12 +234,18 @@ export class CalendarSyncService implements ICalendarSyncService {
         if (!localEvent) {
           // New event - save to local
           await this.eventRepository.save(remoteEvent);
-          this.logger.debug(`Saved new event ${remoteEvent.id} to local storage`);
+          this.logger.debug(
+            `Saved new event ${remoteEvent.id} to local storage`,
+          );
         } else {
           // Event exists - check for conflicts
           if (this.hasConflict(localEvent, remoteEvent)) {
             this.logger.debug(`Conflict detected for event ${remoteEvent.id}`);
-            const resolved = this.resolveConflict(localEvent, remoteEvent, this.strategy);
+            const resolved = this.resolveConflict(
+              localEvent,
+              remoteEvent,
+              this.strategy,
+            );
             await this.eventRepository.save(resolved);
             this.logger.debug(`Resolved and saved event ${remoteEvent.id}`);
           } else if (remoteEvent.updatedAt > localEvent.updatedAt) {
@@ -206,7 +256,10 @@ export class CalendarSyncService implements ICalendarSyncService {
           // Otherwise local is newer or same - do nothing
         }
       } catch (error) {
-        this.logger.error(`Failed to process remote event ${remoteEvent.id}:`, error instanceof Error ? error.message : String(error));
+        this.logger.error(
+          `Failed to process remote event ${remoteEvent.id}:`,
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
   }
@@ -214,13 +267,19 @@ export class CalendarSyncService implements ICalendarSyncService {
   /**
    * Pull remote changes incrementally using sync token
    */
-  private async pullRemoteChangesIncremental(userId: string, calendarId: string, _syncToken: string): Promise<void> {
+  private async pullRemoteChangesIncremental(
+    userId: string,
+    calendarId: string,
+    _syncToken: string,
+  ): Promise<void> {
     this.logger.debug(`Pulling incremental changes with sync token`);
 
     // Note: The current API interface doesn't support syncToken parameter
     // In a real implementation, the IGoogleCalendarApiService would need to be extended
     // For now, fall back to full sync
-    this.logger.warn('Incremental sync with token not fully supported by current API interface');
+    this.logger.warn(
+      'Incremental sync with token not fully supported by current API interface',
+    );
     await this.pullRemoteChanges(userId, calendarId);
 
     // Update sync token if provided in response
@@ -236,16 +295,21 @@ export class CalendarSyncService implements ICalendarSyncService {
   /**
    * Push local changes to Google Calendar
    */
-  private async pushLocalChanges(userId: string, calendarId: string): Promise<void> {
+  private async pushLocalChanges(
+    userId: string,
+    calendarId: string,
+  ): Promise<void> {
     const syncKey = this.getSyncKey(userId, calendarId);
     const syncState = this.syncStates.get(syncKey);
     const since = syncState?.lastSyncTime;
 
-    this.logger.debug(`Pushing local changes for ${syncKey} since ${since?.toISOString() || 'beginning'}`);
+    this.logger.debug(
+      `Pushing local changes for ${syncKey} since ${since?.toISOString() || 'beginning'}`,
+    );
 
     const localEvents = await this.eventRepository.findByUserId(userId);
-    const modifiedEvents = since 
-      ? localEvents.filter(e => e.updatedAt > since)
+    const modifiedEvents = since
+      ? localEvents.filter((e) => e.updatedAt > since)
       : localEvents;
 
     this.logger.debug(`Found ${modifiedEvents.length} modified local events`);
@@ -254,7 +318,11 @@ export class CalendarSyncService implements ICalendarSyncService {
       try {
         // Try to update remote event
         try {
-          await this.calendarApiService.updateEvent(calendarId, localEvent.id, localEvent);
+          await this.calendarApiService.updateEvent(
+            calendarId,
+            localEvent.id,
+            localEvent,
+          );
           this.logger.debug(`Updated remote event ${localEvent.id}`);
         } catch (error) {
           // If event doesn't exist remotely (404), create it
@@ -266,7 +334,10 @@ export class CalendarSyncService implements ICalendarSyncService {
           }
         }
       } catch (error) {
-        this.logger.error(`Failed to push event ${localEvent.id}:`, error instanceof Error ? error.message : String(error));
+        this.logger.error(
+          `Failed to push event ${localEvent.id}:`,
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
   }
@@ -274,13 +345,21 @@ export class CalendarSyncService implements ICalendarSyncService {
   /**
    * Check if there's a conflict between local and remote versions
    */
-  private hasConflict(localEvent: CalendarEvent, remoteEvent: CalendarEvent): boolean {
+  private hasConflict(
+    localEvent: CalendarEvent,
+    remoteEvent: CalendarEvent,
+  ): boolean {
     // Conflict exists if both have been modified since last sync
     // and their update times are within a small window (race condition)
-    const timeDiff = Math.abs(localEvent.updatedAt.getTime() - remoteEvent.updatedAt.getTime());
+    const timeDiff = Math.abs(
+      localEvent.updatedAt.getTime() - remoteEvent.updatedAt.getTime(),
+    );
     const CONFLICT_THRESHOLD_MS = 1000; // 1 second
 
-    return timeDiff < CONFLICT_THRESHOLD_MS && localEvent.updatedAt !== remoteEvent.updatedAt;
+    return (
+      timeDiff < CONFLICT_THRESHOLD_MS &&
+      localEvent.updatedAt !== remoteEvent.updatedAt
+    );
   }
 
   /**

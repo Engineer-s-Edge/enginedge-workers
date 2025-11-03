@@ -14,7 +14,12 @@ describe('Infrastructure Layer - Adapters', () => {
 
       async create(agentData: any): Promise<any> {
         const id = `agent-${Date.now()}-${this.idCounter++}`;
-        const agent = { id, ...agentData, createdAt: new Date(), updatedAt: new Date() };
+        const agent = {
+          id,
+          ...agentData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
         this.agents.set(id, agent);
         return agent;
       }
@@ -46,7 +51,8 @@ describe('Infrastructure Layer - Adapters', () => {
         return Array.from(this.agents.values()).filter((agent) => {
           if (filter.type && agent.type !== filter.type) return false;
           if (filter.status && agent.status !== filter.status) return false;
-          if (filter.createdAfter && agent.createdAt < filter.createdAfter) return false;
+          if (filter.createdAfter && agent.createdAt < filter.createdAfter)
+            return false;
           return true;
         });
       }
@@ -72,7 +78,11 @@ describe('Infrastructure Layer - Adapters', () => {
     });
 
     it('should create agent in storage', async () => {
-      const agentData = { name: 'Test Agent', type: 'reactive', status: 'initialized' };
+      const agentData = {
+        name: 'Test Agent',
+        type: 'reactive',
+        status: 'initialized',
+      };
       const agent = await repository.create(agentData);
 
       expect(agent.id).toBeDefined();
@@ -90,7 +100,9 @@ describe('Infrastructure Layer - Adapters', () => {
     });
 
     it('should throw when agent not found', async () => {
-      await expect(repository.findById('non-existent')).rejects.toThrow('Agent not found');
+      await expect(repository.findById('non-existent')).rejects.toThrow(
+        'Agent not found',
+      );
     });
 
     it('should retrieve all agents', async () => {
@@ -119,9 +131,21 @@ describe('Infrastructure Layer - Adapters', () => {
     });
 
     it('should query agents by filter', async () => {
-      await repository.create({ name: 'Agent 1', type: 'reactive', status: 'active' });
-      await repository.create({ name: 'Agent 2', type: 'proactive', status: 'inactive' });
-      await repository.create({ name: 'Agent 3', type: 'reactive', status: 'inactive' });
+      await repository.create({
+        name: 'Agent 1',
+        type: 'reactive',
+        status: 'active',
+      });
+      await repository.create({
+        name: 'Agent 2',
+        type: 'proactive',
+        status: 'inactive',
+      });
+      await repository.create({
+        name: 'Agent 3',
+        type: 'reactive',
+        status: 'inactive',
+      });
 
       const reactive = await repository.query({ type: 'reactive' });
       expect(reactive).toHaveLength(2);
@@ -164,7 +188,11 @@ describe('Infrastructure Layer - Adapters', () => {
     class OpenAILLMAdapter {
       constructor(private apiKey: string = 'test-key') {}
 
-      async formatRequest(prompt: string, model: string, config: any): Promise<any> {
+      async formatRequest(
+        prompt: string,
+        model: string,
+        config: any,
+      ): Promise<any> {
         return {
           model: model || 'gpt-4',
           messages: [{ role: 'user', content: prompt }],
@@ -186,7 +214,10 @@ describe('Infrastructure Layer - Adapters', () => {
         return Math.ceil(text.length / 4);
       }
 
-      async estimateCost(tokens: number, model: string = 'gpt-4'): Promise<number> {
+      async estimateCost(
+        tokens: number,
+        model: string = 'gpt-4',
+      ): Promise<number> {
         const pricing: any = {
           'gpt-4': { input: 0.03 / 1000, output: 0.06 / 1000 },
           'gpt-3.5-turbo': { input: 0.0005 / 1000, output: 0.0015 / 1000 },
@@ -202,7 +233,9 @@ describe('Infrastructure Layer - Adapters', () => {
 
       async handleRateLimit(retryAfter: number): Promise<void> {
         // Simulate backoff
-        return new Promise((resolve) => setTimeout(resolve, Math.min(retryAfter, 1000)));
+        return new Promise((resolve) =>
+          setTimeout(resolve, Math.min(retryAfter, 1000)),
+        );
       }
     }
 
@@ -213,7 +246,9 @@ describe('Infrastructure Layer - Adapters', () => {
     });
 
     it('should format request correctly', async () => {
-      const request = await adapter.formatRequest('Hello', 'gpt-4', { temperature: 0.5 });
+      const request = await adapter.formatRequest('Hello', 'gpt-4', {
+        temperature: 0.5,
+      });
 
       expect(request.model).toBe('gpt-4');
       expect(request.messages[0].content).toBe('Hello');
@@ -236,15 +271,21 @@ describe('Infrastructure Layer - Adapters', () => {
     });
 
     it('should throw on invalid response format', async () => {
-      await expect(adapter.parseResponse({})).rejects.toThrow('Invalid LLM response');
-      await expect(adapter.parseResponse({ choices: [] })).rejects.toThrow('Invalid LLM response');
+      await expect(adapter.parseResponse({})).rejects.toThrow(
+        'Invalid LLM response',
+      );
+      await expect(adapter.parseResponse({ choices: [] })).rejects.toThrow(
+        'Invalid LLM response',
+      );
     });
 
     it('should count tokens approximately', async () => {
       const tokens = await adapter.countTokens('Hello world!');
 
       expect(tokens).toBeGreaterThan(0);
-      expect(tokens).toBeLessThanOrEqual(Math.ceil('Hello world!'.length / 4) + 1);
+      expect(tokens).toBeLessThanOrEqual(
+        Math.ceil('Hello world!'.length / 4) + 1,
+      );
     });
 
     it('should estimate cost correctly', async () => {
@@ -275,7 +316,13 @@ describe('Infrastructure Layer - Adapters', () => {
       private logs: any[] = [];
 
       info(component: string, message: string, context?: any): void {
-        this.logs.push({ level: 'info', component, message, context, timestamp: Date.now() });
+        this.logs.push({
+          level: 'info',
+          component,
+          message,
+          context,
+          timestamp: Date.now(),
+        });
       }
 
       error(component: string, message: string, error?: any): void {
@@ -289,11 +336,23 @@ describe('Infrastructure Layer - Adapters', () => {
       }
 
       warn(component: string, message: string, context?: any): void {
-        this.logs.push({ level: 'warn', component, message, context, timestamp: Date.now() });
+        this.logs.push({
+          level: 'warn',
+          component,
+          message,
+          context,
+          timestamp: Date.now(),
+        });
       }
 
       debug(component: string, message: string, context?: any): void {
-        this.logs.push({ level: 'debug', component, message, context, timestamp: Date.now() });
+        this.logs.push({
+          level: 'debug',
+          component,
+          message,
+          context,
+          timestamp: Date.now(),
+        });
       }
 
       getLogs(filter?: any): any[] {
@@ -301,7 +360,8 @@ describe('Infrastructure Layer - Adapters', () => {
 
         return this.logs.filter((log) => {
           if (filter.level && log.level !== filter.level) return false;
-          if (filter.component && log.component !== filter.component) return false;
+          if (filter.component && log.component !== filter.component)
+            return false;
           if (filter.since && log.timestamp < filter.since) return false;
           return true;
         });
@@ -376,7 +436,7 @@ describe('Infrastructure Layer - Adapters', () => {
       logger.info('Comp', 'Log 1');
       // Wait to ensure timestamp difference
       await new Promise((resolve) => setTimeout(resolve, 5));
-      const since = Date.now() - 1;  // Capture just before next log
+      const since = Date.now() - 1; // Capture just before next log
       await new Promise((resolve) => setTimeout(resolve, 5));
       logger.info('Comp', 'Log 2');
 
@@ -413,7 +473,11 @@ describe('Infrastructure Layer - Adapters', () => {
     });
 
     it('should preserve context data', () => {
-      const context = { userId: '123', action: 'execute', metadata: { key: 'value' } };
+      const context = {
+        userId: '123',
+        action: 'execute',
+        metadata: { key: 'value' },
+      };
       logger.info('Agent', 'Agent executed', context);
 
       const logs = logger.getLogs();

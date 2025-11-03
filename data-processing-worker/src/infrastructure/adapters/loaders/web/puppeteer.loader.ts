@@ -6,7 +6,7 @@ import { Document } from '@domain/entities/document.entity';
  * Puppeteer Web Loader Adapter
  * Uses Puppeteer for advanced browser automation and web scraping
  * Similar to Playwright but with Chromium-only support
- * 
+ *
  * Note: Currently a placeholder - requires puppeteer package
  * Install with: npm install puppeteer
  */
@@ -33,12 +33,12 @@ export class PuppeteerWebLoaderAdapter extends WebLoaderPort {
       // TODO: Implement when puppeteer is added to dependencies
       /*
       const puppeteer = require('puppeteer');
-      
+
       const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
-      
+
       const page = await browser.newPage();
       await page.goto(url, { waitUntil: 'networkidle2' });
 
@@ -106,13 +106,16 @@ export class PuppeteerWebLoaderAdapter extends WebLoaderPort {
     } catch {
       return false;
     }
-  }
+  }
+
   supports(source: string | Blob): boolean {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

@@ -1,6 +1,6 @@
 /**
  * Summary Memory Adapter
- * 
+ *
  * Intelligent memory that summarizes old messages to save context space.
  * Keeps recent messages verbatim and older messages as summaries.
  */
@@ -15,11 +15,14 @@ import { ILLMProvider } from '@application/ports/llm-provider.port';
  */
 @Injectable()
 export class SummaryMemoryAdapter implements IMemoryAdapter {
-  private memory: Map<string, {
-    summary: string;
-    recentMessages: Message[];
-  }> = new Map();
-  
+  private memory: Map<
+    string,
+    {
+      summary: string;
+      recentMessages: Message[];
+    }
+  > = new Map();
+
   private readonly summaryThreshold = 10; // Summarize after 10 messages
   private readonly keepRecentCount = 5; // Keep last 5 messages verbatim
 
@@ -38,7 +41,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
         recentMessages: [],
       });
     }
-    
+
     const memoryData = this.memory.get(conversationId)!;
     memoryData.recentMessages.push(message);
 
@@ -51,9 +54,12 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
   /**
    * Get all messages (summary + recent)
    */
-  async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     const memoryData = this.memory.get(conversationId);
-    
+
     if (!memoryData) {
       return [];
     }
@@ -62,7 +68,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
     if (limit && limit > 0) {
       return memoryData.recentMessages.slice(-limit);
     }
-    
+
     return memoryData.recentMessages;
   }
 
@@ -78,7 +84,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
    */
   async getContext(conversationId: string): Promise<string> {
     const memoryData = this.memory.get(conversationId);
-    
+
     if (!memoryData) {
       return '';
     }
@@ -96,7 +102,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
       parts.push(
         memoryData.recentMessages
           .map((msg) => `${msg.role}: ${msg.content}`)
-          .join('\n')
+          .join('\n'),
       );
     }
 
@@ -108,7 +114,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
    */
   private async summarize(conversationId: string): Promise<void> {
     const memoryData = this.memory.get(conversationId);
-    
+
     if (!memoryData) {
       return;
     }
@@ -116,7 +122,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
     // Take messages to summarize (all except the recent ones we want to keep)
     const messagesToSummarize = memoryData.recentMessages.slice(
       0,
-      -this.keepRecentCount
+      -this.keepRecentCount,
     );
 
     if (messagesToSummarize.length === 0) {
@@ -137,7 +143,8 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that creates concise summaries.',
+            content:
+              'You are a helpful assistant that creates concise summaries.',
           },
           {
             role: 'user',
@@ -156,7 +163,7 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
 
       // Keep only recent messages
       memoryData.recentMessages = memoryData.recentMessages.slice(
-        -this.keepRecentCount
+        -this.keepRecentCount,
       );
     } catch (error) {
       // If summarization fails, just keep all messages (fallback to buffer behavior)
@@ -172,4 +179,3 @@ export class SummaryMemoryAdapter implements IMemoryAdapter {
     return memoryData?.summary || '';
   }
 }
-

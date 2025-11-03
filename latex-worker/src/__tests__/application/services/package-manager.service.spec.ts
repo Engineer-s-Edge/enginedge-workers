@@ -79,9 +79,13 @@ describe('PackageManagerService', () => {
 
     it('should mark package as failed on installation error', async () => {
       mockCacheRepo.findByName.mockResolvedValue(null);
-      mockCacheRepo.save.mockRejectedValueOnce(new Error('Installation failed'));
+      mockCacheRepo.save.mockRejectedValueOnce(
+        new Error('Installation failed'),
+      );
 
-      await expect(service.install('broken-package')).rejects.toThrow('Installation failed');
+      await expect(service.install('broken-package')).rejects.toThrow(
+        'Installation failed',
+      );
       expect(mockLogger.error).toHaveBeenCalled();
     });
 

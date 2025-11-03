@@ -1,6 +1,6 @@
 /**
  * Agent Configuration Value Object
- * 
+ *
  * Immutable configuration for an agent
  * Contains LLM settings, behavior parameters, etc.
  */
@@ -39,7 +39,10 @@ export class AgentConfig {
       throw new Error('Model name is required');
     }
 
-    if (props.temperature !== undefined && (props.temperature < 0 || props.temperature > 2)) {
+    if (
+      props.temperature !== undefined &&
+      (props.temperature < 0 || props.temperature > 2)
+    ) {
       throw new Error('Temperature must be between 0 and 2');
     }
 

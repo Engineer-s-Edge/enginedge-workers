@@ -112,4 +112,3 @@ describe('ReportController', () => {
     expect(mockEvaluatorService.generateReport).toHaveBeenCalledWith('s1');
   });
 });
-

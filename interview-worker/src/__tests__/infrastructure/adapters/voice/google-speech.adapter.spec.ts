@@ -70,4 +70,3 @@ describe('GoogleSpeechAdapter', () => {
     expect(Buffer.isBuffer(result)).toBe(true);
   });
 });
-

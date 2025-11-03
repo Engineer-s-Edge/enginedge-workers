@@ -1,6 +1,6 @@
 /**
  * Adapters Module
- * 
+ *
  * Infrastructure layer module that exports all adapter implementations
  * Provides dependency injection setup for all external service integrations
  */

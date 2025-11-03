@@ -1,6 +1,6 @@
 /**
  * Repository Ports
- * 
+ *
  * Interfaces for repository implementations (Domain Layer Ports)
  * These are implemented in the Infrastructure layer
  */
@@ -103,4 +103,3 @@ export interface IWebhookRepository {
   findByUserId(userId: string): Promise<any[]>;
   findByEvent(event: string): Promise<any[]>;
 }
-

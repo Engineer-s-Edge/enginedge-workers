@@ -192,12 +192,8 @@ describe('BibliographyService', () => {
       const styles = service.getSupportedStyles();
 
       expect(styles.length).toBeGreaterThan(0);
-      expect(styles).toContainEqual(
-        expect.objectContaining({ name: 'plain' }),
-      );
-      expect(styles).toContainEqual(
-        expect.objectContaining({ name: 'apa' }),
-      );
+      expect(styles).toContainEqual(expect.objectContaining({ name: 'plain' }));
+      expect(styles).toContainEqual(expect.objectContaining({ name: 'apa' }));
     });
   });
 
@@ -310,8 +306,7 @@ Parenthetical \\citep{other2023}.
     it('should detect missing citations', async () => {
       // .tex file cites 3 keys
       const texContent = `\\cite{key1,key2,key3}`;
-      mockFileSystem.readFile
-        .mockResolvedValueOnce(Buffer.from(texContent));
+      mockFileSystem.readFile.mockResolvedValueOnce(Buffer.from(texContent));
 
       // .bib file only has 2 of them
       const bibContent = `
@@ -321,10 +316,9 @@ Parenthetical \\citep{other2023}.
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile.mockResolvedValueOnce(Buffer.from(bibContent));
 
-      const missing = await service.checkMissingCitations(
-        'test.tex',
-        ['refs.bib'],
-      );
+      const missing = await service.checkMissingCitations('test.tex', [
+        'refs.bib',
+      ]);
 
       expect(missing).toContain('key3');
       expect(missing).toHaveLength(1);
@@ -338,10 +332,9 @@ Parenthetical \\citep{other2023}.
       mockFileSystem.exists.mockResolvedValue(true);
       mockFileSystem.readFile.mockResolvedValueOnce(Buffer.from(bibContent));
 
-      const missing = await service.checkMissingCitations(
-        'test.tex',
-        ['refs.bib'],
-      );
+      const missing = await service.checkMissingCitations('test.tex', [
+        'refs.bib',
+      ]);
 
       expect(missing).toHaveLength(0);
     });
@@ -358,10 +351,10 @@ Parenthetical \\citep{other2023}.
         .mockResolvedValueOnce(Buffer.from(bib1))
         .mockResolvedValueOnce(Buffer.from(bib2));
 
-      const missing = await service.checkMissingCitations(
-        'test.tex',
-        ['refs1.bib', 'refs2.bib'],
-      );
+      const missing = await service.checkMissingCitations('test.tex', [
+        'refs1.bib',
+        'refs2.bib',
+      ]);
 
       expect(missing).toHaveLength(0);
     });
@@ -377,10 +370,7 @@ Parenthetical \\citep{other2023}.
         .mockResolvedValueOnce(Buffer.from(bib1))
         .mockResolvedValueOnce(Buffer.from(bib2));
 
-      await service.mergeBibFiles(
-        ['bib1.bib', 'bib2.bib'],
-        'merged.bib',
-      );
+      await service.mergeBibFiles(['bib1.bib', 'bib2.bib'], 'merged.bib');
 
       expect(mockFileSystem.writeFile).toHaveBeenCalledWith(
         'merged.bib',
@@ -401,10 +391,7 @@ Parenthetical \\citep{other2023}.
         .mockResolvedValueOnce(Buffer.from(bib1))
         .mockResolvedValueOnce(Buffer.from(bib2));
 
-      await service.mergeBibFiles(
-        ['bib1.bib', 'bib2.bib'],
-        'merged.bib',
-      );
+      await service.mergeBibFiles(['bib1.bib', 'bib2.bib'], 'merged.bib');
 
       const writtenContent = (mockFileSystem.writeFile as jest.Mock).mock
         .calls[0][1];
@@ -435,9 +422,9 @@ Parenthetical \\citep{other2023}.
     it('should throw error for invalid .bib file', async () => {
       mockFileSystem.exists.mockResolvedValue(false);
 
-      await expect(
-        service.formatBibFile('invalid.bib'),
-      ).rejects.toThrow('Cannot format invalid .bib file');
+      await expect(service.formatBibFile('invalid.bib')).rejects.toThrow(
+        'Cannot format invalid .bib file',
+      );
     });
   });
 

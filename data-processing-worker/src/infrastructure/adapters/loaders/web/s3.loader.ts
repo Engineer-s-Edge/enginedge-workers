@@ -6,7 +6,7 @@ import { Document } from '@domain/entities/document.entity';
  * S3 Web Loader Adapter
  * Loads files from AWS S3 buckets
  * Supports public and authenticated access
- * 
+ *
  * Note: Requires AWS SDK v3
  * Install with: npm install @aws-sdk/client-s3
  */
@@ -32,9 +32,9 @@ export class S3LoaderAdapter extends WebLoaderPort {
       // TODO: Implement when @aws-sdk/client-s3 is added to dependencies
       /*
       const { S3Client, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
-      
+
       const { bucket, key, isDirectory } = this._parseS3Url(url);
-      
+
       const s3Client = new S3Client({
         region: options?.region || 'us-east-1',
         credentials: options?.accessKeyId && options?.secretAccessKey
@@ -59,7 +59,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
 
         for (const item of contents) {
           if (!item.Key) continue;
-          
+
           const doc = await this._loadS3Object(s3Client, bucket, item.Key);
           if (doc) documents.push(doc);
         }
@@ -76,9 +76,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
         'S3 loader not yet implemented. Please install @aws-sdk/client-s3 package and uncomment implementation.',
       );
     } catch (error: any) {
-      throw new Error(
-        `Failed to load from S3: ${error.message}`,
-      );
+      throw new Error(`Failed to load from S3: ${error.message}`);
     }
   }
 
@@ -93,7 +91,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
   ): Promise<Document | null> {
     try {
       const { GetObjectCommand } = require('@aws-sdk/client-s3');
-      
+
       const command = new GetObjectCommand({
         Bucket: bucket,
         Key: key,
@@ -101,7 +99,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
 
       const response = await s3Client.send(command);
       const stream = response.Body;
-      
+
       // Read stream to string
       const chunks: Buffer[] = [];
       for await (const chunk of stream) {
@@ -170,17 +168,23 @@ export class S3LoaderAdapter extends WebLoaderPort {
         return true;
       }
       const urlObj = new URL(url);
-      return urlObj.hostname.includes('s3') && urlObj.hostname.includes('amazonaws.com');
+      return (
+        urlObj.hostname.includes('s3') &&
+        urlObj.hostname.includes('amazonaws.com')
+      );
     } catch {
       return false;
     }
-  }
+  }
+
   supports(source: string | Blob): boolean {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

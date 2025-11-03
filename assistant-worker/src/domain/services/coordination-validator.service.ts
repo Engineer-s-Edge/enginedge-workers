@@ -1,6 +1,6 @@
 /**
  * Coordination Validator Service
- * 
+ *
  * Validates Collective agent configurations for deadlocks and inconsistencies.
  * Ensures coordination context is well-formed before execution.
  */
@@ -44,7 +44,7 @@ export class CoordinationValidatorService {
     // Check for orphaned tasks
     const assignedTasks = new Set<string>();
     for (const tasks of context.childAgentAssignments.values()) {
-      tasks.forEach(t => assignedTasks.add(t));
+      tasks.forEach((t) => assignedTasks.add(t));
     }
 
     for (const taskId of context.taskGraph.keys()) {
@@ -120,7 +120,9 @@ export class CoordinationValidatorService {
     }
 
     if (childAgents.length > maxChildren) {
-      errors.push(`Collective exceeds maximum child agents: ${childAgents.length} > ${maxChildren}`);
+      errors.push(
+        `Collective exceeds maximum child agents: ${childAgents.length} > ${maxChildren}`,
+      );
     }
 
     // Check for duplicates
@@ -203,18 +205,17 @@ export class CoordinationValidatorService {
     const issues: string[] = [];
 
     // Check if all tasks have same priority
-    const priorities = new Set(
-      context
-        .getTasks()
-        .map(t => t.priority),
-    );
+    const priorities = new Set(context.getTasks().map((t) => t.priority));
     if (priorities.size === 1 && priorities.has(50)) {
-      issues.push('All tasks have default priority - consider setting differentiated priorities');
+      issues.push(
+        'All tasks have default priority - consider setting differentiated priorities',
+      );
     }
 
     // Check if any task has very long timeout
     for (const task of context.getTasks()) {
-      if (task.timeoutMs > 600000) { // 10 minutes
+      if (task.timeoutMs > 600000) {
+        // 10 minutes
         issues.push(
           `Task "${task.taskId}" has very long timeout (${task.timeoutMs}ms) - may cause coordination delays`,
         );
@@ -270,16 +271,16 @@ export class CoordinationValidatorService {
             (sum, task) => sum + task.dependencies.length,
             0,
           ),
-          hasCycles: contextValidation.errors.some(e =>
+          hasCycles: contextValidation.errors.some((e) =>
             e.includes('Circular dependency'),
           ),
         },
         coordination: {
-          hasDeadlock: contextValidation.errors.some(e =>
+          hasDeadlock: contextValidation.errors.some((e) =>
             e.includes('deadlock'),
           ),
-          isBalanced: contextValidation.warnings.every(w =>
-            !w.includes('Unbalanced'),
+          isBalanced: contextValidation.warnings.every(
+            (w) => !w.includes('Unbalanced'),
           ),
         },
       },

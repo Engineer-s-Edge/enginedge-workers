@@ -43,22 +43,18 @@ export class MongoDBDocumentRepository implements IDocumentRepository {
 
   async findById(id: string): Promise<LaTeXDocument | null> {
     const doc = await this.documentModel.findOne({ documentId: id }).exec();
-    
+
     if (!doc) {
       return null;
     }
 
-    return LaTeXDocument.create(
-      doc.documentId,
-      doc.content,
-      {
-        title: doc.metadata?.title,
-        author: doc.metadata?.author,
-        date: doc.metadata?.date,
-        documentClass: doc.metadata?.documentClass,
-        packages: doc.packages,
-      },
-    );
+    return LaTeXDocument.create(doc.documentId, doc.content, {
+      title: doc.metadata?.title,
+      author: doc.metadata?.author,
+      date: doc.metadata?.date,
+      documentClass: doc.metadata?.documentClass,
+      packages: doc.packages,
+    });
   }
 
   async findByUser(userId: string): Promise<LaTeXDocument[]> {
@@ -67,18 +63,14 @@ export class MongoDBDocumentRepository implements IDocumentRepository {
       .sort({ updatedAt: -1 })
       .exec();
 
-    return docs.map(doc =>
-      LaTeXDocument.create(
-        doc.documentId,
-        doc.content,
-        {
-          title: doc.metadata?.title,
-          author: doc.metadata?.author,
-          date: doc.metadata?.date,
-          documentClass: doc.metadata?.documentClass,
-          packages: doc.packages,
-        },
-      ),
+    return docs.map((doc) =>
+      LaTeXDocument.create(doc.documentId, doc.content, {
+        title: doc.metadata?.title,
+        author: doc.metadata?.author,
+        date: doc.metadata?.date,
+        documentClass: doc.metadata?.documentClass,
+        packages: doc.packages,
+      }),
     );
   }
 

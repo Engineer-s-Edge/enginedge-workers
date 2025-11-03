@@ -1,15 +1,22 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, Producer, EachMessagePayload } from 'kafkajs';
 import { DocumentProcessingService } from '../../../application/services/document-processing.service';
 
 /**
  * Kafka Message Broker Adapter for Data Processing Worker
- * 
+ *
  * Listens to document processing requests and publishes results.
  */
 @Injectable()
-export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy {
+export class KafkaDataProcessingAdapter
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(KafkaDataProcessingAdapter.name);
   private kafka!: Kafka;
   private consumer!: Consumer;
@@ -24,14 +31,19 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
   }
 
   private initializeKafka(): void {
-    const brokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092');
-    
+    const brokers = this.configService.get<string>(
+      'KAFKA_BROKERS',
+      'localhost:9092',
+    );
+
     this.kafka = new Kafka({
       clientId: 'data-processing-worker',
-      brokers: brokers.split(',').map(broker => broker.trim()),
+      brokers: brokers.split(',').map((broker) => broker.trim()),
     });
 
-    this.consumer = this.kafka.consumer({ groupId: 'data-processing-worker-group' });
+    this.consumer = this.kafka.consumer({
+      groupId: 'data-processing-worker-group',
+    });
     this.producer = this.kafka.producer();
 
     this.logger.log(`Kafka initialized with brokers: ${brokers}`);
@@ -49,14 +61,17 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
   private async connect(): Promise<void> {
     try {
       this.logger.log('Connecting to Kafka...');
-      
+
       await this.consumer.connect();
       await this.producer.connect();
 
       this.connected = true;
       this.logger.log('Successfully connected to Kafka');
     } catch (error) {
-      this.logger.error('Failed to connect to Kafka:', error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        'Failed to connect to Kafka:',
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -64,7 +79,7 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
   private async disconnect(): Promise<void> {
     if (this.connected) {
       this.logger.log('Disconnecting from Kafka...');
-      
+
       await this.consumer.disconnect();
       await this.producer.disconnect();
 
@@ -100,8 +115,10 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
 
   private async handleMessage(payload: EachMessagePayload): Promise<void> {
     const { topic, partition, message } = payload;
-    
-    this.logger.log(`Received message from topic: ${topic}, partition: ${partition}`);
+
+    this.logger.log(
+      `Received message from topic: ${topic}, partition: ${partition}`,
+    );
 
     try {
       const value = message.value?.toString();
@@ -138,7 +155,10 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
           this.logger.warn(`Unknown topic: ${topic}`);
       }
     } catch (error) {
-      this.logger.error(`Error handling message: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Error handling message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 
@@ -187,7 +207,7 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
       await this.publishResult('document.search.results', {
         taskId: data.taskId,
         status: 'SUCCESS',
-        results: results.map(r => ({
+        results: results.map((r) => ({
           documentId: r.document.id,
           content: r.document.content,
           metadata: r.document.metadata,
@@ -239,12 +259,15 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
         throw new Error('Either url or content must be provided');
       }
 
-      const result = await this.documentProcessingService.processDocument(source, {
-        split: true,
-        embed: true,
-        store: true,
-        metadata: data.metadata,
-      });
+      const result = await this.documentProcessingService.processDocument(
+        source,
+        {
+          split: true,
+          embed: true,
+          store: true,
+          metadata: data.metadata,
+        },
+      );
 
       await this.publishResult('document.uploaded', {
         taskId: data.taskId,
@@ -337,7 +360,10 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
     }
   }
 
-  private async publishResult(topic: string, data: Record<string, unknown>): Promise<void> {
+  private async publishResult(
+    topic: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
     try {
       await this.producer.send({
         topic,
@@ -351,7 +377,9 @@ export class KafkaDataProcessingAdapter implements OnModuleInit, OnModuleDestroy
 
       this.logger.log(`Published result to topic: ${topic}`);
     } catch (error) {
-      this.logger.error(`Failed to publish result: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to publish result: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

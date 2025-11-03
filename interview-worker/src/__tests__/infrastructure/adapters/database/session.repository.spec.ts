@@ -144,4 +144,3 @@ describe('MongoInterviewSessionRepository', () => {
     expect(retrieved).toBeNull();
   });
 });
-

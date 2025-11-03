@@ -1,6 +1,6 @@
 /**
  * MongoDB Persistence Adapter
- * 
+ *
  * Persists conversation memory to MongoDB for durability.
  * Supports all memory types with flexible schema.
  */
@@ -40,7 +40,7 @@ interface ConversationDocument {
 
 /**
  * MongoDB Persistence Adapter
- * 
+ *
  * Note: This is a mock implementation. In production, integrate with actual MongoDB client.
  */
 @Injectable()
@@ -48,9 +48,8 @@ export class MongoDBPersistenceAdapter {
   // Mock in-memory storage (replace with actual MongoDB connection)
   private storage: Map<string, ConversationDocument> = new Map();
 
-  constructor(
-    // @Inject('MONGODB_CONNECTION') private readonly mongoClient: any,
-  ) {
+  constructor() // @Inject('MONGODB_CONNECTION') private readonly mongoClient: any,
+  {
     // Initialize MongoDB connection here
   }
 
@@ -64,7 +63,7 @@ export class MongoDBPersistenceAdapter {
     options?: {
       summary?: string;
       entities?: any[];
-    }
+    },
   ): Promise<void> {
     const document: ConversationDocument = {
       conversationId,
@@ -100,7 +99,9 @@ export class MongoDBPersistenceAdapter {
   /**
    * Load conversation from MongoDB
    */
-  async loadConversation(conversationId: string): Promise<ConversationDocument | null> {
+  async loadConversation(
+    conversationId: string,
+  ): Promise<ConversationDocument | null> {
     // Mock load (replace with actual MongoDB operation)
     return this.storage.get(conversationId) || null;
 
@@ -126,11 +127,17 @@ export class MongoDBPersistenceAdapter {
   /**
    * List conversations for a user
    */
-  async listConversations(userId: string, limit = 50): Promise<ConversationDocument[]> {
+  async listConversations(
+    userId: string,
+    limit = 50,
+  ): Promise<ConversationDocument[]> {
     // Mock list (replace with actual MongoDB operation)
     const conversations = Array.from(this.storage.values())
       .filter((doc) => doc.userId === userId)
-      .sort((a, b) => b.metadata.updatedAt.getTime() - a.metadata.updatedAt.getTime())
+      .sort(
+        (a, b) =>
+          b.metadata.updatedAt.getTime() - a.metadata.updatedAt.getTime(),
+      )
       .slice(0, limit);
 
     return conversations;
@@ -144,17 +151,19 @@ export class MongoDBPersistenceAdapter {
   /**
    * Search conversations by content
    */
-  async searchConversations(userId: string, query: string): Promise<ConversationDocument[]> {
+  async searchConversations(
+    userId: string,
+    query: string,
+  ): Promise<ConversationDocument[]> {
     // Mock search (replace with actual MongoDB text search)
-    const conversations = Array.from(this.storage.values())
-      .filter((doc) => {
-        if (doc.userId !== userId) return false;
-        
-        // Search in messages
-        return doc.messages.some((msg) =>
-          msg.content.toLowerCase().includes(query.toLowerCase())
-        );
-      });
+    const conversations = Array.from(this.storage.values()).filter((doc) => {
+      if (doc.userId !== userId) return false;
+
+      // Search in messages
+      return doc.messages.some((msg) =>
+        msg.content.toLowerCase().includes(query.toLowerCase()),
+      );
+    });
 
     return conversations;
 
@@ -176,7 +185,7 @@ export class MongoDBPersistenceAdapter {
     const conversations = await this.listConversations(userId, 1000);
     const totalMessages = conversations.reduce(
       (sum, conv) => sum + conv.metadata.messageCount,
-      0
+      0,
     );
 
     return {

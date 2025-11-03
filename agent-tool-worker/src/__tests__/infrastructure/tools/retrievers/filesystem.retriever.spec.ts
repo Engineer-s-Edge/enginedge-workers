@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesystemRetriever, FilesystemArgs } from '@infrastructure/tools/retrievers/filesystem.retriever';
+import {
+  FilesystemRetriever,
+  FilesystemArgs,
+} from '@infrastructure/tools/retrievers/filesystem.retriever';
 
 describe('FilesystemRetriever', () => {
   let retriever: FilesystemRetriever;
@@ -31,10 +34,13 @@ describe('FilesystemRetriever', () => {
     it('should list files in current directory successfully', async () => {
       const args: FilesystemArgs = {
         operation: 'list',
-        directory: '.'
+        directory: '.',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.operation).toBe('list');
@@ -46,10 +52,13 @@ describe('FilesystemRetriever', () => {
     it('should list files in src directory', async () => {
       const args: FilesystemArgs = {
         operation: 'list',
-        directory: 'src'
+        directory: 'src',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.operation).toBe('list');
@@ -61,10 +70,13 @@ describe('FilesystemRetriever', () => {
     it('should read a file successfully', async () => {
       const args: FilesystemArgs = {
         operation: 'read',
-        filepath: 'package.json'
+        filepath: 'package.json',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.operation).toBe('read');
@@ -77,10 +89,13 @@ describe('FilesystemRetriever', () => {
     it('should handle file not found', async () => {
       const args: FilesystemArgs = {
         operation: 'read',
-        filepath: 'nonexistent-file.txt'
+        filepath: 'nonexistent-file.txt',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('File not found');
@@ -91,10 +106,13 @@ describe('FilesystemRetriever', () => {
     it('should search for files with wildcard pattern', async () => {
       const args: FilesystemArgs = {
         operation: 'search',
-        pattern: '*.json'
+        pattern: '*.json',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.operation).toBe('search');
@@ -105,10 +123,13 @@ describe('FilesystemRetriever', () => {
     it('should search for TypeScript files', async () => {
       const args: FilesystemArgs = {
         operation: 'search',
-        pattern: 'src/**/*.ts'
+        pattern: 'src/**/*.ts',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       // Search might succeed or fail depending on directory structure
       // Just verify it returns a valid result
@@ -123,10 +144,13 @@ describe('FilesystemRetriever', () => {
       const args: FilesystemArgs = {
         operation: 'search',
         pattern: 'README.md',
-        includeContent: true
+        includeContent: true,
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.operation).toBe('search');
@@ -141,10 +165,13 @@ describe('FilesystemRetriever', () => {
   describe('Error Handling', () => {
     it('should handle unknown operations', async () => {
       const args = {
-        operation: 'unknown'
+        operation: 'unknown',
       } as unknown as FilesystemArgs;
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Unknown operation');
@@ -152,11 +179,14 @@ describe('FilesystemRetriever', () => {
 
     it('should handle missing required parameters for search', async () => {
       const args: FilesystemArgs = {
-        operation: 'search'
+        operation: 'search',
         // missing pattern parameter
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Pattern parameter is required');
@@ -164,11 +194,14 @@ describe('FilesystemRetriever', () => {
 
     it('should handle missing required parameters for read', async () => {
       const args: FilesystemArgs = {
-        operation: 'read'
+        operation: 'read',
         // missing filepath parameter
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Filepath parameter is required');
@@ -177,10 +210,13 @@ describe('FilesystemRetriever', () => {
     it('should handle directory not found', async () => {
       const args: FilesystemArgs = {
         operation: 'list',
-        directory: 'nonexistent-directory'
+        directory: 'nonexistent-directory',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Directory not found');
@@ -191,10 +227,13 @@ describe('FilesystemRetriever', () => {
     it('should reject access to system directories', async () => {
       const args: FilesystemArgs = {
         operation: 'list',
-        directory: 'C:\\Windows\\System32'
+        directory: 'C:\\Windows\\System32',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Access denied');
@@ -203,10 +242,13 @@ describe('FilesystemRetriever', () => {
     it('should reject access to sensitive files', async () => {
       const args: FilesystemArgs = {
         operation: 'read',
-        filepath: '.env'
+        filepath: '.env',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Access denied');
@@ -215,10 +257,13 @@ describe('FilesystemRetriever', () => {
     it('should reject access to Windows system directories', async () => {
       const args: FilesystemArgs = {
         operation: 'list',
-        directory: 'C:\\Windows'
+        directory: 'C:\\Windows',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Access denied');
@@ -229,18 +274,18 @@ describe('FilesystemRetriever', () => {
     it('should accept RAG configuration parameters', async () => {
       const args: FilesystemArgs = {
         operation: 'list',
-        directory: '.'
+        directory: '.',
       };
 
       const ragConfig = {
         similarity: 0.8,
         topK: 50,
-        includeMetadata: false
+        includeMetadata: false,
       };
 
       const result = await retriever.execute({
         name: 'filesystem-retriever',
-        args: { ...args, ragConfig }
+        args: { ...args, ragConfig },
       });
 
       expect(result.success).toBe(true);
@@ -253,10 +298,13 @@ describe('FilesystemRetriever', () => {
       const args: FilesystemArgs = {
         operation: 'read',
         filepath: 'package.json',
-        encoding: 'utf8'
+        encoding: 'utf8',
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.content).toBeDefined();
@@ -268,10 +316,13 @@ describe('FilesystemRetriever', () => {
       const args: FilesystemArgs = {
         operation: 'list',
         directory: '.',
-        maxResults: 2
+        maxResults: 2,
       };
 
-      const result = await retriever.execute({ name: 'filesystem-retriever', args });
+      const result = await retriever.execute({
+        name: 'filesystem-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.files!.length).toBeLessThanOrEqual(2);

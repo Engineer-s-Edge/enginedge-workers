@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Phase 1: Core compilation infrastructure ⏳
  */
 
@@ -19,7 +19,7 @@ import { FontService } from './services/font.service';
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers are
  * automatically available to all modules.
  */

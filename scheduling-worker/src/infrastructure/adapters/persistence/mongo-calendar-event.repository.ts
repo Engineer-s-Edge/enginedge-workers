@@ -6,9 +6,9 @@ import { ICalendarEventRepository } from '../../../application/ports/repositorie
 
 /**
  * Calendar Event Repository - MongoDB Implementation
- * 
+ *
  * Persists calendar events to MongoDB
- * 
+ *
  * Infrastructure Adapter - Depends on MongoDB
  */
 @Injectable()
@@ -67,7 +67,10 @@ export class MongoCalendarEventRepository implements ICalendarEventRepository {
       return doc ? CalendarEvent.fromObject(doc) : null;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to find event by id: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to find event by id: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -128,7 +131,10 @@ export class MongoCalendarEventRepository implements ICalendarEventRepository {
     }
   }
 
-  async update(id: string, updates: Partial<CalendarEvent>): Promise<CalendarEvent> {
+  async update(
+    id: string,
+    updates: Partial<CalendarEvent>,
+  ): Promise<CalendarEvent> {
     try {
       const result = await this.collection.findOneAndUpdate(
         { id },
@@ -167,7 +173,10 @@ export class MongoCalendarEventRepository implements ICalendarEventRepository {
       return events;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to batch save events: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to batch save events: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

@@ -1,11 +1,11 @@
 /**
  * Genius Agent Orchestrator Service
- * 
+ *
  * Phase 5e.3: Infrastructure Layer Integration
- * 
+ *
  * This service bridges the hexagonal architecture services from enginedge-core
  * with the assistant-worker infrastructure.
- * 
+ *
  * Responsibilities:
  * - Orchestrate complete learning cycles
  * - Analyze patterns and detect knowledge gaps
@@ -50,7 +50,10 @@ export class GeniusAgentOrchestrator {
    */
   async executeUserDirectedLearning(
     userId: string,
-    topics: Array<{ topic: string; complexity: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6' }>,
+    topics: Array<{
+      topic: string;
+      complexity: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+    }>,
   ): Promise<any> {
     this.logger.log(
       `Starting user-directed learning for ${userId}: ${topics.map((t) => t.topic).join(', ')}`,
@@ -69,7 +72,9 @@ export class GeniusAgentOrchestrator {
       });
 
       // Step 2: Allocate experts for requested complexity levels
-      const maxComplexity = Math.max(...topics.map((t) => parseInt(t.complexity.substring(1))));
+      const maxComplexity = Math.max(
+        ...topics.map((t) => parseInt(t.complexity.substring(1))),
+      );
       const expertAllocation = await this.expertPoolAdapter.allocateExperts({
         count: topics.length,
         specialization: topics[0]?.topic || 'general',
@@ -79,7 +84,9 @@ export class GeniusAgentOrchestrator {
 
       // Step 3: Fetch news and recent research for each topic
       const newsResults = await Promise.all(
-        topics.map((t) => this.newsIntegrationAdapter.fetchRecentNews(t.topic, 10)),
+        topics.map((t) =>
+          this.newsIntegrationAdapter.fetchRecentNews(t.topic, 10),
+        ),
       );
 
       // Step 4: Add topics to catalog and track research
@@ -95,8 +102,10 @@ export class GeniusAgentOrchestrator {
       );
 
       // Step 5: Analyze trends and generate reports
-      const trendingTopics = await this.topicCatalogAdapter.getTrendingTopics(5);
-      const knowledgeBase = await this.knowledgeGraphAdapter.getStatistics(userId);
+      const trendingTopics =
+        await this.topicCatalogAdapter.getTrendingTopics(5);
+      const knowledgeBase =
+        await this.knowledgeGraphAdapter.getStatistics(userId);
 
       // Step 6: Compile results
       const duration = Date.now() - startTime;
@@ -123,7 +132,10 @@ export class GeniusAgentOrchestrator {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`User-directed learning failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `User-directed learning failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -133,7 +145,11 @@ export class GeniusAgentOrchestrator {
    */
   async executeAutonomousLearning(
     userId: string,
-    options?: { maxTopics?: number; minPriority?: number; maxComplexity?: number },
+    options?: {
+      maxTopics?: number;
+      minPriority?: number;
+      maxComplexity?: number;
+    },
   ): Promise<any> {
     this.logger.log(`Starting autonomous learning for ${userId}`);
 
@@ -180,7 +196,9 @@ export class GeniusAgentOrchestrator {
 
       // Step 5: Fetch news for gap topics
       const newsResults = await Promise.all(
-        filteredGaps.map((g) => this.newsIntegrationAdapter.fetchRecentNews(g.topic, 10)),
+        filteredGaps.map((g) =>
+          this.newsIntegrationAdapter.fetchRecentNews(g.topic, 10),
+        ),
       );
 
       // Step 6: Track research on gap topics
@@ -220,7 +238,10 @@ export class GeniusAgentOrchestrator {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Autonomous learning failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Autonomous learning failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -233,10 +254,12 @@ export class GeniusAgentOrchestrator {
 
     try {
       // Step 1: Fetch recent research reports
-      const recentReports = await this.knowledgeGraphAdapter.getRecentResearchReports(userId, 20);
+      const recentReports =
+        await this.knowledgeGraphAdapter.getRecentResearchReports(userId, 20);
 
       // Step 2: Get trending topics in news
-      const trendingTopics = await this.newsIntegrationAdapter.getTrendingTopics(15);
+      const trendingTopics =
+        await this.newsIntegrationAdapter.getTrendingTopics(15);
       const trendingTopicNames = trendingTopics.map((t) => t.topic);
 
       // Step 3: Analyze current knowledge base
@@ -257,7 +280,10 @@ export class GeniusAgentOrchestrator {
       return gaps;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Knowledge gap analysis failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Knowledge gap analysis failed: ${err.message}`,
+        err.stack,
+      );
       return [];
     }
   }
@@ -266,17 +292,25 @@ export class GeniusAgentOrchestrator {
    * Calculate adaptive learning strategy
    */
   async calculateAdaptiveStrategy(
-    topics: Array<{ topic: string; researchGap: number; priority: number; complexity: number }>,
+    topics: Array<{
+      topic: string;
+      researchGap: number;
+      priority: number;
+      complexity: number;
+    }>,
     context?: { systemLoad?: number; availableResources?: number },
   ): Promise<any> {
-    this.logger.log(`Calculating adaptive strategy for ${topics.length} topics`);
+    this.logger.log(
+      `Calculating adaptive strategy for ${topics.length} topics`,
+    );
 
     try {
       // Sort topics by priority and complexity
       const sortedTopics = [...topics].sort((a, b) => b.priority - a.priority);
 
       // Calculate batch size based on complexity
-      const avgComplexity = topics.reduce((sum, t) => sum + t.complexity, 0) / topics.length;
+      const avgComplexity =
+        topics.reduce((sum, t) => sum + t.complexity, 0) / topics.length;
       const batchSize = Math.max(1, Math.floor(10 / avgComplexity));
 
       // Allocate experts based on complexity distribution
@@ -290,7 +324,8 @@ export class GeniusAgentOrchestrator {
       );
 
       // Recommend learning mode based on gap scores
-      const avgGapScore = topics.reduce((sum, t) => sum + t.researchGap, 0) / topics.length;
+      const avgGapScore =
+        topics.reduce((sum, t) => sum + t.researchGap, 0) / topics.length;
       const recommendedMode = avgGapScore > 50 ? 'autonomous' : 'user-directed';
 
       // Calculate escalation thresholds
@@ -315,7 +350,10 @@ export class GeniusAgentOrchestrator {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Strategy calculation failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Strategy calculation failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -335,7 +373,8 @@ export class GeniusAgentOrchestrator {
         topic: r.topic || 'unknown',
       }));
 
-      const validationResults = await this.validationAdapter.validateBatch(validationConfigs);
+      const validationResults =
+        await this.validationAdapter.validateBatch(validationConfigs);
 
       // Step 2: Compile results with original report data
       const enrichedResults = validationResults.map((vr, idx) => ({
@@ -348,7 +387,9 @@ export class GeniusAgentOrchestrator {
       const passCount = enrichedResults.filter((r) => r.isValid).length;
       const failCount = enrichedResults.length - passCount;
 
-      this.logger.log(`Validation complete: ${passCount} passed, ${failCount} failed`);
+      this.logger.log(
+        `Validation complete: ${passCount} passed, ${failCount} failed`,
+      );
 
       return {
         totalReports: enrichedResults.length,
@@ -368,11 +409,15 @@ export class GeniusAgentOrchestrator {
    * Integrate validated research into knowledge base
    */
   async integrateResearchResults(validatedReports: any[]): Promise<any> {
-    this.logger.log(`Integrating ${validatedReports.length} validated reports into knowledge graph`);
+    this.logger.log(
+      `Integrating ${validatedReports.length} validated reports into knowledge graph`,
+    );
 
     try {
       // Step 1: Filter only valid reports
-      const validReports = validatedReports.filter((r) => r.isValid || r.validation?.isValid);
+      const validReports = validatedReports.filter(
+        (r) => r.isValid || r.validation?.isValid,
+      );
 
       if (validReports.length === 0) {
         this.logger.log('No valid reports to integrate');
@@ -417,7 +462,10 @@ export class GeniusAgentOrchestrator {
 
       // Step 4: Calculate metrics
       const successCount = integrationResults.filter((r) => r.success).length;
-      const totalNodes = integrationResults.reduce((sum, r) => sum + (r.nodesAdded || 0), 0);
+      const totalNodes = integrationResults.reduce(
+        (sum, r) => sum + (r.nodesAdded || 0),
+        0,
+      );
 
       this.logger.log(
         `Integration complete: ${successCount} topics integrated, ${totalNodes} new nodes added`,
@@ -445,19 +493,23 @@ export class GeniusAgentOrchestrator {
       const graphStats = await this.knowledgeGraphAdapter.getStatistics(userId);
 
       // Step 2: Get recent research reports
-      const recentReports = await this.knowledgeGraphAdapter.getRecentResearchReports(userId, 20);
+      const recentReports =
+        await this.knowledgeGraphAdapter.getRecentResearchReports(userId, 20);
 
       // Step 3: Detect knowledge gaps
       const gaps = await this.detectKnowledgeGaps(userId);
 
       // Step 4: Get recommended topics
-      const recommendedTopics = await this.topicCatalogAdapter.getRecommendedTopics(userId, 5);
+      const recommendedTopics =
+        await this.topicCatalogAdapter.getRecommendedTopics(userId, 5);
 
       // Step 5: Get trending topics
-      const trendingTopics = await this.topicCatalogAdapter.getTrendingTopics(5);
+      const trendingTopics =
+        await this.topicCatalogAdapter.getTrendingTopics(5);
 
       // Step 6: Get available experts
-      const availableExperts = await this.expertPoolAdapter.getAvailableExperts();
+      const availableExperts =
+        await this.expertPoolAdapter.getAvailableExperts();
 
       return {
         userId,
@@ -489,7 +541,10 @@ export class GeniusAgentOrchestrator {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Statistics retrieval failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Statistics retrieval failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

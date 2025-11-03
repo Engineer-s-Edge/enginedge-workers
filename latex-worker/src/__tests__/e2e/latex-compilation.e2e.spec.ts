@@ -28,7 +28,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'simple-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\begin{document}Hello World\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}Hello World\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -55,7 +56,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'packages-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\usepackage{amsmath}\\usepackage{graphicx}\\begin{document}$E=mc^2$\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{amsmath}\\usepackage{graphicx}\\begin{document}$E=mc^2$\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -250,9 +252,7 @@ describe('LaTeX Compilation E2E Integration', () => {
         compilationTime: 3000,
         passes: 2,
         errors: [],
-        warnings: [
-          { line: 4, message: 'Citation NonExistentKey not found' },
-        ],
+        warnings: [{ line: 4, message: 'Citation NonExistentKey not found' }],
         logs: { stdout: '', stderr: '', rawLog: '' },
       };
 
@@ -432,7 +432,11 @@ describe('LaTeX Compilation E2E Integration', () => {
         passes: 1,
         errors: [],
         warnings: [
-          { line: 5, message: 'Reference `missing-label\' on page 1 undefined on input line 5' },
+          {
+            line: 5,
+            message:
+              "Reference `missing-label' on page 1 undefined on input line 5",
+          },
         ],
         logs: { stdout: '', stderr: '', rawLog: '' },
       };
@@ -452,7 +456,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'perf-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\begin{document}Simple\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}Simple\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -474,7 +479,8 @@ describe('LaTeX Compilation E2E Integration', () => {
     });
 
     it('should handle multiple sequential compilations', async () => {
-      const content = '\\documentclass{article}\\begin{document}Test\\end{document}';
+      const content =
+        '\\documentclass{article}\\begin{document}Test\\end{document}';
 
       const mockResult: CompilationResult = {
         success: true,
@@ -499,7 +505,7 @@ describe('LaTeX Compilation E2E Integration', () => {
       }
 
       expect(results.length).toBe(5);
-      expect(results.every(r => r.success)).toBe(true);
+      expect(results.every((r) => r.success)).toBe(true);
     });
   });
 
@@ -508,7 +514,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'meta-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\title{Test}\\begin{document}Test\\end{document}',
+        content:
+          '\\documentclass{article}\\title{Test}\\begin{document}Test\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -534,7 +541,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'logs-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\usepackage{amsmath}\\begin{document}$E=mc^2$\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{amsmath}\\begin{document}$E=mc^2$\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -646,7 +654,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'special-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\usepackage[utf8]{inputenc}\\begin{document}Special: ñ é ç ß€™©\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage[utf8]{inputenc}\\begin{document}Special: ñ é ç ß€™©\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -689,7 +698,11 @@ describe('LaTeX Compilation E2E Integration', () => {
         passes: 1,
         errors: [],
         warnings: [],
-        logs: { stdout: 'Compiled main.tex with 2 includes', stderr: '', rawLog: '' },
+        logs: {
+          stdout: 'Compiled main.tex with 2 includes',
+          stderr: '',
+          rawLog: '',
+        },
       };
 
       mockCompilerService.compileDocument.mockResolvedValue(mockResult);
@@ -755,7 +768,11 @@ describe('LaTeX Compilation E2E Integration', () => {
         passes: 1,
         errors: [],
         warnings: [],
-        logs: { stdout: 'Installed packages: tikz, pgfplots', stderr: '', rawLog: '' },
+        logs: {
+          stdout: 'Installed packages: tikz, pgfplots',
+          stderr: '',
+          rawLog: '',
+        },
       };
 
       mockCompilerService.compileDocument.mockResolvedValue(mockResult);
@@ -770,13 +787,15 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command1: CompileCommand = {
         jobId: 'cache-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\usepackage{amsmath}\\begin{document}Test\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{amsmath}\\begin{document}Test\\end{document}',
       };
 
       const command2: CompileCommand = {
         jobId: 'cache-002',
         userId: 'user-123',
-        content: '\\documentclass{article}\\usepackage{amsmath}\\begin{document}Test2\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{amsmath}\\begin{document}Test2\\end{document}',
       };
 
       const mockResult1: CompilationResult = {
@@ -792,7 +811,7 @@ describe('LaTeX Compilation E2E Integration', () => {
       const mockResult2: CompilationResult = {
         success: true,
         pdfPath: '/tmp/cache2.pdf',
-        compilationTime: 800,  // Faster due to caching
+        compilationTime: 800, // Faster due to caching
         passes: 1,
         errors: [],
         warnings: [],
@@ -817,7 +836,8 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'async-kafka-001',
         userId: 'user-456',
-        content: '\\documentclass{article}\\begin{document}Async compilation test\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}Async compilation test\\end{document}',
       };
 
       const mockResult: CompilationResult = {
@@ -843,14 +863,21 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'async-fail-001',
         userId: 'user-456',
-        content: '\\documentclass{article}\\begin{document}\\unknowncommand\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}\\unknowncommand\\end{document}',
       };
 
       const mockResult: CompilationResult = {
         success: false,
         compilationTime: 1200,
         passes: 0,
-        errors: [{ line: 3, message: 'Undefined control sequence: \\unknowncommand', severity: 'error' }],
+        errors: [
+          {
+            line: 3,
+            message: 'Undefined control sequence: \\unknowncommand',
+            severity: 'error',
+          },
+        ],
         warnings: [],
         logs: { stdout: '', stderr: 'Error processing async job', rawLog: '' },
       };
@@ -871,17 +898,20 @@ describe('LaTeX Compilation E2E Integration', () => {
         {
           jobId: 'concurrent-001',
           userId: 'user-789',
-          content: '\\documentclass{article}\\begin{document}Job 1\\end{document}',
+          content:
+            '\\documentclass{article}\\begin{document}Job 1\\end{document}',
         },
         {
           jobId: 'concurrent-002',
           userId: 'user-789',
-          content: '\\documentclass{article}\\begin{document}Job 2\\end{document}',
+          content:
+            '\\documentclass{article}\\begin{document}Job 2\\end{document}',
         },
         {
           jobId: 'concurrent-003',
           userId: 'user-789',
-          content: '\\documentclass{article}\\begin{document}Job 3\\end{document}',
+          content:
+            '\\documentclass{article}\\begin{document}Job 3\\end{document}',
         },
       ];
 
@@ -920,7 +950,7 @@ describe('LaTeX Compilation E2E Integration', () => {
       });
 
       const results = await Promise.all(
-        commands.map((cmd) => compileUseCase.execute(cmd))
+        commands.map((cmd) => compileUseCase.execute(cmd)),
       );
 
       expect(results).toHaveLength(3);
@@ -935,13 +965,15 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command1: CompileCommand = {
         jobId: 'isolated-001',
         userId: 'user-001',
-        content: '\\documentclass{article}\\usepackage{custom1}\\begin{document}User 1\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{custom1}\\begin{document}User 1\\end{document}',
       };
 
       const command2: CompileCommand = {
         jobId: 'isolated-002',
         userId: 'user-002',
-        content: '\\documentclass{article}\\usepackage{custom2}\\begin{document}User 2\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{custom2}\\begin{document}User 2\\end{document}',
       };
 
       const mockResult1: CompilationResult = {
@@ -982,14 +1014,23 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'timeout-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\begin{document}' + 'x'.repeat(100000) + '\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}' +
+          'x'.repeat(100000) +
+          '\\end{document}',
       };
 
       const mockResult: CompilationResult = {
         success: false,
         compilationTime: 5000,
         passes: 0,
-        errors: [{ line: 0, message: 'Compilation timeout after 5 seconds', severity: 'error' }],
+        errors: [
+          {
+            line: 0,
+            message: 'Compilation timeout after 5 seconds',
+            severity: 'error',
+          },
+        ],
         warnings: [],
         logs: { stdout: '', stderr: 'Process timeout', rawLog: '' },
       };
@@ -1007,14 +1048,17 @@ describe('LaTeX Compilation E2E Integration', () => {
       const command: CompileCommand = {
         jobId: 'memory-limit-001',
         userId: 'user-123',
-        content: '\\documentclass{article}\\usepackage{tikz}\\begin{document}Test memory limit\\end{document}',
+        content:
+          '\\documentclass{article}\\usepackage{tikz}\\begin{document}Test memory limit\\end{document}',
       };
 
       const mockResult: CompilationResult = {
         success: false,
         compilationTime: 3000,
         passes: 0,
-        errors: [{ line: 0, message: 'Memory limit exceeded', severity: 'error' }],
+        errors: [
+          { line: 0, message: 'Memory limit exceeded', severity: 'error' },
+        ],
         warnings: [],
         logs: { stdout: '', stderr: 'Out of memory', rawLog: '' },
       };

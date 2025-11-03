@@ -1,12 +1,26 @@
 /**
  * Memory Controller
- * 
+ *
  * REST API endpoints for conversation memory management.
  * Supports all memory types: buffer, window, summary, vector, entity.
  */
 
-import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
-import { MemoryService, MemoryType } from '@application/services/memory.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
+import {
+  MemoryService,
+  MemoryType,
+} from '@application/services/memory.service';
 import { Message, MessageRole } from '@domain/value-objects/message.vo';
 import { ILogger } from '@application/ports/logger.port';
 
@@ -28,7 +42,8 @@ export class MemoryController {
   @HttpCode(HttpStatus.CREATED)
   async addMessage(
     @Param('conversationId') conversationId: string,
-    @Body() body: {
+    @Body()
+    body: {
       role: 'user' | 'assistant' | 'system';
       content: string;
       memoryType?: MemoryType;
@@ -40,13 +55,13 @@ export class MemoryController {
     const message = Message.create(
       body.role as MessageRole,
       body.content,
-      body.metadata
+      body.metadata,
     );
 
     await this.memoryService.addMessage(
       conversationId,
       message,
-      body.memoryType || 'buffer'
+      body.memoryType || 'buffer',
     );
 
     return {
@@ -70,7 +85,7 @@ export class MemoryController {
     const messages = await this.memoryService.getMessages(
       conversationId,
       memoryType || 'buffer',
-      limit ? parseInt(limit.toString()) : undefined
+      limit ? parseInt(limit.toString()) : undefined,
     );
 
     return {
@@ -95,7 +110,7 @@ export class MemoryController {
     const context = await this.memoryService.getContext(
       conversationId,
       memoryType || 'buffer',
-      query
+      query,
     );
 
     return {
@@ -118,7 +133,7 @@ export class MemoryController {
 
     await this.memoryService.clearMemory(
       conversationId,
-      memoryType || 'buffer'
+      memoryType || 'buffer',
     );
 
     return {
@@ -149,17 +164,21 @@ export class MemoryController {
   @HttpCode(HttpStatus.OK)
   async searchSimilar(
     @Param('conversationId') conversationId: string,
-    @Body() body: {
+    @Body()
+    body: {
       query: string;
       topK?: number;
     },
   ) {
-    this.logger.info('Searching for similar messages', { conversationId, query: body.query });
+    this.logger.info('Searching for similar messages', {
+      conversationId,
+      query: body.query,
+    });
 
     const messages = await this.memoryService.searchSimilar(
       conversationId,
       body.query,
-      body.topK
+      body.topK,
     );
 
     return {
@@ -193,15 +212,19 @@ export class MemoryController {
   @HttpCode(HttpStatus.OK)
   async searchEntities(
     @Param('conversationId') conversationId: string,
-    @Body() body: {
+    @Body()
+    body: {
       query: string;
     },
   ) {
-    this.logger.info('Searching entities', { conversationId, query: body.query });
+    this.logger.info('Searching entities', {
+      conversationId,
+      query: body.query,
+    });
 
     const entities = await this.memoryService.searchEntities(
       conversationId,
-      body.query
+      body.query,
     );
 
     return {
@@ -224,7 +247,7 @@ export class MemoryController {
 
     const conversations = await this.memoryService.listConversations(
       userId,
-      limit ? parseInt(limit.toString()) : undefined
+      limit ? parseInt(limit.toString()) : undefined,
     );
 
     return {
@@ -239,17 +262,15 @@ export class MemoryController {
    */
   @Post('conversations/search')
   @HttpCode(HttpStatus.OK)
-  async searchConversations(
-    @Body() body: {
-      userId: string;
-      query: string;
-    },
-  ) {
-    this.logger.info('Searching conversations', { userId: body.userId, query: body.query });
+  async searchConversations(@Body() body: { userId: string; query: string }) {
+    this.logger.info('Searching conversations', {
+      userId: body.userId,
+      query: body.query,
+    });
 
     const conversations = await this.memoryService.searchConversations(
       body.userId,
-      body.query
+      body.query,
     );
 
     return {
@@ -275,4 +296,3 @@ export class MemoryController {
     };
   }
 }
-

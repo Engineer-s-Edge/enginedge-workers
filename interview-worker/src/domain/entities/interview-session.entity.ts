@@ -1,11 +1,15 @@
 /**
  * InterviewSession Entity
- * 
+ *
  * Represents an active interview session - a specific instance of an interview being conducted.
  * Tracks the state, progress, and timing of a single candidate's interview.
  */
 
-export type SessionStatus = 'in-progress' | 'paused' | 'completed' | 'abandoned';
+export type SessionStatus =
+  | 'in-progress'
+  | 'paused'
+  | 'completed'
+  | 'abandoned';
 export type CommunicationMode = 'voice' | 'text';
 
 export class InterviewSession {
@@ -70,7 +74,9 @@ export class InterviewSession {
       return this.timeElapsed;
     }
     const now = new Date();
-    const elapsedSinceStart = Math.floor((now.getTime() - this.startedAt.getTime()) / 1000);
+    const elapsedSinceStart = Math.floor(
+      (now.getTime() - this.startedAt.getTime()) / 1000,
+    );
     return elapsedSinceStart - this.totalPauseDuration;
   }
 
@@ -82,7 +88,9 @@ export class InterviewSession {
       return this.phaseTimeElapsed;
     }
     const now = new Date();
-    const elapsedSincePhaseStart = Math.floor((now.getTime() - this.phaseStartTime.getTime()) / 1000);
+    const elapsedSincePhaseStart = Math.floor(
+      (now.getTime() - this.phaseStartTime.getTime()) / 1000,
+    );
     return elapsedSincePhaseStart;
   }
 
@@ -131,16 +139,21 @@ export class InterviewSession {
       currentQuestion: data.currentQuestion as string | undefined,
       status: data.status as SessionStatus,
       communicationMode: data.communicationMode as CommunicationMode,
-      startedAt: data.startedAt ? new Date(data.startedAt as string) : new Date(),
-      completedAt: data.completedAt ? new Date(data.completedAt as string) : undefined,
+      startedAt: data.startedAt
+        ? new Date(data.startedAt as string)
+        : new Date(),
+      completedAt: data.completedAt
+        ? new Date(data.completedAt as string)
+        : undefined,
       pausedCount: data.pausedCount as number,
       totalPauseDuration: data.totalPauseDuration as number,
       pausedAt: data.pausedAt ? new Date(data.pausedAt as string) : undefined,
       skippedQuestions: (data.skippedQuestions as string[]) || [],
       timeElapsed: data.timeElapsed as number,
-      phaseStartTime: data.phaseStartTime ? new Date(data.phaseStartTime as string) : undefined,
+      phaseStartTime: data.phaseStartTime
+        ? new Date(data.phaseStartTime as string)
+        : undefined,
       phaseTimeElapsed: data.phaseTimeElapsed as number,
     });
   }
 }
-

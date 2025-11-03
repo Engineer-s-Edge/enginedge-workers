@@ -1,6 +1,6 @@
 /**
  * Session Flow Integration Tests
- * 
+ *
  * Tests the complete session lifecycle with real MongoDB
  */
 
@@ -103,19 +103,25 @@ describe('Session Flow Integration', () => {
     expect(pausedSession.pausedAt).toBeDefined();
 
     // Resume session
-    const resumedSession = await sessionService.resumeSession(session.sessionId);
+    const resumedSession = await sessionService.resumeSession(
+      session.sessionId,
+    );
     expect(resumedSession.status).toBe('in-progress');
     expect(resumedSession.pausedAt).toBeUndefined();
     expect(resumedSession.pausedCount).toBeGreaterThan(0);
 
     // Submit a response
-    const questions = await questionService.getQuestionsByCategory('tech-trivia', 'medium');
+    const questions = await questionService.getQuestionsByCategory(
+      'tech-trivia',
+      'medium',
+    );
     if (questions.length > 0) {
       const question = questions[0];
       const response = await sessionService.submitResponse({
         sessionId: session.sessionId,
         questionId: question.questionId,
-        candidateResponse: 'This is my answer to the integration test question.',
+        candidateResponse:
+          'This is my answer to the integration test question.',
         communicationMode: 'text',
       });
 
@@ -159,4 +165,3 @@ describe('Session Flow Integration', () => {
     }
   });
 });
-

@@ -106,7 +106,7 @@ describe('ExperienceBankService', () => {
         expect.objectContaining({
           'metadata.reviewed': true,
         }),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -130,9 +130,8 @@ describe('ExperienceBankService', () => {
       expect(mockModel.find).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user123',
-        })
+        }),
       );
     });
   });
 });
-

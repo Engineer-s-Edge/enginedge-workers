@@ -1,6 +1,6 @@
 /**
  * Interview Entity
- * 
+ *
  * Represents an interview template/configuration that can be reused across multiple sessions.
  * This is the configuration that defines what questions will be asked and how the interview flows.
  */
@@ -36,10 +36,13 @@ export interface ScoringRubric {
       systemDesign?: number;
     };
   };
-  byPhase?: Record<string, {
-    criteria: string[];
-    weights?: Record<string, number>;
-  }>;
+  byPhase?: Record<
+    string,
+    {
+      criteria: string[];
+      weights?: Record<string, number>;
+    }
+  >;
 }
 
 export class Interview {
@@ -120,9 +123,12 @@ export class Interview {
       phases: data.phases as InterviewPhase[],
       config: data.config as InterviewConfig,
       rubric: data.rubric as ScoringRubric,
-      createdAt: data.createdAt ? new Date(data.createdAt as string) : new Date(),
-      updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
+      createdAt: data.createdAt
+        ? new Date(data.createdAt as string)
+        : new Date(),
+      updatedAt: data.updatedAt
+        ? new Date(data.updatedAt as string)
+        : new Date(),
     });
   }
 }
-

@@ -1,6 +1,6 @@
 /**
  * Logging Interceptor
- * 
+ *
  * Logs all HTTP requests and responses.
  */
 

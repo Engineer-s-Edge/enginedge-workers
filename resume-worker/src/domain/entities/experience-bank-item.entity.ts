@@ -36,4 +36,3 @@ export interface ExperienceBankItem {
 }
 
 export type ExperienceBankItemDocument = ExperienceBankItem & Document;
-

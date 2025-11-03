@@ -49,12 +49,12 @@ export class ResumeTailoringService {
     private readonly jobPostingService: JobPostingService,
     private readonly evaluatorService: ResumeEvaluatorService,
     private readonly versioningService: ResumeVersioningService,
-    private readonly experienceBankService: ExperienceBankService
+    private readonly experienceBankService: ExperienceBankService,
   ) {}
 
   /**
    * Start a resume tailoring job.
-   * 
+   *
    * This is the main entry point for the full workflow:
    * 1. Extract job posting data
    * 2. Evaluate current resume against posting
@@ -62,14 +62,16 @@ export class ResumeTailoringService {
    * 4. Suggest bullet swaps from experience bank
    * 5. Iterate until target score reached (auto mode) or user satisfied (manual mode)
    */
-  async startTailoringJob(request: TailorResumeRequest): Promise<TailorResumeJob> {
+  async startTailoringJob(
+    request: TailorResumeRequest,
+  ): Promise<TailorResumeJob> {
     this.logger.log(`Starting tailoring job for user ${request.userId}`);
 
     // Step 1: Extract job posting
     const jobPosting = await this.jobPostingService.extractFromText(
       request.userId,
       request.jobPostingText,
-      request.jobPostingUrl
+      request.jobPostingUrl,
     );
 
     // Step 2: Create job tracking
@@ -85,7 +87,7 @@ export class ResumeTailoringService {
       currentScore: 0,
       targetScore: request.targetScore || 95,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.activeJobs.set(jobId, job);
@@ -93,7 +95,7 @@ export class ResumeTailoringService {
     // Step 3: Add to queue
     await this.tailoringQueue.add('tailor-resume', {
       jobId,
-      request
+      request,
     });
 
     return job;
@@ -102,7 +104,10 @@ export class ResumeTailoringService {
   /**
    * Process a tailoring job (called by Bull worker).
    */
-  async processTailoringJob(jobId: string, request: TailorResumeRequest): Promise<void> {
+  async processTailoringJob(
+    jobId: string,
+    request: TailorResumeRequest,
+  ): Promise<void> {
     const job = this.activeJobs.get(jobId);
     if (!job) {
       throw new Error(`Job ${jobId} not found`);
@@ -120,8 +125,8 @@ export class ResumeTailoringService {
           mode: 'jd-match',
           jobPostingId: job.jobPostingId,
           useLlm: false,
-          generateAutoFixes: true
-        }
+          generateAutoFixes: true,
+        },
       );
 
       job.currentScore = initialReport.scores.overall;
@@ -140,7 +145,7 @@ export class ResumeTailoringService {
       const swaps = await this.findBulletSwaps(
         request.userId,
         job.jobPostingId,
-        initialReport
+        initialReport,
       );
 
       job.progress = 30;
@@ -153,9 +158,11 @@ export class ResumeTailoringService {
         job.progress = 50;
         job.status = 'completed';
       }
-
     } catch (error) {
-      this.logger.error(`[${jobId}] Error processing job: ${error.message}`, error.stack);
+      this.logger.error(
+        `[${jobId}] Error processing job: ${error.message}`,
+        error.stack,
+      );
       job.status = 'failed';
       throw error;
     } finally {
@@ -169,7 +176,7 @@ export class ResumeTailoringService {
   private async autoIterate(
     job: TailorResumeJob,
     request: TailorResumeRequest,
-    swaps: any[]
+    swaps: any[],
   ): Promise<void> {
     const maxIterations = request.maxIterations || 10;
 
@@ -188,8 +195,8 @@ export class ResumeTailoringService {
           mode: 'jd-match',
           jobPostingId: job.jobPostingId,
           useLlm: false,
-          generateAutoFixes: true
-        }
+          generateAutoFixes: true,
+        },
       );
 
       job.currentScore = report.scores.overall;
@@ -205,7 +212,9 @@ export class ResumeTailoringService {
 
       // Check for gates (critical issues)
       if (!report.gates.atsCompatible || !report.gates.spellcheckPassed) {
-        this.logger.warn(`[${job.id}] Critical gate failed, stopping iteration`);
+        this.logger.warn(
+          `[${job.id}] Critical gate failed, stopping iteration`,
+        );
         job.status = 'completed';
         job.progress = 90;
         return;
@@ -224,7 +233,7 @@ export class ResumeTailoringService {
   private async findBulletSwaps(
     userId: string,
     jobPostingId: string,
-    evaluationReport: any
+    evaluationReport: any,
   ): Promise<any[]> {
     const swaps: any[] = [];
 
@@ -243,9 +252,9 @@ export class ResumeTailoringService {
         query: skill,
         filters: {
           technologies: [skill],
-          reviewed: true  // Only use reviewed bullets
+          reviewed: true, // Only use reviewed bullets
         },
-        limit: 3
+        limit: 3,
       });
 
       for (const result of results) {
@@ -253,7 +262,7 @@ export class ResumeTailoringService {
           skill,
           bullet: result.bulletText,
           score: result.metadata.impactScore,
-          reason: `Adds missing skill: ${skill}`
+          reason: `Adds missing skill: ${skill}`,
         });
       }
     }
@@ -273,7 +282,7 @@ export class ResumeTailoringService {
    */
   getUserJobs(userId: string): TailorResumeJob[] {
     return Array.from(this.activeJobs.values()).filter(
-      job => job.userId === userId
+      (job) => job.userId === userId,
     );
   }
 
@@ -295,4 +304,3 @@ export class ResumeTailoringService {
     return true;
   }
 }
-

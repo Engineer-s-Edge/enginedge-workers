@@ -1,6 +1,6 @@
 /**
  * Knowledge Graph Adapter Interface
- * 
+ *
  * Port interface for knowledge graph operations
  * Abstracts external KnowledgeGraphService implementation
  */
@@ -42,7 +42,10 @@ export interface IKnowledgeGraphAdapter {
   /**
    * Get recent research reports for user
    */
-  getRecentResearchReports(userId: string, limit: number): Promise<ResearchReport[]>;
+  getRecentResearchReports(
+    userId: string,
+    limit: number,
+  ): Promise<ResearchReport[]>;
 
   /**
    * Get comprehensive statistics

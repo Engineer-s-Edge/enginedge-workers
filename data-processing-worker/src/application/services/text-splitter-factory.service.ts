@@ -16,7 +16,7 @@ import { HtmlSplitterAdapter } from '@infrastructure/adapters/splitters/html.spl
 
 /**
  * Text Splitter Factory Service
- * 
+ *
  * Factory for creating appropriate text splitter instances based on content type,
  * file extension, or explicitly requested splitter type.
  */
@@ -81,7 +81,9 @@ export class TextSplitterFactoryService {
       case 'html':
         return this.htmlSplitter;
       default:
-        this.logger.warn(`Unknown splitter type: ${type}, using recursive-character`);
+        this.logger.warn(
+          `Unknown splitter type: ${type}, using recursive-character`,
+        );
         return this.recursiveCharacterSplitter;
     }
   }
@@ -131,13 +133,19 @@ export class TextSplitterFactoryService {
   getSplitterByMimeType(mimeType: string): TextSplitterPort {
     const normalizedMimeType = mimeType.toLowerCase();
 
-    if (normalizedMimeType.includes('markdown') || normalizedMimeType.includes('text/plain')) {
+    if (
+      normalizedMimeType.includes('markdown') ||
+      normalizedMimeType.includes('text/plain')
+    ) {
       return this.markdownSplitter;
     }
     if (normalizedMimeType.includes('html')) {
       return this.htmlSplitter;
     }
-    if (normalizedMimeType.includes('json') || normalizedMimeType.includes('javascript')) {
+    if (
+      normalizedMimeType.includes('json') ||
+      normalizedMimeType.includes('javascript')
+    ) {
       return this.javaScriptSplitter;
     }
     if (normalizedMimeType.includes('xml')) {
@@ -152,16 +160,32 @@ export class TextSplitterFactoryService {
    */
   getSplitterByContentDetection(content: string): TextSplitterPort {
     // Check for code markers
-    if (content.includes('```python') || content.includes('def ') || content.includes('import ')) {
+    if (
+      content.includes('```python') ||
+      content.includes('def ') ||
+      content.includes('import ')
+    ) {
       return this.pythonSplitter;
     }
-    if (content.includes('```javascript') || content.includes('function ') || content.includes('const ')) {
+    if (
+      content.includes('```javascript') ||
+      content.includes('function ') ||
+      content.includes('const ')
+    ) {
       return this.javaScriptSplitter;
     }
-    if (content.includes('```typescript') || content.includes('interface ') || content.includes('type ')) {
+    if (
+      content.includes('```typescript') ||
+      content.includes('interface ') ||
+      content.includes('type ')
+    ) {
       return this.typeScriptSplitter;
     }
-    if (content.includes('```java') || content.includes('class ') || content.includes('public ')) {
+    if (
+      content.includes('```java') ||
+      content.includes('class ') ||
+      content.includes('public ')
+    ) {
       return this.javaSplitter;
     }
 
@@ -171,7 +195,11 @@ export class TextSplitterFactoryService {
     }
 
     // Check for HTML
-    if (content.includes('<html') || content.includes('<div') || content.includes('<body')) {
+    if (
+      content.includes('<html') ||
+      content.includes('<div') ||
+      content.includes('<body')
+    ) {
       return this.htmlSplitter;
     }
 
@@ -186,20 +214,48 @@ export class TextSplitterFactoryService {
   /**
    * Get all available splitters
    */
-  getAvailableSplitters(): Array<{ name: string; type: string; description: string }> {
+  getAvailableSplitters(): Array<{
+    name: string;
+    type: string;
+    description: string;
+  }> {
     return [
-      { name: 'Recursive Character', type: 'recursive-character', description: 'Default recursive splitter' },
-      { name: 'Character', type: 'character', description: 'Simple character-based splitting' },
+      {
+        name: 'Recursive Character',
+        type: 'recursive-character',
+        description: 'Default recursive splitter',
+      },
+      {
+        name: 'Character',
+        type: 'character',
+        description: 'Simple character-based splitting',
+      },
       { name: 'Token', type: 'token', description: 'Token-aware splitting' },
-      { name: 'Semantic', type: 'semantic', description: 'Semantic-aware splitting' },
+      {
+        name: 'Semantic',
+        type: 'semantic',
+        description: 'Semantic-aware splitting',
+      },
       { name: 'Python', type: 'python', description: 'Python code splitting' },
-      { name: 'JavaScript', type: 'javascript', description: 'JavaScript code splitting' },
-      { name: 'TypeScript', type: 'typescript', description: 'TypeScript code splitting' },
+      {
+        name: 'JavaScript',
+        type: 'javascript',
+        description: 'JavaScript code splitting',
+      },
+      {
+        name: 'TypeScript',
+        type: 'typescript',
+        description: 'TypeScript code splitting',
+      },
       { name: 'Java', type: 'java', description: 'Java code splitting' },
       { name: 'C++', type: 'cpp', description: 'C++ code splitting' },
       { name: 'Go', type: 'go', description: 'Go code splitting' },
       { name: 'LaTeX', type: 'latex', description: 'LaTeX document splitting' },
-      { name: 'Markdown', type: 'markdown', description: 'Markdown document splitting' },
+      {
+        name: 'Markdown',
+        type: 'markdown',
+        description: 'Markdown document splitting',
+      },
       { name: 'HTML', type: 'html', description: 'HTML document splitting' },
     ];
   }

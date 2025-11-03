@@ -8,14 +8,14 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
 
 /**
  * App Module - Root module for Data Processing Worker
- * 
+ *
  * Architecture: Hexagonal/Clean Architecture
- * 
+ *
  * Layers:
  * 1. Domain - Core business logic (entities, ports, value objects)
  * 2. Application - Use cases and orchestration (services, DTOs)
  * 3. Infrastructure - Adapters and implementations (loaders, embedders, vectorstores, controllers)
- * 
+ *
  * Responsibilities:
  * - Document loading (10+ file formats)
  * - Text splitting (multiple strategies)
@@ -30,7 +30,9 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
     }),
     MongooseModule.forRootAsync({
       useFactory: () => ({
-        uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/enginedge-documents',
+        uri:
+          process.env.MONGODB_URI ||
+          'mongodb://localhost:27017/enginedge-documents',
       }),
     }),
     HealthModule,

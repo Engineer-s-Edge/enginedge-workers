@@ -1,6 +1,6 @@
 /**
  * Expert Pool Adapter Interface
- * 
+ *
  * Port interface for expert agent management
  * Abstracts external ExpertPoolManager implementation
  */

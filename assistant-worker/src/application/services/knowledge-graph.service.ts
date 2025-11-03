@@ -1,6 +1,6 @@
 /**
  * Knowledge Graph Service
- * 
+ *
  * Orchestrates knowledge graph operations for Expert and Genius agents.
  * Supports ICS (Integrated Concept Synthesis) methodology.
  */
@@ -33,7 +33,7 @@ export class KnowledgeGraphService {
     label: string,
     type: string,
     layer: ICSLayer,
-    properties: Record<string, any> = {}
+    properties: Record<string, any> = {},
   ): Promise<KGNode> {
     this.logger.info('Adding node to knowledge graph', { label, type, layer });
 
@@ -52,7 +52,7 @@ export class KnowledgeGraphService {
    */
   async updateNode(
     nodeId: string,
-    updates: Partial<Omit<KGNode, 'id' | 'createdAt'>>
+    updates: Partial<Omit<KGNode, 'id' | 'createdAt'>>,
   ): Promise<KGNode | null> {
     this.logger.info('Updating node', { nodeId });
 
@@ -75,7 +75,7 @@ export class KnowledgeGraphService {
     from: string,
     to: string,
     type: string,
-    properties: Record<string, any> = {}
+    properties: Record<string, any> = {},
   ): Promise<KGEdge> {
     this.logger.info('Creating relationship', { from, to, type });
 
@@ -110,7 +110,7 @@ export class KnowledgeGraphService {
    */
   async getNeighbors(
     nodeId: string,
-    direction: 'in' | 'out' | 'both' = 'both'
+    direction: 'in' | 'out' | 'both' = 'both',
   ): Promise<KGNode[]> {
     return await this.neo4jAdapter.getNeighbors(nodeId, direction);
   }
@@ -118,7 +118,10 @@ export class KnowledgeGraphService {
   /**
    * Query the knowledge graph with Cypher
    */
-  async query(cypher: string, params: Record<string, any> = {}): Promise<QueryResult> {
+  async query(
+    cypher: string,
+    params: Record<string, any> = {},
+  ): Promise<QueryResult> {
     this.logger.info('Executing knowledge graph query', { cypher });
 
     return await this.neo4jAdapter.query(cypher, params);
@@ -151,7 +154,7 @@ export class KnowledgeGraphService {
 
   /**
    * Build ICS hierarchy for a concept
-   * 
+   *
    * Creates nodes across all 6 ICS layers and links them hierarchically.
    */
   async buildICSHierarchy(
@@ -161,7 +164,7 @@ export class KnowledgeGraphService {
     models: string[],
     theories: string[],
     principles: string[],
-    synthesis: string
+    synthesis: string,
   ): Promise<{
     rootNode: KGNode;
     layerNodes: Record<ICSLayer, KGNode[]>;
@@ -182,7 +185,7 @@ export class KnowledgeGraphService {
       synthesis,
       'synthesis',
       ICSLayer.L6_SYNTHESIS,
-      { concept }
+      { concept },
     );
     layerNodes[ICSLayer.L6_SYNTHESIS].push(rootNode);
 
@@ -192,7 +195,7 @@ export class KnowledgeGraphService {
         principle,
         'principle',
         ICSLayer.L5_PRINCIPLES,
-        { concept }
+        { concept },
       );
       layerNodes[ICSLayer.L5_PRINCIPLES].push(node);
       await this.createRelationship(node.id, rootNode.id, 'SUPPORTS', {});
@@ -200,30 +203,29 @@ export class KnowledgeGraphService {
 
     // Create theory nodes and link to principles
     for (const theory of theories) {
-      const node = await this.addNode(
-        theory,
-        'theory',
-        ICSLayer.L4_THEORIES,
-        { concept }
-      );
+      const node = await this.addNode(theory, 'theory', ICSLayer.L4_THEORIES, {
+        concept,
+      });
       layerNodes[ICSLayer.L4_THEORIES].push(node);
-      
+
       // Link to relevant principles
       for (const principleNode of layerNodes[ICSLayer.L5_PRINCIPLES]) {
-        await this.createRelationship(node.id, principleNode.id, 'SUPPORTS', {});
+        await this.createRelationship(
+          node.id,
+          principleNode.id,
+          'SUPPORTS',
+          {},
+        );
       }
     }
 
     // Create model nodes and link to theories
     for (const model of models) {
-      const node = await this.addNode(
-        model,
-        'model',
-        ICSLayer.L3_MODELS,
-        { concept }
-      );
+      const node = await this.addNode(model, 'model', ICSLayer.L3_MODELS, {
+        concept,
+      });
       layerNodes[ICSLayer.L3_MODELS].push(node);
-      
+
       // Link to relevant theories
       for (const theoryNode of layerNodes[ICSLayer.L4_THEORIES]) {
         await this.createRelationship(node.id, theoryNode.id, 'SUPPORTS', {});
@@ -236,10 +238,10 @@ export class KnowledgeGraphService {
         pattern,
         'pattern',
         ICSLayer.L2_PATTERNS,
-        { concept }
+        { concept },
       );
       layerNodes[ICSLayer.L2_PATTERNS].push(node);
-      
+
       // Link to relevant models
       for (const modelNode of layerNodes[ICSLayer.L3_MODELS]) {
         await this.createRelationship(node.id, modelNode.id, 'SUPPORTS', {});
@@ -252,10 +254,10 @@ export class KnowledgeGraphService {
         observation,
         'observation',
         ICSLayer.L1_OBSERVATIONS,
-        { concept }
+        { concept },
       );
       layerNodes[ICSLayer.L1_OBSERVATIONS].push(node);
-      
+
       // Link to relevant patterns
       for (const patternNode of layerNodes[ICSLayer.L2_PATTERNS]) {
         await this.createRelationship(node.id, patternNode.id, 'SUPPORTS', {});
@@ -283,7 +285,7 @@ export class KnowledgeGraphService {
 
       // Get parent (node that this node supports)
       const neighbors = await this.getNeighbors(currentNodeId, 'out');
-      
+
       // Find next higher layer
       const nextNode = neighbors.find((n) => {
         const layerOrder = Object.values(ICSLayer);
@@ -306,7 +308,7 @@ export class KnowledgeGraphService {
 
     while (queue.length > 0) {
       const nodeId = queue.shift()!;
-      
+
       if (visited.has(nodeId)) continue;
       visited.add(nodeId);
 
@@ -317,11 +319,13 @@ export class KnowledgeGraphService {
 
       // Get children (nodes that support this node)
       const neighbors = await this.getNeighbors(nodeId, 'in');
-      
+
       // Add lower-layer nodes to queue
       for (const neighbor of neighbors) {
         const layerOrder = Object.values(ICSLayer);
-        if (layerOrder.indexOf(neighbor.layer) < layerOrder.indexOf(node.layer)) {
+        if (
+          layerOrder.indexOf(neighbor.layer) < layerOrder.indexOf(node.layer)
+        ) {
           queue.push(neighbor.id);
         }
       }
@@ -330,4 +334,3 @@ export class KnowledgeGraphService {
     return path;
   }
 }
-

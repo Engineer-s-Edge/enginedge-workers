@@ -180,14 +180,18 @@ describe('KafkaMessageBrokerAdapter', () => {
     it('should throw error if not connected', async () => {
       await adapter.disconnect();
 
-      await expect(adapter.sendMessage('test-topic', {})).rejects.toThrow('Not connected to Kafka');
+      await expect(adapter.sendMessage('test-topic', {})).rejects.toThrow(
+        'Not connected to Kafka',
+      );
     });
 
     it('should throw error if send fails', async () => {
       const error = new Error('Send failed');
       mockProducer.send.mockRejectedValue(error);
 
-      await expect(adapter.sendMessage('test-topic', {})).rejects.toThrow('Send failed');
+      await expect(adapter.sendMessage('test-topic', {})).rejects.toThrow(
+        'Send failed',
+      );
     });
 
     it('should serialize complex messages', async () => {
@@ -235,7 +239,9 @@ describe('KafkaMessageBrokerAdapter', () => {
       await adapter.disconnect();
       const handler = jest.fn();
 
-      await expect(adapter.subscribe('test-topic', handler)).rejects.toThrow('Not connected to Kafka');
+      await expect(adapter.subscribe('test-topic', handler)).rejects.toThrow(
+        'Not connected to Kafka',
+      );
     });
 
     it('should throw error if subscription fails', async () => {
@@ -243,7 +249,9 @@ describe('KafkaMessageBrokerAdapter', () => {
       mockConsumer.subscribe.mockRejectedValue(error);
       const handler = jest.fn();
 
-      await expect(adapter.subscribe('test-topic', handler)).rejects.toThrow('Subscription failed');
+      await expect(adapter.subscribe('test-topic', handler)).rejects.toThrow(
+        'Subscription failed',
+      );
     });
   });
 
@@ -252,7 +260,7 @@ describe('KafkaMessageBrokerAdapter', () => {
 
     beforeEach(async () => {
       await adapter.connect();
-      
+
       // Capture the message handler passed to consumer.run
       const runCall = mockConsumer.run.mock.calls[0];
       messageHandler = runCall[0].eachMessage;

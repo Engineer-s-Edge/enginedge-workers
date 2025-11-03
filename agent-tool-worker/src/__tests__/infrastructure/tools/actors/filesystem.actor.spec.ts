@@ -6,7 +6,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { FilesystemActor, FilesystemArgs, FilesystemOutput, FilesystemOperation } from '@infrastructure/tools/actors/filesystem.actor';
+import {
+  FilesystemActor,
+  FilesystemArgs,
+  FilesystemOutput,
+  FilesystemOperation,
+} from '@infrastructure/tools/actors/filesystem.actor';
 
 describe('FilesystemActor', () => {
   let actor: FilesystemActor;
@@ -55,7 +60,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const writeResult = await actor.execute({ name: 'filesystem-actor', args: writeArgs as unknown as Record<string, unknown> });
+      const writeResult = await actor.execute({
+        name: 'filesystem-actor',
+        args: writeArgs as unknown as Record<string, unknown>,
+      });
       expect(writeResult.success).toBe(true);
       expect((writeResult.output as FilesystemOutput).operation).toBe('write');
       expect((writeResult.output as FilesystemOutput).filepath).toBe(testFile);
@@ -67,7 +75,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const readResult = await actor.execute({ name: 'filesystem-actor', args: readArgs as unknown as Record<string, unknown> });
+      const readResult = await actor.execute({
+        name: 'filesystem-actor',
+        args: readArgs as unknown as Record<string, unknown>,
+      });
       expect(readResult.success).toBe(true);
       expect((readResult.output as FilesystemOutput).operation).toBe('read');
       expect((readResult.output as FilesystemOutput).content).toBe(testContent);
@@ -81,14 +92,20 @@ describe('FilesystemActor', () => {
       };
 
       // File doesn't exist yet
-      let result = await actor.execute({ name: 'filesystem-actor', args: existsArgs as unknown as Record<string, unknown> });
+      let result = await actor.execute({
+        name: 'filesystem-actor',
+        args: existsArgs as unknown as Record<string, unknown>,
+      });
       expect((result.output as FilesystemOutput).exists).toBe(false);
 
       // Create file
       await fs.writeFile(path.join(tempDir, testFile), testContent);
 
       // File exists now
-      result = await actor.execute({ name: 'filesystem-actor', args: existsArgs as unknown as Record<string, unknown> });
+      result = await actor.execute({
+        name: 'filesystem-actor',
+        args: existsArgs as unknown as Record<string, unknown>,
+      });
       expect((result.output as FilesystemOutput).exists).toBe(true);
     });
 
@@ -104,10 +121,17 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const result = await actor.execute({ name: 'filesystem-actor', args: listArgs as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'filesystem-actor',
+        args: listArgs as unknown as Record<string, unknown>,
+      });
       expect((result.output as FilesystemOutput).success).toBe(true);
-      expect((result.output as FilesystemOutput).entries).toContain('file1.txt');
-      expect((result.output as FilesystemOutput).entries).toContain('file2.txt');
+      expect((result.output as FilesystemOutput).entries).toContain(
+        'file1.txt',
+      );
+      expect((result.output as FilesystemOutput).entries).toContain(
+        'file2.txt',
+      );
       expect((result.output as FilesystemOutput).entries).toContain('subdir');
     });
 
@@ -121,7 +145,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      let result = await actor.execute({ name: 'filesystem-actor', args: mkdirArgs as unknown as Record<string, unknown> });
+      let result = await actor.execute({
+        name: 'filesystem-actor',
+        args: mkdirArgs as unknown as Record<string, unknown>,
+      });
       expect((result.output as FilesystemOutput).success).toBe(true);
 
       // Verify directory exists
@@ -131,7 +158,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      result = await actor.execute({ name: 'filesystem-actor', args: existsArgs as unknown as Record<string, unknown> });
+      result = await actor.execute({
+        name: 'filesystem-actor',
+        args: existsArgs as unknown as Record<string, unknown>,
+      });
       expect((result.output as FilesystemOutput).exists).toBe(true);
 
       // Remove directory
@@ -142,12 +172,18 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      result = await actor.execute({ name: 'filesystem-actor', args: deleteArgs as unknown as Record<string, unknown> });
+      result = await actor.execute({
+        name: 'filesystem-actor',
+        args: deleteArgs as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
       expect((result.output as FilesystemOutput).success).toBe(true);
 
       // Verify directory is gone
-      result = await actor.execute({ name: 'filesystem-actor', args: existsArgs as unknown as Record<string, unknown> });
+      result = await actor.execute({
+        name: 'filesystem-actor',
+        args: existsArgs as unknown as Record<string, unknown>,
+      });
       expect((result.output as FilesystemOutput).exists).toBe(false);
     });
   });
@@ -160,7 +196,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const result = await actor.execute({ name: 'filesystem-actor', args: maliciousArgs as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'filesystem-actor',
+        args: maliciousArgs as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Path escapes sandbox root');
     });
@@ -171,7 +210,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const result = await actor.execute({ name: 'filesystem-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'filesystem-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('filepath is required');
     });
@@ -185,7 +227,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const result = await actor.execute({ name: 'filesystem-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'filesystem-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.name).toBe('ENOENT');
     });
@@ -197,7 +242,10 @@ describe('FilesystemActor', () => {
         sandboxRoot: tempDir,
       };
 
-      const result = await actor.execute({ name: 'filesystem-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'filesystem-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Unsupported operation');
     });

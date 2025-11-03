@@ -1,6 +1,6 @@
 /**
  * Learning Mode Adapter Implementation
- * 
+ *
  * Bridges orchestrator with LearningModeService
  */
 
@@ -21,9 +21,13 @@ export class LearningModeAdapter implements ILearningModeAdapter {
   // TODO: Inject real LearningModeService when available
   // constructor(private learningModeService: LearningModeService) {}
 
-  async executeLearningMode(config: LearningModeConfig): Promise<LearningModeResult> {
+  async executeLearningMode(
+    config: LearningModeConfig,
+  ): Promise<LearningModeResult> {
     try {
-      this.logger.log(`Executing ${config.mode} learning for user ${config.userId}`);
+      this.logger.log(
+        `Executing ${config.mode} learning for user ${config.userId}`,
+      );
 
       // TODO: Delegate to real LearningModeService
       // return this.learningModeService.executeLearningMode(config);
@@ -43,7 +47,10 @@ export class LearningModeAdapter implements ILearningModeAdapter {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Learning mode execution failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `Learning mode execution failed: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -57,7 +64,10 @@ export class LearningModeAdapter implements ILearningModeAdapter {
       return this.userModes.get(userId) || null;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get current mode: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get current mode: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -79,7 +89,9 @@ export class LearningModeAdapter implements ILearningModeAdapter {
     }
   }
 
-  async getModeStatistics(mode: LearningMode): Promise<Record<string, unknown>> {
+  async getModeStatistics(
+    mode: LearningMode,
+  ): Promise<Record<string, unknown>> {
     try {
       this.logger.log(`Getting statistics for ${mode} mode`);
 
@@ -95,7 +107,10 @@ export class LearningModeAdapter implements ILearningModeAdapter {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get mode statistics: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get mode statistics: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -109,7 +124,10 @@ export class LearningModeAdapter implements ILearningModeAdapter {
       return this.activeSessions.has(userId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to check learning status: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to check learning status: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

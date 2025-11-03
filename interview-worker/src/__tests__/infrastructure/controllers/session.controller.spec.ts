@@ -91,7 +91,9 @@ describe('SessionController', () => {
     const result = await controller.pauseSession('test-session');
 
     expect(result.status).toBe('paused');
-    expect(mockSessionService.pauseSession).toHaveBeenCalledWith('test-session');
+    expect(mockSessionService.pauseSession).toHaveBeenCalledWith(
+      'test-session',
+    );
   });
 
   it('should resume session', async () => {
@@ -108,7 +110,9 @@ describe('SessionController', () => {
     const result = await controller.resumeSession('test-session');
 
     expect(result.status).toBe('in-progress');
-    expect(mockSessionService.resumeSession).toHaveBeenCalledWith('test-session');
+    expect(mockSessionService.resumeSession).toHaveBeenCalledWith(
+      'test-session',
+    );
   });
 
   it('should submit response', async () => {
@@ -132,4 +136,3 @@ describe('SessionController', () => {
     expect(result.questionId).toBe('q1');
   });
 });
-

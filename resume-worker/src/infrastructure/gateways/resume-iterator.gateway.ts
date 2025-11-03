@@ -27,7 +27,9 @@ interface IteratorSession {
     origin: '*',
   },
 })
-export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ResumeIteratorGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -36,7 +38,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
 
   constructor(
     private readonly evaluatorService: ResumeEvaluatorService,
-    private readonly versioningService: ResumeVersioningService
+    private readonly versioningService: ResumeVersioningService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -50,13 +52,14 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
 
   @SubscribeMessage('start-iteration')
   async handleStartIteration(
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       userId: string;
       resumeId: string;
       mode: 'auto' | 'manual';
       targetScore?: number;
     },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     this.logger.log(`Starting iteration session for resume ${data.resumeId}`);
 
@@ -67,7 +70,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
       mode: data.mode,
       targetScore: data.targetScore || 95,
       currentScore: 0,
-      iteration: 0
+      iteration: 0,
     };
 
     this.sessions.set(client.id, session);
@@ -76,7 +79,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
     const report = await this.evaluatorService.evaluateResume(data.resumeId, {
       mode: 'standalone',
       useLlm: false,
-      generateAutoFixes: true
+      generateAutoFixes: true,
     });
 
     session.currentScore = report.scores.overall;
@@ -86,7 +89,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
       iteration: 0,
       score: report.scores.overall,
       report,
-      mode: session.mode
+      mode: session.mode,
     });
 
     // If auto mode, start iterating
@@ -98,7 +101,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
   @SubscribeMessage('user-message')
   async handleUserMessage(
     @MessageBody() data: { message: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const session = this.sessions.get(client.id);
     if (!session) {
@@ -112,14 +115,14 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
     // For now, echo back
     client.emit('agent-message', {
       message: `Received: ${data.message}`,
-      thinking: false
+      thinking: false,
     });
   }
 
   @SubscribeMessage('apply-fix')
   async handleApplyFix(
     @MessageBody() data: { fixId: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const session = this.sessions.get(client.id);
     if (!session) {
@@ -134,25 +137,28 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
 
     session.iteration++;
 
-    const report = await this.evaluatorService.evaluateResume(session.resumeId, {
-      mode: 'standalone',
-      useLlm: false,
-      generateAutoFixes: true
-    });
+    const report = await this.evaluatorService.evaluateResume(
+      session.resumeId,
+      {
+        mode: 'standalone',
+        useLlm: false,
+        generateAutoFixes: true,
+      },
+    );
 
     session.currentScore = report.scores.overall;
 
     client.emit('evaluation-report', {
       iteration: session.iteration,
       score: report.scores.overall,
-      report
+      report,
     });
   }
 
   @SubscribeMessage('toggle-mode')
   async handleToggleMode(
     @MessageBody() data: { mode: 'auto' | 'manual' },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const session = this.sessions.get(client.id);
     if (!session) {
@@ -207,14 +213,17 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
       // TODO: Apply improvements
       // For now, just simulate
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Re-evaluate
-      const report = await this.evaluatorService.evaluateResume(session.resumeId, {
-        mode: 'standalone',
-        useLlm: false,
-        generateAutoFixes: true
-      });
+      const report = await this.evaluatorService.evaluateResume(
+        session.resumeId,
+        {
+          mode: 'standalone',
+          useLlm: false,
+          generateAutoFixes: true,
+        },
+      );
 
       session.currentScore = report.scores.overall;
 
@@ -222,14 +231,14 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
       client.emit('evaluation-report', {
         iteration: session.iteration,
         score: report.scores.overall,
-        report
+        report,
       });
 
       // Check if target reached
       if (session.currentScore >= session.targetScore) {
         client.emit('target-reached', {
           finalScore: session.currentScore,
-          iterations: session.iteration
+          iterations: session.iteration,
         });
         break;
       }
@@ -238,7 +247,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
       if (!report.gates.atsCompatible || !report.gates.spellcheckPassed) {
         client.emit('critical-issue', {
           message: 'Critical issue detected, stopping iteration',
-          gates: report.gates
+          gates: report.gates,
         });
         break;
       }
@@ -246,8 +255,7 @@ export class ResumeIteratorGateway implements OnGatewayConnection, OnGatewayDisc
 
     client.emit('iteration-complete', {
       finalScore: session.currentScore,
-      iterations: session.iteration
+      iterations: session.iteration,
     });
   }
 }
-

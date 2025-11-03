@@ -343,7 +343,7 @@ describe('System Design Principles', () => {
       class UserServiceImpl {
         constructor(
           private repo: UserRepositoryIntf,
-          private logger: LoggerIntf
+          private logger: LoggerIntf,
         ) {}
 
         async createUser(_user: any): Promise<void> {
@@ -379,9 +379,9 @@ describe('System Design Principles', () => {
 
       const service = new ViolatingService();
       // Count methods to identify SRP violation
-      const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(service)).filter(
-        (p) => p !== 'constructor'
-      );
+      const methods = Object.getOwnPropertyNames(
+        Object.getPrototypeOf(service),
+      ).filter((p) => p !== 'constructor');
       expect(methods.length).toBeGreaterThan(1);
     });
 
@@ -489,7 +489,7 @@ describe('System Design Principles', () => {
       class ServerImpl {
         constructor(
           private useCase: CreateEntityImpl,
-          private presenter: EntityPresenterImpl
+          private presenter: EntityPresenterImpl,
         ) {}
       }
 
@@ -505,7 +505,7 @@ describe('System Design Principles', () => {
         constructor(
           readonly id: string,
           readonly name: string,
-          readonly email: string
+          readonly email: string,
         ) {}
 
         isValid(): boolean {
@@ -528,7 +528,10 @@ describe('System Design Principles', () => {
       }
 
       const useCase = new CreateUserUseCase();
-      const result = useCase.execute({ name: 'John', email: 'john@example.com' });
+      const result = useCase.execute({
+        name: 'John',
+        email: 'john@example.com',
+      });
 
       expect(result).toHaveProperty('id');
     });
@@ -572,7 +575,11 @@ describe('System Design Principles', () => {
       }
 
       const presenter = new UserPresenter();
-      const output = presenter.present({ id: '1', name: 'John', internalData: 'secret' });
+      const output = presenter.present({
+        id: '1',
+        name: 'John',
+        internalData: 'secret',
+      });
 
       expect(output).toHaveProperty('id');
       expect(output).toHaveProperty('name');
@@ -591,7 +598,7 @@ describe('System Design Principles', () => {
         constructor(
           readonly id: string,
           readonly name: string,
-          readonly email: string
+          readonly email: string,
         ) {}
       }
 
@@ -787,7 +794,7 @@ describe('System Design Principles', () => {
       class Service {
         constructor(
           private logger: Logger,
-          private db: Database
+          private db: Database,
         ) {}
 
         async execute(): Promise<any> {

@@ -1,6 +1,6 @@
 /**
  * Report Controller
- * 
+ *
  * REST API endpoints for interview report management
  */
 
@@ -38,7 +38,9 @@ export class ReportController {
    * Get generated report
    */
   @Get(':sessionId')
-  async getReport(@Param('sessionId') sessionId: string): Promise<InterviewReport> {
+  async getReport(
+    @Param('sessionId') sessionId: string,
+  ): Promise<InterviewReport> {
     return await this.evaluatorService.getReport(sessionId);
   }
 
@@ -47,8 +49,10 @@ export class ReportController {
    * Get generated report as PDF
    */
   @Get(':sessionId/pdf')
-  async getReportPdf(@Param('sessionId') sessionId: string, @Res() res: Response) {
+  async getReportPdf(
+    @Param('sessionId') sessionId: string,
+    @Res() res: Response,
+  ) {
     // Implement PDF generation
   }
 }
-

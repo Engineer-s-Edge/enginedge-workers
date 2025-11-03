@@ -9,7 +9,10 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
-import { ResumeBuilderService, BuilderSession } from '../../application/services/resume-builder.service';
+import {
+  ResumeBuilderService,
+  BuilderSession,
+} from '../../application/services/resume-builder.service';
 
 @WebSocketGateway({
   namespace: '/resume-builder',
@@ -17,7 +20,9 @@ import { ResumeBuilderService, BuilderSession } from '../../application/services
     origin: '*',
   },
 })
-export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ResumeBuilderGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -37,15 +42,21 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
 
   @SubscribeMessage('start-session')
   async handleStartSession(
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       userId: string;
       mode: 'interview' | 'codebase' | 'manual';
     },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
-    this.logger.log(`Starting builder session for user ${data.userId} in ${data.mode} mode`);
+    this.logger.log(
+      `Starting builder session for user ${data.userId} in ${data.mode} mode`,
+    );
 
-    const session = await this.builderService.startSession(data.userId, data.mode);
+    const session = await this.builderService.startSession(
+      data.userId,
+      data.mode,
+    );
     this.clientSessions.set(client.id, session.sessionId);
 
     client.emit('session-started', {
@@ -62,7 +73,7 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
   @SubscribeMessage('user-response')
   async handleUserResponse(
     @MessageBody() data: { response: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const sessionId = this.clientSessions.get(client.id);
     if (!sessionId) {
@@ -84,13 +95,14 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
 
   @SubscribeMessage('add-experience')
   async handleAddExperience(
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       company: string;
       role: string;
       dateRange: string;
       rawDescription: string;
     },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const sessionId = this.clientSessions.get(client.id);
     if (!sessionId) {
@@ -98,7 +110,9 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
       return;
     }
 
-    this.logger.log(`Adding experience to session ${sessionId}: ${data.company}`);
+    this.logger.log(
+      `Adding experience to session ${sessionId}: ${data.company}`,
+    );
 
     const session = await this.builderService.addExperience(sessionId, data);
 
@@ -106,7 +120,7 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
     const bullets = await this.builderService.extractBulletsFromDescription(
       sessionId,
       session.collectedData.experiences.length - 1,
-      data.rawDescription
+      data.rawDescription,
     );
 
     client.emit('experience-added', {
@@ -125,11 +139,12 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
 
   @SubscribeMessage('add-bullet')
   async handleAddBullet(
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       experienceIndex: number;
       bulletText: string;
     },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const sessionId = this.clientSessions.get(client.id);
     if (!sessionId) {
@@ -142,7 +157,7 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
     await this.builderService.addBulletToExperience(
       sessionId,
       data.experienceIndex,
-      data.bulletText
+      data.bulletText,
     );
 
     client.emit('bullet-added', {
@@ -154,7 +169,7 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
   @SubscribeMessage('analyze-codebase')
   async handleAnalyzeCodebase(
     @MessageBody() data: { githubUrl: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const sessionId = this.clientSessions.get(client.id);
     if (!sessionId) {
@@ -162,11 +177,18 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
       return;
     }
 
-    this.logger.log(`Analyzing codebase for session ${sessionId}: ${data.githubUrl}`);
+    this.logger.log(
+      `Analyzing codebase for session ${sessionId}: ${data.githubUrl}`,
+    );
 
-    client.emit('agent-thinking', { message: 'Analyzing your GitHub repository...' });
+    client.emit('agent-thinking', {
+      message: 'Analyzing your GitHub repository...',
+    });
 
-    const analysis = await this.builderService.analyzeCodebase(sessionId, data.githubUrl);
+    const analysis = await this.builderService.analyzeCodebase(
+      sessionId,
+      data.githubUrl,
+    );
 
     client.emit('codebase-analyzed', {
       commits: analysis.commits,
@@ -182,12 +204,13 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
 
   @SubscribeMessage('add-education')
   async handleAddEducation(
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       school: string;
       degree: string;
       graduationDate: string;
     },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const sessionId = this.clientSessions.get(client.id);
     if (!sessionId) {
@@ -205,7 +228,7 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
   @SubscribeMessage('add-skills')
   async handleAddSkills(
     @MessageBody() data: { skills: string[] },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const sessionId = this.clientSessions.get(client.id);
     if (!sessionId) {
@@ -266,7 +289,8 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
    */
   private startInterview(client: Socket) {
     client.emit('agent-message', {
-      message: "Hi! I'm here to help you build your resume. Let's start by talking about your work experience. Can you tell me about your most recent position?",
+      message:
+        "Hi! I'm here to help you build your resume. Let's start by talking about your work experience. Can you tell me about your most recent position?",
       thinking: false,
     });
 
@@ -276,4 +300,3 @@ export class ResumeBuilderGateway implements OnGatewayConnection, OnGatewayDisco
     });
   }
 }
-

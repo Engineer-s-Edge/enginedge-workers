@@ -19,13 +19,17 @@ export class ListAgentsUseCase {
     private agentValidator: AgentDTOValidator,
   ) {}
 
-  async execute(dto: ListAgentsQueryDTO): Promise<PaginatedResponse<AgentResponseDTO>> {
+  async execute(
+    dto: ListAgentsQueryDTO,
+  ): Promise<PaginatedResponse<AgentResponseDTO>> {
     const agents = await this.agentRepository.findAll({
       limit: dto.limit,
       offset: dto.page * dto.limit,
     });
 
-    const responseAgents = agents.map((agent) => AgentResponseDTO.fromAgent(agent));
+    const responseAgents = agents.map((agent) =>
+      AgentResponseDTO.fromAgent(agent),
+    );
     const hasMore = (dto.page + 1) * dto.limit < agents.length;
 
     return {

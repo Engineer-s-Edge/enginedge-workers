@@ -1,4 +1,11 @@
-import { Controller, Delete, Get, HttpCode, HttpStatus, Param } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+} from '@nestjs/common';
 
 @Controller('internal/oauth')
 export class OauthController {
@@ -20,5 +27,3 @@ export class OauthController {
     return { message: 'Not implemented' };
   }
 }
-
-

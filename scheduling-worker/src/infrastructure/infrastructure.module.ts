@@ -2,7 +2,7 @@
  * Infrastructure Module
  *
  * Configures adapters, controllers, and external integrations.
- * 
+ *
  * Scheduling Worker - Phase 1: Google Calendar Integration ⏳
  */
 
@@ -38,10 +38,9 @@ import { GoalController } from './controllers/goal.controller';
 import { SchedulingController } from './controllers/scheduling.controller';
 import { MLController } from './controllers/ml.controller';
 
-
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -60,7 +59,7 @@ import { MLController } from './controllers/ml.controller';
   ],
   providers: [
     MetricsAdapter,
-    
+
     // Auth
     GoogleAuthService,
     {

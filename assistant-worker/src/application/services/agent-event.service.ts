@@ -1,6 +1,6 @@
 /**
  * Agent Event Service
- * 
+ *
  * Manages agent event emission, filtering, and subscriptions.
  */
 
@@ -142,9 +142,7 @@ export class AgentEventService {
   /**
    * Get activity stream for agent
    */
-  async *getAgentActivityStream(
-    agentId: string,
-  ): AsyncGenerator<AgentEvent> {
+  async *getAgentActivityStream(agentId: string): AsyncGenerator<AgentEvent> {
     const queue: AgentEvent[] = [];
     let resolver: ((value: AgentEvent) => void) | null = null;
 
@@ -223,4 +221,3 @@ export class AgentEventService {
     return true;
   }
 }
-

@@ -1,6 +1,6 @@
 /**
  * Candidate Profile Builder Service
- * 
+ *
  * Domain service for building candidate profiles during interviews.
  * Pure business logic for profile construction.
  */
@@ -74,4 +74,3 @@ export class CandidateProfileBuilderService {
     };
   }
 }
-

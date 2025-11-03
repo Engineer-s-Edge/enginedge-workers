@@ -16,7 +16,10 @@ describe('ResumeInterviewUseCase', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ResumeInterviewUseCase,
-        { provide: 'IInterviewSessionRepository', useValue: mockSessionRepository },
+        {
+          provide: 'IInterviewSessionRepository',
+          useValue: mockSessionRepository,
+        },
       ],
     }).compile();
 
@@ -49,7 +52,9 @@ describe('ResumeInterviewUseCase', () => {
   it('should throw error if session not found', async () => {
     mockSessionRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow('Session not found');
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      'Session not found',
+    );
   });
 
   it('should throw error if session cannot be resumed', async () => {
@@ -63,6 +68,8 @@ describe('ResumeInterviewUseCase', () => {
 
     mockSessionRepository.findById.mockResolvedValue(inProgressSession);
 
-    await expect(useCase.execute('test-session')).rejects.toThrow('Cannot resume session');
+    await expect(useCase.execute('test-session')).rejects.toThrow(
+      'Cannot resume session',
+    );
   });
 });

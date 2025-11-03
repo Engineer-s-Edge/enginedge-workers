@@ -111,13 +111,18 @@ export class ResponseParser {
     }
 
     // Pattern: **Final Answer:**
-    const finalMatch = response.match(/\*\*Final Answer:\*\*\s*([\s\S]*?)(?:\n\n|\Z)/);
+    const finalMatch = response.match(
+      /\*\*Final Answer:\*\*\s*([\s\S]*?)(?:\n\n|\Z)/,
+    );
     if (finalMatch) {
       return finalMatch[1].trim();
     }
 
     // If response ends with conclusion, treat as final answer
-    if (response.includes('Therefore,') || response.includes('In conclusion,')) {
+    if (
+      response.includes('Therefore,') ||
+      response.includes('In conclusion,')
+    ) {
       return response;
     }
 
@@ -127,7 +132,10 @@ export class ResponseParser {
   /**
    * Extract structured data from response
    */
-  extractStructured(response: string, schema: Record<string, string>): Record<string, unknown> {
+  extractStructured(
+    response: string,
+    schema: Record<string, string>,
+  ): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
     for (const [key, pattern] of Object.entries(schema)) {
@@ -185,8 +193,8 @@ export class ResponseParser {
   split(response: string, delimiter: string = '\n'): string[] {
     return response
       .split(delimiter)
-      .map(chunk => chunk.trim())
-      .filter(chunk => chunk.length > 0);
+      .map((chunk) => chunk.trim())
+      .filter((chunk) => chunk.length > 0);
   }
 
   /**

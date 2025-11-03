@@ -38,7 +38,7 @@ export class JavaScriptSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -62,10 +62,15 @@ export class JavaScriptSplitterAdapter extends TextSplitterPort {
       braceDepth -= (line.match(/}/g) || []).length;
 
       // Check for function/class definition
-      const isFunctionOrClass = /^(function|class|const|let|var)\s+/.test(line.trim()) ||
-                                 /=>\s*{/.test(line.trim());
+      const isFunctionOrClass =
+        /^(function|class|const|let|var)\s+/.test(line.trim()) ||
+        /=>\s*{/.test(line.trim());
 
-      if (currentSize + lineSize > chunkSize && currentChunk.length > 0 && braceDepth === 0) {
+      if (
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0 &&
+        braceDepth === 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -79,6 +84,6 @@ export class JavaScriptSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

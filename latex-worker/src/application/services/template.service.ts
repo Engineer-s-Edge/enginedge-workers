@@ -1,18 +1,21 @@
 /**
  * Template Management Service
- * 
+ *
  * Application layer service for managing LaTeX templates
  */
 
 import { Injectable } from '@nestjs/common';
-import { LaTeXTemplate, TemplateCategory, TemplateVariable, LaTeXProject } from '../../domain/entities';
+import {
+  LaTeXTemplate,
+  TemplateCategory,
+  TemplateVariable,
+  LaTeXProject,
+} from '../../domain/entities';
 import { ITemplateRepository } from '../../domain/ports';
 
 @Injectable()
 export class TemplateService {
-  constructor(
-    private readonly templateRepository: ITemplateRepository,
-  ) {}
+  constructor(private readonly templateRepository: ITemplateRepository) {}
 
   /**
    * Create a new template
@@ -144,18 +147,15 @@ export class TemplateService {
   /**
    * Substitute variables in template content
    */
-  substituteVariables(
-    content: string,
-    values: Record<string, string>,
-  ): string {
+  substituteVariables(content: string, values: Record<string, string>): string {
     let result = content;
-    
+
     // Replace {{variable}} with actual values
     for (const [key, value] of Object.entries(values)) {
       const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
       result = result.replace(regex, value);
     }
-    
+
     return result;
   }
 
@@ -176,8 +176,8 @@ export class TemplateService {
 
     // Validate all required variables are provided
     const missingVars = template.variables
-      .filter(v => v.required && !variableValues[v.name])
-      .map(v => v.name);
+      .filter((v) => v.required && !variableValues[v.name])
+      .map((v) => v.name);
 
     if (missingVars.length > 0) {
       throw new Error(`Missing required variables: ${missingVars.join(', ')}`);
@@ -275,7 +275,8 @@ export class TemplateService {
 
     return {
       variableCount: template.variables.length,
-      requiredVariableCount: template.variables.filter(v => v.required).length,
+      requiredVariableCount: template.variables.filter((v) => v.required)
+        .length,
       lineCount: template.content.split('\n').length,
       characterCount: template.content.length,
     };

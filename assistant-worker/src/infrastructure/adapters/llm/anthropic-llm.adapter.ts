@@ -1,5 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILLMProvider, LLMRequest, LLMResponse, LLMStreamChunk } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMRequest,
+  LLMResponse,
+  LLMStreamChunk,
+} from '@application/ports/llm-provider.port';
 import { ILogger } from '@application/ports/logger.port';
 
 interface AnthropicUsage {
@@ -15,7 +20,7 @@ interface AnthropicResponse {
 
 /**
  * Anthropic LLM Adapter
- * 
+ *
  * Implements ILLMProvider for Anthropic API (Claude models)
  * Supports streaming and token counting
  */
@@ -30,9 +35,10 @@ export class AnthropicLLMAdapter implements ILLMProvider {
     private readonly logger: ILogger,
   ) {
     this.apiKey = process.env.ANTHROPIC_API_KEY || '';
-    this.baseUrl = process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1';
+    this.baseUrl =
+      process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1';
     this.apiVersion = '2023-06-01';
-    
+
     if (!this.apiKey) {
       this.logger.warn('AnthropicLLMAdapter: Anthropic API key not configured');
     }
@@ -65,16 +71,21 @@ export class AnthropicLLMAdapter implements ILLMProvider {
         throw new Error(`Anthropic API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json() as AnthropicResponse;
-      
+      const data = (await response.json()) as AnthropicResponse;
+
       return this.parseResponse(data);
     } catch (error) {
-      this.logger.error('Anthropic LLM invocation failed', error as Record<string, unknown>);
+      this.logger.error(
+        'Anthropic LLM invocation failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
 
-  async *invokeStream(request: LLMRequest): AsyncGenerator<LLMStreamChunk, void, unknown> {
+  async *invokeStream(
+    request: LLMRequest,
+  ): AsyncGenerator<LLMStreamChunk, void, unknown> {
     this.logger.debug('AnthropicLLMAdapter: Starting Anthropic streaming', {
       model: request.model,
     });
@@ -111,7 +122,7 @@ export class AnthropicLLMAdapter implements ILLMProvider {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -121,7 +132,7 @@ export class AnthropicLLMAdapter implements ILLMProvider {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             try {
               const event = JSON.parse(data);
 
@@ -163,7 +174,10 @@ export class AnthropicLLMAdapter implements ILLMProvider {
         }
       }
     } catch (error) {
-      this.logger.error('Anthropic streaming failed', error as Record<string, unknown>);
+      this.logger.error(
+        'Anthropic streaming failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -208,11 +222,14 @@ export class AnthropicLLMAdapter implements ILLMProvider {
     return {
       content,
       finishReason: data.stop_reason,
-      usage: data.usage ? {
-        promptTokens: data.usage.input_tokens,
-        completionTokens: data.usage.output_tokens,
-        totalTokens: (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0),
-      } : undefined,
+      usage: data.usage
+        ? {
+            promptTokens: data.usage.input_tokens,
+            completionTokens: data.usage.output_tokens,
+            totalTokens:
+              (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0),
+          }
+        : undefined,
     };
   }
 
@@ -240,10 +257,14 @@ export class AnthropicLLMAdapter implements ILLMProvider {
   }
 
   async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
-    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+    throw new Error(
+      'Speech-to-text not implemented. Use a dedicated STT service.',
+    );
   }
 
   async textToSpeech(text: string, voice?: string): Promise<Buffer> {
-    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+    throw new Error(
+      'Text-to-speech not implemented. Use a dedicated TTS service.',
+    );
   }
 }

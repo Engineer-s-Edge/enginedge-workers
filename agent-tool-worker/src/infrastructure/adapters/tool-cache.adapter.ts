@@ -22,7 +22,7 @@ export class ToolCache implements IToolCache {
    */
   async get(key: string): Promise<ToolResult | null> {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
@@ -39,7 +39,11 @@ export class ToolCache implements IToolCache {
   /**
    * Store a tool result in cache
    */
-  async set(key: string, result: ToolResult, ttl: number = 3600000): Promise<void> {
+  async set(
+    key: string,
+    result: ToolResult,
+    ttl: number = 3600000,
+  ): Promise<void> {
     const expiresAt = Date.now() + ttl;
     this.cache.set(key, { result, expiresAt });
   }
@@ -57,6 +61,6 @@ export class ToolCache implements IToolCache {
       }
     }
 
-    keysToDelete.forEach(key => this.cache.delete(key));
+    keysToDelete.forEach((key) => this.cache.delete(key));
   }
 }

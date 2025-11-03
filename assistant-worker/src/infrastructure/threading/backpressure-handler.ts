@@ -69,20 +69,21 @@ export class BackpressureHandler {
     this.totalRequests++;
 
     const baseProbability = this.config.shedProbability[loadLevel];
-    
+
     // Adjust probability based on priority (0-10 scale)
     // Lower priority = higher chance of shedding
-    const priorityFactor = 1 - (priority / 10);
+    const priorityFactor = 1 - priority / 10;
     const adjustedProbability = baseProbability * priorityFactor;
 
     const shouldShed = Math.random() < adjustedProbability;
 
     if (shouldShed) {
       this.sheddedRequests++;
-      this.logger.warn(
-        'Shedding request',
-        { loadLevel, priority, probability: adjustedProbability.toFixed(2) },
-      );
+      this.logger.warn('Shedding request', {
+        loadLevel,
+        priority,
+        probability: adjustedProbability.toFixed(2),
+      });
     }
 
     return shouldShed;
@@ -112,9 +113,8 @@ export class BackpressureHandler {
   }
 
   getMetrics() {
-    const shedRate = this.totalRequests > 0
-      ? this.sheddedRequests / this.totalRequests
-      : 0;
+    const shedRate =
+      this.totalRequests > 0 ? this.sheddedRequests / this.totalRequests : 0;
 
     return {
       totalRequests: this.totalRequests,

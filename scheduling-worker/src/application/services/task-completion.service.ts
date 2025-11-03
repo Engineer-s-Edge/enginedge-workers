@@ -90,14 +90,9 @@ export class TaskCompletionService {
     scheduledTask: ScheduledTask,
     notes?: string,
   ): Promise<void> {
-    await this.habitService.completeHabit(
-      scheduledTask.sourceId,
-      notes,
-    );
+    await this.habitService.completeHabit(scheduledTask.sourceId, notes);
 
-    this.logger.debug(
-      `Habit ${scheduledTask.sourceId} marked complete`,
-    );
+    this.logger.debug(`Habit ${scheduledTask.sourceId} marked complete`);
   }
 
   /**
@@ -130,7 +125,9 @@ export class TaskCompletionService {
     scheduledTask: ScheduledTask,
     reason?: string,
   ): Promise<CompletionRecord> {
-    this.logger.log(`Skipping task "${scheduledTask.title}": ${reason || 'No reason provided'}`);
+    this.logger.log(
+      `Skipping task "${scheduledTask.title}": ${reason || 'No reason provided'}`,
+    );
 
     const record: CompletionRecord = {
       taskId: scheduledTask.id,
@@ -217,7 +214,9 @@ export class TaskCompletionService {
     const records = this.getCompletionHistory(startDate, endDate);
 
     const totalScheduled = records.length;
-    const totalCompleted = records.filter((r) => r.completionRate === 100).length;
+    const totalCompleted = records.filter(
+      (r) => r.completionRate === 100,
+    ).length;
     const totalPartiallyCompleted = records.filter(
       (r) => r.completionRate > 0 && r.completionRate < 100,
     ).length;
@@ -279,7 +278,9 @@ export class TaskCompletionService {
 
     if (records.length === 0) return 0;
 
-    const completedCount = records.filter((r) => r.completionRate === 100).length;
+    const completedCount = records.filter(
+      (r) => r.completionRate === 100,
+    ).length;
     return (completedCount / records.length) * 100;
   }
 

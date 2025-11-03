@@ -1,6 +1,6 @@
 /**
  * Interview Service
- * 
+ *
  * Application service for managing interview configurations.
  */
 
@@ -68,4 +68,3 @@ export class InterviewService {
     return await this.interviewRepository.delete(id);
   }
 }
-

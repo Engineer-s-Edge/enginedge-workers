@@ -10,7 +10,7 @@ export class JobPostingService {
 
   constructor(
     @InjectModel('JobPosting')
-    private readonly jobPostingModel: Model<JobPosting>
+    private readonly jobPostingModel: Model<JobPosting>,
   ) {}
 
   /**
@@ -20,13 +20,13 @@ export class JobPostingService {
     userId: string,
     text: string,
     url?: string,
-    html?: string
+    html?: string,
   ): Promise<JobPosting> {
     this.logger.log(`Extracting job posting for user ${userId}`);
 
     // Send to NLP service via Kafka
     const correlationId = uuidv4();
-    
+
     // TODO: Implement Kafka producer/consumer pattern
     // Send to 'resume.posting.extract' topic
     // Wait for response on 'resume.posting.extract.response'
@@ -44,18 +44,18 @@ export class JobPostingService {
           textRaw: text,
           htmlRaw: html,
           checksumSha256: 'placeholder',
-          sectionSpans: []
+          sectionSpans: [],
         },
         role: {
           titleRaw: 'Software Engineer',
           roleFamily: 'Software Engineer',
           seniorityInferred: 'Mid',
-          relevantOccupation: null
+          relevantOccupation: null,
         },
         employment: {
           employmentType: ['FULL_TIME'],
           workHours: null,
-          jobStartDate: null
+          jobStartDate: null,
         },
         location: {
           jobLocationType: null,
@@ -63,32 +63,32 @@ export class JobPostingService {
           jobLocation: null,
           onsiteDaysPerWeek: 5,
           travelPercent: null,
-          relocationOffered: false
+          relocationOffered: false,
         },
         compensation: {
           baseSalary: null,
           bonus: null,
           equity: null,
-          benefits: []
+          benefits: [],
         },
         authorization: {
           workAuthRequired: null,
           visaSponsorship: null,
-          securityClearance: false
+          securityClearance: false,
         },
         education: {
           educationRequirements: null,
-          experienceInPlaceOfEducation: false
+          experienceInPlaceOfEducation: false,
         },
         experience: {
           experienceRequirementsText: null,
           monthsMin: null,
-          monthsPref: null
+          monthsPref: null,
         },
         skills: {
           skillsExplicit: [],
           skillsNormalized: [],
-          softSkills: []
+          softSkills: [],
         },
         responsibilities: [],
         internship: {
@@ -97,31 +97,31 @@ export class JobPostingService {
           startWindow: null,
           expectedGraduationWindow: null,
           gpaRequired: null,
-          returnOfferLanguage: null
+          returnOfferLanguage: null,
         },
         application: {
           materials: null,
           screeningQuestions: null,
-          portal: null
+          portal: null,
         },
         company: {
           hiringOrganization: null,
           department: null,
           industry: null,
-          employerOverview: null
+          employerOverview: null,
         },
         quality: {
           expired: false,
           duplicateOf: null,
           incompleteDescription: false,
           keywordStuffing: false,
-          locationMismatch: false
+          locationMismatch: false,
         },
-        provenance: []
+        provenance: [],
       },
       extractionMethod: 'nlp',
       confidence: 0.75,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
 
     return jobPosting.save();
@@ -149,4 +149,3 @@ export class JobPostingService {
     return result.deletedCount > 0;
   }
 }
-

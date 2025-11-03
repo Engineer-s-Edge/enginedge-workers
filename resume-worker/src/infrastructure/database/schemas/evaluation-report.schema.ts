@@ -25,7 +25,9 @@ export class EvaluationScoresSchema {
   overall: number;
 }
 
-const EvaluationScoresSchemaFactory = SchemaFactory.createForClass(EvaluationScoresSchema);
+const EvaluationScoresSchemaFactory = SchemaFactory.createForClass(
+  EvaluationScoresSchema,
+);
 
 @Schema({ _id: false })
 export class EvaluationGatesSchema {
@@ -39,7 +41,9 @@ export class EvaluationGatesSchema {
   pageOver: boolean;
 }
 
-const EvaluationGatesSchemaFactory = SchemaFactory.createForClass(EvaluationGatesSchema);
+const EvaluationGatesSchemaFactory = SchemaFactory.createForClass(
+  EvaluationGatesSchema,
+);
 
 @Schema({ timestamps: true })
 export class EvaluationReportSchema extends Document {
@@ -80,10 +84,11 @@ export class EvaluationReportSchema extends Document {
   createdAt: Date;
 }
 
-export const EvaluationReportSchemaFactory = SchemaFactory.createForClass(EvaluationReportSchema);
+export const EvaluationReportSchemaFactory = SchemaFactory.createForClass(
+  EvaluationReportSchema,
+);
 
 // Add indexes
 EvaluationReportSchemaFactory.index({ resumeId: 1, createdAt: -1 });
 EvaluationReportSchemaFactory.index({ userId: 1, createdAt: -1 });
 EvaluationReportSchemaFactory.index({ jobPostingId: 1 });
-

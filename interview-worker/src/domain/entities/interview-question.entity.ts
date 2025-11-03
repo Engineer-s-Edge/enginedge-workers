@@ -1,11 +1,15 @@
 /**
  * InterviewQuestion Entity
- * 
+ *
  * Represents a question in the question bank that can be used in interviews.
  * Questions are tagged by category, difficulty, and subcategory for selection.
  */
 
-export type QuestionCategory = 'tech-trivia' | 'system-design' | 'behavioral' | 'coding';
+export type QuestionCategory =
+  | 'tech-trivia'
+  | 'system-design'
+  | 'behavioral'
+  | 'coding';
 
 export class InterviewQuestion {
   questionId: string;
@@ -83,4 +87,3 @@ export class InterviewQuestion {
     });
   }
 }
-

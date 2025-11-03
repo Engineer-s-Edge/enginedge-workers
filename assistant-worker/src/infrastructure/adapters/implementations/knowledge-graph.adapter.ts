@@ -1,6 +1,6 @@
 /**
  * Knowledge Graph Adapter Implementation
- * 
+ *
  * Bridges orchestrator with KnowledgeGraphService
  */
 
@@ -26,8 +26,14 @@ export class KnowledgeGraphAdapter implements IKnowledgeGraphAdapter {
 
   private initializeStore(): void {
     // Initialize topic statistics
-    const sampleTopics = ['AI', 'ML', 'NLP', 'Computer Vision', 'Reinforcement Learning'];
-    sampleTopics.forEach(topic => {
+    const sampleTopics = [
+      'AI',
+      'ML',
+      'NLP',
+      'Computer Vision',
+      'Reinforcement Learning',
+    ];
+    sampleTopics.forEach((topic) => {
       this.topicStats.set(topic, {
         count: 0,
         lastUpdated: new Date(),
@@ -82,10 +88,14 @@ export class KnowledgeGraphAdapter implements IKnowledgeGraphAdapter {
       }
       stats.count = (stats.count || 0) + nodes.length;
       stats.lastUpdated = new Date();
-      stats.sources = Array.from(new Set([...stats.sources, ...(data.sources || [])]));
+      stats.sources = Array.from(
+        new Set([...stats.sources, ...(data.sources || [])]),
+      );
       this.topicStats.set(topicKey, stats);
 
-      this.logger.log(`Added ${nodes.length} nodes to graph for topic: ${data.topic}`);
+      this.logger.log(
+        `Added ${nodes.length} nodes to graph for topic: ${data.topic}`,
+      );
 
       return {
         success: true,
@@ -93,12 +103,18 @@ export class KnowledgeGraphAdapter implements IKnowledgeGraphAdapter {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to add research finding: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to add research finding: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 
-  async getRecentResearchReports(userId: string, limit: number): Promise<ResearchReport[]> {
+  async getRecentResearchReports(
+    userId: string,
+    limit: number,
+  ): Promise<ResearchReport[]> {
     try {
       this.logger.log(`Fetching recent research reports for user ${userId}`);
 
@@ -107,7 +123,10 @@ export class KnowledgeGraphAdapter implements IKnowledgeGraphAdapter {
       return userReports.slice(0, limit);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to fetch research reports: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to fetch research reports: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
@@ -124,12 +143,12 @@ export class KnowledgeGraphAdapter implements IKnowledgeGraphAdapter {
       let nodesCount = 0;
       let edgesCount = 0;
 
-      this.topicStats.forEach(stats => {
+      this.topicStats.forEach((stats) => {
         totalSources += stats.sources.length;
         totalConfidence += stats.confidence;
         confideCount++;
         nodesCount += stats.count;
-        edgesCount += (stats.count > 0 ? stats.count - 1 : 0);
+        edgesCount += stats.count > 0 ? stats.count - 1 : 0;
       });
 
       return {
@@ -190,7 +209,10 @@ export class KnowledgeGraphAdapter implements IKnowledgeGraphAdapter {
       };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get topic details: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get topic details: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }

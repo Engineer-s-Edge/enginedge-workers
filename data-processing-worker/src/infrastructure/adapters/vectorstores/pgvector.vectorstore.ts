@@ -4,10 +4,10 @@ import { Document } from '@domain/entities/document.entity';
 
 /**
  * PgVector Vector Store Adapter (DISABLED - Placeholder)
- * 
+ *
  * PgVector is a PostgreSQL extension for vector similarity search.
  * To enable: Install pg and enable pgvector extension in PostgreSQL.
- * 
+ *
  * Installation: npm install pg
  * PostgreSQL: CREATE EXTENSION vector;
  */
@@ -19,7 +19,9 @@ export class PgVectorStoreAdapter implements VectorStorePort {
 
   constructor() {
     if (!this.enabled) {
-      this.logger.warn('PgVector vector store is DISABLED. To enable, set PGVECTOR_CONNECTION_STRING and install dependencies.');
+      this.logger.warn(
+        'PgVector vector store is DISABLED. To enable, set PGVECTOR_CONNECTION_STRING and install dependencies.',
+      );
     }
   }
 
@@ -29,12 +31,14 @@ export class PgVectorStoreAdapter implements VectorStorePort {
     metadata?: Record<string, unknown>,
   ): Promise<string[]> {
     if (!this.enabled) {
-      throw new Error('PgVector vector store is disabled. Enable it by setting PGVECTOR_CONNECTION_STRING.');
+      throw new Error(
+        'PgVector vector store is disabled. Enable it by setting PGVECTOR_CONNECTION_STRING.',
+      );
     }
 
     /*
     const { Pool } = require('pg');
-    
+
     const pool = new Pool({
       connectionString: process.env.PGVECTOR_CONNECTION_STRING,
     });
@@ -80,7 +84,7 @@ export class PgVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { Pool } = require('pg');
-    
+
     const pool = new Pool({
       connectionString: process.env.PGVECTOR_CONNECTION_STRING,
     });
@@ -89,9 +93,9 @@ export class PgVectorStoreAdapter implements VectorStorePort {
 
     try {
       const embeddingStr = `[${queryEmbedding.join(',')}]`;
-      
+
       const result = await client.query(
-        `SELECT id, content, metadata, 
+        `SELECT id, content, metadata,
                 1 - (embedding <=> $1::vector) as score
          FROM documents
          ORDER BY embedding <=> $1::vector
@@ -122,7 +126,7 @@ export class PgVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { Pool } = require('pg');
-    
+
     const pool = new Pool({
       connectionString: process.env.PGVECTOR_CONNECTION_STRING,
     });
@@ -147,7 +151,7 @@ export class PgVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { Pool } = require('pg');
-    
+
     const pool = new Pool({
       connectionString: process.env.PGVECTOR_CONNECTION_STRING,
     });

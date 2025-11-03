@@ -5,10 +5,7 @@ import {
   IFileSystem,
   IPackageManager,
 } from '../../../domain/ports';
-import {
-  LaTeXDocument,
-  LaTeXProject,
-} from '../../../domain/entities';
+import { LaTeXDocument, LaTeXProject } from '../../../domain/entities';
 
 describe('LaTeXCompilerService', () => {
   let service: LaTeXCompilerService;
@@ -132,8 +129,11 @@ describe('LaTeXCompilerService', () => {
     });
 
     it('should handle validation errors for unclosed braces', async () => {
-      const invalidContent = '\\documentclass{article}\\begin{document}Unclosed brace {';
-      const document = LaTeXDocument.create('4', invalidContent, { title: 'Invalid' });
+      const invalidContent =
+        '\\documentclass{article}\\begin{document}Unclosed brace {';
+      const document = LaTeXDocument.create('4', invalidContent, {
+        title: 'Invalid',
+      });
 
       const result = await service.compileDocument(document);
 
@@ -237,10 +237,7 @@ describe('LaTeXCompilerService', () => {
         compilationTime: 1200,
         passes: 1,
         errors: [],
-        warnings: [
-          { message: 'Overfull hbox' },
-          { message: 'Underfull vbox' },
-        ],
+        warnings: [{ message: 'Overfull hbox' }, { message: 'Underfull vbox' }],
         logs: { stdout: '', stderr: '', rawLog: '' },
       });
       mockFileSystem.rmdir.mockResolvedValue(undefined);
@@ -288,7 +285,9 @@ Text with citation \\cite{smith2020}.
 \\bibliography{references}
 \\end{document}
       `;
-      const document = LaTeXDocument.create('10', content, { title: 'With Bib' });
+      const document = LaTeXDocument.create('10', content, {
+        title: 'With Bib',
+      });
 
       expect(document.requiresBibliography()).toBe(true);
     });
@@ -350,7 +349,9 @@ Text with citation \\cite{smith2020}.
         '\\documentclass{article}\\begin{document}' +
         'Lorem ipsum '.repeat(10000) +
         '\\end{document}';
-      const document = LaTeXDocument.create('16', longContent, { title: 'Long Doc' });
+      const document = LaTeXDocument.create('16', longContent, {
+        title: 'Long Doc',
+      });
 
       mockFileSystem.mkdir.mockResolvedValue(undefined);
       mockFileSystem.writeFile.mockResolvedValue(undefined);
@@ -415,7 +416,12 @@ Text with citation \\cite{smith2020}.
 \\include{chapter1}
 \\end{document}
       `;
-      const project = LaTeXProject.create('proj1', 'Multi-file Project', 'main.tex', mainContent).addFile({
+      const project = LaTeXProject.create(
+        'proj1',
+        'Multi-file Project',
+        'main.tex',
+        mainContent,
+      ).addFile({
         path: 'chapter1.tex',
         content: '\\chapter{First Chapter}Content 1',
         type: 'tex',
@@ -450,7 +456,12 @@ Text with citation \\cite{smith2020}.
 \\include{missing-chapter}
 \\end{document}
       `;
-      const project = LaTeXProject.create('proj2', 'Incomplete Project', 'main.tex', mainContent);
+      const project = LaTeXProject.create(
+        'proj2',
+        'Incomplete Project',
+        'main.tex',
+        mainContent,
+      );
 
       const validationResult = project.validateReferences();
       expect(validationResult.valid).toBe(false);
@@ -471,7 +482,9 @@ Text with citation \\cite{smith2020}.
         success: false,
         compilationTime: 500,
         passes: 1,
-        errors: [{ message: 'Compilation error in project', severity: 'error' }],
+        errors: [
+          { message: 'Compilation error in project', severity: 'error' },
+        ],
         warnings: [],
         logs: { stdout: '', stderr: '', rawLog: '' },
       });

@@ -4,7 +4,11 @@
  * Tests for safe command execution with security restrictions and timeout protection.
  */
 
-import { TerminalActor, TerminalArgs, TerminalOutput } from '@infrastructure/tools/actors/terminal.actor';
+import {
+  TerminalActor,
+  TerminalArgs,
+  TerminalOutput,
+} from '@infrastructure/tools/actors/terminal.actor';
 
 describe('TerminalActor', () => {
   let actor: TerminalActor;
@@ -22,7 +26,10 @@ describe('TerminalActor', () => {
         timeout: 5000,
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
       expect((result.output as TerminalOutput).command).toBe('cmd');
       expect((result.output as TerminalOutput).stdout).toContain('Hello World');
@@ -38,7 +45,10 @@ describe('TerminalActor', () => {
         timeout: 5000,
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
       expect((result.output as TerminalOutput).stdout).toContain('test output');
     });
@@ -57,9 +67,14 @@ describe('TerminalActor', () => {
         timeout: 5000,
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
-      expect((result.output as TerminalOutput).stderr).toContain('warning message');
+      expect((result.output as TerminalOutput).stderr).toContain(
+        'warning message',
+      );
     });
   });
 
@@ -80,7 +95,10 @@ describe('TerminalActor', () => {
           args: cmd.args,
         };
 
-        const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+        const result = await actor.execute({
+          name: 'terminal-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
         expect(result.success).toBe(false);
         expect(result.error?.message).toContain('blocked operation');
       }
@@ -100,9 +118,14 @@ describe('TerminalActor', () => {
           args: cmd.args,
         };
 
-        const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+        const result = await actor.execute({
+          name: 'terminal-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
         expect(result.success).toBe(false);
-        expect(result.error?.message).toMatch(/blocked operation|dangerous pattern/);
+        expect(result.error?.message).toMatch(
+          /blocked operation|dangerous pattern/,
+        );
       }
     });
   });
@@ -115,7 +138,10 @@ describe('TerminalActor', () => {
         timeout: 5000,
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.name).toBe('CommandExecutionError');
     });
@@ -140,9 +166,14 @@ describe('TerminalActor', () => {
         timeout: 5000,
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
-      expect((result.output as TerminalOutput).stdout.trim()).toBe(process.cwd());
+      expect((result.output as TerminalOutput).stdout.trim()).toBe(
+        process.cwd(),
+      );
     });
 
     it('should handle environment variables', async () => {
@@ -155,7 +186,10 @@ describe('TerminalActor', () => {
         timeout: 5000,
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
       expect((result.output as TerminalOutput).stdout).toContain('test_value');
     });
@@ -168,7 +202,10 @@ describe('TerminalActor', () => {
         timeout: 30000, // Valid timeout
       };
 
-      const result = await actor.execute({ name: 'terminal-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'terminal-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(true);
     });
   });

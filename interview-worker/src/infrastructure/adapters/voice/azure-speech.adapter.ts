@@ -1,6 +1,6 @@
 /**
  * Azure Speech Service Adapter
- * 
+ *
  * Handles Speech-to-Text (STT) and Text-to-Speech (TTS) via Azure Cognitive Services Speech.
  */
 
@@ -17,13 +17,17 @@ export class AzureSpeechAdapter {
 
   constructor(private readonly configService: ConfigService) {
     this.subscriptionKey = this.configService.get<string>('AZURE_SPEECH_KEY');
-    this.region = this.configService.get<string>('AZURE_SPEECH_REGION') || 'eastus';
+    this.region =
+      this.configService.get<string>('AZURE_SPEECH_REGION') || 'eastus';
   }
 
   /**
    * Convert speech to text using Azure Speech-to-Text
    */
-  async speechToText(audioBuffer: Buffer, language: string = 'en-US'): Promise<string> {
+  async speechToText(
+    audioBuffer: Buffer,
+    language: string = 'en-US',
+  ): Promise<string> {
     if (!this.subscriptionKey) {
       throw new Error('Azure Speech subscription key not configured');
     }
@@ -50,7 +54,10 @@ export class AzureSpeechAdapter {
   /**
    * Convert text to speech using Azure Text-to-Speech
    */
-  async textToSpeech(text: string, voice: string = 'en-US-JennyNeural'): Promise<Buffer> {
+  async textToSpeech(
+    text: string,
+    voice: string = 'en-US-JennyNeural',
+  ): Promise<Buffer> {
     if (!this.subscriptionKey) {
       throw new Error('Azure Speech subscription key not configured');
     }
@@ -73,4 +80,3 @@ export class AzureSpeechAdapter {
     }
   }
 }
-

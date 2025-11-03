@@ -43,7 +43,8 @@ describe('RAGServiceAdapter', () => {
           useValue: {
             get: jest.fn((key: string) => {
               const config: Record<string, string | number> = {
-                DATA_PROCESSING_WORKER_URL: 'http://data-processing-worker:3003',
+                DATA_PROCESSING_WORKER_URL:
+                  'http://data-processing-worker:3003',
                 RAG_SERVICE_TIMEOUT: 30000,
                 RAG_SERVICE_RETRIES: 3,
                 RAG_SERVICE_RETRY_DELAY: 1000,
@@ -87,7 +88,8 @@ describe('RAGServiceAdapter', () => {
         ],
       }).compile();
 
-      const adapterWithDefaults = module.get<RAGServiceAdapter>(RAGServiceAdapter);
+      const adapterWithDefaults =
+        module.get<RAGServiceAdapter>(RAGServiceAdapter);
 
       expect(adapterWithDefaults).toBeDefined();
       expect(mockedAxios.create).toHaveBeenCalledWith({
@@ -162,7 +164,9 @@ describe('RAGServiceAdapter', () => {
     });
 
     it('rag-service-006: should handle processing failure', async () => {
-      mockAxiosInstance.post.mockRejectedValueOnce(new Error('Processing failed'));
+      mockAxiosInstance.post.mockRejectedValueOnce(
+        new Error('Processing failed'),
+      );
 
       await expect(adapter.processDocument(mockDocument)).rejects.toThrow(
         'RAG document processing failed',
@@ -250,9 +254,13 @@ describe('RAGServiceAdapter', () => {
       const result = await adapter.searchConversation(mockSearchRequest);
 
       expect(mockAxiosInstance.post).toHaveBeenCalledTimes(2);
-      expect(mockAxiosInstance.post).toHaveBeenNthCalledWith(1, '/embedders/embed', {
-        text: mockSearchRequest.query,
-      });
+      expect(mockAxiosInstance.post).toHaveBeenNthCalledWith(
+        1,
+        '/embedders/embed',
+        {
+          text: mockSearchRequest.query,
+        },
+      );
       expect(mockAxiosInstance.post).toHaveBeenNthCalledWith(
         2,
         '/vector-store/search-conversations',
@@ -290,11 +298,13 @@ describe('RAGServiceAdapter', () => {
     });
 
     it('rag-service-011: should handle embedding generation failure', async () => {
-      mockAxiosInstance.post.mockRejectedValueOnce(new Error('Embedding failed'));
-
-      await expect(adapter.searchConversation(mockSearchRequest)).rejects.toThrow(
-        'RAG conversation search failed',
+      mockAxiosInstance.post.mockRejectedValueOnce(
+        new Error('Embedding failed'),
       );
+
+      await expect(
+        adapter.searchConversation(mockSearchRequest),
+      ).rejects.toThrow('RAG conversation search failed');
     });
 
     it('rag-service-012: should handle search failure', async () => {
@@ -302,9 +312,9 @@ describe('RAGServiceAdapter', () => {
         .mockResolvedValueOnce({ data: mockEmbeddingResponse })
         .mockRejectedValueOnce(new Error('Search failed'));
 
-      await expect(adapter.searchConversation(mockSearchRequest)).rejects.toThrow(
-        'RAG conversation search failed',
-      );
+      await expect(
+        adapter.searchConversation(mockSearchRequest),
+      ).rejects.toThrow('RAG conversation search failed');
     });
 
     it('rag-service-013: should handle empty search results', async () => {
@@ -460,9 +470,9 @@ describe('RAGServiceAdapter', () => {
     it('rag-service-019: should handle retrieval failure', async () => {
       mockAxiosInstance.get.mockRejectedValueOnce(new Error('Not found'));
 
-      await expect(adapter.getConversationDocuments(mockRequest)).rejects.toThrow(
-        'Failed to retrieve conversation documents',
-      );
+      await expect(
+        adapter.getConversationDocuments(mockRequest),
+      ).rejects.toThrow('Failed to retrieve conversation documents');
     });
   });
 
@@ -511,7 +521,9 @@ describe('RAGServiceAdapter', () => {
     });
 
     it('rag-service-022: should handle retrieval failure', async () => {
-      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Service unavailable'));
+      mockAxiosInstance.get.mockRejectedValueOnce(
+        new Error('Service unavailable'),
+      );
 
       await expect(adapter.getEmbeddingModels()).rejects.toThrow(
         'Failed to retrieve embedding models',
@@ -546,7 +558,9 @@ describe('RAGServiceAdapter', () => {
     });
 
     it('rag-service-025: should return false when service is unavailable', async () => {
-      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Connection refused'));
+      mockAxiosInstance.get.mockRejectedValueOnce(
+        new Error('Connection refused'),
+      );
 
       const result = await adapter.isAvailable();
 

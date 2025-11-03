@@ -8,7 +8,7 @@ import { HuggingFaceEmbedderAdapter } from '@infrastructure/adapters/embedders/h
 
 /**
  * Embedder Factory Service
- * 
+ *
  * Factory for creating appropriate embedder instances based on provider,
  * model selection, or explicitly requested embedder type.
  */
@@ -54,7 +54,9 @@ export class EmbedderFactoryService {
       case 'hf':
         return this.huggingFaceEmbedder;
       default:
-        this.logger.warn(`Unknown embedder provider: ${provider}, using default (OpenAI)`);
+        this.logger.warn(
+          `Unknown embedder provider: ${provider}, using default (OpenAI)`,
+        );
         return this.defaultEmbedder;
     }
   }
@@ -75,7 +77,10 @@ export class EmbedderFactoryService {
     }
 
     // Google models
-    if (normalized.includes('text-embedding-004') || normalized.includes('google')) {
+    if (
+      normalized.includes('text-embedding-004') ||
+      normalized.includes('google')
+    ) {
       return this.googleEmbedder;
     }
 
@@ -99,7 +104,10 @@ export class EmbedderFactoryService {
     }
 
     // HuggingFace models
-    if (normalized.includes('huggingface') || normalized.includes('sentence-transformers')) {
+    if (
+      normalized.includes('huggingface') ||
+      normalized.includes('sentence-transformers')
+    ) {
       return this.huggingFaceEmbedder;
     }
 
@@ -121,7 +129,9 @@ export class EmbedderFactoryService {
       case 1024: // Cohere embed-english-v3.0
         return this.cohereEmbedder;
       default:
-        this.logger.warn(`No embedder found for ${dimensions} dimensions, using default`);
+        this.logger.warn(
+          `No embedder found for ${dimensions} dimensions, using default`,
+        );
         return this.defaultEmbedder;
     }
   }
@@ -192,10 +202,7 @@ export class EmbedderFactoryService {
       {
         name: 'Cohere',
         provider: 'cohere',
-        models: [
-          'embed-english-v3.0',
-          'embed-english-light-v3.0',
-        ],
+        models: ['embed-english-v3.0', 'embed-english-light-v3.0'],
         dimensions: 1024,
         costPerMillion: 0.1,
         description: 'Semantic embeddings from Cohere',
@@ -203,11 +210,7 @@ export class EmbedderFactoryService {
       {
         name: 'Local/Ollama',
         provider: 'local',
-        models: [
-          'nomic-embed-text-1.5',
-          'all-minilm',
-          'mistral-7b',
-        ],
+        models: ['nomic-embed-text-1.5', 'all-minilm', 'mistral-7b'],
         dimensions: 768,
         costPerMillion: 0,
         description: 'Local embeddings with no API cost',
@@ -260,14 +263,16 @@ export class EmbedderFactoryService {
     if (normalized.includes('fast') || normalized.includes('latency')) {
       return {
         embedder: this.localEmbedder,
-        reason: 'Local embeddings have minimal latency with no network overhead',
+        reason:
+          'Local embeddings have minimal latency with no network overhead',
       };
     }
 
     if (normalized.includes('offline') || normalized.includes('private')) {
       return {
         embedder: this.localEmbedder,
-        reason: 'Local embeddings work completely offline without data transmission',
+        reason:
+          'Local embeddings work completely offline without data transmission',
       };
     }
 

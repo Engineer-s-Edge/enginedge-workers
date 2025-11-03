@@ -1,6 +1,6 @@
 /**
  * Neo4j Knowledge Graph Adapter
- * 
+ *
  * Provides interface to Neo4j graph database for storing and querying knowledge.
  * Supports ICS (Integrated Concept Synthesis) methodology with 6 layers.
  */
@@ -11,12 +11,12 @@ import { Injectable } from '@nestjs/common';
  * ICS Layer enumeration (L1-L6)
  */
 export enum ICSLayer {
-  L1_OBSERVATIONS = 'L1_OBSERVATIONS',       // Raw data, observations
-  L2_PATTERNS = 'L2_PATTERNS',               // Patterns, correlations
-  L3_MODELS = 'L3_MODELS',                   // Conceptual models
-  L4_THEORIES = 'L4_THEORIES',               // Theories, frameworks
-  L5_PRINCIPLES = 'L5_PRINCIPLES',           // Universal principles
-  L6_SYNTHESIS = 'L6_SYNTHESIS',             // Integrated synthesis
+  L1_OBSERVATIONS = 'L1_OBSERVATIONS', // Raw data, observations
+  L2_PATTERNS = 'L2_PATTERNS', // Patterns, correlations
+  L3_MODELS = 'L3_MODELS', // Conceptual models
+  L4_THEORIES = 'L4_THEORIES', // Theories, frameworks
+  L5_PRINCIPLES = 'L5_PRINCIPLES', // Universal principles
+  L6_SYNTHESIS = 'L6_SYNTHESIS', // Integrated synthesis
 }
 
 /**
@@ -38,7 +38,7 @@ export interface KGNode {
 export interface KGEdge {
   id: string;
   from: string; // Source node ID
-  to: string;   // Target node ID
+  to: string; // Target node ID
   type: string; // Relationship type
   properties: Record<string, any>;
   createdAt: Date;
@@ -55,7 +55,7 @@ export interface QueryResult {
 
 /**
  * Neo4j Adapter for Knowledge Graph
- * 
+ *
  * Note: This is a mock implementation. In production, integrate with actual Neo4j driver.
  */
 @Injectable()
@@ -64,9 +64,8 @@ export class Neo4jAdapter {
   private nodes: Map<string, KGNode> = new Map();
   private edges: Map<string, KGEdge> = new Map();
 
-  constructor(
-    // @Inject('NEO4J_DRIVER') private readonly driver: any,
-  ) {
+  constructor() // @Inject('NEO4J_DRIVER') private readonly driver: any,
+  {
     // Initialize Neo4j connection here
     // this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
   }
@@ -78,7 +77,7 @@ export class Neo4jAdapter {
     label: string,
     type: string,
     layer: ICSLayer,
-    properties: Record<string, any> = {}
+    properties: Record<string, any> = {},
   ): Promise<KGNode> {
     const node: KGNode = {
       id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -134,10 +133,10 @@ export class Neo4jAdapter {
    */
   async updateNode(
     nodeId: string,
-    updates: Partial<Omit<KGNode, 'id' | 'createdAt'>>
+    updates: Partial<Omit<KGNode, 'id' | 'createdAt'>>,
   ): Promise<KGNode | null> {
     const node = this.nodes.get(nodeId);
-    
+
     if (!node) {
       return null;
     }
@@ -199,7 +198,7 @@ export class Neo4jAdapter {
     from: string,
     to: string,
     type: string,
-    properties: Record<string, any> = {}
+    properties: Record<string, any> = {},
   ): Promise<KGEdge> {
     // Verify nodes exist
     if (!this.nodes.has(from) || !this.nodes.has(to)) {
@@ -262,7 +261,9 @@ export class Neo4jAdapter {
    * Get all nodes by layer
    */
   async getNodesByLayer(layer: ICSLayer): Promise<KGNode[]> {
-    return Array.from(this.nodes.values()).filter((node) => node.layer === layer);
+    return Array.from(this.nodes.values()).filter(
+      (node) => node.layer === layer,
+    );
 
     // In production:
     // const session = this.driver.session();
@@ -287,7 +288,10 @@ export class Neo4jAdapter {
   /**
    * Get neighbors of a node
    */
-  async getNeighbors(nodeId: string, direction: 'in' | 'out' | 'both' = 'both'): Promise<KGNode[]> {
+  async getNeighbors(
+    nodeId: string,
+    direction: 'in' | 'out' | 'both' = 'both',
+  ): Promise<KGNode[]> {
     const neighborIds = new Set<string>();
 
     for (const edge of this.edges.values()) {
@@ -334,7 +338,10 @@ export class Neo4jAdapter {
   /**
    * Execute a custom Cypher query
    */
-  async query(cypher: string, params: Record<string, any> = {}): Promise<QueryResult> {
+  async query(
+    cypher: string,
+    params: Record<string, any> = {},
+  ): Promise<QueryResult> {
     // Mock query execution (in production, execute actual Cypher)
     return {
       nodes: [],
@@ -362,7 +369,9 @@ export class Neo4jAdapter {
     const visited = new Set<string>();
 
     // BFS to collect nodes and edges up to specified depth
-    const queue: Array<{ id: string; currentDepth: number }> = [{ id: nodeId, currentDepth: 0 }];
+    const queue: Array<{ id: string; currentDepth: number }> = [
+      { id: nodeId, currentDepth: 0 },
+    ];
 
     while (queue.length > 0) {
       const { id, currentDepth } = queue.shift()!;
@@ -413,7 +422,7 @@ export class Neo4jAdapter {
    */
   async searchNodes(searchTerm: string): Promise<KGNode[]> {
     const lowerSearch = searchTerm.toLowerCase();
-    
+
     return Array.from(this.nodes.values()).filter((node) => {
       // Search in label
       if (node.label.toLowerCase().includes(lowerSearch)) {
@@ -422,7 +431,7 @@ export class Neo4jAdapter {
 
       // Search in properties
       return Object.values(node.properties).some((value) =>
-        String(value).toLowerCase().includes(lowerSearch)
+        String(value).toLowerCase().includes(lowerSearch),
       );
     });
 
@@ -472,4 +481,3 @@ export class Neo4jAdapter {
     };
   }
 }
-

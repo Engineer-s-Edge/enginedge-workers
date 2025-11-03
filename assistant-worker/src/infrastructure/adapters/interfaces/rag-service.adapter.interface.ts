@@ -1,6 +1,6 @@
 /**
  * RAG Service Adapter Interface
- * 
+ *
  * Port interface for Data Processing Worker RAG integration
  * Provides document processing and vector search capabilities for Expert Agent
  */
@@ -170,7 +170,9 @@ export interface IRAGServiceAdapter {
    * @param request Conversation documents request
    * @returns List of documents in conversation
    */
-  getConversationDocuments(request: RAGConversationDocsRequest): Promise<RAGConversationDocsResult>;
+  getConversationDocuments(
+    request: RAGConversationDocsRequest,
+  ): Promise<RAGConversationDocsResult>;
 
   /**
    * Get available embedding models

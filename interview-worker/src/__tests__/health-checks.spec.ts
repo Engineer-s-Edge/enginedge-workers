@@ -32,4 +32,3 @@ describe('Health Checks', () => {
     expect(response.body).toHaveProperty('status');
   });
 });
-
