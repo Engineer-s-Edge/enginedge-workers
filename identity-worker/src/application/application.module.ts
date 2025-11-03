@@ -13,6 +13,8 @@
 
 import { Module } from '@nestjs/common';
 import { DomainModule } from '@domain/domain.module';
+import { IdentityService } from './services/identity.service';
+import { OAuthService } from './services/oauth.service';
 
 /**
  * Application module - use cases and application services
@@ -24,12 +26,13 @@ import { DomainModule } from '@domain/domain.module';
   imports: [
     DomainModule, // Domain services (AgentFactory, MemoryManager, etc.)
   ],
-  providers: [],
+  providers: [IdentityService, OAuthService],
   exports: [
     // Export domain module so infrastructure can access it
     DomainModule,
-
     // Export services for other modules
+    IdentityService,
+    OAuthService,
   ],
 })
 export class ApplicationModule {}

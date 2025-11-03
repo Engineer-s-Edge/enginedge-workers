@@ -15,9 +15,12 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Sse,
 } from '@nestjs/common';
+import { Observable, Subject } from 'rxjs';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
+import { StreamAgentExecutionUseCase } from '@application/use-cases/stream-agent-execution.use-case';
 import { ILogger } from '@application/ports/logger.port';
 
 /**
@@ -28,6 +31,7 @@ export class ExpertAgentController {
   constructor(
     private readonly agentService: AgentService,
     private readonly executeAgentUseCase: ExecuteAgentUseCase,
+    private readonly streamAgentExecutionUseCase: StreamAgentExecutionUseCase,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {}
@@ -173,5 +177,142 @@ export class ExpertAgentController {
       format: body.format || 'markdown',
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  /**
+   * GET /agents/expert/research/stream - Stream research progress (SSE)
+   * Legacy-compatible endpoint matching /assistants/expert/research/stream
+   */
+  @Get('research/stream')
+  @Sse()
+  streamResearch(
+    @Query('query') query: string,
+    @Query('userId') userId: string,
+    @Query('researchDepth') researchDepth?: 'basic' | 'advanced',
+    @Query('maxSources') maxSources?: string,
+    @Query('maxTokens') maxTokens?: string,
+    @Query('useBertScore') useBertScore?: string,
+    @Query('conversationId') conversationId?: string,
+    @Query('agentId') agentId?: string,
+  ): Observable<MessageEvent> {
+    if (!query || !userId) {
+      throw new Error('Query and userId are required');
+    }
+
+    const subject = new Subject<MessageEvent>();
+    let heartbeatInterval: NodeJS.Timeout;
+
+    // Send heartbeat every 30 seconds to keep connection alive
+    heartbeatInterval = setInterval(() => {
+      subject.next({
+        data: JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() }),
+        type: 'heartbeat',
+      } as MessageEvent);
+    }, 30000);
+
+    // Start streaming research
+    (async () => {
+      try {
+        // If agentId is provided, use it; otherwise create a temporary agent or use default
+        const targetAgentId = agentId || 'default-expert';
+
+        // Send progress event: Phase start (AIM)
+        subject.next({
+          data: JSON.stringify({
+            type: 'progress',
+            phase: 'aim',
+            message: 'Starting research analysis...',
+            timestamp: new Date().toISOString(),
+          }),
+          type: 'progress',
+        } as MessageEvent);
+
+        // Stream agent execution
+        const stream = this.streamAgentExecutionUseCase.execute({
+          agentId: targetAgentId,
+          userId,
+          input: query,
+          context: {
+            conversationId,
+            researchDepth,
+            maxSources: maxSources ? parseInt(maxSources, 10) : undefined,
+            maxTokens: maxTokens ? parseInt(maxTokens, 10) : undefined,
+            useBertScore: useBertScore === 'true',
+          },
+        });
+
+        let phase = 'aim';
+        let chunkCount = 0;
+
+        for await (const chunk of stream) {
+          chunkCount++;
+
+          // Send chunk events
+          subject.next({
+            data: JSON.stringify({
+              type: 'chunk',
+              content: chunk,
+              phase,
+              chunkIndex: chunkCount,
+              timestamp: new Date().toISOString(),
+            }),
+            type: 'chunk',
+          } as MessageEvent);
+
+          // Simulate phase transitions based on chunk count (for demo purposes)
+          // In real implementation, this would come from the agent's state
+          if (chunkCount === 10 && phase === 'aim') {
+            phase = 'shoot';
+            subject.next({
+              data: JSON.stringify({
+                type: 'progress',
+                phase: 'shoot',
+                message: 'Gathering sources and evidence...',
+                timestamp: new Date().toISOString(),
+              }),
+              type: 'progress',
+            } as MessageEvent);
+          } else if (chunkCount === 25 && phase === 'shoot') {
+            phase = 'skin';
+            subject.next({
+              data: JSON.stringify({
+                type: 'progress',
+                phase: 'skin',
+                message: 'Synthesizing findings...',
+                timestamp: new Date().toISOString(),
+              }),
+              type: 'progress',
+            } as MessageEvent);
+          }
+        }
+
+        // Send final event
+        subject.next({
+          data: JSON.stringify({
+            type: 'final',
+            message: 'Research completed',
+            totalChunks: chunkCount,
+            timestamp: new Date().toISOString(),
+          }),
+          type: 'final',
+        } as MessageEvent);
+
+        clearInterval(heartbeatInterval);
+        subject.complete();
+      } catch (error: any) {
+        clearInterval(heartbeatInterval);
+        subject.next({
+          data: JSON.stringify({
+            type: 'error',
+            error: error.message || 'Stream error',
+            timestamp: new Date().toISOString(),
+          }),
+          type: 'error',
+        } as MessageEvent);
+        subject.complete();
+      }
+    })();
+
+    return subject.asObservable();
   }
 }

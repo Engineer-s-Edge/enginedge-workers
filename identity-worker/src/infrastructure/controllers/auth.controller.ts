@@ -5,6 +5,9 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { IdentityService } from '../../application/services/identity.service';
 
@@ -27,8 +30,12 @@ export class AuthController {
 
   @Get('profile')
   @HttpCode(HttpStatus.OK)
-  profile() {
-    return { message: 'ok' };
+  async profile(@Query('userId') userId?: string, @Headers('x-user-id') headerUserId?: string) {
+    const id = userId || headerUserId;
+    if (!id) {
+      throw new UnauthorizedException('User ID required');
+    }
+    return this.identity.profile(id);
   }
 
   @Post('token/refresh')
