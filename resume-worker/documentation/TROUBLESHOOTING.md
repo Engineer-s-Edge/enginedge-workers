@@ -1,585 +1,773 @@
-# resume Worker Troubleshooting Guide
+# Resume Worker Troubleshooting Guide
 
 ## Overview
 
-This guide provides systematic troubleshooting procedures for common issues encountered with the resume Worker. Issues are categorized by severity and include diagnostic steps, solutions, and prevention measures.
+This guide covers common issues, error messages, and solutions for the Resume Worker and Resume NLP Service.
 
-## Quick Health Check
+---
 
-### Service Status Check
+## Table of Contents
 
-```bash
-# Check if service is running
-curl -f http://localhost:3001/health
+- [Service Startup Issues](#service-startup-issues)
+- [Resume NLP Service Issues](#resume-nlp-service-issues)
+- [Kafka Connectivity](#kafka-connectivity)
+- [MongoDB Issues](#mongodb-issues)
+- [PDF Parsing Errors](#pdf-parsing-errors)
+- [LaTeX Compilation Failures](#latex-compilation-failures)
+- [Vector Search Problems](#vector-search-problems)
+- [Agent Iteration Issues](#agent-iteration-issues)
+- [Performance Problems](#performance-problems)
+- [WebSocket Connection Issues](#websocket-connection-issues)
 
-# Check detailed health status
-curl http://localhost:3001/health | jq .
+---
 
-# Check Kubernetes pod status
-kubectl get pods -n enginedge-workers -l app=resume-worker
+## Service Startup Issues
 
-# Check service logs
-kubectl logs -f deployment/resume-worker -n enginedge-workers --tail=100
-```
-
-### Key Metrics to Monitor
-
-```bash
-# Command processing rate
-curl http://localhost:9090/metrics | grep command_processing_total
-
-# Error rate
-curl http://localhost:9090/metrics | grep "status=\"failed\""
-
-# Queue depth
-curl http://localhost:9090/metrics | grep command_queue_depth
-
-# System resources
-curl http://localhost:9090/metrics | grep "process_"
-```
-
-## Critical Issues
-
-### 1. Service Completely Down
+### Issue: Service fails to start
 
 **Symptoms:**
-- Health endpoint returns 503 or connection refused
-- No response to any API calls
-- Pod status shows CrashLoopBackOff or Error
-
-**Diagnostic Steps:**
-
-1. **Check Pod Status:**
-```bash
-kubectl describe pod <pod-name> -n enginedge-workers
-kubectl logs <pod-name> -n enginedge-workers --previous
+```
+Error: Cannot connect to MongoDB
 ```
 
-2. **Verify Environment Variables:**
+**Causes:**
+- MongoDB not running
+- Incorrect connection string
+- Network connectivity issues
+
+**Solutions:**
+
+1. **Check MongoDB status:**
 ```bash
-kubectl exec -it <pod-name> -n enginedge-workers -- env | grep -E "(PORT|KAFKA|MONGODB)"
+# Via Docker
+docker ps | grep mongodb
+
+# Via platform
+cd enginedge-core/platform
+docker-compose ps mongodb
 ```
 
-3. **Check Dependencies:**
+2. **Verify connection string:**
 ```bash
-# Test Kafka connectivity
-kubectl exec -it <pod-name> -n enginedge-workers -- nc -zv kafka-service 9092
+# Check environment variable
+echo $MONGODB_URI
 
-# Test MongoDB connectivity
-kubectl exec -it <pod-name> -n enginedge-workers -- mongosh mongodb://$MONGODB_URI --eval "db.runCommand('ping')"
+# Should be: mongodb://localhost:27017/resume-worker
 ```
 
-**Common Causes & Solutions:**
-
-| Cause | Solution |
-|-------|----------|
-| Invalid environment variables | Check ConfigMap and Secret values |
-| Database connection failure | Verify MongoDB credentials and network policies |
-| Kafka broker unreachable | Check Kafka cluster status and network connectivity |
-| Insufficient resources | Increase memory/CPU limits or scale horizontally |
-| Application crash | Check application logs for stack traces |
-
-**Emergency Recovery:**
+3. **Start MongoDB:**
 ```bash
-# Restart deployment
-kubectl rollout restart deployment/resume-worker -n enginedge-workers
-
-# Scale down and up
-kubectl scale deployment resume-worker --replicas=0 -n enginedge-workers
-kubectl scale deployment resume-worker --replicas=3 -n enginedge-workers
-
-# Force recreate pods
-kubectl delete pods -l app=resume-worker -n enginedge-workers
+cd enginedge-core/platform
+docker-compose up -d mongodb
 ```
 
-### 2. High Error Rate (>5%)
+4. **Test connection:**
+```bash
+mongosh mongodb://localhost:27017/resume-worker
+```
+
+---
+
+### Issue: Port already in use
 
 **Symptoms:**
-- Increased 5xx HTTP status codes
-- Command processing failures
-- Alert triggers for error rate
-
-**Diagnostic Steps:**
-
-1. **Check Error Logs:**
-```bash
-kubectl logs -f deployment/resume-worker -n enginedge-workers | grep ERROR
+```
+Error: listen EADDRINUSE: address already in use :::3006
 ```
 
-2. **Analyze Error Patterns:**
-```bash
-# Check error distribution by type
-curl http://localhost:9090/metrics | grep "command_processing_total" | grep "failed"
+**Solutions:**
 
-# Check HTTP error codes
-curl http://localhost:9090/metrics | grep "http_requests_total" | grep "status="
+1. **Find process using port:**
+```bash
+# Windows
+netstat -ano | findstr :3006
+
+# Linux/Mac
+lsof -i :3006
 ```
 
-3. **Database Issues:**
+2. **Kill process:**
 ```bash
-# Check MongoDB connection pool
-kubectl exec -it <pod-name> -n enginedge-workers -- mongosh --eval "db.serverStatus().connections"
+# Windows
+taskkill /PID <PID> /F
 
-# Check for database locks
-kubectl exec -it <pod-name> -n enginedge-workers -- mongosh --eval "db.currentOp()"
+# Linux/Mac
+kill -9 <PID>
 ```
 
-**Common Causes & Solutions:**
+3. **Change port:**
+```bash
+# Set different port
+export PORT=3007
+npm run start:dev
+```
 
-| Cause | Solution |
-|-------|----------|
-| Database connection pool exhausted | Increase connection pool size or add more instances |
-| Invalid command payloads | Add input validation and error handling |
-| External service failures | Implement circuit breakers and retry logic |
-| Resource constraints | Scale vertically or horizontally |
-| Code bugs | Review recent deployments and rollback if necessary |
+---
 
-### 3. High Latency (>500ms P95)
+## Resume NLP Service Issues
+
+### Issue: spaCy model not found
 
 **Symptoms:**
-- Slow response times
-- Timeout errors
-- User experience degradation
-
-**Diagnostic Steps:**
-
-1. **Check Latency Metrics:**
-```bash
-# P95 latency
-curl http://localhost:9090/metrics | grep "command_processing_duration_seconds" | grep "quantile=\"0.95\""
-
-# HTTP request duration
-curl http://localhost:9090/metrics | grep "http_request_duration_seconds"
+```
+OSError: [E050] Can't find model 'en_core_web_sm'
 ```
 
-2. **Profile Application:**
-```bash
-# Enable profiling
-kubectl exec -it <pod-name> -n enginedge-workers -- node --prof -- node dist/main.js
+**Solutions:**
 
-# Check event loop lag
-curl http://localhost:9090/metrics | grep eventloop
+1. **Download spaCy model:**
+```bash
+python -m spacy download en_core_web_sm
 ```
 
-3. **Database Performance:**
+2. **Verify installation:**
 ```bash
-# Check slow queries
-kubectl exec -it <pod-name> -n enginedge-workers -- mongosh --eval "db.system.profile.find().sort({ts: -1}).limit(5)"
-
-# Check index usage
-kubectl exec -it <pod-name> -n enginedge-workers -- mongosh --eval "db.commands.getIndexes()"
+python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('OK')"
 ```
 
-**Optimization Steps:**
+3. **Rebuild Docker image:**
+```bash
+cd enginedge-workers/resume-nlp-service
+docker build -t resume-nlp-service .
+```
 
-1. **Database Optimization:**
+---
+
+### Issue: NLP service not responding
+
+**Symptoms:**
+- Bullet evaluations timeout
+- Job posting extractions fail
+- No response from Kafka
+
+**Diagnosis:**
+
+1. **Check service status:**
+```bash
+curl http://localhost:8001/health
+```
+
+2. **Check logs:**
+```bash
+docker logs resume-nlp-service
+```
+
+3. **Check Kafka connectivity:**
+```bash
+# From NLP service container
+docker exec -it resume-nlp-service python -c "from kafka import KafkaProducer; print('OK')"
+```
+
+**Solutions:**
+
+1. **Restart service:**
+```bash
+docker-compose restart resume-nlp-service
+```
+
+2. **Check Kafka brokers:**
+```bash
+# Verify KAFKA_BROKERS environment variable
+docker exec resume-nlp-service env | grep KAFKA
+```
+
+3. **Increase timeout:**
+```python
+# In src/main.py
+KAFKA_TIMEOUT = 60000  # Increase to 60 seconds
+```
+
+---
+
+## Kafka Connectivity
+
+### Issue: Cannot connect to Kafka
+
+**Symptoms:**
+```
+KafkaTimeoutError: Failed to update metadata after 60.0 secs
+```
+
+**Solutions:**
+
+1. **Check Kafka status:**
+```bash
+docker ps | grep kafka
+```
+
+2. **Verify broker address:**
+```bash
+# Should be kafka:9092 inside Docker network
+# Should be localhost:9094 from host
+echo $KAFKA_BROKERS
+```
+
+3. **Test connectivity:**
+```bash
+# From inside container
+docker exec -it resume-worker nc -zv kafka 9092
+
+# From host
+nc -zv localhost 9094
+```
+
+4. **Check Kafka logs:**
+```bash
+docker logs kafka
+```
+
+---
+
+### Issue: Consumer lag increasing
+
+**Symptoms:**
+- Slow processing
+- Messages piling up
+- High consumer lag metric
+
+**Diagnosis:**
+```promql
+# Check consumer lag
+kafka_consumer_lag{topic="resume.bullet.evaluate.request"}
+```
+
+**Solutions:**
+
+1. **Scale consumers:**
+```bash
+# Increase NLP service replicas
+docker-compose up -d --scale resume-nlp-service=3
+```
+
+2. **Increase partition count:**
+```bash
+kafka-topics --bootstrap-server localhost:9094 \
+  --alter --topic resume.bullet.evaluate.request \
+  --partitions 12
+```
+
+3. **Optimize processing:**
+- Batch messages
+- Reduce processing time
+- Add caching
+
+---
+
+## MongoDB Issues
+
+### Issue: Slow queries
+
+**Symptoms:**
+- High latency on experience bank searches
+- Slow resume retrieval
+- Timeouts
+
+**Diagnosis:**
 ```javascript
-// Add missing indexes
-db.commands.createIndex({ taskType: 1, createdAt: -1 });
-db.commands.createIndex({ status: 1, updatedAt: -1 });
+// In MongoDB shell
+db.experienceBankItems.find({userId: "user123"}).explain("executionStats")
 ```
 
-2. **Application Optimization:**
+**Solutions:**
+
+1. **Create indexes:**
+```javascript
+// Experience bank indexes
+db.experienceBankItems.createIndex({userId: 1, "metadata.reviewed": 1})
+db.experienceBankItems.createIndex({hash: 1}, {unique: true})
+db.experienceBankItems.createIndex({"metadata.technologies": 1})
+
+// Resume indexes
+db.resumes.createIndex({userId: 1})
+db.resumes.createIndex({userId: 1, createdAt: -1})
+
+// Job posting indexes
+db.jobPostings.createIndex({userId: 1, createdAt: -1})
+```
+
+2. **Analyze slow queries:**
+```javascript
+db.setProfilingLevel(2)  // Profile all queries
+db.system.profile.find().sort({millis: -1}).limit(10)
+```
+
+3. **Optimize queries:**
 ```typescript
-// Implement caching
-@Injectable()
-export class CachedCommandService {
-  @UseInterceptors(CacheInterceptor)
-  async getCommand(taskId: string): Promise<Command> {
-    // Cached implementation
+// Use projection to limit fields
+await this.model.find({userId}, {bulletText: 1, metadata: 1})
+
+// Use lean() for read-only queries
+await this.model.find({userId}).lean()
+```
+
+---
+
+### Issue: Connection pool exhausted
+
+**Symptoms:**
+```
+MongoServerSelectionError: connection pool exhausted
+```
+
+**Solutions:**
+
+1. **Increase pool size:**
+```typescript
+// In app.module.ts
+MongooseModule.forRoot(process.env.MONGODB_URI, {
+  maxPoolSize: 50,  // Increase from default 10
+  minPoolSize: 10,
+})
+```
+
+2. **Check for connection leaks:**
+```typescript
+// Always close cursors
+const cursor = this.model.find().cursor()
+try {
+  // Process
+} finally {
+  await cursor.close()
+}
+```
+
+---
+
+## PDF Parsing Errors
+
+### Issue: PDF parsing fails
+
+**Symptoms:**
+```
+Error: Failed to parse PDF
+```
+
+**Causes:**
+- Corrupted PDF
+- Unsupported PDF format
+- Missing PyMuPDF
+
+**Solutions:**
+
+1. **Verify PDF:**
+```bash
+# Check if PDF is valid
+pdfinfo resume.pdf
+```
+
+2. **Try OCR fallback:**
+```json
+{
+  "options": {
+    "ocrFallback": true
   }
 }
 ```
 
-3. **Infrastructure Scaling:**
+3. **Check PyMuPDF installation:**
 ```bash
-# Horizontal scaling
-kubectl scale deployment resume-worker --replicas=5 -n enginedge-workers
-
-# Vertical scaling
-kubectl patch deployment resume-worker -n enginedge-workers --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/cpu", "value": "1000m"}]'
+python -c "import fitz; print(fitz.__version__)"
 ```
 
-## Warning Issues
+---
 
-### 4. High Queue Depth
+### Issue: Layout detection errors
 
 **Symptoms:**
-- Increasing command queue depth
-- Processing lag
-- Delayed command execution
-
-**Diagnostic Steps:**
-
-1. **Check Queue Metrics:**
-```bash
-curl http://localhost:9090/metrics | grep queue_depth
-```
-
-2. **Monitor Processing Rate:**
-```bash
-# Commands processed per second
-curl http://localhost:9090/metrics | grep "rate(command_processing_total"
-```
-
-3. **Check Consumer Lag:**
-```bash
-# Kafka consumer lag
-kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group resume-worker-group
-```
+- Tables not detected
+- Columns misaligned
+- Incorrect section extraction
 
 **Solutions:**
 
-1. **Scale Processing Capacity:**
-```bash
-# Increase replica count
-kubectl scale deployment resume-worker --replicas=5 -n enginedge-workers
-```
+1. **Simplify resume layout:**
+- Avoid complex tables
+- Use single column
+- Remove graphics/icons
 
-2. **Optimize Processing:**
-```typescript
-// Implement batch processing
-@Injectable()
-export class BatchCommandProcessor {
-  async processBatch(commands: Command[]): Promise<CommandResult[]> {
-    // Process multiple commands concurrently
-    return Promise.all(commands.map(cmd => this.processCommand(cmd)));
-  }
-}
-```
-
-### 5. Memory Usage High
-
-**Symptoms:**
-- Memory usage >80% of limits
-- Frequent garbage collection
-- Out of memory errors
-
-**Diagnostic Steps:**
-
-1. **Check Memory Metrics:**
-```bash
-curl http://localhost:9090/metrics | grep "process_resident_memory_bytes"
-```
-
-2. **Memory Profiling:**
-```bash
-# Generate heap snapshot
-kubectl exec -it <pod-name> -n enginedge-workers -- node --inspect --heap-snapshot
-```
-
-3. **Check Connection Pools:**
-```bash
-# MongoDB connections
-kubectl exec -it <pod-name> -n enginedge-workers -- mongosh --eval "db.serverStatus().connections"
-```
-
-**Solutions:**
-
-1. **Memory Leak Detection:**
-```typescript
-// Add memory monitoring
-import * as memwatch from 'memwatch-next';
-
-memwatch.on('leak', (info) => {
-  this.logger.error('Memory leak detected', info);
-});
-```
-
-2. **Optimize Data Structures:**
-```typescript
-// Use streams for large data processing
-import { Readable } from 'stream';
-
-export class StreamingCommandProcessor {
-  async processLargeCommand(command: Command): Promise<CommandResult> {
-    const stream = this.createDataStream(command.payload);
-    return this.processStream(stream);
-  }
-}
-```
-
-### 6. Kafka Connection Issues
-
-**Symptoms:**
-- Message publishing failures
-- Consumer lag increasing
-- Connection timeout errors
-
-**Diagnostic Steps:**
-
-1. **Check Kafka Metrics:**
-```bash
-curl http://localhost:9090/metrics | grep kafka
-```
-
-2. **Test Connectivity:**
-```bash
-# Test broker connectivity
-kubectl exec -it <pod-name> -n enginedge-workers -- nc -zv kafka-service 9092
-
-# Check Kafka cluster status
-kubectl exec -it kafka-pod -- kafka-broker-api-versions --bootstrap-server localhost:9092
-```
-
-3. **Check Consumer Group:**
-```bash
-kubectl exec -it kafka-pod -- kafka-consumer-groups --describe --group resume-worker-group --bootstrap-server localhost:9092
-```
-
-**Solutions:**
-
-1. **Connection Configuration:**
-```typescript
-const kafka = new Kafka({
-  clientId: 'resume-worker',
-  brokers: process.env.KAFKA_BROKERS.split(','),
-  retry: {
-    initialRetryTime: 100,
-    retries: 8,
-    maxRetryTime: 30000,
-  },
-  connectionTimeout: 30000,
-  requestTimeout: 60000,
-});
-```
-
-2. **Network Policies:**
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: resume-worker-kafka-access
-spec:
-  podSelector:
-    matchLabels:
-      app: resume-worker
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app: kafka
-    ports:
-    - protocol: TCP
-      port: 9092
-```
-
-## Info-Level Issues
-
-### 7. Configuration Drift
-
-**Symptoms:**
-- Inconsistent behavior across instances
-- Environment variable mismatches
-
-**Diagnostic Steps:**
-
-1. **Compare Configurations:**
-```bash
-# Check ConfigMaps
-kubectl get configmap resume-worker-config -n enginedge-workers -o yaml
-
-# Check Secrets
-kubectl get secret resume-worker-secrets -n enginedge-workers -o yaml
-```
-
-2. **Verify Pod Configurations:**
-```bash
-kubectl describe pod <pod-name> -n enginedge-workers | grep -A 10 "Environment"
-```
-
-**Solutions:**
-
-1. **Configuration Synchronization:**
-```bash
-# Update ConfigMap
-kubectl apply -f updated-configmap.yaml
-
-# Rolling restart
-kubectl rollout restart deployment/resume-worker -n enginedge-workers
-```
-
-### 8. Log Volume High
-
-**Symptoms:**
-- Large log files
-- Log aggregation overload
-- Storage space issues
-
-**Diagnostic Steps:**
-
-1. **Check Log Volume:**
-```bash
-kubectl logs deployment/resume-worker -n enginedge-workers --since=1h | wc -l
-```
-
-2. **Analyze Log Patterns:**
-```bash
-kubectl logs deployment/resume-worker -n enginedge-workers | grep "ERROR\|WARN" | head -20
-```
-
-**Solutions:**
-
-1. **Log Level Adjustment:**
-```yaml
-env:
-- name: LOG_LEVEL
-  value: "warn"  # Reduce from "info" or "debug"
-```
-
-2. **Log Sampling:**
-```typescript
-// Implement log sampling
-@Injectable()
-export class SampledLogger {
-  private sampleRate = 0.1; // Log 10% of info messages
-
-  info(message: string, meta?: any) {
-    if (Math.random() < this.sampleRate) {
-      this.logger.info(message, meta);
+2. **Manual section specification:**
+```json
+{
+  "sections": {
+    "experience": {
+      "start": 100,
+      "end": 500
     }
   }
 }
 ```
 
-## Diagnostic Tools
+---
 
-### Built-in Diagnostics
+## LaTeX Compilation Failures
 
+### Issue: LaTeX compilation fails
+
+**Symptoms:**
+```
+Error: pdflatex exited with code 1
+```
+
+**Diagnosis:**
 ```bash
-# Health check with dependencies
-curl http://localhost:3001/health?full=true
-
-# Metrics endpoint
-curl http://localhost:9090/metrics
-
-# Application profiling
-curl http://localhost:3001/debug/pprof/heap
-curl http://localhost:3001/debug/pprof/profile
+# Check LaTeX logs
+cat /tmp/latex_compile_123.log
 ```
 
-### External Tools
+**Common Errors:**
 
-```bash
-# Network connectivity testing
-kubectl run test-pod --image=busybox --rm -it -- nc -zv resume-worker-service 3001
-
-# Database connectivity
-kubectl run mongo-test --image=mongo --rm -it -- mongosh mongodb://user:pass@mongodb:27017/resume_worker
-
-# Kafka testing
-kubectl run kafka-test --image=confluentinc/cp-kafka --rm -it -- kafka-console-producer --broker-list kafka:9092 --topic test
+1. **Missing package:**
+```latex
+! LaTeX Error: File `geometry.sty' not found
 ```
+**Solution:** Install package in latex-worker
 
-## Prevention Measures
-
-### Monitoring Setup
-
-1. **Alert Configuration:**
-```yaml
-groups:
-  - name: resume-worker-prevention
-    rules:
-      - alert: ServiceDegraded
-        expr: up{job="resume-worker"} < 1
-        for: 5m
-        labels:
-          severity: critical
-
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5..", job="resume-worker"}[5m]) > 0.05
-        for: 5m
-        labels:
-          severity: warning
+2. **Syntax error:**
+```latex
+! Undefined control sequence
 ```
+**Solution:** Fix LaTeX syntax
 
-2. **Dashboard Monitoring:**
-- Set up Grafana dashboards for real-time monitoring
-- Configure alerting for key metrics
-- Implement automated remediation where possible
-
-### Best Practices
-
-1. **Deployment Strategy:**
-```yaml
-strategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxUnavailable: 1
-    maxSurge: 1
+3. **Timeout:**
 ```
-
-2. **Resource Management:**
-```yaml
-resources:
-  requests:
-    memory: "256Mi"
-    cpu: "100m"
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
+Error: Compilation timeout after 30s
 ```
+**Solution:** Increase timeout or simplify document
 
-3. **Circuit Breakers:**
+---
+
+## Vector Search Problems
+
+### Issue: Poor search results
+
+**Symptoms:**
+- Irrelevant bullets returned
+- Low similarity scores
+- Missing expected results
+
+**Solutions:**
+
+1. **Check embedding model:**
 ```typescript
-@Injectable()
-export class CircuitBreakerService {
-  async executeWithCircuitBreaker(fn: () => Promise<any>) {
-    // Implement circuit breaker pattern
+// Verify model name
+console.log(item.vectorModel)  // Should be "text-embedding-004"
+```
+
+2. **Regenerate embeddings:**
+```typescript
+// Re-embed all bullets
+await this.experienceBankService.regenerateEmbeddings(userId)
+```
+
+3. **Adjust search parameters:**
+```typescript
+// Increase limit
+const results = await this.search(userId, {
+  query,
+  limit: 20,  // Increase from 10
+  minScore: 0.7,  // Lower threshold
+})
+```
+
+4. **Add metadata filters:**
+```typescript
+// Combine vector + metadata search
+const results = await this.search(userId, {
+  query: "microservices",
+  filters: {
+    technologies: ["Docker"],
+    reviewed: true,
   }
+})
+```
+
+---
+
+### Issue: Slow vector search
+
+**Symptoms:**
+- High search latency (>1s)
+- Timeouts
+
+**Solutions:**
+
+1. **Check vector index:**
+```javascript
+// In data-processing-worker
+db.vectors.getIndexes()
+```
+
+2. **Reduce search scope:**
+```typescript
+// Add filters to reduce search space
+filters: {
+  category: "work",
+  reviewed: true,
 }
 ```
 
-## Emergency Procedures
+3. **Cache frequent searches:**
+```typescript
+// Add Redis caching
+const cacheKey = `search:${userId}:${query}`
+const cached = await redis.get(cacheKey)
+if (cached) return JSON.parse(cached)
+```
 
-### Incident Response
+---
 
-1. **Immediate Actions:**
-   - Assess impact and severity
-   - Notify stakeholders
-   - Start incident timeline
+## Agent Iteration Issues
 
-2. **Containment:**
-   - Isolate affected components
-   - Implement temporary fixes
-   - Scale resources if needed
+### Issue: Agent not responding
 
-3. **Recovery:**
-   - Deploy fixes
-   - Validate recovery
-   - Monitor for recurrence
+**Symptoms:**
+- WebSocket connection established but no messages
+- Agent stuck in "thinking" state
+- No evaluation updates
 
-4. **Post-Mortem:**
-   - Document root cause
-   - Implement preventive measures
-   - Update runbooks
+**Diagnosis:**
 
-### Contact Information
+1. **Check WebSocket connection:**
+```javascript
+// In browser console
+socket.on('connect', () => console.log('Connected'))
+socket.on('disconnect', () => console.log('Disconnected'))
+```
 
-- **Development Team:** dev-team@enginedge.com
-- **Infrastructure Team:** infra-team@enginedge.com
-- **On-Call Engineer:** oncall@enginedge.com
-- **Emergency Hotline:** +1-800-ENG-EDGE
+2. **Check agent status:**
+```bash
+# Check assistant-worker logs
+docker logs assistant-worker | grep "agent_123"
+```
 
-### Escalation Matrix
+**Solutions:**
 
-| Severity | Response Time | Escalation |
-|----------|---------------|------------|
-| Critical | 15 minutes | On-call engineer + management |
-| High | 1 hour | Development team lead |
-| Medium | 4 hours | Development team |
-| Low | 24 hours | Development team |
+1. **Restart iteration:**
+```javascript
+socket.emit('stop-iteration')
+socket.emit('start-iteration', {resumeId, jobPostingId})
+```
 
-## Runbook Updates
+2. **Check assistant-worker:**
+```bash
+curl http://localhost:3001/health
+```
 
-This troubleshooting guide should be updated whenever:
+3. **Increase timeouts:**
+```typescript
+// In resume-iterator.gateway.ts
+const AGENT_TIMEOUT = 120000  // 2 minutes
+```
 
-- New error patterns are discovered
-- Infrastructure changes are made
-- New monitoring alerts are added
-- Incident post-mortems reveal new issues
+---
 
-**Last Updated:** October 2024
-**Version:** 1.0
+### Issue: Iteration not improving score
+
+**Symptoms:**
+- Score stays the same
+- No fixes applied
+- Iterations complete without changes
+
+**Solutions:**
+
+1. **Check evaluation results:**
+```typescript
+// Get latest report
+const report = await this.evaluatorService.getReportById(reportId)
+console.log(report.findings)  // Check what issues were found
+```
+
+2. **Verify auto-fix generation:**
+```typescript
+// Check if fixes are being generated
+console.log(report.suggestedSwaps)
+```
+
+3. **Lower target score:**
+```json
+{
+  "targetScore": 90  // Lower from 95
+}
+```
+
+---
+
+## Performance Problems
+
+### Issue: High memory usage
+
+**Symptoms:**
+- Memory usage > 80%
+- Out of memory errors
+- Slow performance
+
+**Diagnosis:**
+```promql
+# Check memory usage
+nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes
+```
+
+**Solutions:**
+
+1. **Increase heap size:**
+```bash
+export NODE_OPTIONS="--max-old-space-size=4096"
+npm run start:prod
+```
+
+2. **Find memory leaks:**
+```bash
+npm install -g clinic
+clinic doctor -- node dist/main.js
+```
+
+3. **Optimize queries:**
+```typescript
+// Use lean() for read-only
+.lean()
+
+// Use select() to limit fields
+.select('bulletText metadata')
+
+// Stream large results
+.cursor()
+```
+
+---
+
+### Issue: High CPU usage
+
+**Symptoms:**
+- CPU usage > 80%
+- Slow response times
+- Event loop lag
+
+**Solutions:**
+
+1. **Profile CPU:**
+```bash
+npm install -g clinic
+clinic flame -- node dist/main.js
+```
+
+2. **Optimize hot paths:**
+- Add caching
+- Batch operations
+- Use async/await properly
+
+3. **Scale horizontally:**
+```bash
+# Run multiple instances
+docker-compose up -d --scale resume-worker=3
+```
+
+---
+
+## WebSocket Connection Issues
+
+### Issue: WebSocket disconnects frequently
+
+**Symptoms:**
+- Connection drops every few minutes
+- "disconnect" events
+- Lost messages
+
+**Solutions:**
+
+1. **Enable heartbeat:**
+```typescript
+// In gateway
+@WebSocketServer()
+server: Server;
+
+ngAfterInit() {
+  this.server.engine.pingInterval = 10000;
+  this.server.engine.pingTimeout = 5000;
+}
+```
+
+2. **Implement reconnection:**
+```javascript
+// Client-side
+socket.on('disconnect', () => {
+  setTimeout(() => socket.connect(), 1000)
+})
+```
+
+3. **Check reverse proxy:**
+```nginx
+# Nginx config
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_read_timeout 86400;
+```
+
+---
+
+## Common Error Messages
+
+### `ECONNREFUSED`
+**Meaning:** Service not running or wrong port  
+**Solution:** Check service status and port configuration
+
+### `ETIMEDOUT`
+**Meaning:** Request timeout  
+**Solution:** Increase timeout or check network connectivity
+
+### `ValidationError`
+**Meaning:** Invalid input data  
+**Solution:** Check request body against schema
+
+### `MongoServerError: E11000 duplicate key`
+**Meaning:** Duplicate entry  
+**Solution:** Check for existing record or update instead of insert
+
+### `KafkaJSError: The group coordinator is not available`
+**Meaning:** Kafka consumer group issue  
+**Solution:** Restart Kafka or wait for rebalancing
+
+---
+
+## Debug Mode
+
+Enable debug logging:
+
+```bash
+# Set log level
+export LOG_LEVEL=debug
+
+# Enable Kafka debug
+export KAFKAJS_LOG_LEVEL=debug
+
+# Enable MongoDB debug
+export DEBUG=mongoose:*
+```
+
+---
+
+## Getting Help
+
+1. **Check logs:**
+```bash
+docker logs resume-worker
+docker logs resume-nlp-service
+```
+
+2. **Check metrics:**
+```bash
+curl http://localhost:3006/metrics
+```
+
+3. **Check health:**
+```bash
+curl http://localhost:3006/health
+curl http://localhost:8001/health
+```
+
+4. **GitHub Issues:** [Report issues](https://github.com/yourusername/enginedge/issues)
+
+---
+
+**Last Updated:** November 3, 2025  
+**Version:** 1.0.0

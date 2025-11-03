@@ -1,35 +1,33 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
-  try {
-    const app = await NestFactory.create(AppModule);
-    app.enableCors();
-    const port = process.env.PORT || 3001;
-    await app.listen(port);
-    Logger.log(`Application running on port ${port}`, 'Bootstrap');
+  const app = await NestFactory.create(AppModule);
 
-    // Handle termination signals
-    const signals = ['SIGTERM', 'SIGINT'];
-    signals.forEach((signal) => {
-      process.on(signal, async () => {
-        Logger.log(
-          `${signal} signal received: closing HTTP server`,
-          'Bootstrap',
-        );
-        await app.close();
-        Logger.log('HTTP server closed', 'Bootstrap');
-        process.exit(0);
-      });
-    });
-  } catch (error) {
-    Logger.error(
-      `Failed to start the application: ${error instanceof Error ? error.message : String(error)}`,
-      error instanceof Error ? error.stack : undefined,
-      'Bootstrap',
-    );
-    process.exit(1);
-  }
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // CORS
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+  });
+
+  // Get config service
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT') || 3005;
+
+  await app.listen(port);
+  console.log(`🚀 Resume Worker is running on: http://localhost:${port}`);
+  console.log(`📊 MongoDB: ${configService.get<string>('MONGODB_URI')}`);
 }
+
 bootstrap();

@@ -1,43 +1,37 @@
+import { Module } from '@nestjs/common';
+import { ApplicationModule } from '../application/application.module';
+import { ExperienceBankController } from './controllers/experience-bank.controller';
+import { ResumeController } from './controllers/resume.controller';
+import { JobPostingController } from './controllers/job-posting.controller';
+import { EvaluationController } from './controllers/evaluation.controller';
+import { ResumeTailoringController } from './controllers/resume-tailoring.controller';
+import { ResumeEditingController } from './controllers/resume-editing.controller';
+import { ResumeIteratorGateway } from './gateways/resume-iterator.gateway';
+import { BulletReviewGateway } from './gateways/bullet-review.gateway';
+import { ResumeBuilderGateway } from './gateways/resume-builder.gateway';
+import { CoverLetterController } from './controllers/cover-letter.controller';
+
 /**
  * Infrastructure Module
- *
- * Configures adapters, controllers, and external integrations.
- */
-
-import { Module, Global } from '@nestjs/common';
-import { ApplicationModule } from '@application/application.module';
-import { HealthController } from 'health/health.controller';
-import { ThreadingModule } from './threading/threading.module';
-import { MetricsAdapter } from './adapters/monitoring';
-
-
-/**
- * Infrastructure module - adapters, controllers, and wiring
  * 
- * Phase 1: Core agent infrastructure ✅
- * Phase 2: Specialized agent controllers ✅
- * Phase 3: Memory systems ✅
- * Phase 4: Knowledge graph ✅
- * Phase 5: Advanced features ⏳
- * 
- * Made global to ensure DI providers are available across all modules
+ * Contains all adapters, controllers, gateways, and external integrations.
  */
-@Global()
 @Module({
-  imports: [
-    ApplicationModule,
-    ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
-  ],
+  imports: [ApplicationModule],
   controllers: [
-    HealthController,
+    ExperienceBankController,
+    ResumeController,
+    JobPostingController,
+    EvaluationController,
+    ResumeTailoringController,
+    ResumeEditingController,
+    CoverLetterController,
   ],
   providers: [
-    
-    
-    MetricsAdapter,
+    ResumeIteratorGateway,
+    BulletReviewGateway,
+    ResumeBuilderGateway,
   ],
-  exports: [
-    
-  ],
+  exports: [],
 })
 export class InfrastructureModule {}

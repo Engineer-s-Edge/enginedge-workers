@@ -1,568 +1,573 @@
-# resume Worker Performance Guide
+# Resume Worker Performance Guide
 
 ## Overview
 
-This document provides performance optimization strategies, monitoring guidelines, and benchmarking results for the resume Worker. The service is designed to handle high-throughput command processing with low latency and high reliability.
+This guide covers performance optimization strategies, benchmarks, and tuning recommendations for the Resume Worker and Resume NLP Service.
 
-## Performance Characteristics
+---
 
-### Current Benchmarks
+## Performance Targets
 
-Based on testing with realistic workloads:
+| Operation | Target | P95 | P99 |
+|-----------|--------|-----|-----|
+| Bullet Evaluation | < 1s | < 2s | < 3s |
+| Job Posting Extraction | < 2s | < 4s | < 6s |
+| Resume Evaluation | < 5s | < 10s | < 15s |
+| Experience Bank Search | < 500ms | < 1s | < 2s |
+| Full Tailoring Workflow | < 5min | < 8min | < 10min |
+| Vector Search | < 100ms | < 200ms | < 500ms |
+| HTTP API Response | < 200ms | < 500ms | < 1s |
 
-- **Throughput**: 500-1000 commands/second
-- **Latency**: P95 < 500ms for command processing
-- **Error Rate**: < 0.1% under normal conditions
-- **Resource Usage**: ~200MB RAM, ~0.2 CPU cores per instance
+---
 
-### Scaling Limits
+## Optimization Strategies
 
-- **Vertical Scaling**: Up to 2 CPU cores, 4GB RAM per instance
-- **Horizontal Scaling**: 10+ instances for high availability
-- **Database Connections**: 20-50 concurrent connections per instance
+### 1. Experience Bank Search Optimization
 
-## Performance Monitoring
+#### Problem: Slow vector searches
 
-### Key Metrics
+**Current Performance:**
+- 1000ms for 10 results
+- High CPU usage
+- Memory spikes
 
-#### Application Metrics
+**Optimizations:**
 
-```prometheus
-# Command processing rate
-rate(command_processing_total{job="resume-worker"}[5m])
-
-# Processing latency (P95)
-histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m]))
-
-# Error rate
-rate(command_processing_total{status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{job="resume-worker"}[5m])
-
-# Queue depth
-command_queue_depth{job="resume-worker"}
-```
-
-#### System Metrics
-
-```prometheus
-# CPU usage
-rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) * 100
-
-# Memory usage
-process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024
-
-# Network I/O
-rate(process_io_read_bytes_total{job="resume-worker"}[5m]) / 1024 / 1024
-rate(process_io_write_bytes_total{job="resume-worker"}[5m]) / 1024 / 1024
-```
-
-#### External Service Metrics
-
-```prometheus
-# Kafka metrics
-rate(kafka_producer_errors_total{job="resume-worker"}[5m])
-kafka_consumer_group_lag{group="resume-worker"}
-
-# Database metrics
-rate(mongodb_connections_total{job="resume-worker"}[5m])
-histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m]))
-```
-
-## Performance Optimization Strategies
-
-### Application-Level Optimizations
-
-#### 1. Asynchronous Processing
-
-**Current Implementation:**
-- Commands processed asynchronously to prevent blocking
-- Background job queues for long-running tasks
-- Non-blocking I/O operations
-
-**Optimization Strategies:**
-```typescript
-// Use worker threads for CPU-intensive tasks
-import { Worker } from 'worker_threads';
-
-export class OptimizedCommandProcessor {
-  async processCommand(command: Command): Promise<CommandResult> {
-    if (this.isCPUIntensive(command)) {
-      return this.processInWorkerThread(command);
-    }
-    return this.processInline(command);
-  }
-}
-```
-
-#### 2. Connection Pooling
-
-**Database Connections:**
-```typescript
-// MongoDB connection pooling
-const mongoose = require('mongoose');
-
-mongoose.connect(process.env.MONGODB_URI, {
-  maxPoolSize: 20,      // Maximum number of connections
-  minPoolSize: 5,       // Minimum number of connections
-  maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
-  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-});
-```
-
-**Kafka Connections:**
-```typescript
-// Kafka producer optimization
-const kafka = new Kafka({
-  clientId: 'resume-worker-optimized',
-  brokers: brokers,
-  retry: {
-    initialRetryTime: 100,
-    retries: 8
-  },
-  producer: {
-    allowAutoTopicCreation: false,
-    batch: {
-      size: 1048576, // 1MB batch size
-      lingerMs: 5    // 5ms linger time
-    }
-  }
-});
-```
-
-#### 3. Caching Strategy
-
-**Redis Caching Implementation:**
-```typescript
-@Injectable()
-export class RedisCacheService {
-  constructor(private readonly redis: Redis) {}
-
-  async getCommandResult(taskId: string): Promise<CommandResult | null> {
-    const cached = await this.redis.get(`command:result:${taskId}`);
-    return cached ? JSON.parse(cached) : null;
-  }
-
-  async setCommandResult(taskId: string, result: CommandResult, ttl = 3600): Promise<void> {
-    await this.redis.setex(`command:result:${taskId}`, ttl, JSON.stringify(result));
-  }
-}
-```
-
-**Cache Invalidation Strategy:**
-- Time-based expiration (TTL)
-- Event-based invalidation via Kafka messages
-- LRU eviction for memory management
-
-### Infrastructure Optimizations
-
-#### 1. Container Optimization
-
-**Dockerfile Optimizations:**
-```dockerfile
-# Multi-stage build for smaller images
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
-
-FROM node:18-alpine AS production
-WORKDIR /app
-RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-USER nestjs
-EXPOSE 3001
-CMD ["node", "dist/main.js"]
-```
-
-**Resource Limits:**
-```yaml
-resources:
-  requests:
-    memory: "256Mi"
-    cpu: "100m"
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
-```
-
-#### 2. Kubernetes Optimization
-
-**Pod Affinity/Anti-Affinity:**
-```yaml
-affinity:
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app
-            operator: In
-            values:
-            - resume-worker
-        topologyKey: kubernetes.io/hostname
-```
-
-**Horizontal Pod Autoscaler:**
-```yaml
-metrics:
-- type: Resource
-  resource:
-    name: cpu
-    target:
-      type: Utilization
-      averageUtilization: 70
-- type: Resource
-  resource:
-    name: memory
-    target:
-      type: Utilization
-      averageUtilization: 80
-- type: Pods
-  pods:
-    metric:
-      name: command_queue_depth
-    target:
-      type: AverageValue
-      averageValue: "50"
-```
-
-### Database Optimization
-
-#### 1. Indexing Strategy
-
-**MongoDB Indexes:**
+1. **Add MongoDB Indexes:**
 ```javascript
-// Command collection indexes
-db.commands.createIndex({ taskId: 1 }, { unique: true });
-db.commands.createIndex({ taskType: 1, createdAt: -1 });
-db.commands.createIndex({ status: 1, updatedAt: -1 });
+// Critical indexes
+db.experienceBankItems.createIndex({userId: 1, "metadata.reviewed": 1})
+db.experienceBankItems.createIndex({"metadata.technologies": 1})
+db.experienceBankItems.createIndex({"metadata.category": 1})
+db.experienceBankItems.createIndex({hash: 1}, {unique: true})
 
-// Result collection indexes
-db.command_results.createIndex({ taskId: 1 }, { unique: true });
-db.command_results.createIndex({ status: 1, createdAt: -1 });
+// Compound index for common queries
+db.experienceBankItems.createIndex({
+  userId: 1,
+  "metadata.reviewed": 1,
+  "metadata.category": 1
+})
 ```
 
-#### 2. Query Optimization
-
-**Efficient Queries:**
+2. **Implement Caching:**
 ```typescript
-// Use projection to limit fields
-const command = await this.commandModel
-  .findOne({ taskId })
-  .select('taskId taskType status')
-  .lean();
+// Redis cache for frequent searches
+@Injectable()
+export class ExperienceBankService {
+  private readonly CACHE_TTL = 300; // 5 minutes
 
-// Use aggregation pipeline for complex queries
-const stats = await this.commandModel.aggregate([
-  { $match: { createdAt: { $gte: startDate } } },
+  async search(userId: string, params: SearchParams) {
+    const cacheKey = `search:${userId}:${JSON.stringify(params)}`;
+    
+    // Check cache
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    // Perform search
+    const results = await this.performSearch(userId, params);
+
+    // Cache results
+    await this.redis.setex(cacheKey, this.CACHE_TTL, JSON.stringify(results));
+
+    return results;
+  }
+}
+```
+
+3. **Optimize Vector Search:**
+```typescript
+// Pre-filter with metadata before vector search
+async search(userId: string, params: SearchParams) {
+  // Step 1: Filter by metadata (fast)
+  const candidates = await this.model.find({
+    userId,
+    'metadata.reviewed': params.filters?.reviewed,
+    'metadata.technologies': { $in: params.filters?.technologies },
+  }).select('_id vector bulletText metadata');
+
+  // Step 2: Vector search on filtered set (smaller dataset)
+  const results = await this.vectorSearch(candidates, params.query);
+
+  return results.slice(0, params.limit);
+}
+```
+
+**Expected Improvement:** 500ms → 100ms (5x faster)
+
+---
+
+### 2. Bullet Evaluation Batching
+
+#### Problem: Evaluating bullets one at a time is slow
+
+**Current Performance:**
+- 1s per bullet
+- 10 bullets = 10s total
+
+**Optimization:**
+
+```typescript
+// Batch evaluation
+async evaluateBullets(bullets: string[], role?: string) {
+  // Send single Kafka message with all bullets
+  const requestId = uuid();
+  
+  await this.kafkaClient.emit('resume.bullet.evaluate.batch.request', {
+    requestId,
+    bullets,
+    role,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Wait for batch response
+  return this.waitForBatchResponse(requestId);
+}
+```
+
+**Python NLP Service:**
+```python
+# Process bullets in parallel
+async def evaluate_bullets_batch(bullets: List[str], role: str):
+    # Use asyncio to process in parallel
+    tasks = [evaluate_bullet(bullet, role) for bullet in bullets]
+    results = await asyncio.gather(*tasks)
+    return results
+```
+
+**Expected Improvement:** 10s → 2s (5x faster)
+
+---
+
+### 3. PDF Parsing Optimization
+
+#### Problem: PDF parsing is slow and memory-intensive
+
+**Current Performance:**
+- 3-5s per PDF
+- High memory usage
+
+**Optimizations:**
+
+1. **Stream Processing:**
+```python
+# Don't load entire PDF into memory
+def parse_pdf_stream(pdf_path: str):
+    with fitz.open(pdf_path) as doc:
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            text = page.get_text()
+            yield process_page(text)
+```
+
+2. **Parallel Page Processing:**
+```python
+# Process pages in parallel
+from multiprocessing import Pool
+
+def parse_pdf_parallel(pdf_path: str):
+    with fitz.open(pdf_path) as doc:
+        page_count = len(doc)
+        
+    with Pool(processes=4) as pool:
+        results = pool.map(process_page, range(page_count))
+    
+    return combine_results(results)
+```
+
+3. **Cache Parsed PDFs:**
+```python
+# Cache parsed results
+@lru_cache(maxsize=100)
+def parse_pdf_cached(pdf_hash: str):
+    return parse_pdf(pdf_hash)
+```
+
+**Expected Improvement:** 4s → 1s (4x faster)
+
+---
+
+### 4. Resume Evaluation Optimization
+
+#### Problem: Full evaluation takes too long
+
+**Current Performance:**
+- 10-15s per evaluation
+- Sequential processing
+
+**Optimization:**
+
+```typescript
+async evaluateResume(resumeId: string, options: EvaluateOptions) {
+  // Step 1: Compile LaTeX (parallel with parsing prep)
+  const [pdfUrl] = await Promise.all([
+    this.latexWorker.compile(resume.latexContent),
+    this.prepareEvaluation(resumeId),
+  ]);
+
+  // Step 2: Parse PDF
+  const parsed = await this.nlpService.parsePDF(pdfUrl);
+
+  // Step 3: Parallel evaluations
+  const [bulletScores, atsChecks, roleAlignment] = await Promise.all([
+    this.evaluateBullets(parsed.bullets),
+    this.checkATS(parsed),
+    this.checkRoleAlignment(parsed, options.targetRole),
+  ]);
+
+  // Step 4: Generate report
+  return this.generateReport({bulletScores, atsChecks, roleAlignment});
+}
+```
+
+**Expected Improvement:** 15s → 5s (3x faster)
+
+---
+
+### 5. Kafka Message Optimization
+
+#### Problem: High Kafka latency
+
+**Optimizations:**
+
+1. **Batch Messages:**
+```typescript
+// Producer config
+const producer = kafka.producer({
+  allowAutoTopicCreation: false,
+  transactionTimeout: 30000,
+  // Batch settings
+  compression: CompressionTypes.GZIP,
+  batch: {
+    size: 16384,  // 16KB batches
+    maxBytes: 1048576,  // 1MB max
+  },
+});
+```
+
+2. **Increase Partitions:**
+```bash
+# More partitions = more parallelism
+kafka-topics --bootstrap-server localhost:9094 \
+  --alter --topic resume.bullet.evaluate.request \
+  --partitions 12
+```
+
+3. **Optimize Consumer:**
+```typescript
+// Consumer config
+const consumer = kafka.consumer({
+  groupId: 'resume-worker-bullet-eval',
+  // Fetch settings
+  maxBytesPerPartition: 1048576,  // 1MB
+  maxWaitTimeInMs: 100,  // Don't wait too long
+  // Session settings
+  sessionTimeout: 30000,
+  heartbeatInterval: 3000,
+});
+```
+
+**Expected Improvement:** 500ms → 100ms latency
+
+---
+
+### 6. Database Query Optimization
+
+#### Problem: Slow MongoDB queries
+
+**Optimizations:**
+
+1. **Use Projections:**
+```typescript
+// Only fetch needed fields
+await this.model.find({userId})
+  .select('bulletText metadata.technologies metadata.role')
+  .lean();  // Return plain objects, not Mongoose documents
+```
+
+2. **Use Aggregation Pipeline:**
+```typescript
+// Complex queries
+await this.model.aggregate([
+  { $match: { userId } },
   { $group: {
-    _id: '$taskType',
+    _id: '$metadata.category',
     count: { $sum: 1 },
-    avgDuration: { $avg: '$duration' }
-  }}
+    avgScore: { $avg: '$metadata.impactScore' }
+  }},
+  { $sort: { count: -1 } }
 ]);
 ```
 
-### Message Broker Optimization
-
-#### 1. Kafka Tuning
-
-**Producer Configuration:**
+3. **Connection Pooling:**
 ```typescript
-const producer = kafka.producer({
-  allowAutoTopicCreation: false,
-  batch: {
-    size: 1048576,    // 1MB batch size
-    lingerMs: 5,      // Wait 5ms for batching
-  },
-  compression: CompressionTypes.GZIP,
+MongooseModule.forRoot(uri, {
+  maxPoolSize: 50,
+  minPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 });
 ```
 
-**Consumer Configuration:**
+**Expected Improvement:** 200ms → 50ms query time
+
+---
+
+### 7. BullMQ Job Queue Optimization
+
+#### Problem: Job queue bottleneck
+
+**Optimizations:**
+
+1. **Increase Concurrency:**
 ```typescript
-const consumer = kafka.consumer({
-  groupId: 'resume-worker-group',
-  sessionTimeout: 30000,
-  heartbeatInterval: 3000,
-  rebalanceTimeout: 60000,
-  maxBytesPerPartition: 1048576, // 1MB max per partition
-});
-```
-
-#### 2. Topic Partitioning
-
-**Partition Strategy:**
-- Partition by `taskType` for load balancing
-- Use consistent hashing for task distribution
-- Monitor partition lag and rebalance as needed
-
-## Load Testing
-
-### Testing Tools
-
-#### Artillery.js Configuration
-
-```yaml
-config:
-  target: 'http://localhost:3001'
-  phases:
-    - duration: 60
-      arrivalRate: 10
-      name: "Warm up phase"
-    - duration: 300
-      arrivalRate: 50
-      name: "Load phase"
-  defaults:
-    headers:
-      Content-Type: 'application/json'
-
-scenarios:
-  - name: 'Process command'
-    weight: 100
-    requests:
-      - post:
-          url: '/command/process'
-          json:
-            taskId: 'test-{{ $randomInt }}'
-            taskType: 'EXECUTE_ASSISTANT'
-            payload:
-              assistantId: 'test-assistant'
-              input: 'Test input data'
-```
-
-#### K6 Configuration
-
-```javascript
-import http from 'k6/http';
-import { check, sleep } from 'k6';
-
-export let options = {
-  stages: [
-    { duration: '1m', target: 10 },   // Warm up
-    { duration: '5m', target: 100 },  // Load testing
-    { duration: '1m', target: 0 },    // Cool down
-  ],
-  thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% of requests should be below 500ms
-    http_req_failed: ['rate<0.1'],    // Error rate should be below 10%
-  },
-};
-
-export default function () {
-  const payload = JSON.stringify({
-    taskId: `test-${__VU}-${__ITER}`,
-    taskType: 'EXECUTE_ASSISTANT',
-    payload: { input: 'test data' }
-  });
-
-  const response = http.post('http://localhost:3001/command/process', payload, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  check(response, {
-    'status is 200': (r) => r.status === 200,
-    'response time < 500ms': (r) => r.timings.duration < 500,
-  });
-
-  sleep(1);
+// Process multiple jobs in parallel
+@Processor('resume-tailoring')
+export class TailoringProcessor {
+  @Process({ concurrency: 10 })  // Process 10 jobs at once
+  async handleTailoringJob(job: Job) {
+    // Process job
+  }
 }
 ```
 
-### Benchmark Results
+2. **Job Prioritization:**
+```typescript
+// High priority for paid users
+await this.tailoringQueue.add('tailor-resume', data, {
+  priority: user.isPremium ? 1 : 10,
+});
+```
 
-#### Baseline Performance (Single Instance)
+3. **Rate Limiting:**
+```typescript
+// Limit jobs per user
+const limiter = {
+  max: 5,  // Max 5 jobs
+  duration: 60000,  // Per minute
+  groupKey: userId,
+};
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| Requests/sec | 150 | 200+ |
-| P95 Latency | 250ms | <500ms |
-| Error Rate | 0.05% | <1% |
-| CPU Usage | 45% | <70% |
-| Memory Usage | 180MB | <256MB |
+await this.tailoringQueue.add('tailor-resume', data, { limiter });
+```
 
-#### Scaled Performance (3 Instances)
+---
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| Requests/sec | 450 | 500+ |
-| P95 Latency | 300ms | <500ms |
-| Error Rate | 0.03% | <1% |
-| CPU Usage | 35% | <70% |
-| Memory Usage | 160MB | <256MB |
+### 8. WebSocket Optimization
 
-## Monitoring Dashboards
+#### Problem: High WebSocket overhead
 
-### Grafana Dashboard Panels
+**Optimizations:**
 
-1. **Request Rate & Latency**
-   - RPS over time
-   - P50/P95/P99 latency graphs
-   - Error rate trends
+1. **Message Compression:**
+```typescript
+@WebSocketGateway({
+  namespace: '/resume-iterator',
+  transports: ['websocket'],
+  perMessageDeflate: true,  // Enable compression
+})
+```
 
-2. **System Resources**
-   - CPU and memory usage
-   - Network I/O
-   - Disk usage
+2. **Throttle Updates:**
+```typescript
+// Don't send every tiny update
+private throttledEmit = throttle((client, event, data) => {
+  client.emit(event, data);
+}, 100);  // Max 10 updates/second
+```
 
-3. **Queue Monitoring**
-   - Queue depth
-   - Processing rate
-   - Queue wait time
+3. **Binary Messages:**
+```typescript
+// Use binary for large data
+client.emit('evaluation-update', {
+  reportId,
+  score: 85,
+  // Send large data as binary
+  details: Buffer.from(JSON.stringify(details)),
+});
+```
 
-4. **External Services**
-   - Kafka lag monitoring
-   - Database connection pool
-   - External API response times
+---
 
-### Alert Thresholds
+## Caching Strategy
+
+### Redis Cache Layers
+
+```typescript
+// Layer 1: Hot data (1 minute TTL)
+const HOT_CACHE_TTL = 60;
+// - Active sessions
+// - Recent evaluations
+// - Frequent searches
+
+// Layer 2: Warm data (5 minutes TTL)
+const WARM_CACHE_TTL = 300;
+// - User experience bank
+// - Job postings
+// - Resume versions
+
+// Layer 3: Cold data (1 hour TTL)
+const COLD_CACHE_TTL = 3600;
+// - Parsed PDFs
+// - Compiled LaTeX
+// - Vector embeddings
+```
+
+### Cache Invalidation
+
+```typescript
+// Invalidate on write
+async add(data: ExperienceBankItemData) {
+  const item = await this.model.create(data);
+  
+  // Invalidate user's cache
+  await this.redis.del(`search:${data.userId}:*`);
+  await this.redis.del(`list:${data.userId}`);
+  
+  return item;
+}
+```
+
+---
+
+## Load Testing
+
+### Test Scenarios
+
+1. **Baseline Load:**
+```bash
+# 10 concurrent users, 1000 requests
+artillery quick --count 10 --num 1000 http://localhost:3006/health
+```
+
+2. **Experience Bank Search:**
+```yaml
+# artillery-search.yml
+config:
+  target: http://localhost:3006
+  phases:
+    - duration: 60
+      arrivalRate: 10
+scenarios:
+  - name: Search experience bank
+    flow:
+      - post:
+          url: /experience-bank/search
+          json:
+            userId: "user123"
+            query: "microservices"
+            limit: 10
+```
+
+3. **Full Tailoring Workflow:**
+```yaml
+# artillery-tailoring.yml
+config:
+  target: http://localhost:3006
+  phases:
+    - duration: 300
+      arrivalRate: 2
+scenarios:
+  - name: Tailor resume
+    flow:
+      - post:
+          url: /tailoring/tailor
+          json:
+            userId: "user123"
+            resumeId: "resume123"
+            jobPostingText: "Senior Engineer..."
+```
+
+### Performance Benchmarks
+
+**Hardware:** 4 CPU, 8GB RAM
+
+| Scenario | Throughput | P95 Latency | Success Rate |
+|----------|-----------|-------------|--------------|
+| Health Check | 1000 req/s | 10ms | 100% |
+| Experience Bank Search | 100 req/s | 500ms | 99.9% |
+| Bullet Evaluation | 50 req/s | 2s | 99.5% |
+| Resume Evaluation | 10 req/s | 8s | 99% |
+| Full Tailoring | 2 req/s | 4min | 98% |
+
+---
+
+## Scaling Recommendations
+
+### Vertical Scaling
+
+**Small (Development):**
+- 2 CPU, 4GB RAM
+- Handles 10 concurrent users
+
+**Medium (Production):**
+- 4 CPU, 8GB RAM
+- Handles 50 concurrent users
+
+**Large (High Load):**
+- 8 CPU, 16GB RAM
+- Handles 200 concurrent users
+
+### Horizontal Scaling
 
 ```yaml
-groups:
-  - name: resume-worker-performance
-    rules:
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="resume-worker"}[5m])) > 1
-        for: 5m
-        labels:
-          severity: warning
+# docker-compose scale
+services:
+  resume-worker:
+    deploy:
+      replicas: 3
 
-      - alert: HighErrorRate
-        expr: rate(http_requests_total{status=~"5..", job="resume-worker"}[5m]) / rate(http_requests_total{job="resume-worker"}[5m]) > 0.05
-        for: 5m
-        labels:
-          severity: critical
-
-      - alert: HighQueueDepth
-        expr: command_queue_depth{job="resume-worker"} > 100
-        for: 5m
-        labels:
-          severity: warning
+  resume-nlp-service:
+    deploy:
+      replicas: 4
 ```
 
-## Troubleshooting Performance Issues
-
-### High Latency Issues
-
-**Symptoms:**
-- P95 latency > 500ms
-- Increased response times
-
-**Diagnosis:**
-```bash
-# Check application logs for bottlenecks
-kubectl logs -f deployment/resume-worker -n enginedge-workers | grep "duration"
-
-# Monitor database query performance
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- mongosh --eval "db.serverStatus().metrics"
-
-# Check Kafka consumer lag
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- kafka-consumer-groups --describe --group resume-worker-group
+**Load Balancer:**
+```nginx
+upstream resume_worker {
+  least_conn;
+  server resume-worker-1:3006;
+  server resume-worker-2:3006;
+  server resume-worker-3:3006;
+}
 ```
 
-**Solutions:**
-1. Optimize database queries and add indexes
-2. Increase Kafka partitions for better parallelism
-3. Implement caching for frequently accessed data
-4. Scale horizontally to distribute load
+---
 
-### High Memory Usage
+## Monitoring Performance
 
-**Symptoms:**
-- Memory usage > 80% of limits
-- Frequent garbage collection
+### Key Metrics to Watch
 
-**Diagnosis:**
-```bash
-# Check memory usage
-kubectl top pods -n enginedge-workers
+```promql
+# P95 latency
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 
-# Analyze heap dumps
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- node --inspect --heap-prof
+# Throughput
+rate(http_requests_total[5m])
 
-# Monitor connection pools
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- netstat -tlnp
+# Error rate
+rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m])
+
+# Queue size
+bullmq_queue_size{state="waiting"}
+
+# Memory usage
+nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes
 ```
 
-**Solutions:**
-1. Implement connection pooling limits
-2. Add memory leak detection
-3. Optimize data structures
-4. Increase memory limits or scale vertically
+---
 
-### High CPU Usage
+## Best Practices
 
-**Symptoms:**
-- CPU usage > 70%
-- Slow response times
+1. **Use async/await properly** - Don't block the event loop
+2. **Batch operations** - Reduce network round trips
+3. **Cache aggressively** - Especially for read-heavy operations
+4. **Index strategically** - Based on query patterns
+5. **Monitor continuously** - Set up alerts for degradation
+6. **Load test regularly** - Before major releases
+7. **Profile in production** - Use APM tools
+8. **Optimize hot paths** - Focus on 80/20 rule
 
-**Diagnosis:**
-```bash
-# Profile CPU usage
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- node --prof
+---
 
-# Check thread utilization
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- ps -T -p 1
-
-# Monitor event loop lag
-curl http://localhost:9090/metrics | grep eventloop
-```
-
-**Solutions:**
-1. Optimize algorithms and data structures
-2. Use worker threads for CPU-intensive tasks
-3. Implement caching to reduce computation
-4. Scale horizontally
-
-## Capacity Planning
-
-### Resource Requirements
-
-**Per Instance (Baseline):**
-- CPU: 0.2 cores
-- Memory: 256MB
-- Network: 10Mbps
-- Storage: 1GB
-
-**Per Instance (Peak Load):**
-- CPU: 0.5 cores
-- Memory: 512MB
-- Network: 50Mbps
-- Storage: 5GB
-
-### Scaling Guidelines
-
-**Horizontal Scaling:**
-- Add instances when CPU > 70% or memory > 80%
-- Maintain 2-3 instances minimum for HA
-- Scale based on queue depth and processing rate
-
-**Vertical Scaling:**
-- Increase CPU limits when single-threaded performance is bottleneck
-- Increase memory when working set grows
-- Consider node upgrades for better performance
-
-### Cost Optimization
-
-**Resource Efficiency:**
-- Use spot instances for non-critical workloads
-- Implement auto-scaling based on business hours
-- Monitor and optimize resource utilization
-- Use cost allocation tags for tracking
-
-## Future Optimizations
-
-### Planned Improvements
-
-1. **gRPC Migration**: Replace REST with gRPC for lower latency
-2. **Service Mesh**: Implement Istio for advanced traffic management
-3. **Edge Computing**: Deploy closer to users for reduced latency
-4. **Machine Learning**: Implement predictive scaling based on usage patterns
-
-### Technology Upgrades
-
-1. **Node.js Version**: Upgrade to latest LTS for performance improvements
-2. **Database Migration**: Consider PostgreSQL for complex queries
-3. **Caching Layer**: Implement Redis Cluster for high availability
-4. **Message Broker**: Evaluate alternatives like NATS for specific use cases
+**Last Updated:** November 3, 2025  
+**Version:** 1.0.0

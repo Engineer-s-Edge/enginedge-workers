@@ -1,0 +1,25 @@
+# FastAPI and server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+python-multipart==0.0.6
+
+# NLP libraries
+spacy==3.7.2
+nltk==3.8.1
+
+# PDF processing
+pymupdf==1.23.8
+
+# Kafka
+kafka-python==2.0.2
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+

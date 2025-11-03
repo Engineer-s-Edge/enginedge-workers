@@ -98,3 +98,9 @@ export interface IInterviewReportRepository {
   delete(reportId: string): Promise<boolean>;
 }
 
+export interface IWebhookRepository {
+  save(webhook: any): Promise<any>;
+  findByUserId(userId: string): Promise<any[]>;
+  findByEvent(event: string): Promise<any[]>;
+}
+

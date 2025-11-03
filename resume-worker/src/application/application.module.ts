@@ -1,38 +1,68 @@
-/**
- * Application Module - Phase 5 In Progress
- *
- * Configures and provides all application-layer services and use cases.
- * Bridges domain logic with infrastructure adapters.
- * 
- * Phase 1: Core agent infrastructure ✅
- * Phase 2: Specialized agent controllers ✅
- * Phase 3: Memory systems ✅
- * Phase 4: Knowledge graph ✅
- * Phase 5: Advanced features ⏳
- */
-
 import { Module } from '@nestjs/common';
-import { DomainModule } from '@domain/domain.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { BullModule } from '@nestjs/bull';
+import { ExperienceBankService } from './services/experience-bank.service';
+import { ResumeService } from './services/resume.service';
+import { BulletEvaluatorService } from './services/bullet-evaluator.service';
+import { JobPostingService } from './services/job-posting.service';
+import { ResumeEvaluatorService } from './services/resume-evaluator.service';
+import { ResumeVersioningService } from './services/resume-versioning.service';
+import { ResumeEditingService } from './services/resume-editing.service';
+import { ResumeTailoringService } from './services/resume-tailoring.service';
+import { ResumeBuilderService } from './services/resume-builder.service';
+import { CoverLetterService } from './services/cover-letter.service';
+import {
+  ExperienceBankItemSchema,
+  ExperienceBankItemSchemaFactory,
+} from '../infrastructure/database/schemas/experience-bank-item.schema';
+import {
+  ResumeSchema,
+  ResumeSchemaFactory,
+} from '../infrastructure/database/schemas/resume.schema';
+import {
+  JobPostingSchema,
+  JobPostingSchemaFactory,
+} from '../infrastructure/database/schemas/job-posting.schema';
+import {
+  EvaluationReportSchema,
+  EvaluationReportSchemaFactory,
+} from '../infrastructure/database/schemas/evaluation-report.schema';
 
-/**
- * Application module - use cases and application services
- * 
- * Note: InfrastructureModule is @Global(), so its providers (ILogger, ILLMProvider, IAgentRepository)
- * are automatically available to all modules. No need to import it here.
- */
 @Module({
   imports: [
-    DomainModule, // Domain services (AgentFactory, MemoryManager, etc.)
+    MongooseModule.forFeature([
+      { name: ExperienceBankItemSchema.name, schema: ExperienceBankItemSchemaFactory },
+      { name: ResumeSchema.name, schema: ResumeSchemaFactory },
+      { name: JobPostingSchema.name, schema: JobPostingSchemaFactory },
+      { name: EvaluationReportSchema.name, schema: EvaluationReportSchemaFactory },
+    ]),
+    BullModule.registerQueue({
+      name: 'resume-tailoring',
+    }),
   ],
   providers: [
-    
+    ExperienceBankService,
+    ResumeService,
+    BulletEvaluatorService,
+    JobPostingService,
+    ResumeEvaluatorService,
+    ResumeVersioningService,
+    ResumeEditingService,
+    ResumeTailoringService,
+    ResumeBuilderService,
+    CoverLetterService,
   ],
   exports: [
-    // Export domain module so infrastructure can access it
-    DomainModule,
-    
-    // Export services for other modules
-    
+    ExperienceBankService,
+    ResumeService,
+    BulletEvaluatorService,
+    JobPostingService,
+    ResumeEvaluatorService,
+    ResumeVersioningService,
+    ResumeEditingService,
+    ResumeTailoringService,
+    ResumeBuilderService,
+    CoverLetterService,
   ],
 })
 export class ApplicationModule {}

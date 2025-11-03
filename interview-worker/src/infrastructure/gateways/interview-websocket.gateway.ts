@@ -205,7 +205,7 @@ export class InterviewWebSocketGateway
       // Use speech adapter to transcribe
       const transcription = await this.speechAdapter.speechToText(
         audioBuffer,
-        'en-US', // Could be configurable
+        'en-US'
       );
 
       // Detect filler words (simple regex for now)

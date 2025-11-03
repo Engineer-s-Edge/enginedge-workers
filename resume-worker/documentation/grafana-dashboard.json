@@ -1,252 +1,140 @@
 {
   "dashboard": {
-    "id": null,
-    "title": "resume Worker - Production Dashboard",
-    "tags": ["resume", "worker", "command-processing", "assistant", "habits", "production", "monitoring"],
-    "timezone": "UTC",
+    "title": "Resume Worker Dashboard",
+    "tags": ["resume-worker", "enginedge"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
     "panels": [
       {
         "id": 1,
-        "title": "Service Health",
+        "title": "Total Evaluations (24h)",
         "type": "stat",
         "targets": [
           {
-            "expr": "up{job=\"resume-worker\"}",
-            "legendFormat": "Service Status"
+            "expr": "sum(increase(resume_evaluations_total[24h]))",
+            "legendFormat": "Evaluations"
           }
         ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [
-              {
-                "options": {
-                  "0": {
-                    "text": "DOWN",
-                    "color": "red"
-                  },
-                  "1": {
-                    "text": "UP",
-                    "color": "green"
-                  }
-                },
-                "type": "value"
-              }
-            ]
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 6,
-          "x": 0,
-          "y": 0
-        }
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
       },
       {
         "id": 2,
-        "title": "Active Commands",
-        "type": "gauge",
+        "title": "Active Tailoring Jobs",
+        "type": "stat",
         "targets": [
           {
-            "expr": "command_active_total{job=\"resume-worker\"}",
-            "legendFormat": "Active Commands"
+            "expr": "sum(bullmq_queue_size{queue=\"resume-tailoring\",state=\"active\"})",
+            "legendFormat": "Active Jobs"
           }
         ],
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "max": 50,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 30
-                },
-                {
-                  "color": "red",
-                  "value": 40
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 6,
-          "x": 6,
-          "y": 0
-        }
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
       },
       {
         "id": 3,
-        "title": "Command Processing Rate",
-        "type": "graph",
+        "title": "Experience Bank Size",
+        "type": "stat",
         "targets": [
           {
-            "expr": "rate(command_processing_total{job=\"resume-worker\"}[5m])",
-            "legendFormat": "Total/sec"
-          },
-          {
-            "expr": "rate(command_processing_total{status=\"SUCCESS\", job=\"resume-worker\"}[5m])",
-            "legendFormat": "Success/sec"
-          },
-          {
-            "expr": "rate(command_processing_total{status=\"FAILURE\", job=\"resume-worker\"}[5m])",
-            "legendFormat": "Failed/sec"
+            "expr": "sum(experience_bank_items_total)",
+            "legendFormat": "Total Items"
           }
         ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 4
-        }
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
       },
       {
         "id": 4,
-        "title": "Command Processing Duration (P95)",
-        "type": "graph",
+        "title": "Success Rate",
+        "type": "gauge",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
-            "legendFormat": "P95 Duration"
-          },
-          {
-            "expr": "histogram_quantile(0.50, rate(command_processing_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
-            "legendFormat": "P50 Duration"
+            "expr": "rate(resume_evaluations_total{status=\"success\"}[5m]) / rate(resume_evaluations_total[5m]) * 100",
+            "legendFormat": "Success %"
           }
         ],
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
         "fieldConfig": {
           "defaults": {
-            "unit": "s"
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            }
           }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 4
         }
       },
       {
         "id": 5,
-        "title": "Command Types Distribution",
-        "type": "piechart",
+        "title": "Request Rate",
+        "type": "graph",
         "targets": [
           {
-            "expr": "sum by (task_type) (rate(command_processing_total{job=\"resume-worker\"}[5m]))",
-            "legendFormat": "{{task_type}}"
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}"
           }
         ],
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 0,
-          "y": 12
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
       },
       {
         "id": 6,
-        "title": "Queue Depth",
-        "type": "stat",
+        "title": "P95 Latency",
+        "type": "graph",
         "targets": [
           {
-            "expr": "command_queue_depth{job=\"resume-worker\"}",
-            "legendFormat": "Queue Depth"
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99"
           }
         ],
-        "fieldConfig": {
-          "defaults": {
-            "min": 0,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 50
-                },
-                {
-                  "color": "red",
-                  "value": 100
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 8,
-          "x": 8,
-          "y": 12
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
       },
       {
         "id": 7,
-        "title": "HTTP Request Rate",
+        "title": "Evaluation Scores",
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(http_requests_total{job=\"resume-worker\"}[5m])",
-            "legendFormat": "Request Rate"
+            "expr": "avg(resume_evaluation_score)",
+            "legendFormat": "Average Score"
           }
         ],
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 12
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
       },
       {
         "id": 8,
-        "title": "HTTP Response Time (P95)",
+        "title": "Bullet Pass Rate",
         "type": "graph",
         "targets": [
           {
-            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
-            "legendFormat": "P95 Response Time"
+            "expr": "rate(bullet_evaluations_total{passed=\"true\"}[5m]) / rate(bullet_evaluations_total[5m]) * 100",
+            "legendFormat": "Pass Rate %"
           }
         ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 20
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
       },
       {
         "id": 9,
-        "title": "Kafka Producer Performance",
+        "title": "Error Rate",
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(kafka_producer_requests_total{job=\"resume-worker\"}[5m])",
-            "legendFormat": "Requests/sec"
+            "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
+            "legendFormat": "5xx Errors"
           },
           {
-            "expr": "rate(kafka_producer_errors_total{job=\"resume-worker\"}[5m])",
-            "legendFormat": "Errors/sec"
+            "expr": "rate(http_requests_total{status_code=~\"4..\"}[5m])",
+            "legendFormat": "4xx Errors"
           }
         ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 28
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
       },
       {
         "id": 10,
@@ -254,234 +142,91 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "kafka_consumer_group_lag{group=\"resume-worker-commands\", job=\"resume-worker\"}",
-            "legendFormat": "Consumer Lag"
+            "expr": "sum by (topic) (kafka_consumer_lag)",
+            "legendFormat": "{{topic}}"
           }
         ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 28
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
       },
       {
         "id": 11,
-        "title": "Database Connection Pool",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "mongodb_connections_active{job=\"resume-worker\"}",
-            "legendFormat": "Active Connections"
-          },
-          {
-            "expr": "mongodb_connections_available{job=\"resume-worker\"}",
-            "legendFormat": "Available Connections"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 36
-        }
-      },
-      {
-        "id": 12,
-        "title": "Database Query Performance",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job=\"resume-worker\"}[5m]))",
-            "legendFormat": "P95 Query Time"
-          },
-          {
-            "expr": "rate(mongodb_queries_total{job=\"resume-worker\"}[5m])",
-            "legendFormat": "Queries/sec"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 36
-        }
-      },
-      {
-        "id": 13,
-        "title": "System Resources",
-        "type": "row",
-        "gridPos": {
-          "h": 1,
-          "w": 24,
-          "x": 0,
-          "y": 44
-        }
-      },
-      {
-        "id": 14,
-        "title": "CPU Usage",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(process_cpu_user_seconds_total{job=\"resume-worker\"}[5m]) * 100",
-            "legendFormat": "CPU Usage %"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "min": 0,
-            "max": 100
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 0,
-          "y": 45
-        }
-      },
-      {
-        "id": 15,
         "title": "Memory Usage",
         "type": "graph",
         "targets": [
           {
-            "expr": "process_resident_memory_bytes{job=\"resume-worker\"} / 1024 / 1024",
-            "legendFormat": "Memory Usage (MB)"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "MB"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 8,
-          "y": 45
-        }
-      },
-      {
-        "id": 16,
-        "title": "Node.js Event Loop Lag",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "nodejs_eventloop_lag_seconds{job=\"resume-worker\"}",
-            "legendFormat": "Event Loop Lag"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 45
-        }
-      },
-      {
-        "id": 17,
-        "title": "Garbage Collection",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(nodejs_gc_duration_seconds_total{job=\"resume-worker\"}[5m])",
-            "legendFormat": "GC Duration/sec"
-          },
-          {
-            "expr": "nodejs_heap_size_used_bytes{job=\"resume-worker\"} / nodejs_heap_size_total_bytes{job=\"resume-worker\"}",
+            "expr": "nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes * 100",
             "legendFormat": "Heap Usage %"
           }
         ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 53
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "yaxes": [
+          {"format": "percent", "min": 0, "max": 100}
+        ]
       },
       {
-        "id": 18,
-        "title": "Application Logs",
-        "type": "logs",
+        "id": 12,
+        "title": "Event Loop Lag",
+        "type": "graph",
         "targets": [
           {
-            "expr": "{job=\"resume-worker\"}",
-            "legendFormat": ""
+            "expr": "nodejs_eventloop_lag_seconds",
+            "legendFormat": "Event Loop Lag"
           }
         ],
-        "options": {
-          "showTime": true,
-          "showLabels": false,
-          "showCommonLabels": false,
-          "wrapLogMessage": true,
-          "prettifyLogMessage": true,
-          "enableLogDetails": true,
-          "dedupStrategy": "none",
-          "sortOrder": "Descending"
-        },
-        "gridPos": {
-          "h": 12,
-          "w": 24,
-          "x": 0,
-          "y": 61
-        }
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+      },
+      {
+        "id": 13,
+        "title": "BullMQ Queue Size",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (queue, state) (bullmq_queue_size)",
+            "legendFormat": "{{queue}} - {{state}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36}
+      },
+      {
+        "id": 14,
+        "title": "Job Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(bullmq_jobs_total{status=\"completed\"}[5m])",
+            "legendFormat": "Completed"
+          },
+          {
+            "expr": "rate(bullmq_jobs_total{status=\"failed\"}[5m])",
+            "legendFormat": "Failed"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36}
+      },
+      {
+        "id": 15,
+        "title": "WebSocket Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (namespace) (websocket_connections_active)",
+            "legendFormat": "{{namespace}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 44}
+      },
+      {
+        "id": 16,
+        "title": "MongoDB Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mongodb_operations_total[5m])",
+            "legendFormat": "{{operation}} - {{collection}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 44}
       }
-    ],
-    "time": {
-      "from": "now-1h",
-      "to": "now"
-    },
-    "timepicker": {
-      "refresh_intervals": [
-        "5s",
-        "10s",
-        "30s",
-        "1m",
-        "5m",
-        "15m",
-        "30m",
-        "1h",
-        "2h",
-        "1d"
-      ]
-    },
-    "templating": {
-      "list": []
-    },
-    "annotations": {
-      "list": [
-        {
-          "builtIn": 1,
-          "datasource": "-- Grafana --",
-          "enable": true,
-          "hide": true,
-          "iconColor": "rgba(0, 211, 255, 1)",
-          "name": "Annotations & Alerts",
-          "type": "dashboard"
-        }
-      ]
-    },
-    "refresh": "30s",
-    "schemaVersion": 27,
-    "version": 0,
-    "links": []
+    ]
   }
 }

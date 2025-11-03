@@ -1,49 +1,21 @@
-FROM node:22-alpine AS development
+FROM node:18-alpine
 
-# Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --only=production
 
-# Copy application source
+# Copy source code
 COPY . .
 
-# Build application
+# Build TypeScript
 RUN npm run build
 
-# Prune dev dependencies and keep production node_modules
-RUN npm prune --omit=dev
+# Expose port
+EXPOSE 3000
 
-FROM node:22-alpine AS production
-
-# Set NODE_ENV
-ARG NODE_ENV=production
-ENV NODE_ENV=docker
-
-# Create app directory
-WORKDIR /usr/src/app
-
-# Copy production node_modules from build stage
-COPY --from=development --chown=node:node /usr/src/app/node_modules ./node_modules
-
-# Copy build artifacts and change ownership
-COPY --from=development --chown=node:node /usr/src/app/dist ./dist
-
-# Switch to the non-root user
-USER node
-
-# Add health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD wget -q -O - http://localhost:3001/health || exit 1
-
-# Expose API port
-EXPOSE 3001
-
-# Make Node.js properly handle signals
-ENV NODE_OPTIONS="--unhandled-rejections=strict"
-
-# Start the application
-CMD ["node", "dist/main"] 
+# Start application
+CMD ["node", "dist/main.js"]

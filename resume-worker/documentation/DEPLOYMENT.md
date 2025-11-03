@@ -1,205 +1,289 @@
-# resume Worker Deployment Guide
+# Resume Worker Deployment Guide
 
 ## Overview
 
-This document provides comprehensive deployment instructions for the resume Worker across different environments including local development, Docker containers, and Kubernetes production deployments.
+This guide covers deployment strategies for the Resume Worker and Resume NLP Service across different environments.
+
+---
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Environment Configuration](#environment-configuration)
+- [Local Development](#local-development)
+- [Docker Deployment](#docker-deployment)
+- [Kubernetes Deployment](#kubernetes-deployment)
+- [Production Checklist](#production-checklist)
+- [Monitoring Setup](#monitoring-setup)
+- [Backup and Recovery](#backup-and-recovery)
+
+---
 
 ## Prerequisites
 
-### System Requirements
-- Node.js 18+ (for local development)
-- Docker 24.0+ (for containerized deployment)
-- Kubernetes 1.24+ (for production deployment)
-- Kafka 3.0+ cluster
-- MongoDB 5.0+ database
+### Resume Worker (NestJS)
+- Node.js 18+
+- npm or yarn
+- MongoDB 7+
+- Kafka 3.7+
+- Redis 7+
 
-### External Dependencies
-- Kafka brokers (accessible from deployment environment)
-- MongoDB instance (with authentication configured)
-- Redis instance (optional, for caching)
+### Resume NLP Service (Python)
+- Python 3.9+
+- pip
+- spaCy 3.7+
+- NLTK 3.8+
+- PyMuPDF 1.23+
+
+---
 
 ## Environment Configuration
 
-### Environment Variables
+### Resume Worker (.env)
 
-Create a `.env` file in the project root:
-
-```bash
-# Service Configuration
-PORT=3001
+```env
+# Server
 NODE_ENV=production
+PORT=3006
+LOG_LEVEL=info
 
-# Kafka Configuration
-KAFKA_BROKERS=kafka-1:9092,kafka-2:9092,kafka-3:9092
+# MongoDB
+MONGODB_URI=mongodb://mongodb:27017/resume-worker
+MONGODB_MAX_POOL_SIZE=50
+MONGODB_MIN_POOL_SIZE=10
+
+# Kafka
+KAFKA_BROKERS=kafka:9092
 KAFKA_CLIENT_ID=resume-worker
 KAFKA_GROUP_ID=resume-worker-group
+KAFKA_TOPIC_PREFIX=resume
 
-# Database Configuration
-MONGODB_URI=mongodb://username:password@mongodb-host:27017/resume_worker
-MONGODB_DATABASE=resume_worker
+# Redis
+REDIS_URL=redis://redis:6379/1
+REDIS_MAX_RETRIES=3
 
-# Redis Configuration (Optional)
-REDIS_URL=redis://redis-host:6379
-REDIS_PASSWORD=your-redis-password
+# Integration URLs
+LATEX_WORKER_URL=http://latex-worker:3005
+ASSISTANT_WORKER_URL=http://assistant-worker:3001
+DATA_PROCESSING_WORKER_URL=http://data-processing-worker:3003
+RESUME_NLP_SERVICE_URL=http://resume-nlp-service:8001
 
-# Monitoring Configuration
-PROMETHEUS_METRICS_PORT=9090
-GRAFANA_DASHBOARD_URL=http://grafana:3000
+# LLM (Optional)
+OPENAI_API_KEY=your_key_here
+ANTHROPIC_API_KEY=your_key_here
 
-# Logging Configuration
-LOG_LEVEL=info
-LOG_FORMAT=json
+# Security
+JWT_SECRET=your_secret_here
+ENCRYPTION_KEY=your_encryption_key_here
 
-# Security Configuration
-API_KEY=your-api-key-here
-CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+# Monitoring
+PROMETHEUS_ENABLED=true
+METRICS_PORT=9090
 ```
+
+### Resume NLP Service (.env)
+
+```env
+# Server
+PORT=8001
+WORKERS=4
+LOG_LEVEL=info
+
+# Kafka
+KAFKA_BROKERS=kafka:9092
+KAFKA_GROUP_ID=resume-nlp-group
+
+# spaCy
+SPACY_MODEL=en_core_web_sm
+
+# Processing
+MAX_CONCURRENT_REQUESTS=10
+REQUEST_TIMEOUT=30
+```
+
+---
 
 ## Local Development
 
-### Quick Start
+### Resume Worker
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+# Navigate to directory
 cd enginedge-workers/resume-worker
 
 # Install dependencies
 npm install
 
-# Copy environment configuration
+# Set up environment
 cp .env.example .env
+# Edit .env with local values
+
+# Run migrations (if any)
+npm run migration:run
 
 # Start in development mode
 npm run start:dev
+
+# Or watch mode
+npm run start
 ```
 
-### Development with Docker
+### Resume NLP Service
 
 ```bash
-# Build development image
-docker build -t resume-worker:dev -f Dockerfile.dev .
+# Navigate to directory
+cd enginedge-workers/resume-nlp-service
 
-# Run with docker-compose
-docker-compose -f docker-compose.dev.yml up
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Or run directly
-docker run -p 3001:3001 \
-  --env-file .env \
-  --network enginedge-network \
-  resume-worker:dev
+# Install dependencies
+pip install -r requirements.txt
+
+# Download spaCy model
+python -m spacy download en_core_web_sm
+
+# Run service
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8001
 ```
+
+---
 
 ## Docker Deployment
 
-### Production Docker Image
+### Via Platform Docker Compose
 
-```dockerfile
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-FROM node:18-alpine AS production
-
-WORKDIR /app
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nestjs -u 1001
-
-# Copy built application
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-
-# Change ownership
-RUN chown -R nestjs:nodejs /app
-USER nestjs
-
-EXPOSE 3001
-
-CMD ["npm", "run", "start:prod"]
-```
-
-### Build and Push Image
+**Recommended for development and testing**
 
 ```bash
-# Build production image
+# From platform directory
+cd enginedge-core/platform
+
+# Start all infrastructure
+docker-compose up -d mongodb kafka redis
+
+# Start resume services
+docker-compose up -d resume-worker resume-nlp-service
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f resume-worker
+docker-compose logs -f resume-nlp-service
+
+# Stop services
+docker-compose down
+```
+
+### Standalone Docker
+
+#### Resume Worker
+
+```bash
+# Build image
+cd enginedge-workers/resume-worker
 docker build -t resume-worker:latest .
 
-# Tag for registry
-docker tag resume-worker:latest your-registry.com/resume-worker:v1.0.0
+# Run container
+docker run -d \
+  --name resume-worker \
+  -p 3006:3006 \
+  -e NODE_ENV=production \
+  -e PORT=3006 \
+  -e MONGODB_URI=mongodb://host.docker.internal:27017/resume-worker \
+  -e KAFKA_BROKERS=host.docker.internal:9094 \
+  -e REDIS_URL=redis://host.docker.internal:6379/1 \
+  --add-host=host.docker.internal:host-gateway \
+  resume-worker:latest
 
-# Push to registry
-docker push your-registry.com/resume-worker:v1.0.0
+# Check logs
+docker logs -f resume-worker
+
+# Stop container
+docker stop resume-worker
+docker rm resume-worker
 ```
+
+#### Resume NLP Service
+
+```bash
+# Build image
+cd enginedge-workers/resume-nlp-service
+docker build -t resume-nlp-service:latest .
+
+# Run container
+docker run -d \
+  --name resume-nlp-service \
+  -p 8001:8001 \
+  -e PORT=8001 \
+  -e KAFKA_BROKERS=host.docker.internal:9094 \
+  -e WORKERS=4 \
+  --add-host=host.docker.internal:host-gateway \
+  resume-nlp-service:latest
+
+# Check logs
+docker logs -f resume-nlp-service
+```
+
+---
 
 ## Kubernetes Deployment
 
-### Namespace Setup
+### Namespace
 
 ```yaml
+# namespace.yaml
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: enginedge-workers
-  labels:
-    name: enginedge-workers
+  name: resume-worker
 ```
 
-### ConfigMap for Configuration
+### ConfigMap
 
 ```yaml
+# configmap.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: resume-worker-config
-  namespace: enginedge-workers
+  namespace: resume-worker
 data:
-  KAFKA_CLIENT_ID: "resume-worker"
-  KAFKA_GROUP_ID: "resume-worker-group"
-  LOG_LEVEL: "info"
-  LOG_FORMAT: "json"
   NODE_ENV: "production"
+  PORT: "3006"
+  LOG_LEVEL: "info"
+  KAFKA_BROKERS: "kafka-service:9092"
+  MONGODB_URI: "mongodb://mongodb-service:27017/resume-worker"
+  REDIS_URL: "redis://redis-service:6379/1"
 ```
 
-### Secret for Sensitive Data
+### Secrets
 
 ```yaml
+# secrets.yaml
 apiVersion: v1
 kind: Secret
 metadata:
   name: resume-worker-secrets
-  namespace: enginedge-workers
+  namespace: resume-worker
 type: Opaque
-data:
-  # Base64 encoded values
-  MONGODB_URI: bW9uZ29kYjovL3VzZXJuYW1lOnBhc3N3b3JkQG1vbmdvLWhvc3Q6MjcwMTcvcm5sZV93b3Jrcw==
-  REDIS_PASSWORD: eW91ci1yZWRpcy1wYXNzd29yZA==
-  API_KEY: eW91ci1hcGkta2V5LWhlcmU=
+stringData:
+  OPENAI_API_KEY: "your_key_here"
+  JWT_SECRET: "your_secret_here"
+  ENCRYPTION_KEY: "your_encryption_key_here"
 ```
 
-### Deployment Manifest
+### Deployment - Resume Worker
 
 ```yaml
+# deployment-resume-worker.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: resume-worker
-  namespace: enginedge-workers
-  labels:
-    app: resume-worker
-    version: v1.0.0
+  namespace: resume-worker
 spec:
   replicas: 3
   selector:
@@ -209,21 +293,12 @@ spec:
     metadata:
       labels:
         app: resume-worker
-        version: v1.0.0
     spec:
       containers:
       - name: resume-worker
-        image: your-registry.com/resume-worker:v1.0.0
+        image: resume-worker:latest
         ports:
-        - containerPort: 3001
-          name: http
-        - containerPort: 9090
-          name: metrics
-        env:
-        - name: PORT
-          value: "3001"
-        - name: PROMETHEUS_METRICS_PORT
-          value: "9090"
+        - containerPort: 3006
         envFrom:
         - configMapRef:
             name: resume-worker-config
@@ -231,76 +306,150 @@ spec:
             name: resume-worker-secrets
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
             memory: "512Mi"
             cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
         livenessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: 3006
           initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
-            port: 3001
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
-        startupProbe:
-          httpGet:
-            path: /health
-            port: 3001
+            port: 3006
           initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 30
+          periodSeconds: 5
 ```
 
-### Service Manifest
+### Deployment - Resume NLP Service
 
 ```yaml
+# deployment-resume-nlp.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resume-nlp-service
+  namespace: resume-worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: resume-nlp-service
+  template:
+    metadata:
+      labels:
+        app: resume-nlp-service
+    spec:
+      containers:
+      - name: resume-nlp-service
+        image: resume-nlp-service:latest
+        ports:
+        - containerPort: 8001
+        env:
+        - name: PORT
+          value: "8001"
+        - name: KAFKA_BROKERS
+          value: "kafka-service:9092"
+        - name: WORKERS
+          value: "4"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "4000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 5
+```
+
+### Service
+
+```yaml
+# service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: resume-worker-service
-  namespace: enginedge-workers
-  labels:
-    app: resume-worker
+  namespace: resume-worker
 spec:
   selector:
     app: resume-worker
   ports:
-  - name: http
-    port: 3001
-    targetPort: 3001
-    protocol: TCP
-  - name: metrics
-    port: 9090
-    targetPort: 9090
-    protocol: TCP
+  - protocol: TCP
+    port: 3006
+    targetPort: 3006
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resume-nlp-service
+  namespace: resume-worker
+spec:
+  selector:
+    app: resume-nlp-service
+  ports:
+  - protocol: TCP
+    port: 8001
+    targetPort: 8001
   type: ClusterIP
 ```
 
-### Horizontal Pod Autoscaler
+### Ingress
 
 ```yaml
+# ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: resume-worker-ingress
+  namespace: resume-worker
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: resume.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: resume-worker-service
+            port:
+              number: 3006
+```
+
+### HorizontalPodAutoscaler
+
+```yaml
+# hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: resume-worker-hpa
-  namespace: enginedge-workers
+  namespace: resume-worker
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: resume-worker
-  minReplicas: 2
+  minReplicas: 3
   maxReplicas: 10
   metrics:
   - type: Resource
@@ -315,310 +464,210 @@ spec:
       target:
         type: Utilization
         averageUtilization: 80
-```
-
-### Network Policies
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
 metadata:
-  name: resume-worker-network-policy
-  namespace: enginedge-workers
+  name: resume-nlp-hpa
+  namespace: resume-worker
 spec:
-  podSelector:
-    matchLabels:
-      app: resume-worker
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: enginedge-services
-    ports:
-    - protocol: TCP
-      port: 3001
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          name: monitoring
-    ports:
-    - protocol: TCP
-      port: 9090
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app: kafka
-    ports:
-    - protocol: TCP
-      port: 9092
-  - to:
-    - podSelector:
-        matchLabels:
-          app: mongodb
-    ports:
-    - protocol: TCP
-      port: 27017
-  - to:
-    - podSelector:
-        matchLabels:
-          app: redis
-    ports:
-    - protocol: TCP
-      port: 6379
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: resume-nlp-service
+  minReplicas: 4
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
 ```
 
-## Helm Deployment
-
-### Chart Structure
-
-```
-charts/resume-worker/
-├── Chart.yaml
-├── values.yaml
-├── templates/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── configmap.yaml
-│   ├── secret.yaml
-│   ├── hpa.yaml
-│   └── networkpolicy.yaml
-└── charts/
-```
-
-### Values Configuration
-
-```yaml
-# values.yaml
-replicaCount: 3
-
-image:
-  repository: your-registry.com/resume-worker
-  tag: v1.0.0
-  pullPolicy: IfNotPresent
-
-service:
-  type: ClusterIP
-  port: 3001
-  metricsPort: 9090
-
-config:
-  kafka:
-    brokers: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
-    clientId: "resume-worker"
-    groupId: "resume-worker-group"
-  mongodb:
-    uri: "mongodb://username:password@mongodb-host:27017/resume_worker"
-  redis:
-    url: "redis://redis-host:6379"
-
-resources:
-  requests:
-    memory: "256Mi"
-    cpu: "100m"
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 80
-```
-
-### Install Chart
+### Deploy to Kubernetes
 
 ```bash
-# Install with custom values
-helm install resume-worker ./charts/resume-worker \
-  --namespace enginedge-workers \
-  --create-namespace \
-  --values values-production.yaml
+# Apply all manifests
+kubectl apply -f namespace.yaml
+kubectl apply -f configmap.yaml
+kubectl apply -f secrets.yaml
+kubectl apply -f deployment-resume-worker.yaml
+kubectl apply -f deployment-resume-nlp.yaml
+kubectl apply -f service.yaml
+kubectl apply -f ingress.yaml
+kubectl apply -f hpa.yaml
 
-# Upgrade deployment
-helm upgrade resume-worker ./charts/resume-worker \
-  --namespace enginedge-workers \
-  --values values-production.yaml
+# Check status
+kubectl get pods -n resume-worker
+kubectl get svc -n resume-worker
+kubectl get hpa -n resume-worker
+
+# View logs
+kubectl logs -f deployment/resume-worker -n resume-worker
+kubectl logs -f deployment/resume-nlp-service -n resume-worker
+
+# Scale manually
+kubectl scale deployment resume-worker --replicas=5 -n resume-worker
 ```
+
+---
+
+## Production Checklist
+
+### Pre-Deployment
+
+- [ ] Environment variables configured
+- [ ] Secrets properly set
+- [ ] MongoDB indexes created
+- [ ] Redis configured
+- [ ] Kafka topics created
+- [ ] spaCy models downloaded
+- [ ] SSL certificates configured
+- [ ] Monitoring set up
+- [ ] Logging configured
+- [ ] Backup strategy in place
+
+### MongoDB Indexes
+
+```javascript
+// Run in MongoDB shell
+use resume-worker
+
+// Experience Bank
+db.experienceBankItems.createIndex({userId: 1, "metadata.reviewed": 1})
+db.experienceBankItems.createIndex({hash: 1}, {unique: true})
+db.experienceBankItems.createIndex({"metadata.technologies": 1})
+db.experienceBankItems.createIndex({"metadata.category": 1})
+db.experienceBankItems.createIndex({userId: 1, "metadata.reviewed": 1, "metadata.category": 1})
+
+// Resumes
+db.resumes.createIndex({userId: 1})
+db.resumes.createIndex({userId: 1, createdAt: -1})
+db.resumes.createIndex({"metadata.status": 1})
+
+// Job Postings
+db.jobPostings.createIndex({userId: 1, createdAt: -1})
+
+// Evaluation Reports
+db.evaluationReports.createIndex({resumeId: 1, createdAt: -1})
+db.evaluationReports.createIndex({userId: 1, createdAt: -1})
+```
+
+### Kafka Topics
+
+```bash
+# Create topics with proper configuration
+kafka-topics --bootstrap-server localhost:9094 --create \
+  --topic resume.bullet.evaluate.request \
+  --partitions 6 \
+  --replication-factor 3
+
+kafka-topics --bootstrap-server localhost:9094 --create \
+  --topic resume.bullet.evaluate.response \
+  --partitions 6 \
+  --replication-factor 3
+
+kafka-topics --bootstrap-server localhost:9094 --create \
+  --topic resume.posting.extract.request \
+  --partitions 4 \
+  --replication-factor 3
+
+kafka-topics --bootstrap-server localhost:9094 --create \
+  --topic resume.posting.extract.response \
+  --partitions 4 \
+  --replication-factor 3
+
+kafka-topics --bootstrap-server localhost:9094 --create \
+  --topic resume.pdf.parse.request \
+  --partitions 4 \
+  --replication-factor 3
+
+kafka-topics --bootstrap-server localhost:9094 --create \
+  --topic resume.pdf.parse.response \
+  --partitions 4 \
+  --replication-factor 3
+```
+
+### Post-Deployment
+
+- [ ] Health checks passing
+- [ ] Metrics being collected
+- [ ] Logs being aggregated
+- [ ] Alerts configured
+- [ ] Load testing completed
+- [ ] Documentation updated
+- [ ] Team trained
+- [ ] Rollback plan tested
+
+---
 
 ## Monitoring Setup
 
-### Prometheus ServiceMonitor
+### Prometheus
 
 ```yaml
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: resume-worker-monitor
-  namespace: monitoring
-  labels:
-    app: resume-worker
-spec:
-  selector:
-    matchLabels:
-      app: resume-worker
-  endpoints:
-  - port: metrics
-    path: /metrics
-    interval: 30s
-    scrapeTimeout: 10s
+# prometheus.yml
+scrape_configs:
+  - job_name: 'resume-worker'
+    static_configs:
+      - targets: ['resume-worker:3006']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
 ```
 
-### Grafana Dashboard
+### Grafana
 
-Import the dashboard from `documentation/grafana-dashboard.json` into Grafana.
+Import dashboard from `grafana-dashboard.json`
 
-### AlertManager Rules
-
-Apply the alert rules from `documentation/prometheus-alerts.yml` to AlertManager.
-
-## Health Checks
-
-### Readiness and Liveness Probes
-
-The deployment includes comprehensive health checks:
-
-- **Liveness Probe**: Ensures the application is running and responsive
-- **Readiness Probe**: Ensures the application is ready to accept traffic
-- **Startup Probe**: Allows slow-starting containers to initialize properly
-
-### Health Check Endpoints
-
-- `GET /health` - Overall service health
-- `GET /health/kafka` - Kafka connectivity
-- `GET /health/database` - Database connectivity
-
-## Scaling Considerations
-
-### Horizontal Scaling
-
-- Stateless design allows easy horizontal scaling
-- Use HPA based on CPU/memory utilization
-- Consider custom metrics for queue depth
-
-### Vertical Scaling
-
-- Monitor resource usage patterns
-- Adjust resource requests/limits based on load
-- Consider node affinity for performance-critical workloads
+---
 
 ## Backup and Recovery
 
-### Data Backup
-
-- MongoDB data should be backed up regularly
-- Use Kubernetes persistent volumes with backup solutions
-- Implement cross-region replication for high availability
-
-### Disaster Recovery
-
-- Multi-zone deployment for high availability
-- Automated failover procedures
-- Regular disaster recovery testing
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Pod CrashLoopBackOff**
-   - Check environment variables
-   - Verify external service connectivity
-   - Review application logs
-
-2. **High Memory Usage**
-   - Monitor for memory leaks
-   - Adjust resource limits
-   - Implement connection pooling
-
-3. **Kafka Connection Issues**
-   - Verify broker addresses
-   - Check network policies
-   - Review Kafka cluster health
-
-### Debugging Commands
+### MongoDB Backup
 
 ```bash
-# Check pod status
-kubectl get pods -n enginedge-workers
+# Daily backup
+mongodump --uri="mongodb://mongodb:27017/resume-worker" \
+  --out=/backup/resume-worker-$(date +%Y%m%d)
 
-# View pod logs
-kubectl logs -f deployment/resume-worker -n enginedge-workers
-
-# Execute into pod
-kubectl exec -it deployment/resume-worker -n enginedge-workers -- /bin/sh
-
-# Check service endpoints
-kubectl get endpoints -n enginedge-workers
+# Restore
+mongorestore --uri="mongodb://mongodb:27017/resume-worker" \
+  /backup/resume-worker-20251103
 ```
 
-## Security Considerations
-
-### Network Security
-
-- Use network policies to restrict traffic
-- Implement TLS for external communications
-- Regular security updates for base images
-
-### Access Control
-
-- Implement RBAC for Kubernetes resources
-- Use secrets for sensitive configuration
-- Regular rotation of API keys and passwords
-
-### Compliance
-
-- Audit logging for security events
-- Regular security scans of container images
-- Compliance with organizational security policies
-
-## Performance Optimization
-
-### Application Tuning
-
-- Connection pooling for external services
-- Implement caching for frequently accessed data
-- Optimize database queries and indexes
-
-### Infrastructure Optimization
-
-- Use appropriate resource requests and limits
-- Implement pod anti-affinity for high availability
-- Consider using node pools for different workload types
-
-## Rollback Procedures
-
-### Deployment Rollback
+### Redis Backup
 
 ```bash
-# Rollback to previous Helm release
-helm rollback resume-worker 1 -n enginedge-workers
+# Enable AOF persistence
+redis-cli CONFIG SET appendonly yes
 
-# Or rollback Kubernetes deployment
-kubectl rollout undo deployment/resume-worker -n enginedge-workers
+# Manual snapshot
+redis-cli BGSAVE
 ```
 
-### Database Rollback
+---
 
-- Use database backup and restore procedures
-- Implement schema migration rollback scripts
-- Test rollback procedures regularly
+## Rollback Procedure
 
-## Maintenance Procedures
+```bash
+# Kubernetes rollback
+kubectl rollout undo deployment/resume-worker -n resume-worker
+kubectl rollout undo deployment/resume-nlp-service -n resume-worker
 
-### Regular Maintenance
+# Docker rollback
+docker-compose down
+docker-compose up -d --force-recreate
+```
 
-- Update dependencies regularly
-- Monitor for security vulnerabilities
-- Review and optimize resource usage
-- Update Kubernetes manifests for new features
+---
 
-### Emergency Procedures
+## Troubleshooting Deployment
 
-- Document incident response procedures
-- Define escalation paths
-- Regular incident response drills
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed troubleshooting guide.
+
+---
+
+**Last Updated:** November 3, 2025  
+**Version:** 1.0.0

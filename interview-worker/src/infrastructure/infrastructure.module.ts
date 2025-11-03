@@ -29,6 +29,7 @@ import {
   MongoCandidateProfileRepository,
   MongoTranscriptRepository,
   MongoInterviewReportRepository,
+  MongoWebhookRepository,
 } from './adapters/database';
 import {
   IInterviewRepository,
@@ -38,6 +39,7 @@ import {
   ICandidateProfileRepository,
   ITranscriptRepository,
   IInterviewReportRepository,
+  IWebhookRepository,
 } from '@application/ports/repositories.port';
 
 
@@ -111,6 +113,10 @@ import {
       provide: 'IInterviewReportRepository',
       useClass: MongoInterviewReportRepository,
     },
+    {
+      provide: 'IWebhookRepository',
+      useClass: MongoWebhookRepository,
+    },
     MetricsAdapter,
   ],
   exports: [
@@ -124,6 +130,7 @@ import {
     'ICandidateProfileRepository',
     'ITranscriptRepository',
     'IInterviewReportRepository',
+    'IWebhookRepository',
   ],
 })
 export class InfrastructureModule {}

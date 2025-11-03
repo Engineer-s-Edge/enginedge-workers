@@ -1,8 +1,8 @@
-# resume Worker Architecture
+# Resume Worker Architecture
 
 ## Overview
 
-The resume (Resume Natural Language Engine) Worker implements Clean Architecture (Hexagonal Architecture) principles to ensure maintainability, testability, and scalability. This document describes the architectural patterns, design decisions, and component interactions.
+The Resume Worker implements Clean Architecture (Hexagonal Architecture) principles to ensure maintainability, testability, and scalability. This document describes the architectural patterns, design decisions, and component interactions for the AI-powered resume tailoring platform.
 
 ## Architecture Principles
 
@@ -18,336 +18,605 @@ The application is structured around the following principles:
 
 ## Layer Structure
 
-### 1. Domain Layer (Core Business Logic)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Infrastructure Layer                        │
+│  (Controllers, Gateways, Database, Kafka, External APIs)   │
+│                                                              │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
+│  │Controllers │  │ Gateways   │  │  Adapters  │           │
+│  │  (REST)    │  │(WebSocket) │  │  (Kafka)   │           │
+│  └────────────┘  └────────────┘  └────────────┘           │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────┴───────────────────────────────────┐
+│                  Application Layer                           │
+│         (Use Cases, Services, Orchestration)                │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Experience   │  │   Resume     │  │  Evaluation  │     │
+│  │Bank Service  │  │   Service    │  │   Service    │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────┴───────────────────────────────────┐
+│                    Domain Layer                              │
+│              (Entities, Business Logic)                      │
+│                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Experience   │  │    Resume    │  │ Job Posting  │     │
+│  │ Bank Item    │  │    Entity    │  │    Entity    │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Domain Layer
 
 **Location**: `src/domain/`
 
 **Responsibilities**:
-- Define core business entities and value objects
+- Define core business entities
 - Implement domain business rules
 - Define interfaces (ports) for external dependencies
-- Remain independent of external frameworks and technologies
+- Remain independent of external frameworks
 
-**Components**:
+### Entities
 
-#### Entities
-- `Command`: Represents a task to be processed
-- `CommandResult`: Represents the outcome of command processing
-
+#### ExperienceBankItem
 ```typescript
-interface Command {
-  taskId: string;
-  taskType: 'EXECUTE_ASSISTANT' | 'SCHEDULE_HABITS';
-  payload?: Record<string, unknown>;
-}
-
-interface CommandResult {
-  taskId: string;
-  status: 'SUCCESS' | 'FAILURE';
-  result?: Record<string, unknown>;
-  error?: string;
+interface ExperienceBankItem {
+  _id: string;
+  userId: string;
+  bulletText: string;
+  vector: number[];
+  vectorModel: string;
+  metadata: {
+    technologies: string[];
+    role: string;
+    company: string;
+    dateRange: string;
+    metrics: string[];
+    keywords: string[];
+    reviewed: boolean;
+    linkedExperienceId: string | null;
+    category: 'work' | 'project' | 'education';
+    impactScore: number;
+    atsScore: number;
+    lastUsedDate: Date | null;
+    usageCount: number;
+  };
+  hash: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
-#### Domain Services
-- Pure business logic without external dependencies
-- Validation rules and business calculations
-- Domain event handling
+#### Resume
+```typescript
+interface Resume {
+  _id: string;
+  userId: string;
+  name: string;
+  latexContent: string;
+  currentVersion: number;
+  versions: ResumeVersion[];
+  metadata: {
+    targetRole: string;
+    targetCompany: string;
+    jobPostingId: string;
+    lastEvaluationScore: number;
+    lastEvaluationReport: string;
+    bulletPointIds: string[];
+    status: 'draft' | 'active' | 'archived';
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
 
-### 2. Application Layer (Use Cases & Orchestration)
+#### JobPosting
+```typescript
+interface JobPosting {
+  _id: string;
+  userId: string;
+  url: string;
+  rawText: string;
+  rawHtml: string;
+  parsed: JobPostingParsed; // 20+ fields
+  extractionMethod: 'nlp-only' | 'llm-assisted';
+  confidence: number;
+  createdAt: Date;
+}
+```
+
+#### EvaluationReport
+```typescript
+interface EvaluationReport {
+  _id: string;
+  resumeId: string;
+  userId: string;
+  mode: 'standalone' | 'role-guided' | 'jd-match';
+  scores: {
+    overall: number;
+    structure: number;
+    ats: number;
+    content: number;
+    alignment: number;
+  };
+  gates: Record<string, boolean>;
+  findings: Finding[];
+  coverage: Coverage;
+  repetition: Repetition;
+  suggestedSwaps: BulletSwap[];
+  createdAt: Date;
+}
+```
+
+---
+
+## Application Layer
 
 **Location**: `src/application/`
 
 **Responsibilities**:
-- Implement application use cases
-- Orchestrate domain objects
-- Handle cross-cutting concerns (logging, transactions)
-- Define application-specific interfaces
+- Implement use cases and business logic
+- Orchestrate domain entities
+- Define service interfaces
+- Coordinate external integrations
 
-**Components**:
+### Services
 
-#### Use Cases
-- `ProcessCommandUseCase`: Main use case for processing commands
-- Handles command validation and execution flow
-- Coordinates between domain services and external adapters
+#### 1. ExperienceBankService
+**Purpose**: Manage bullet point library with vector search
 
-#### Application Services
-- `CommandApplicationService`: Orchestrates command processing workflow
-- Manages transaction boundaries
-- Handles application-level error handling
+**Key Methods**:
+- `add(data)` - Add bullet with deduplication
+- `search(userId, params)` - Vector + metadata search
+- `list(userId, filters)` - List with filters
+- `markAsReviewed(id)` - Mark as verified
+- `updateUsage(id)` - Track usage
 
-#### Ports (Interfaces)
-- `ICommandProcessor`: Interface for command processing logic
-- `IMessagePublisher`: Interface for publishing results to message broker
+**Integrations**:
+- Data Processing Worker (vector embeddings)
+- MongoDB (persistence)
 
-### 3. Infrastructure Layer (Adapters & External Concerns)
+---
+
+#### 2. BulletEvaluatorService
+**Purpose**: Evaluate bullet point quality
+
+**Key Methods**:
+- `evaluateBullet(text, role, mode)` - Single bullet evaluation
+- `evaluateBullets(texts, role)` - Batch evaluation
+
+**Modes**:
+- `nlp-only` - Rule-based via resume-nlp-service
+- `llm-assisted` - Enhanced with LLM
+
+**Integrations**:
+- Resume NLP Service (Kafka)
+- Assistant Worker (optional LLM)
+
+---
+
+#### 3. JobPostingService
+**Purpose**: Extract structured data from job postings
+
+**Key Methods**:
+- `extractJobPosting(data, mode)` - Extract requirements
+- `getById(id)` - Retrieve posting
+- `list(userId)` - List postings
+
+**Integrations**:
+- Resume NLP Service (Kafka)
+- Assistant Worker (optional LLM)
+
+---
+
+#### 4. ResumeEvaluatorService
+**Purpose**: Comprehensive resume evaluation
+
+**Key Methods**:
+- `evaluateResume(resumeId, options)` - Full evaluation
+- `getReportById(id)` - Retrieve report
+- `listReports(resumeId)` - List reports
+
+**Workflow**:
+1. Compile LaTeX to PDF (latex-worker)
+2. Parse PDF (resume-nlp-service)
+3. Run ATS checks
+4. Aggregate bullet scores
+5. Check role/JD alignment
+6. Detect repetition
+7. Generate auto-fixes
+8. Suggest bullet swaps
+
+**Integrations**:
+- LaTeX Worker (PDF generation)
+- Resume NLP Service (parsing)
+- Experience Bank (swap suggestions)
+
+---
+
+#### 5. ResumeVersioningService
+**Purpose**: Git-like version control for resumes
+
+**Key Methods**:
+- `createVersion(resumeId, content)` - New version
+- `rollback(resumeId, version)` - Rollback
+- `getDiff(resumeId, v1, v2)` - Compare versions
+- `listVersions(resumeId)` - Version history
+
+**Features**:
+- SHA-256 hash tracking
+- Diff calculation
+- Rollback support
+
+---
+
+#### 6. ResumeEditingService
+**Purpose**: LaTeX editing operations
+
+**Key Methods**:
+- `applyLatexOperation(resumeId, operation)` - Apply edit
+- `undo(resumeId)` - Undo last change
+- `redo(resumeId)` - Redo change
+- `preview(resumeId)` - Generate preview
+- `suggestSwaps(resumeId, jobPostingId)` - Suggest bullets
+- `applySwap(resumeId, oldId, newId)` - Apply swap
+
+**Operations**:
+- Bold, italic, underline
+- Replace, insert, delete
+- Undo/redo (50 levels)
+
+---
+
+#### 7. ResumeTailoringService
+**Purpose**: Full workflow orchestration
+
+**Key Methods**:
+- `tailorResume(params)` - Start workflow
+- `getJobStatus(jobId)` - Check status
+- `cancelJob(jobId)` - Cancel job
+
+**Workflow**:
+1. Extract job posting
+2. Evaluate current resume
+3. Initiate iteration (auto/manual)
+4. Track progress
+5. Return tailored resume
+
+**Integrations**:
+- BullMQ (job queue)
+- All other services
+
+---
+
+#### 8. ResumeBuilderService
+**Purpose**: Build resumes from scratch
+
+**Key Methods**:
+- `startSession(userId, mode)` - Start builder
+- `addExperience(sessionId, experience)` - Add experience
+- `extractBulletsFromDescription(sessionId, index, text)` - Extract bullets
+- `analyzeCodebase(sessionId, githubUrl)` - Analyze GitHub
+- `finalizeSession(sessionId)` - Save to bank
+
+**Modes**:
+- Interview - Interactive Q&A
+- Codebase - GitHub analysis
+- Manual - Direct input
+
+---
+
+#### 9. CoverLetterService
+**Purpose**: Generate tailored cover letters
+
+**Key Methods**:
+- `generateCoverLetter(userId, options)` - Generate letter
+- `regenerateCoverLetter(id, options)` - Regenerate
+- `editCoverLetter(id, content)` - Edit content
+
+**Options**:
+- Tone: professional, casual, enthusiastic
+- Length: short, medium, long
+- Specific experiences to include
+
+---
+
+## Infrastructure Layer
 
 **Location**: `src/infrastructure/`
 
 **Responsibilities**:
-- Implement external interfaces (databases, APIs, message brokers)
-- Handle HTTP requests and responses
-- Manage cross-cutting concerns (logging, monitoring, security)
-- Adapt external systems to application needs
+- Implement external interfaces
+- Handle HTTP requests
+- Manage WebSocket connections
+- Integrate with external services
 
-**Components**:
+### Controllers (REST API)
 
-#### Adapters
-- `CommandProcessorAdapter`: Implements command processing logic
-- `KafkaMessageBrokerAdapter`: Handles Kafka message publishing
-- `ConsoleMessagePublisherAdapter`: Simple console-based publisher for development
+#### 1. ExperienceBankController
+**Endpoints**:
+- `POST /experience-bank/add`
+- `POST /experience-bank/search`
+- `GET /experience-bank/list/:userId`
+- `PATCH /experience-bank/:id/reviewed`
+- `GET /experience-bank/:id`
 
-#### Controllers
-- `CommandController`: REST API endpoints for command processing
-- Request/response transformation
-- HTTP-specific error handling
+---
 
-#### Cross-Cutting Concerns
-- Logging and monitoring
-- Exception filters and interceptors
-- Middleware for request processing
+#### 2. ResumeController
+**Endpoints**:
+- `POST /resume/create`
+- `GET /resume/:id`
+- `PATCH /resume/:id`
+- `DELETE /resume/:id`
+
+---
+
+#### 3. JobPostingController
+**Endpoints**:
+- `POST /job-posting/extract`
+- `GET /job-posting/:id`
+- `GET /job-posting/list/:userId`
+- `DELETE /job-posting/:id`
+
+---
+
+#### 4. EvaluationController
+**Endpoints**:
+- `POST /evaluation/evaluate`
+- `GET /evaluation/report/:id`
+- `GET /evaluation/reports/:resumeId`
+
+---
+
+#### 5. ResumeTailoringController
+**Endpoints**:
+- `POST /tailoring/tailor`
+- `GET /tailoring/job/:jobId`
+- `POST /tailoring/job/:jobId/cancel`
+
+---
+
+#### 6. ResumeEditingController
+**Endpoints**:
+- `POST /editing/:resumeId/latex`
+- `POST /editing/:resumeId/undo`
+- `POST /editing/:resumeId/redo`
+- `POST /editing/:resumeId/preview`
+- `POST /editing/:resumeId/suggest-swaps`
+- `POST /editing/:resumeId/apply-swap`
+
+---
+
+#### 7. CoverLetterController
+**Endpoints**:
+- `POST /cover-letter/generate`
+- `POST /cover-letter/:id/regenerate`
+- `PATCH /cover-letter/:id`
+
+---
+
+### Gateways (WebSocket)
+
+#### 1. ResumeIteratorGateway
+**Namespace**: `/resume-iterator`
+
+**Purpose**: Real-time resume iteration with AI agent
+
+**Events**:
+- Client → Server: `start-iteration`, `send-message`, `apply-fix`, `toggle-mode`, `stop-iteration`
+- Server → Client: `iteration-started`, `agent-thinking`, `agent-message`, `evaluation-update`, `fix-suggested`, `iteration-complete`
+
+---
+
+#### 2. BulletReviewGateway
+**Namespace**: `/bullet-review`
+
+**Purpose**: Interactive bullet verification
+
+**Events**:
+- Client → Server: `start-review`, `respond`, `approve`, `reject`, `skip`
+- Server → Client: `review-started`, `agent-question`, `bullet-approved`, `bullet-rejected`, `review-complete`
+
+---
+
+#### 3. ResumeBuilderGateway
+**Namespace**: `/resume-builder`
+
+**Purpose**: Interactive resume building
+
+**Events**:
+- Client → Server: `start-session`, `user-response`, `add-experience`, `add-bullet`, `analyze-codebase`, `finalize-session`
+- Server → Client: `session-started`, `agent-question`, `experience-added`, `codebase-analyzed`, `session-finalized`
+
+---
+
+## External Integrations
+
+### 1. Resume NLP Service (Python/FastAPI)
+**Communication**: Kafka
+
+**Topics**:
+- `resume.bullet.evaluate.request/response`
+- `resume.posting.extract.request/response`
+- `resume.pdf.parse.request/response`
+
+**Capabilities**:
+- spaCy NER and POS tagging
+- NLTK grammar checking
+- PyMuPDF PDF parsing
+- Rule-based evaluation
+
+---
+
+### 2. Assistant Worker
+**Communication**: Kafka + REST
+
+**Agents**:
+- Resume Builder Agent (ReAct)
+- Resume Iterator Agent (ReAct)
+- Bullet Review Agent (ReAct)
+- Cover Letter Generator Agent (ReAct)
+
+---
+
+### 3. Data Processing Worker
+**Communication**: Kafka
+
+**Capabilities**:
+- Vector embedding generation (Google text-embedding-004)
+- Vector search
+- Batch processing
+
+---
+
+### 4. LaTeX Worker
+**Communication**: Kafka
+
+**Capabilities**:
+- LaTeX compilation to PDF
+- Preview generation
+- Template management
+
+---
+
+### 5. Agent Tool Worker
+**Communication**: Kafka
+
+**Capabilities**:
+- GitHub codebase analysis
+- Company research (web scraping)
+- Job posting scraping
+
+---
 
 ## Data Flow
 
-### Command Processing Flow
+### Resume Tailoring Workflow
 
-1. **HTTP Request** → `CommandController.processCommand()`
-2. **Validation** → Input validation and transformation
-3. **Use Case Execution** → `ProcessCommandUseCase.execute()`
-4. **Domain Processing** → Business logic execution
-5. **Result Publishing** → Asynchronous result publishing via Kafka
-6. **HTTP Response** → Return processing result
+```
+User → POST /tailoring/tailor
+  ↓
+ResumeTailoringService
+  ↓
+BullMQ Job Queue
+  ↓
+┌─────────────────────────────────────┐
+│ 1. Extract Job Posting              │
+│    → Resume NLP Service (Kafka)     │
+└─────────────────────────────────────┘
+  ↓
+┌─────────────────────────────────────┐
+│ 2. Evaluate Current Resume          │
+│    → LaTeX Worker (PDF)             │
+│    → Resume NLP Service (Parse)     │
+│    → Bullet Evaluator               │
+└─────────────────────────────────────┘
+  ↓
+┌─────────────────────────────────────┐
+│ 3. Iterate (Auto/Manual)            │
+│    → Assistant Worker (Agent)       │
+│    → WebSocket (if manual)          │
+└─────────────────────────────────────┘
+  ↓
+┌─────────────────────────────────────┐
+│ 4. Apply Improvements               │
+│    → Resume Editing Service         │
+│    → Version Control                │
+└─────────────────────────────────────┘
+  ↓
+Tailored Resume (PDF)
+```
 
-### Asynchronous Processing
+---
 
-Commands are processed asynchronously to prevent blocking:
+## Scalability Patterns
 
-1. Command received via HTTP POST
-2. Immediate response with task acceptance
-3. Background processing via use case
-4. Result published to Kafka topic
-5. Consumer services handle result notifications
+### 1. Horizontal Scaling
+- Stateless services
+- Multiple worker instances
+- Load balancing
 
-## External Dependencies
+### 2. Asynchronous Processing
+- Kafka for message passing
+- BullMQ for job queues
+- Non-blocking I/O
 
-### Message Broker (Kafka)
+### 3. Caching
+- Redis for session data
+- MongoDB for persistence
+- In-memory caches
 
-**Purpose**: Asynchronous communication and event-driven processing
+### 4. Parallel Processing
+- Multiple users simultaneously
+- Multiple jobs per user
+- Concurrent Kafka consumers
 
-**Configuration**:
-- Broker addresses via environment variables
-- Consumer groups for load balancing
-- Topics for command results and events
-
-**Topics Used**:
-- `command-results`: Processed command outcomes
-- `command-events`: Processing status updates
-
-### Database (MongoDB)
-
-**Purpose**: Metadata storage and command state persistence
-
-**Collections**:
-- `commands`: Command execution history
-- `command_results`: Processing outcomes
-- `processing_metrics`: Performance metrics
-
-### Monitoring (Prometheus)
-
-**Purpose**: Observability and alerting
-
-**Metrics Exposed**:
-- Command processing rates and latency
-- Error rates by command type
-- Kafka message processing statistics
-- System resource utilization
+---
 
 ## Design Patterns
 
-### Adapter Pattern
+### 1. Hexagonal Architecture
+- Clear separation of concerns
+- Dependency inversion
+- Testability
 
-Used to adapt external interfaces to application ports:
+### 2. Repository Pattern
+- Data access abstraction
+- MongoDB schemas
+- CRUD operations
 
-```typescript
-// Port (Interface)
-interface IMessagePublisher {
-  publishResult(result: CommandResult): Promise<void>;
-}
+### 3. Service Layer Pattern
+- Business logic encapsulation
+- Use case orchestration
+- External integration
 
-// Adapter (Implementation)
-@Injectable()
-export class KafkaMessageBrokerAdapter implements IMessagePublisher {
-  async publishResult(result: CommandResult): Promise<void> {
-    // Kafka-specific implementation
-  }
-}
-```
+### 4. Gateway Pattern
+- WebSocket abstraction
+- Real-time communication
+- Event-driven architecture
 
-### Repository Pattern
+### 5. Queue Pattern
+- BullMQ job processing
+- Parallel execution
+- Retry logic
 
-Abstracts data access operations:
+---
 
-```typescript
-interface ICommandRepository {
-  save(command: Command): Promise<void>;
-  findById(taskId: string): Promise<Command | null>;
-}
-```
+## Technology Stack
 
-### Factory Pattern
+| Layer | Technologies |
+|-------|-------------|
+| **Framework** | NestJS 10 |
+| **Language** | TypeScript 5 |
+| **Database** | MongoDB 7 |
+| **Messaging** | Kafka 3.7 |
+| **Queue** | BullMQ + Redis |
+| **WebSocket** | Socket.io |
+| **NLP** | Python + spaCy + NLTK |
+| **Monitoring** | Prometheus + Grafana |
 
-Creates domain objects with proper validation:
+---
 
-```typescript
-export class CommandFactory {
-  static create(taskId: string, taskType: string, payload?: any): Command {
-    // Validation and creation logic
-  }
-}
-```
+## Best Practices
 
-### Observer Pattern
+1. **Dependency Injection**: All dependencies injected via constructor
+2. **Interface Segregation**: Small, focused interfaces
+3. **Error Handling**: Comprehensive try-catch with logging
+4. **Validation**: Input validation at controller level
+5. **Testing**: Unit tests for services, E2E for controllers
+6. **Documentation**: JSDoc comments for all public methods
+7. **Logging**: Structured logging with context
+8. **Monitoring**: Prometheus metrics for all operations
 
-Handles domain events and notifications:
+---
 
-```typescript
-// Domain events
-export class CommandProcessedEvent {
-  constructor(public readonly command: Command, public readonly result: CommandResult) {}
-}
-
-// Event handlers
-@Injectable()
-export class CommandEventHandler {
-  handle(event: CommandProcessedEvent): void {
-    // Event processing logic
-  }
-}
-```
-
-## Error Handling
-
-### Error Types
-
-1. **Validation Errors**: Invalid input data (400 Bad Request)
-2. **Business Logic Errors**: Domain rule violations (422 Unprocessable Entity)
-3. **Infrastructure Errors**: External service failures (502/503 Bad Gateway/Service Unavailable)
-4. **System Errors**: Unexpected failures (500 Internal Server Error)
-
-### Error Propagation
-
-- Domain layer throws domain-specific exceptions
-- Application layer catches and transforms to application errors
-- Infrastructure layer converts to HTTP status codes
-- All errors are logged with correlation IDs
-
-## Testing Strategy
-
-### Unit Tests
-- Test domain logic in isolation
-- Mock external dependencies
-- Focus on business rules and edge cases
-
-### Integration Tests
-- Test adapter implementations
-- Verify external service integrations
-- End-to-end workflow testing
-
-### Test Structure
-```
-src/
-├── domain/
-│   └── entities/
-│       └── command.entities.spec.ts
-├── application/
-│   └── use-cases/
-│       └── process-command.use-case.spec.ts
-└── infrastructure/
-    └── adapters/
-        └── command-processor.adapter.spec.ts
-```
-
-## Performance Considerations
-
-### Asynchronous Processing
-- Commands processed in background threads
-- Non-blocking I/O operations
-- Connection pooling for external services
-
-### Caching Strategy
-- Command metadata caching
-- Result caching for frequently accessed data
-- Redis integration for distributed caching
-
-### Scalability
-- Stateless design for horizontal scaling
-- Message-based communication
-- Database connection pooling
-
-## Security Measures
-
-### Input Validation
-- Request payload validation using DTOs
-- Sanitization of user inputs
-- Type checking and schema validation
-
-### Authentication & Authorization
-- API key authentication for service-to-service communication
-- Role-based access control (future enhancement)
-- Request rate limiting
-
-### Data Protection
-- Encryption of sensitive data at rest
-- Secure communication via TLS
-- Audit logging for security events
-
-## Deployment Architecture
-
-### Containerization
-- Docker-based deployment
-- Multi-stage builds for optimization
-- Non-root user execution
-
-### Orchestration
-- Kubernetes deployment manifests
-- Horizontal Pod Autoscaling
-- ConfigMaps and Secrets management
-
-### Service Mesh
-- Istio integration for traffic management
-- Circuit breakers and retry logic
-- Distributed tracing
-
-## Monitoring & Observability
-
-### Metrics Collection
-- Prometheus metrics exposition
-- Custom business metrics
-- Performance histograms
-
-### Logging
-- Structured logging with correlation IDs
-- Log aggregation via ELK stack
-- Error tracking and alerting
-
-### Tracing
-- Distributed tracing with Jaeger
-- Request flow visualization
-- Performance bottleneck identification
-
-## Future Enhancements
-
-### Microservices Evolution
-- Command type-specific workers
-- Event sourcing implementation
-- CQRS pattern adoption
-
-### Advanced Features
-- Command scheduling and queuing
-- Workflow orchestration
-- Machine learning integration
-
-### Infrastructure Improvements
-- Multi-region deployment
-- Service mesh adoption
-- Advanced monitoring dashboards
+**Last Updated:** November 3, 2025  
+**Version:** 1.0.0  
+**Architecture:** Hexagonal (Clean Architecture)

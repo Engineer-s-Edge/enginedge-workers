@@ -1,233 +1,834 @@
-# resume Worker API Documentation
+# Resume Worker - API Documentation
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Authentication](#authentication)
+- [Base URL](#base-url)
+- [Response Format](#response-format)
+- [Error Handling](#error-handling)
+- [Experience Bank API](#experience-bank-api)
+- [Resume API](#resume-api)
+- [Job Posting API](#job-posting-api)
+- [Evaluation API](#evaluation-api)
+- [Resume Tailoring API](#resume-tailoring-api)
+- [Resume Editing API](#resume-editing-api)
+- [Cover Letter API](#cover-letter-api)
+- [WebSocket Gateways](#websocket-gateways)
+- [Health & Metrics](#health--metrics)
+
+---
 
 ## Overview
 
-The resume Worker provides RESTful APIs for processing background commands and monitoring service health. All endpoints return JSON responses and follow REST conventions.
+The Resume Worker exposes **35+ REST API endpoints** organized into the following categories:
+
+| Category | Endpoints | Description |
+|----------|-----------|-------------|
+| **Experience Bank** | 5 | Manage bullet point library |
+| **Resume** | 4 | CRUD operations for resumes |
+| **Job Posting** | 4 | Extract and manage job postings |
+| **Evaluation** | 3 | Evaluate resumes and bullets |
+| **Resume Tailoring** | 3 | Full tailoring workflow |
+| **Resume Editing** | 7 | LaTeX editing operations |
+| **Cover Letter** | 3 | Generate cover letters |
+| **WebSocket Gateways** | 3 | Real-time agent interaction |
+| **Health/Metrics** | 2 | System health and monitoring |
+
+---
+
+## Authentication
+
+Currently, the API uses user-based identification:
+
+```bash
+# Include userId in request body or query parameter
+{
+  "userId": "user123",
+  ...
+}
+```
+
+For production, implement one of:
+- **API Keys:** Header-based authentication
+- **JWT Tokens:** Bearer token authentication
+- **OAuth 2.0:** Third-party authentication
+
+---
 
 ## Base URL
 
 ```
-http://localhost:3001
+Development: http://localhost:3006
+Production: https://resume.yourdomain.com
 ```
 
-## Authentication
+---
 
-Currently, no authentication is required for internal service communication.
+## Response Format
 
-## Endpoints
+### Success Response
 
-### Health Check
-
-#### GET /health
-
-Returns the health status of the service and its dependencies.
-
-**Response (200 OK):**
 ```json
 {
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "uptime": 3600,
-  "version": "1.0.0",
-  "checks": {
-    "kafka": {
-      "status": "up",
-      "responseTime": 45
-    },
-    "database": {
-      "status": "up",
-      "responseTime": 23
-    }
-  }
+  "id": "item_123",
+  "status": "success",
+  "data": {
+    // Response data
+  },
+  "timestamp": "2025-11-03T12:00:00.000Z"
 }
 ```
 
-**Error Response (503 Service Unavailable):**
+### Error Response
+
 ```json
 {
-  "status": "error",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "checks": {
-    "kafka": {
-      "status": "down",
-      "error": "Connection timeout"
-    }
-  }
+  "statusCode": 400,
+  "message": "Resource not found",
+  "error": "Not Found",
+  "timestamp": "2025-11-03T12:00:00.000Z",
+  "path": "/experience-bank/invalid-id"
 }
 ```
 
-### Command Processing
+---
 
-#### POST /command/process
+## Error Handling
 
-Processes a background command asynchronously.
+### HTTP Status Codes
+
+| Code | Meaning | Description |
+|------|---------|-------------|
+| `200` | OK | Request successful |
+| `201` | Created | Resource created successfully |
+| `400` | Bad Request | Invalid request parameters |
+| `404` | Not Found | Resource not found |
+| `409` | Conflict | Resource already exists |
+| `500` | Internal Server Error | Server error |
+| `503` | Service Unavailable | Service temporarily unavailable |
+
+---
+
+## Experience Bank API
+
+### Add Bullet Point
+
+Add a new bullet point to the experience bank.
+
+**Endpoint:** `POST /experience-bank/add`
 
 **Request Body:**
 ```json
 {
-  "taskId": "string (required)",
-  "taskType": "EXECUTE_ASSISTANT | SCHEDULE_HABITS (required)",
-  "payload": {
-    "additional": "data"
+  "userId": "user123",
+  "bulletText": "Developed scalable microservices reducing deployment time by 60%",
+  "metadata": {
+    "technologies": ["Node.js", "Docker", "Kubernetes"],
+    "role": "Software Engineer",
+    "company": "Tech Corp",
+    "dateRange": "2022-2024",
+    "metrics": ["60% reduction"],
+    "keywords": ["microservices", "deployment"],
+    "reviewed": false,
+    "linkedExperienceId": null,
+    "category": "work",
+    "impactScore": 0.9,
+    "atsScore": 0.95
   }
 }
 ```
 
-**Parameters:**
-
-- `taskId` (string, required): Unique identifier for the task
-- `taskType` (string, required): Type of task to execute
-  - `EXECUTE_ASSISTANT`: Execute an assistant operation
-  - `SCHEDULE_HABITS`: Schedule habit-related tasks
-- `payload` (object, optional): Task-specific data
-
-**Success Response (200 OK):**
+**Response:**
 ```json
 {
-  "taskId": "task-123",
-  "status": "SUCCESS",
-  "result": {
-    "message": "Executed assistant task task-123 with payload: {...}",
-    "processedAt": "2024-01-15T10:30:00.000Z"
+  "_id": "bullet123",
+  "userId": "user123",
+  "bulletText": "Developed scalable microservices reducing deployment time by 60%",
+  "vector": [0.1, 0.2, ...],
+  "vectorModel": "text-embedding-004",
+  "metadata": { ... },
+  "hash": "abc123def456",
+  "createdAt": "2025-11-03T12:00:00.000Z",
+  "updatedAt": "2025-11-03T12:00:00.000Z"
+}
+```
+
+---
+
+### Search Experience Bank
+
+Search for bullet points using vector search and metadata filters.
+
+**Endpoint:** `POST /experience-bank/search`
+
+**Request Body:**
+```json
+{
+  "userId": "user123",
+  "query": "microservices deployment",
+  "filters": {
+    "technologies": ["Docker"],
+    "reviewed": true,
+    "minImpactScore": 0.7,
+    "category": "work"
+  },
+  "limit": 10
+}
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "_id": "bullet123",
+      "bulletText": "Developed scalable microservices...",
+      "metadata": { ... },
+      "score": 0.95
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
+### List Bullets
+
+List all bullets for a user with optional filters.
+
+**Endpoint:** `GET /experience-bank/list/:userId`
+
+**Query Parameters:**
+- `reviewed` (optional): Filter by review status
+- `category` (optional): Filter by category (work, project, education)
+- `technologies` (optional): Filter by technologies (comma-separated)
+
+**Response:**
+```json
+{
+  "bullets": [
+    {
+      "_id": "bullet123",
+      "bulletText": "...",
+      "metadata": { ... }
+    }
+  ],
+  "total": 25
+}
+```
+
+---
+
+### Mark as Reviewed
+
+Mark a bullet point as reviewed.
+
+**Endpoint:** `PATCH /experience-bank/:id/reviewed`
+
+**Response:**
+```json
+{
+  "_id": "bullet123",
+  "metadata": {
+    "reviewed": true
+  },
+  "updatedAt": "2025-11-03T12:00:00.000Z"
+}
+```
+
+---
+
+### Get Bullet by ID
+
+Get a specific bullet point.
+
+**Endpoint:** `GET /experience-bank/:id`
+
+**Response:**
+```json
+{
+  "_id": "bullet123",
+  "bulletText": "...",
+  "metadata": { ... }
+}
+```
+
+---
+
+## Resume API
+
+### Create Resume
+
+Create a new resume.
+
+**Endpoint:** `POST /resume/create`
+
+**Request Body:**
+```json
+{
+  "userId": "user123",
+  "name": "Software Engineer Resume",
+  "latexContent": "\\documentclass{article}...",
+  "metadata": {
+    "targetRole": "Senior Software Engineer",
+    "targetCompany": "Tech Corp",
+    "jobPostingId": "posting123"
   }
 }
 ```
 
-**Error Response (400 Bad Request):**
+**Response:**
 ```json
 {
-  "taskId": "task-123",
-  "status": "FAILURE",
-  "error": "Invalid command format: missing taskType"
+  "_id": "resume123",
+  "userId": "user123",
+  "name": "Software Engineer Resume",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "version": 1,
+      "latexContent": "...",
+      "timestamp": "2025-11-03T12:00:00.000Z"
+    }
+  ],
+  "createdAt": "2025-11-03T12:00:00.000Z"
 }
 ```
 
-**Error Response (500 Internal Server Error):**
+---
+
+### Get Resume
+
+Get a resume by ID.
+
+**Endpoint:** `GET /resume/:id`
+
+**Response:**
 ```json
 {
-  "taskId": "task-123",
-  "status": "FAILURE",
-  "error": "Internal processing error"
+  "_id": "resume123",
+  "name": "Software Engineer Resume",
+  "latexContent": "...",
+  "currentVersion": 3,
+  "versions": [ ... ]
 }
 ```
 
-### Metrics
+---
 
-#### GET /metrics
+### Update Resume
 
-Returns Prometheus-compatible metrics for monitoring.
+Update resume content.
 
-**Response (200 OK):**
+**Endpoint:** `PATCH /resume/:id`
+
+**Request Body:**
+```json
+{
+  "latexContent": "\\documentclass{article}...",
+  "metadata": {
+    "targetRole": "Lead Engineer"
+  }
+}
 ```
-# HELP http_requests_total Total number of HTTP requests
-# TYPE http_requests_total counter
-http_requests_total{method="GET",route="/health",status="200"} 150
 
-# HELP command_processing_duration_seconds Time spent processing commands
-# TYPE command_processing_duration_seconds histogram
-command_processing_duration_seconds_bucket{le="0.1"} 5
-command_processing_duration_seconds_bucket{le="0.5"} 12
-...
+---
+
+### Delete Resume
+
+Delete a resume.
+
+**Endpoint:** `DELETE /resume/:id`
+
+**Response:**
+```json
+{
+  "message": "Resume deleted successfully"
+}
 ```
 
-## Error Codes
+---
 
-| Code | Description |
-|------|-------------|
-| 200 | Success |
-| 400 | Bad Request - Invalid input data |
-| 500 | Internal Server Error - Processing failed |
-| 503 | Service Unavailable - Health check failed |
+## Job Posting API
 
-## Rate Limiting
+### Extract Job Posting
 
-Currently, no rate limiting is implemented. Consider implementing based on production requirements.
+Extract structured information from a job posting.
 
-## Timeouts
+**Endpoint:** `POST /job-posting/extract`
 
-- Health check: 30 seconds
-- Command processing: 300 seconds (5 minutes)
+**Request Body:**
+```json
+{
+  "userId": "user123",
+  "url": "https://example.com/job",
+  "rawText": "Senior Software Engineer\n5+ years experience...",
+  "mode": "nlp-only"
+}
+```
 
-## Data Formats
-
-All requests and responses use JSON format with UTF-8 encoding.
-
-## Versioning
-
-API versioning is not currently implemented. All endpoints are at version 1.0.
-
-## Examples
-
-### Execute Assistant Task
-
-```bash
-curl -X POST http://localhost:3001/command/process \
-  -H "Content-Type: application/json" \
-  -d '{
-    "taskId": "assist-001",
-    "taskType": "EXECUTE_ASSISTANT",
-    "payload": {
-      "assistantId": "asst_123",
-      "userInput": "Analyze this resume",
-      "context": {
-        "userId": "user_456",
-        "sessionId": "sess_789"
+**Response:**
+```json
+{
+  "_id": "posting123",
+  "userId": "user123",
+  "url": "https://example.com/job",
+  "parsed": {
+    "role": {
+      "titleRaw": "Senior Software Engineer",
+      "roleFamily": "Software Engineering",
+      "seniorityInferred": "Senior"
+    },
+    "skills": {
+      "skillsExplicit": ["Python", "AWS", "Docker"],
+      "skillsInferred": ["Cloud", "DevOps"]
+    },
+    "experience": {
+      "monthsMin": 60,
+      "monthsPreferred": 84
+    },
+    "compensation": {
+      "baseSalary": {
+        "min": 120000,
+        "max": 160000,
+        "currency": "USD"
       }
     }
-  }'
+  },
+  "confidence": 0.85,
+  "createdAt": "2025-11-03T12:00:00.000Z"
+}
 ```
 
-### Schedule Habits
+---
 
-```bash
-curl -X POST http://localhost:3001/command/process \
-  -H "Content-Type: application/json" \
-  -d '{
-    "taskId": "habit-001",
-    "taskType": "SCHEDULE_HABITS",
-    "payload": {
-      "userId": "user_456",
-      "habits": [
-        {
-          "name": "Morning Exercise",
-          "frequency": "daily",
-          "time": "07:00"
-        }
-      ]
+### Get Job Posting
+
+Get a job posting by ID.
+
+**Endpoint:** `GET /job-posting/:id`
+
+---
+
+### List Job Postings
+
+List all job postings for a user.
+
+**Endpoint:** `GET /job-posting/list/:userId`
+
+---
+
+### Delete Job Posting
+
+Delete a job posting.
+
+**Endpoint:** `DELETE /job-posting/:id`
+
+---
+
+## Evaluation API
+
+### Evaluate Resume
+
+Evaluate an entire resume.
+
+**Endpoint:** `POST /evaluation/evaluate`
+
+**Request Body:**
+```json
+{
+  "resumeId": "resume123",
+  "mode": "jd-match",
+  "jobPostingId": "posting123",
+  "options": {
+    "autoFix": true,
+    "includeSwaps": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "_id": "report123",
+  "resumeId": "resume123",
+  "mode": "jd-match",
+  "scores": {
+    "overall": 85,
+    "structure": 90,
+    "ats": 95,
+    "content": 80,
+    "alignment": 75
+  },
+  "gates": {
+    "atsCompatible": true,
+    "noSpellingErrors": true,
+    "hasQuantifiableResults": true
+  },
+  "findings": [
+    {
+      "severity": "warning",
+      "category": "content",
+      "message": "Missing keyword: Kubernetes",
+      "location": "Experience section"
     }
-  }'
+  ],
+  "coverage": {
+    "requiredSkillsMatched": 8,
+    "requiredSkillsTotal": 10,
+    "coveragePercent": 80
+  },
+  "suggestedSwaps": [
+    {
+      "currentBullet": "Worked on deployment",
+      "suggestedBullet": "Automated deployment pipeline reducing release time by 70%",
+      "reason": "Stronger metrics and action verb",
+      "confidence": 0.9
+    }
+  ],
+  "createdAt": "2025-11-03T12:00:00.000Z"
+}
 ```
+
+---
+
+### Get Evaluation Report
+
+Get an evaluation report by ID.
+
+**Endpoint:** `GET /evaluation/report/:id`
+
+---
+
+### List Evaluation Reports
+
+List all reports for a resume.
+
+**Endpoint:** `GET /evaluation/reports/:resumeId`
+
+---
+
+## Resume Tailoring API
+
+### Tailor Resume
+
+Start a full resume tailoring workflow.
+
+**Endpoint:** `POST /tailoring/tailor`
+
+**Request Body:**
+```json
+{
+  "userId": "user123",
+  "resumeId": "resume123",
+  "jobPostingText": "Senior Software Engineer...",
+  "mode": "auto",
+  "targetScore": 95,
+  "options": {
+    "maxIterations": 5,
+    "autoApplyFixes": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "jobId": "job123",
+  "status": "queued",
+  "estimatedTime": 300
+}
+```
+
+---
+
+### Get Tailoring Job Status
+
+Get the status of a tailoring job.
+
+**Endpoint:** `GET /tailoring/job/:jobId`
+
+**Response:**
+```json
+{
+  "jobId": "job123",
+  "status": "processing",
+  "progress": 60,
+  "currentScore": 87,
+  "targetScore": 95,
+  "iterations": 2,
+  "message": "Evaluating resume..."
+}
+```
+
+---
+
+### Cancel Tailoring Job
+
+Cancel a running tailoring job.
+
+**Endpoint:** `POST /tailoring/job/:jobId/cancel`
+
+---
+
+## Resume Editing API
+
+### Apply LaTeX Operation
+
+Apply a LaTeX editing operation.
+
+**Endpoint:** `POST /editing/:resumeId/latex`
+
+**Request Body:**
+```json
+{
+  "operation": "bold",
+  "text": "Senior Software Engineer"
+}
+```
+
+---
+
+### Undo
+
+Undo the last change.
+
+**Endpoint:** `POST /editing/:resumeId/undo`
+
+---
+
+### Redo
+
+Redo the last undone change.
+
+**Endpoint:** `POST /editing/:resumeId/redo`
+
+---
+
+### Preview Resume
+
+Generate a PDF preview.
+
+**Endpoint:** `POST /editing/:resumeId/preview`
+
+**Response:**
+```json
+{
+  "pdfUrl": "https://...",
+  "expiresAt": "2025-11-03T13:00:00.000Z"
+}
+```
+
+---
+
+### Suggest Bullet Swaps
+
+Get bullet swap suggestions.
+
+**Endpoint:** `POST /editing/:resumeId/suggest-swaps`
+
+**Request Body:**
+```json
+{
+  "jobPostingId": "posting123",
+  "limit": 5
+}
+```
+
+---
+
+### Apply Bullet Swap
+
+Apply a suggested bullet swap.
+
+**Endpoint:** `POST /editing/:resumeId/apply-swap`
+
+**Request Body:**
+```json
+{
+  "oldBulletId": "bullet123",
+  "newBulletId": "bullet456"
+}
+```
+
+---
+
+## Cover Letter API
+
+### Generate Cover Letter
+
+Generate a tailored cover letter.
+
+**Endpoint:** `POST /cover-letter/generate`
+
+**Request Body:**
+```json
+{
+  "userId": "user123",
+  "options": {
+    "jobPostingId": "posting123",
+    "tone": "professional",
+    "length": "medium",
+    "includeExperiences": ["bullet123", "bullet456"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "_id": "letter123",
+  "userId": "user123",
+  "jobPostingId": "posting123",
+  "content": "Dear Hiring Manager,\n\nI am writing...",
+  "metadata": {
+    "company": "Tech Corp",
+    "position": "Senior Software Engineer",
+    "tone": "professional",
+    "length": "medium",
+    "experiencesUsed": ["bullet123", "bullet456"]
+  },
+  "createdAt": "2025-11-03T12:00:00.000Z"
+}
+```
+
+---
+
+### Regenerate Cover Letter
+
+Regenerate with different options.
+
+**Endpoint:** `POST /cover-letter/:id/regenerate`
+
+---
+
+### Edit Cover Letter
+
+Edit cover letter content.
+
+**Endpoint:** `PATCH /cover-letter/:id`
+
+---
+
+## WebSocket Gateways
+
+### Resume Iterator Gateway
+
+**Namespace:** `/resume-iterator`
+
+**Events:**
+
+**Client → Server:**
+- `start-iteration` - Start iteration session
+- `send-message` - Send message to agent
+- `apply-fix` - Apply suggested fix
+- `toggle-mode` - Toggle auto/manual mode
+- `stop-iteration` - Stop iteration
+
+**Server → Client:**
+- `iteration-started` - Session started
+- `agent-thinking` - Agent is processing
+- `agent-message` - Agent message
+- `evaluation-update` - New evaluation results
+- `fix-suggested` - Auto-fix suggestion
+- `iteration-complete` - Iteration finished
+
+---
+
+### Bullet Review Gateway
+
+**Namespace:** `/bullet-review`
+
+**Events:**
+
+**Client → Server:**
+- `start-review` - Start review session
+- `respond` - Respond to agent question
+- `approve` - Approve bullet
+- `reject` - Reject bullet
+- `skip` - Skip bullet
+
+**Server → Client:**
+- `review-started` - Session started
+- `agent-question` - Agent question
+- `bullet-approved` - Bullet approved
+- `bullet-rejected` - Bullet rejected
+- `review-complete` - All bullets reviewed
+
+---
+
+### Resume Builder Gateway
+
+**Namespace:** `/resume-builder`
+
+**Events:**
+
+**Client → Server:**
+- `start-session` - Start builder session
+- `user-response` - User response
+- `add-experience` - Add experience
+- `add-bullet` - Add bullet
+- `analyze-codebase` - Analyze GitHub repo
+- `finalize-session` - Finalize and save
+
+**Server → Client:**
+- `session-started` - Session started
+- `agent-question` - Agent question
+- `experience-added` - Experience added
+- `codebase-analyzed` - Analysis complete
+- `session-finalized` - Session complete
+
+---
+
+## Health & Metrics
 
 ### Health Check
 
-```bash
-curl http://localhost:3001/health
+**Endpoint:** `GET /health`
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-11-03T12:00:00.000Z",
+  "uptime": 123.45
+}
 ```
 
-## WebSocket Support
+---
 
-The service supports WebSocket connections for real-time updates on command processing status. Connect to `/ws` endpoint for live updates.
+### Prometheus Metrics
 
-## Monitoring Integration
+**Endpoint:** `GET /metrics`
 
-All endpoints are instrumented with Prometheus metrics:
+Returns Prometheus-formatted metrics.
 
-- Request count and duration
-- Error rates by endpoint
-- Command processing metrics
-- Kafka message processing stats
+---
 
-## Security Considerations
+## Rate Limiting
 
-- Input validation is performed on all endpoints
-- SQL injection protection through parameterized queries
-- XSS protection through input sanitization
-- CORS headers configured for cross-origin requests
+| Endpoint Category | Rate Limit |
+|------------------|------------|
+| Experience Bank | 100 req/min |
+| Resume Operations | 50 req/min |
+| Evaluation | 20 req/min |
+| Tailoring | 10 req/min |
+| Cover Letter | 10 req/min |
 
-## Future Enhancements
+---
 
-- API versioning with URL prefixes
-- Authentication and authorization
-- Request/response compression
-- GraphQL API support
-- Webhook notifications for task completion
+## Best Practices
+
+1. **Use WebSockets for long-running operations** (iteration, review)
+2. **Poll job status** for tailoring operations
+3. **Cache evaluation reports** to avoid re-evaluation
+4. **Batch bullet additions** to experience bank
+5. **Use metadata filters** for efficient searches
+
+---
+
+**Last Updated:** November 3, 2025  
+**Version:** 1.0.0  
+**API Version:** v1

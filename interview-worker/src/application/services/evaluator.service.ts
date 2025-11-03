@@ -17,6 +17,8 @@ import {
   IInterviewRepository,
 } from '../ports/repositories.port';
 import { v4 as uuidv4 } from 'uuid';
+import { WebhookService } from './webhook.service';
+import { NotificationService } from './notification.service';
 
 @Injectable()
 export class EvaluatorService {
@@ -34,6 +36,10 @@ export class EvaluatorService {
     private readonly reportRepository: IInterviewReportRepository,
     @Inject('IInterviewRepository')
     private readonly interviewRepository: IInterviewRepository,
+    @Inject(WebhookService)
+    private readonly webhookService: WebhookService,
+    @Inject(NotificationService)
+    private readonly notificationService: NotificationService,
   ) {
     this.assistantWorkerUrl =
       this.configService.get<string>('ASSISTANT_WORKER_URL') ||
@@ -86,24 +92,27 @@ export class EvaluatorService {
       session,
     );
 
-    // Call assistant-worker LLM endpoint
-    const llmResponse = await this.callLLMEvaluator(evaluatorPrompt);
+    // Perform LLM evaluation
+    const llmEvaluation = await this.callLLMEvaluator(evaluatorPrompt);
 
-    // Parse LLM response
-    const evaluation = this.parseEvaluationResponse(llmResponse);
+    // Parse response
+    const { score, feedback } = this.parseEvaluationResponse(llmEvaluation);
 
     // Create report
     const report = new InterviewReport({
       reportId: uuidv4(),
       sessionId,
-      score: evaluation.score,
-      feedback: evaluation.feedback,
+      score: score,
+      feedback: feedback,
       observations: profile.observations,
       transcript,
       generatedAt: new Date(),
     });
 
+    // Save report
     await this.reportRepository.save(report);
+    await this.webhookService.triggerWebhooks('report_generated', {sessionId, reportId: report.reportId});
+    await this.notificationService.sendEmailNotification(session.candidateEmail, 'Interview Report Generated', `Your interview report for session ${sessionId} has been generated. You can view it at ${this.configService.get<string>('FRONTEND_URL')}/reports/${report.reportId}`);
 
     return report;
   }

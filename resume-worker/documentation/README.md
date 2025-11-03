@@ -1,145 +1,132 @@
-# resume Worker
+# Resume Worker - Documentation
 
-## Overview
+Welcome to the Resume Worker documentation! This directory contains comprehensive guides for understanding, deploying, and operating the Resume Worker service.
 
-The resume (Resume Natural Language Engine) Worker is a specialized microservice in the EnginEdge ecosystem designed for processing and executing background tasks related to assistant operations and habit scheduling. Built with NestJS and following hexagonal architecture principles, this worker handles asynchronous command processing with high reliability and scalability.
+## 📚 Documentation Index
 
-## Features
+| Document | Description | Status |
+|----------|-------------|--------|
+| **[API.md](API.md)** | Complete API reference for 35+ endpoints | ✅ Complete |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)** | System architecture and design patterns | ✅ Complete |
+| **[KAFKA_TOPICS.md](KAFKA_TOPICS.md)** | Kafka topic specifications and message formats | ✅ Complete |
+| **[MONITORING.md](MONITORING.md)** | Prometheus metrics and Grafana dashboards | ✅ Complete |
+| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Common issues and solutions | ✅ Complete |
+| **[PERFORMANCE.md](PERFORMANCE.md)** | Performance tuning and optimization | ✅ Complete |
+| **[DEPLOYMENT.md](DEPLOYMENT.md)** | Docker and Kubernetes deployment guides | ✅ Complete |
+| **[openapi.yaml](openapi.yaml)** | Machine-readable OpenAPI specification | ✅ Complete |
 
-- **Command Processing**: Executes background tasks for assistant operations and habit scheduling
-- **Asynchronous Processing**: Handles long-running tasks without blocking the main application
-- **Kafka Integration**: Event-driven architecture for reliable message processing
-- **Health Monitoring**: Comprehensive health checks and metrics collection
-- **Error Handling**: Robust error handling with detailed logging and recovery mechanisms
-- **Scalable Architecture**: Horizontal scaling support with stateless design
+## 🚀 Quick Links
 
-## Architecture
+### For Developers
+- **Getting Started**: See main [README.md](../README.md)
+- **API Reference**: [API.md](API.md)
+- **Architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
 
-The resume Worker follows Clean Architecture (Hexagonal Architecture) principles:
+### For DevOps
+- **Deployment**: [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Monitoring**: [MONITORING.md](MONITORING.md)
+- **Troubleshooting**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
-- **Domain Layer**: Core business logic and entities
-- **Application Layer**: Use cases and business rules orchestration
-- **Infrastructure Layer**: External concerns (Kafka, HTTP, monitoring)
+### For Performance Engineers
+- **Performance**: [PERFORMANCE.md](PERFORMANCE.md)
+- **Kafka Topics**: [KAFKA_TOPICS.md](KAFKA_TOPICS.md)
 
-## Supported Task Types
+## 📖 Documentation Overview
 
-- `EXECUTE_ASSISTANT`: Processes assistant execution requests
-- `SCHEDULE_HABITS`: Handles habit scheduling operations
+### API Documentation
+Complete REST API reference with request/response examples for all 35+ endpoints including:
+- Experience Bank operations
+- Resume evaluation
+- Job posting extraction
+- Resume tailoring workflow
+- Cover letter generation
+- WebSocket gateways
 
-## Quick Start
+### Architecture Documentation
+Detailed system architecture including:
+- Hexagonal architecture layers
+- Service interactions
+- Data flow diagrams
+- Integration patterns
+- Technology stack
 
-### Prerequisites
+### Kafka Topics
+Specifications for all Kafka topics:
+- Message formats
+- Topic naming conventions
+- Producer/consumer patterns
+- Error handling
 
-- Node.js 18+
-- Docker (for containerized deployment)
-- Kafka cluster
-- MongoDB (for metadata storage)
+### Monitoring
+Prometheus metrics and Grafana dashboards:
+- 50+ custom metrics
+- Pre-built dashboards
+- Alert configurations
+- Performance monitoring
 
-### Local Development
+### Troubleshooting
+Common issues and solutions:
+- Service startup problems
+- Kafka connectivity
+- MongoDB issues
+- Performance problems
+- Error scenarios
 
-```bash
-# Install dependencies
-npm install
+### Performance
+Optimization guides:
+- Throughput tuning
+- Latency optimization
+- Resource management
+- Scaling strategies
 
-# Start in development mode
-npm run start:dev
+### Deployment
+Production deployment guides:
+- Docker configuration
+- Kubernetes manifests
+- Helm charts
+- Environment setup
+- High availability
 
-# Run tests
-npm test
+## 🎯 Key Features Documented
 
-# Build for production
-npm run build
-```
+- **Experience Bank**: Vector search, metadata filtering, deduplication
+- **Bullet Evaluator**: 15+ KPI rules, auto-fix generation, gold dataset
+- **Job Posting Extractor**: NER-based extraction, 20+ fields
+- **Resume Evaluator**: PDF parsing, ATS checks, comprehensive analysis
+- **AI Agents**: Builder, Iterator, Review agents with WebSocket support
+- **Version Control**: Git-like versioning with diffs and rollback
+- **Cover Letter Generator**: AI-powered tailored letter generation
 
-### Docker Deployment
+## 🔗 External Resources
 
-```bash
-# Build image
-npm run docker:build
+- **Main Repository**: [EnginEdge GitHub](https://github.com/yourusername/enginedge)
+- **Related Services**:
+  - [Assistant Worker](../../assistant-worker/documentation/)
+  - [Data Processing Worker](../../data-processing-worker/documentation/)
+  - [LaTeX Worker](../../latex-worker/documentation/)
+  - [Resume NLP Service](../../resume-nlp-service/)
 
-# Run container
-npm run docker:run
-```
+## 📝 Contributing to Documentation
 
-## API Endpoints
+When updating documentation:
 
-### Health Check
-```
-GET /health
-```
+1. **Keep it current**: Update docs when making code changes
+2. **Be comprehensive**: Include examples and edge cases
+3. **Use diagrams**: Visual aids improve understanding
+4. **Test examples**: Ensure all code examples work
+5. **Cross-reference**: Link related documentation
 
-### Command Processing
-```
-POST /command/process
-Content-Type: application/json
+## 🆘 Getting Help
 
-{
-  "taskId": "unique-task-id",
-  "taskType": "EXECUTE_ASSISTANT",
-  "payload": {
-    "assistantId": "assistant-123",
-    "input": "user input data"
-  }
-}
-```
+If you can't find what you're looking for:
 
-## Configuration
+1. Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+2. Review [API.md](API.md) for endpoint details
+3. See main [README.md](../README.md) for quick start
+4. Open a GitHub issue
 
-Environment variables:
+---
 
-- `PORT`: Service port (default: 3001)
-- `KAFKA_BROKERS`: Kafka broker addresses
-- `KAFKA_CLIENT_ID`: Kafka client identifier
-- `KAFKA_GROUP_ID`: Consumer group ID
-- `MONGODB_URI`: MongoDB connection string
-
-## Monitoring
-
-The service exposes comprehensive metrics:
-
-- Command processing rates and latency
-- Kafka consumer/producer metrics
-- Error rates and types
-- System resource usage
-
-Access metrics at `/metrics` endpoint.
-
-## Development
-
-### Project Structure
-
-```
-src/
-├── domain/           # Business logic entities
-├── application/      # Use cases and services
-├── infrastructure/   # External adapters and controllers
-└── main.ts          # Application bootstrap
-```
-
-### Testing
-
-```bash
-# Unit tests
-npm run test:unit
-
-# E2E tests
-npm run test:e2e
-
-# Coverage report
-npm run test:cov
-```
-
-## Deployment
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions including Kubernetes manifests and Helm charts.
-
-## Contributing
-
-1. Follow the established code style and architecture patterns
-2. Add comprehensive tests for new features
-3. Update documentation for API changes
-4. Ensure all tests pass before submitting PR
-
-## License
-
-UNLICENSED - Proprietary software
+**Last Updated**: November 3, 2025  
+**Version**: 1.0.0  
+**Status**: ✅ Production Ready

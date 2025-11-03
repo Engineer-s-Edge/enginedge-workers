@@ -1,537 +1,1064 @@
 openapi: 3.0.3
 info:
-  title: resume Worker API
-  description: |
-    The resume (Resume Natural Language Engine) Worker provides RESTful APIs for processing background commands
-    related to assistant operations and habit scheduling. Built with NestJS and following hexagonal architecture
-    principles, this service handles asynchronous command processing with high reliability and scalability.
+  title: Resume Worker API
+  description: AI-powered resume generation, evaluation, and tailoring platform
   version: 1.0.0
   contact:
     name: EnginEdge Team
-    email: team@enginedge.com
+    email: support@enginedge.com
   license:
     name: Proprietary
     url: https://enginedge.com/license
 
 servers:
-  - url: http://localhost:3001
-    description: Local development server
-  - url: https://api.enginedge.com/resume-worker
+  - url: http://localhost:3006
+    description: Development server
+  - url: https://resume.enginedge.com
     description: Production server
 
-security:
-  - ApiKeyAuth: []
+tags:
+  - name: Experience Bank
+    description: Manage bullet point library with vector search
+  - name: Resume
+    description: CRUD operations for resumes
+  - name: Job Posting
+    description: Extract and manage job postings
+  - name: Evaluation
+    description: Evaluate resumes and bullets
+  - name: Tailoring
+    description: Full resume tailoring workflow
+  - name: Editing
+    description: LaTeX editing operations
+  - name: Cover Letter
+    description: Generate tailored cover letters
+  - name: Health
+    description: Health checks and metrics
 
 paths:
   /health:
     get:
-      summary: Health check endpoint
-      description: Returns the health status of the service and its dependencies
-      operationId: getHealth
       tags:
         - Health
+      summary: Health check
+      description: Returns service health status
       responses:
         '200':
           description: Service is healthy
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
-              example:
-                status: "ok"
-                timestamp: "2024-01-15T10:30:00.000Z"
-                uptime: 3600
-                version: "1.0.0"
-                checks:
-                  kafka:
-                    status: "up"
-                    responseTime: 45
-                  database:
-                    status: "up"
-                    responseTime: 23
-        '503':
-          description: Service is unhealthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-              example:
-                status: "error"
-                timestamp: "2024-01-15T10:30:00.000Z"
-                checks:
-                  kafka:
-                    status: "down"
-                    error: "Connection timeout"
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    example: 123.45
 
-  /health/detailed:
+  /metrics:
     get:
-      summary: Detailed health check
-      description: Returns detailed health status including dependency checks
-      operationId: getDetailedHealth
       tags:
         - Health
+      summary: Prometheus metrics
+      description: Returns Prometheus-formatted metrics
       responses:
         '200':
-          description: Detailed health information
+          description: Metrics in Prometheus format
           content:
-            application/json:
+            text/plain:
               schema:
-                $ref: '#/components/schemas/DetailedHealthResponse'
-        '503':
-          description: Service or dependencies are unhealthy
+                type: string
 
-  /command/process:
+  /experience-bank/add:
     post:
-      summary: Process a command
-      description: |
-        Processes a background command asynchronously. The command is queued for processing
-        and results are published to Kafka topics for consumption by other services.
-      operationId: processCommand
       tags:
-        - Commands
+        - Experience Bank
+      summary: Add bullet point
+      description: Add a new bullet point to the experience bank
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommandRequest'
-            examples:
-              execute-assistant:
-                summary: Execute assistant command
-                value:
-                  taskId: "assist-001"
-                  taskType: "EXECUTE_ASSISTANT"
-                  payload:
-                    assistantId: "asst_123"
-                    userId: "user_456"
-                    input: "Analyze this resume for software engineering roles"
-                    metadata:
-                      priority: "high"
-                      timeout: 300
-              schedule-habits:
-                summary: Schedule habits command
-                value:
-                  taskId: "habit-001"
-                  taskType: "SCHEDULE_HABITS"
-                  payload:
-                    userId: "user_456"
-                    habits:
-                      - name: "Morning Exercise"
-                        frequency: "daily"
-                        time: "07:00"
-                        duration: 30
+              type: object
+              required:
+                - userId
+                - bulletText
+              properties:
+                userId:
+                  type: string
+                  example: user123
+                bulletText:
+                  type: string
+                  example: Developed scalable microservices reducing deployment time by 60%
+                metadata:
+                  type: object
+                  properties:
+                    technologies:
+                      type: array
+                      items:
+                        type: string
+                      example: [Node.js, Docker, Kubernetes]
+                    role:
+                      type: string
+                      example: Software Engineer
+                    company:
+                      type: string
+                      example: Tech Corp
+                    dateRange:
+                      type: string
+                      example: 2022-2024
+                    reviewed:
+                      type: boolean
+                      default: false
+                    category:
+                      type: string
+                      enum: [work, project, education]
+                      default: work
       responses:
-        '200':
-          description: Command accepted for processing
+        '201':
+          description: Bullet point created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommandResponse'
-              examples:
-                success:
-                  summary: Command processing started
-                  value:
-                    taskId: "assist-001"
-                    status: "SUCCESS"
-                    result:
-                      message: "Command accepted for processing"
-                      estimatedCompletion: "2024-01-15T10:31:00.000Z"
+                $ref: '#/components/schemas/ExperienceBankItem'
         '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                invalid-task-type:
-                  summary: Invalid task type
-                  value:
-                    taskId: "invalid-001"
-                    status: "FAILURE"
-                    error:
-                      code: "VALIDATION_ERROR"
-                      message: "Invalid taskType. Must be EXECUTE_ASSISTANT or SCHEDULE_HABITS"
-                missing-fields:
-                  summary: Missing required fields
-                  value:
-                    status: "FAILURE"
-                    error:
-                      code: "VALIDATION_ERROR"
-                      message: "Missing required fields: taskId, taskType"
-        '429':
-          description: Too many requests
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                processing-error:
-                  summary: Command processing failed
-                  value:
-                    taskId: "assist-001"
-                    status: "FAILURE"
-                    error:
-                      code: "PROCESSING_ERROR"
-                      message: "Failed to queue command for processing"
+          $ref: '#/components/responses/BadRequest'
 
-  /metrics:
-    get:
-      summary: Prometheus metrics
-      description: Returns Prometheus-compatible metrics for monitoring
-      operationId: getMetrics
+  /experience-bank/search:
+    post:
       tags:
-        - Monitoring
+        - Experience Bank
+      summary: Search experience bank
+      description: Search for bullet points using vector search and metadata filters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                query:
+                  type: string
+                  example: microservices deployment
+                filters:
+                  type: object
+                  properties:
+                    technologies:
+                      type: array
+                      items:
+                        type: string
+                    reviewed:
+                      type: boolean
+                    minImpactScore:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                    category:
+                      type: string
+                      enum: [work, project, education]
+                limit:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 100
       responses:
         '200':
-          description: Metrics data
+          description: Search results
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: |
-                  # HELP http_requests_total Total number of HTTP requests
-                  # TYPE http_requests_total counter
-                  http_requests_total{method="POST",route="/command/process",status="200"} 150
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExperienceBankItem'
+                  total:
+                    type: integer
 
-                  # HELP command_processing_duration_seconds Time spent processing commands
-                  # TYPE command_processing_duration_seconds histogram
-                  command_processing_duration_seconds_bucket{le="0.1"} 5
-                  command_processing_duration_seconds_bucket{le="0.5"} 12
+  /experience-bank/list/{userId}:
+    get:
+      tags:
+        - Experience Bank
+      summary: List bullets
+      description: List all bullets for a user with optional filters
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: reviewed
+          in: query
+          schema:
+            type: boolean
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [work, project, education]
+      responses:
+        '200':
+          description: List of bullets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bullets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExperienceBankItem'
+                  total:
+                    type: integer
+
+  /experience-bank/{id}/reviewed:
+    patch:
+      tags:
+        - Experience Bank
+      summary: Mark as reviewed
+      description: Mark a bullet point as reviewed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bullet marked as reviewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperienceBankItem'
+
+  /experience-bank/{id}:
+    get:
+      tags:
+        - Experience Bank
+      summary: Get bullet by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bullet point
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperienceBankItem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /resume/create:
+    post:
+      tags:
+        - Resume
+      summary: Create resume
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - name
+                - latexContent
+              properties:
+                userId:
+                  type: string
+                name:
+                  type: string
+                latexContent:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Resume created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resume'
+
+  /resume/{id}:
+    get:
+      tags:
+        - Resume
+      summary: Get resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resume
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resume'
+    patch:
+      tags:
+        - Resume
+      summary: Update resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                latexContent:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Resume updated
+    delete:
+      tags:
+        - Resume
+      summary: Delete resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resume deleted
+
+  /job-posting/extract:
+    post:
+      tags:
+        - Job Posting
+      summary: Extract job posting
+      description: Extract structured information from a job posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - rawText
+              properties:
+                userId:
+                  type: string
+                url:
+                  type: string
+                rawText:
+                  type: string
+                rawHtml:
+                  type: string
+                mode:
+                  type: string
+                  enum: [nlp-only, llm-assisted]
+                  default: nlp-only
+      responses:
+        '201':
+          description: Job posting extracted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPosting'
+
+  /job-posting/{id}:
+    get:
+      tags:
+        - Job Posting
+      summary: Get job posting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job posting
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobPosting'
+    delete:
+      tags:
+        - Job Posting
+      summary: Delete job posting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job posting deleted
+
+  /job-posting/list/{userId}:
+    get:
+      tags:
+        - Job Posting
+      summary: List job postings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of job postings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobPosting'
+
+  /evaluation/evaluate:
+    post:
+      tags:
+        - Evaluation
+      summary: Evaluate resume
+      description: Evaluate an entire resume
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resumeId
+              properties:
+                resumeId:
+                  type: string
+                mode:
+                  type: string
+                  enum: [standalone, role-guided, jd-match]
+                  default: standalone
+                jobPostingId:
+                  type: string
+                targetRole:
+                  type: string
+                options:
+                  type: object
+                  properties:
+                    autoFix:
+                      type: boolean
+                      default: true
+                    includeSwaps:
+                      type: boolean
+                      default: true
+      responses:
+        '201':
+          description: Evaluation complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationReport'
+
+  /evaluation/report/{id}:
+    get:
+      tags:
+        - Evaluation
+      summary: Get evaluation report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evaluation report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationReport'
+
+  /evaluation/reports/{resumeId}:
+    get:
+      tags:
+        - Evaluation
+      summary: List evaluation reports
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluationReport'
+
+  /tailoring/tailor:
+    post:
+      tags:
+        - Tailoring
+      summary: Tailor resume
+      description: Start full resume tailoring workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - resumeId
+                - jobPostingText
+              properties:
+                userId:
+                  type: string
+                resumeId:
+                  type: string
+                jobPostingText:
+                  type: string
+                mode:
+                  type: string
+                  enum: [auto, manual]
+                  default: auto
+                targetScore:
+                  type: number
+                  default: 95
+                  minimum: 0
+                  maximum: 100
+                options:
+                  type: object
+                  properties:
+                    maxIterations:
+                      type: integer
+                      default: 5
+                    autoApplyFixes:
+                      type: boolean
+                      default: true
+      responses:
+        '202':
+          description: Tailoring job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, processing]
+                  estimatedTime:
+                    type: integer
+
+  /tailoring/job/{jobId}:
+    get:
+      tags:
+        - Tailoring
+      summary: Get job status
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, processing, completed, failed, cancelled]
+                  progress:
+                    type: integer
+                  currentScore:
+                    type: number
+                  targetScore:
+                    type: number
+                  iterations:
+                    type: integer
+                  message:
+                    type: string
+
+  /tailoring/job/{jobId}/cancel:
+    post:
+      tags:
+        - Tailoring
+      summary: Cancel job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job cancelled
+
+  /editing/{resumeId}/latex:
+    post:
+      tags:
+        - Editing
+      summary: Apply LaTeX operation
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - operation
+                - text
+              properties:
+                operation:
+                  type: string
+                  enum: [bold, italic, underline, replace, insert, delete]
+                text:
+                  type: string
+                position:
+                  type: integer
+      responses:
+        '200':
+          description: Operation applied
+
+  /editing/{resumeId}/undo:
+    post:
+      tags:
+        - Editing
+      summary: Undo last change
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Change undone
+
+  /editing/{resumeId}/redo:
+    post:
+      tags:
+        - Editing
+      summary: Redo last undone change
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Change redone
+
+  /editing/{resumeId}/preview:
+    post:
+      tags:
+        - Editing
+      summary: Generate preview
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Preview generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pdfUrl:
+                    type: string
+                  expiresAt:
+                    type: string
+                    format: date-time
+
+  /editing/{resumeId}/suggest-swaps:
+    post:
+      tags:
+        - Editing
+      summary: Suggest bullet swaps
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jobPostingId:
+                  type: string
+                limit:
+                  type: integer
+                  default: 5
+      responses:
+        '200':
+          description: Suggestions generated
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    currentBullet:
+                      type: string
+                    suggestedBullet:
+                      type: string
+                    reason:
+                      type: string
+                    confidence:
+                      type: number
+
+  /editing/{resumeId}/apply-swap:
+    post:
+      tags:
+        - Editing
+      summary: Apply bullet swap
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldBulletId
+                - newBulletId
+              properties:
+                oldBulletId:
+                  type: string
+                newBulletId:
+                  type: string
+      responses:
+        '200':
+          description: Swap applied
+
+  /cover-letter/generate:
+    post:
+      tags:
+        - Cover Letter
+      summary: Generate cover letter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - options
+              properties:
+                userId:
+                  type: string
+                options:
+                  type: object
+                  required:
+                    - jobPostingId
+                  properties:
+                    jobPostingId:
+                      type: string
+                    tone:
+                      type: string
+                      enum: [professional, casual, enthusiastic]
+                      default: professional
+                    length:
+                      type: string
+                      enum: [short, medium, long]
+                      default: medium
+                    includeExperiences:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '201':
+          description: Cover letter generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverLetter'
+
+  /cover-letter/{id}/regenerate:
+    post:
+      tags:
+        - Cover Letter
+      summary: Regenerate cover letter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                options:
+                  type: object
+      responses:
+        '200':
+          description: Cover letter regenerated
+
+  /cover-letter/{id}:
+    patch:
+      tags:
+        - Cover Letter
+      summary: Edit cover letter
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        '200':
+          description: Cover letter updated
 
 components:
   schemas:
-    CommandRequest:
+    ExperienceBankItem:
       type: object
-      required:
-        - taskId
-        - taskType
       properties:
-        taskId:
+        _id:
           type: string
-          description: Unique identifier for the command task
-          example: "assist-001"
-          pattern: "^[a-zA-Z0-9_-]+$"
-          minLength: 1
-          maxLength: 100
-        taskType:
+        userId:
           type: string
-          enum: [EXECUTE_ASSISTANT, SCHEDULE_HABITS]
-          description: Type of command to execute
-          example: "EXECUTE_ASSISTANT"
-        payload:
+        bulletText:
+          type: string
+        vector:
+          type: array
+          items:
+            type: number
+        vectorModel:
+          type: string
+          example: text-embedding-004
+        metadata:
           type: object
-          description: Command-specific payload data
           properties:
-            assistantId:
-              type: string
-              description: Assistant identifier (for EXECUTE_ASSISTANT)
-              example: "asst_123"
-            userId:
-              type: string
-              description: User identifier
-              example: "user_456"
-            input:
-              type: string
-              description: Input data for processing
-              example: "Analyze this resume"
-            habits:
+            technologies:
               type: array
-              description: Habit definitions (for SCHEDULE_HABITS)
               items:
-                type: object
-                properties:
-                  name:
-                    type: string
-                    example: "Morning Exercise"
-                  frequency:
-                    type: string
-                    enum: [daily, weekly, monthly]
-                    example: "daily"
-                  time:
-                    type: string
-                    pattern: "^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                    example: "07:00"
-                  duration:
-                    type: integer
-                    minimum: 1
-                    maximum: 1440
-                    example: 30
-            metadata:
-              type: object
-              description: Additional metadata
-              properties:
-                priority:
-                  type: string
-                  enum: [low, normal, high, urgent]
-                  example: "high"
-                timeout:
-                  type: integer
-                  minimum: 30
-                  maximum: 3600
-                  description: Timeout in seconds
-                  example: 300
-
-    CommandResponse:
-      type: object
-      required:
-        - taskId
-        - status
-      properties:
-        taskId:
-          type: string
-          description: Original command task identifier
-          example: "assist-001"
-        status:
-          type: string
-          enum: [SUCCESS, FAILURE]
-          description: Processing outcome status
-          example: "SUCCESS"
-        result:
-          type: object
-          description: Processing result data (when status is SUCCESS)
-          properties:
-            message:
+                type: string
+            role:
               type: string
-              description: Success message
-              example: "Command accepted for processing"
-            estimatedCompletion:
+            company:
               type: string
-              format: date-time
-              description: Estimated completion timestamp
-              example: "2024-01-15T10:31:00.000Z"
-            queuePosition:
-              type: integer
-              description: Position in processing queue
-              example: 3
-        error:
-          $ref: '#/components/schemas/ErrorDetails'
-
-    ErrorResponse:
-      type: object
-      required:
-        - status
-        - error
-      properties:
-        taskId:
-          type: string
-          description: Task identifier (if available)
-          example: "assist-001"
-        status:
-          type: string
-          enum: [FAILURE]
-          description: Error status
-          example: "FAILURE"
-        error:
-          $ref: '#/components/schemas/ErrorDetails'
-
-    ErrorDetails:
-      type: object
-      required:
-        - code
-        - message
-      properties:
-        code:
-          type: string
-          description: Error code for programmatic handling
-          enum:
-            - VALIDATION_ERROR
-            - PROCESSING_ERROR
-            - TIMEOUT_ERROR
-            - RESOURCE_ERROR
-            - EXTERNAL_SERVICE_ERROR
-          example: "VALIDATION_ERROR"
-        message:
-          type: string
-          description: Human-readable error message
-          example: "Invalid taskType. Must be EXECUTE_ASSISTANT or SCHEDULE_HABITS"
-        details:
-          type: object
-          description: Additional error context
-          properties:
-            field:
+            dateRange:
               type: string
-              description: Field that caused the error
-              example: "taskType"
-            reason:
-              type: string
-              description: Detailed reason for the error
-              example: "Value must be one of: EXECUTE_ASSISTANT, SCHEDULE_HABITS"
-            retryable:
+            reviewed:
               type: boolean
-              description: Whether the operation can be retried
-              example: false
-
-    HealthResponse:
-      type: object
-      required:
-        - status
-        - timestamp
-      properties:
-        status:
+            category:
+              type: string
+              enum: [work, project, education]
+            impactScore:
+              type: number
+            atsScore:
+              type: number
+        hash:
           type: string
-          enum: [ok, error, degraded]
-          description: Overall health status
-          example: "ok"
-        timestamp:
+        createdAt:
           type: string
           format: date-time
-          description: Health check timestamp
-          example: "2024-01-15T10:30:00.000Z"
-        uptime:
-          type: integer
-          description: Service uptime in seconds
-          example: 3600
-        version:
+        updatedAt:
           type: string
-          description: Service version
-          example: "1.0.0"
-        checks:
-          type: object
-          description: Dependency health checks
-          properties:
-            kafka:
-              $ref: '#/components/schemas/DependencyHealth'
-            database:
-              $ref: '#/components/schemas/DependencyHealth'
+          format: date-time
 
-    DetailedHealthResponse:
-      allOf:
-        - $ref: '#/components/schemas/HealthResponse'
-        - type: object
-          properties:
-            checks:
-              type: object
-              properties:
-                kafka:
-                  allOf:
-                    - $ref: '#/components/schemas/DependencyHealth'
-                    - type: object
-                      properties:
-                        details:
-                          type: object
-                          properties:
-                            brokers:
-                              type: integer
-                              example: 3
-                            topics:
-                              type: array
-                              items:
-                                type: string
-                              example: ["resume.commands", "resume.command-results"]
-                database:
-                  allOf:
-                    - $ref: '#/components/schemas/DependencyHealth'
-                    - type: object
-                      properties:
-                        details:
-                          type: object
-                          properties:
-                            connections:
-                              type: object
-                              properties:
-                                active:
-                                  type: integer
-                                  example: 5
-                                available:
-                                  type: integer
-                                  example: 20
-                                total:
-                                  type: integer
-                                  example: 25
-                memory:
-                  type: object
-                  properties:
-                    status:
-                      type: string
-                      enum: [up, down, warning]
-                      example: "up"
-                    details:
-                      type: object
-                      properties:
-                        used:
-                          type: integer
-                          description: Memory used in MB
-                          example: 180
-                        total:
-                          type: integer
-                          description: Total memory in MB
-                          example: 512
-                        percentage:
-                          type: number
-                          description: Memory usage percentage
-                          example: 35.2
-
-    DependencyHealth:
+    Resume:
       type: object
-      required:
-        - status
       properties:
-        status:
+        _id:
           type: string
-          enum: [up, down, degraded]
-          description: Dependency status
-          example: "up"
-        responseTime:
+        userId:
+          type: string
+        name:
+          type: string
+        latexContent:
+          type: string
+        currentVersion:
           type: integer
-          description: Response time in milliseconds
-          example: 45
-        error:
+        versions:
+          type: array
+          items:
+            type: object
+        metadata:
+          type: object
+        createdAt:
           type: string
-          description: Error message if status is not 'up'
-          example: "Connection timeout"
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: API key for service authentication
+    JobPosting:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        url:
+          type: string
+        rawText:
+          type: string
+        parsed:
+          type: object
+        extractionMethod:
+          type: string
+          enum: [nlp-only, llm-assisted]
+        confidence:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
 
-  examples:
-    command-execute-assistant:
-      summary: Execute assistant command example
-      value:
-        taskId: "assist-001"
-        taskType: "EXECUTE_ASSISTANT"
-        payload:
-          assistantId: "asst_123"
-          userId: "user_456"
-          input: "Please analyze this resume for software engineering positions"
-          metadata:
-            priority: "high"
-            timeout: 300
+    EvaluationReport:
+      type: object
+      properties:
+        _id:
+          type: string
+        resumeId:
+          type: string
+        userId:
+          type: string
+        mode:
+          type: string
+          enum: [standalone, role-guided, jd-match]
+        scores:
+          type: object
+          properties:
+            overall:
+              type: number
+            structure:
+              type: number
+            ats:
+              type: number
+            content:
+              type: number
+            alignment:
+              type: number
+        gates:
+          type: object
+        findings:
+          type: array
+          items:
+            type: object
+        coverage:
+          type: object
+        suggestedSwaps:
+          type: array
+          items:
+            type: object
+        createdAt:
+          type: string
+          format: date-time
 
-    command-schedule-habits:
-      summary: Schedule habits command example
-      value:
-        taskId: "habit-001"
-        taskType: "SCHEDULE_HABITS"
-        payload:
-          userId: "user_456"
-          habits:
-            - name: "Daily Exercise"
-              frequency: "daily"
-              time: "07:00"
-              duration: 30
-            - name: "Reading Time"
-              frequency: "daily"
-              time: "20:00"
-              duration: 60
+    CoverLetter:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        jobPostingId:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
 
-tags:
-  - name: Commands
-    description: Command processing operations
-  - name: Health
-    description: Service health monitoring
-  - name: Monitoring
-    description: Metrics and monitoring endpoints
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              statusCode:
+                type: integer
+                example: 400
+              message:
+                type: string
+              error:
+                type: string
+                example: Bad Request
 
-externalDocs:
-  description: Complete documentation
-  url: https://github.com/enginedge/enginedge-workers/tree/main/resume-worker/documentation
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              statusCode:
+                type: integer
+                example: 404
+              message:
+                type: string
+              error:
+                type: string
+                example: Not Found

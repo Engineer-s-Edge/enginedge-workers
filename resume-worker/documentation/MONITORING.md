@@ -1,607 +1,627 @@
-# resume Worker Monitoring Guide
+# Resume Worker Monitoring
 
 ## Overview
 
-The resume Worker implements comprehensive monitoring using Prometheus metrics, structured logging, and Grafana dashboards. This guide covers monitoring setup, key metrics, alerting rules, and troubleshooting procedures.
+The Resume Worker exposes comprehensive Prometheus metrics for monitoring service health, performance, and business metrics. This document describes all available metrics, alerting rules, and Grafana dashboards.
 
-## Monitoring Architecture
-
-### Components
+## Metrics Endpoint
 
 ```
-resume Worker
-    ↓
-Prometheus Metrics (/metrics)
-    ↓
-Prometheus Server
-    ↓
-Grafana Dashboards + AlertManager
+GET http://localhost:3006/metrics
 ```
 
-### Metrics Collection
+Returns Prometheus-formatted metrics.
 
-The service exposes metrics on port 9090 at `/metrics` endpoint using the Prometheus client library.
+---
 
-## Key Metrics
+## Business Metrics
 
-### Application Metrics
+### Resume Evaluations
 
-#### Command Processing Metrics
+#### `resume_evaluations_total`
+**Type:** Counter  
+**Description:** Total number of resume evaluations  
+**Labels:**
+- `mode` - Evaluation mode (standalone, role-guided, jd-match)
+- `status` - Result status (success, failure)
 
-```prometheus
-# Command processing rate
-rate(command_processing_total{job="resume-worker"}[5m])
+```promql
+# Rate of evaluations per second
+rate(resume_evaluations_total[5m])
 
-# Command processing latency (histogram)
-histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m]))
-
-# Command processing status breakdown
-sum by (status) (rate(command_processing_total{job="resume-worker"}[5m]))
-
-# Active command count
-command_active_total{job="resume-worker"}
-
-# Queue depth
-command_queue_depth{job="resume-worker"}
+# Success rate
+rate(resume_evaluations_total{status="success"}[5m]) / rate(resume_evaluations_total[5m])
 ```
 
-#### HTTP Metrics
+---
 
-```prometheus
-# HTTP request rate
-rate(http_requests_total{job="resume-worker"}[5m])
+#### `resume_evaluation_duration_seconds`
+**Type:** Histogram  
+**Description:** Duration of resume evaluations  
+**Labels:**
+- `mode` - Evaluation mode
+**Buckets:** 0.5, 1, 2, 5, 10, 30, 60
 
-# HTTP request duration by endpoint
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="resume-worker", route="/command/process"}[5m]))
+```promql
+# P95 evaluation duration
+histogram_quantile(0.95, rate(resume_evaluation_duration_seconds_bucket[5m]))
 
-# HTTP status codes
-rate(http_requests_total{job="resume-worker", status="200"}[5m])
-rate(http_requests_total{job="resume-worker", status=~"5.."}[5m])
+# Average duration by mode
+rate(resume_evaluation_duration_seconds_sum[5m]) / rate(resume_evaluation_duration_seconds_count[5m])
 ```
 
-### System Metrics
+---
 
-#### Resource Usage
+#### `resume_evaluation_score`
+**Type:** Gauge  
+**Description:** Latest evaluation score (0-100)  
+**Labels:**
+- `resume_id` - Resume identifier
+- `mode` - Evaluation mode
 
-```prometheus
-# CPU usage
-rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) * 100
+```promql
+# Average evaluation score
+avg(resume_evaluation_score)
 
-# Memory usage
-process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024
+# Resumes below threshold
+count(resume_evaluation_score < 80)
+```
 
-# Heap usage
-nodejs_heap_size_used_bytes{job="resume-worker"} / nodejs_heap_size_total_bytes{job="resume-worker"}
+---
+
+### Bullet Point Evaluations
+
+#### `bullet_evaluations_total`
+**Type:** Counter  
+**Description:** Total number of bullet point evaluations  
+**Labels:**
+- `passed` - Whether bullet passed quality checks (true, false)
+- `mode` - Evaluation mode (nlp-only, llm-assisted)
+
+```promql
+# Pass rate
+rate(bullet_evaluations_total{passed="true"}[5m]) / rate(bullet_evaluations_total[5m])
+```
+
+---
+
+#### `bullet_evaluation_score`
+**Type:** Histogram  
+**Description:** Bullet point quality scores (0-1)  
+**Buckets:** 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+
+```promql
+# Distribution of scores
+histogram_quantile(0.5, rate(bullet_evaluation_score_bucket[5m]))
+```
+
+---
+
+### Experience Bank
+
+#### `experience_bank_operations_total`
+**Type:** Counter  
+**Description:** Total experience bank operations  
+**Labels:**
+- `operation` - Operation type (add, search, list, update)
+- `status` - Result status (success, failure)
+
+```promql
+# Operations per second
+rate(experience_bank_operations_total[5m])
+
+# Search operations
+rate(experience_bank_operations_total{operation="search"}[5m])
+```
+
+---
+
+#### `experience_bank_search_duration_seconds`
+**Type:** Histogram  
+**Description:** Duration of experience bank searches  
+**Buckets:** 0.01, 0.05, 0.1, 0.5, 1, 2, 5
+
+```promql
+# P95 search latency
+histogram_quantile(0.95, rate(experience_bank_search_duration_seconds_bucket[5m]))
+```
+
+---
+
+#### `experience_bank_items_total`
+**Type:** Gauge  
+**Description:** Total number of items in experience bank  
+**Labels:**
+- `user_id` - User identifier
+- `reviewed` - Review status (true, false)
+
+```promql
+# Total items
+sum(experience_bank_items_total)
+
+# Reviewed items percentage
+sum(experience_bank_items_total{reviewed="true"}) / sum(experience_bank_items_total)
+```
+
+---
+
+### Resume Tailoring
+
+#### `tailoring_jobs_total`
+**Type:** Counter  
+**Description:** Total tailoring jobs  
+**Labels:**
+- `status` - Job status (queued, processing, completed, failed, cancelled)
+- `mode` - Tailoring mode (auto, manual)
+
+```promql
+# Job completion rate
+rate(tailoring_jobs_total{status="completed"}[5m]) / rate(tailoring_jobs_total[5m])
+
+# Failed jobs
+rate(tailoring_jobs_total{status="failed"}[5m])
+```
+
+---
+
+#### `tailoring_job_duration_seconds`
+**Type:** Histogram  
+**Description:** Duration of tailoring jobs  
+**Labels:**
+- `mode` - Tailoring mode
+**Buckets:** 10, 30, 60, 120, 300, 600
+
+```promql
+# Average job duration
+rate(tailoring_job_duration_seconds_sum[5m]) / rate(tailoring_job_duration_seconds_count[5m])
+```
+
+---
+
+#### `tailoring_job_iterations`
+**Type:** Histogram  
+**Description:** Number of iterations per job  
+**Buckets:** 1, 2, 3, 5, 10, 20
+
+```promql
+# Average iterations
+rate(tailoring_job_iterations_sum[5m]) / rate(tailoring_job_iterations_count[5m])
+```
+
+---
+
+#### `tailoring_job_score_improvement`
+**Type:** Histogram  
+**Description:** Score improvement (final - initial)  
+**Buckets:** 0, 5, 10, 15, 20, 30, 50
+
+```promql
+# Average improvement
+rate(tailoring_job_score_improvement_sum[5m]) / rate(tailoring_job_score_improvement_count[5m])
+```
+
+---
+
+### Job Posting Extraction
+
+#### `job_posting_extractions_total`
+**Type:** Counter  
+**Description:** Total job posting extractions  
+**Labels:**
+- `mode` - Extraction mode (nlp-only, llm-assisted)
+- `status` - Result status (success, failure)
+
+```promql
+# Extraction rate
+rate(job_posting_extractions_total[5m])
+```
+
+---
+
+#### `job_posting_extraction_confidence`
+**Type:** Histogram  
+**Description:** Extraction confidence scores (0-1)  
+**Buckets:** 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
+
+```promql
+# Average confidence
+rate(job_posting_extraction_confidence_sum[5m]) / rate(job_posting_extraction_confidence_count[5m])
+```
+
+---
+
+### Cover Letters
+
+#### `cover_letter_generations_total`
+**Type:** Counter  
+**Description:** Total cover letter generations  
+**Labels:**
+- `tone` - Letter tone (professional, casual, enthusiastic)
+- `length` - Letter length (short, medium, long)
+
+```promql
+# Generations per second
+rate(cover_letter_generations_total[5m])
+```
+
+---
+
+## Technical Metrics
+
+### HTTP Requests
+
+#### `http_requests_total`
+**Type:** Counter  
+**Description:** Total HTTP requests  
+**Labels:**
+- `method` - HTTP method (GET, POST, PATCH, DELETE)
+- `route` - Request route
+- `status_code` - HTTP status code
+
+```promql
+# Request rate
+rate(http_requests_total[5m])
+
+# Error rate (5xx)
+rate(http_requests_total{status_code=~"5.."}[5m])
+
+# Request rate by endpoint
+sum by (route) (rate(http_requests_total[5m]))
+```
+
+---
+
+#### `http_request_duration_seconds`
+**Type:** Histogram  
+**Description:** HTTP request duration  
+**Labels:**
+- `method` - HTTP method
+- `route` - Request route
+**Buckets:** 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10
+
+```promql
+# P95 latency
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# P99 latency by endpoint
+histogram_quantile(0.99, sum by (route, le) (rate(http_request_duration_seconds_bucket[5m])))
+```
+
+---
+
+### WebSocket Connections
+
+#### `websocket_connections_active`
+**Type:** Gauge  
+**Description:** Active WebSocket connections  
+**Labels:**
+- `namespace` - WebSocket namespace (resume-iterator, bullet-review, resume-builder)
+
+```promql
+# Active connections
+sum(websocket_connections_active)
+
+# Connections by namespace
+sum by (namespace) (websocket_connections_active)
+```
+
+---
+
+#### `websocket_messages_total`
+**Type:** Counter  
+**Description:** Total WebSocket messages  
+**Labels:**
+- `namespace` - WebSocket namespace
+- `direction` - Message direction (inbound, outbound)
+- `event` - Event type
+
+```promql
+# Message rate
+rate(websocket_messages_total[5m])
+
+# Messages by event type
+sum by (event) (rate(websocket_messages_total[5m]))
+```
+
+---
+
+### Kafka Integration
+
+#### `kafka_messages_produced_total`
+**Type:** Counter  
+**Description:** Total Kafka messages produced  
+**Labels:**
+- `topic` - Kafka topic
+
+```promql
+# Production rate
+rate(kafka_messages_produced_total[5m])
+
+# Messages by topic
+sum by (topic) (rate(kafka_messages_produced_total[5m]))
+```
+
+---
+
+#### `kafka_messages_consumed_total`
+**Type:** Counter  
+**Description:** Total Kafka messages consumed  
+**Labels:**
+- `topic` - Kafka topic
+- `consumer_group` - Consumer group
+
+```promql
+# Consumption rate
+rate(kafka_messages_consumed_total[5m])
+```
+
+---
+
+#### `kafka_consumer_lag`
+**Type:** Gauge  
+**Description:** Consumer lag per topic  
+**Labels:**
+- `topic` - Kafka topic
+- `partition` - Partition number
+
+```promql
+# Total lag
+sum(kafka_consumer_lag)
+
+# Lag by topic
+sum by (topic) (kafka_consumer_lag)
+```
+
+---
+
+### Database Operations
+
+#### `mongodb_operations_total`
+**Type:** Counter  
+**Description:** Total MongoDB operations  
+**Labels:**
+- `operation` - Operation type (find, insert, update, delete)
+- `collection` - Collection name
+
+```promql
+# Operations per second
+rate(mongodb_operations_total[5m])
+
+# Operations by collection
+sum by (collection) (rate(mongodb_operations_total[5m]))
+```
+
+---
+
+#### `mongodb_operation_duration_seconds`
+**Type:** Histogram  
+**Description:** MongoDB operation duration  
+**Labels:**
+- `operation` - Operation type
+- `collection` - Collection name
+**Buckets:** 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5
+
+```promql
+# P95 query latency
+histogram_quantile(0.95, rate(mongodb_operation_duration_seconds_bucket[5m]))
+```
+
+---
+
+### BullMQ Job Queue
+
+#### `bullmq_jobs_total`
+**Type:** Counter  
+**Description:** Total BullMQ jobs  
+**Labels:**
+- `queue` - Queue name
+- `status` - Job status (completed, failed, delayed, active)
+
+```promql
+# Job completion rate
+rate(bullmq_jobs_total{status="completed"}[5m])
+
+# Failed jobs
+rate(bullmq_jobs_total{status="failed"}[5m])
+```
+
+---
+
+#### `bullmq_job_duration_seconds`
+**Type:** Histogram  
+**Description:** Job processing duration  
+**Labels:**
+- `queue` - Queue name
+**Buckets:** 1, 5, 10, 30, 60, 120, 300
+
+```promql
+# Average job duration
+rate(bullmq_job_duration_seconds_sum[5m]) / rate(bullmq_job_duration_seconds_count[5m])
+```
+
+---
+
+#### `bullmq_queue_size`
+**Type:** Gauge  
+**Description:** Current queue size  
+**Labels:**
+- `queue` - Queue name
+- `state` - Job state (waiting, active, delayed)
+
+```promql
+# Total queue size
+sum(bullmq_queue_size)
+
+# Waiting jobs
+sum(bullmq_queue_size{state="waiting"})
+```
+
+---
+
+## System Metrics
+
+### Node.js Process
+
+#### `nodejs_heap_size_total_bytes`
+**Type:** Gauge  
+**Description:** Total heap size
+
+#### `nodejs_heap_size_used_bytes`
+**Type:** Gauge  
+**Description:** Used heap size
+
+#### `nodejs_external_memory_bytes`
+**Type:** Gauge  
+**Description:** External memory usage
+
+#### `nodejs_eventloop_lag_seconds`
+**Type:** Gauge  
+**Description:** Event loop lag
+
+```promql
+# Heap usage percentage
+(nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes) * 100
 
 # Event loop lag
-nodejs_eventloop_lag_seconds{job="resume-worker"}
+nodejs_eventloop_lag_seconds
 ```
 
-#### Garbage Collection
+---
 
-```prometheus
-# GC duration
-rate(nodejs_gc_duration_seconds_total{job="resume-worker"}[5m])
+## Grafana Dashboards
 
-# GC pause time
-histogram_quantile(0.95, rate(nodejs_gc_pause_seconds_bucket{job="resume-worker"}[5m]))
-```
+### Main Dashboard
 
-### External Service Metrics
+**File:** `grafana-dashboard.json`
 
-#### Kafka Metrics
+**Panels:**
+1. **Overview**
+   - Total evaluations
+   - Active tailoring jobs
+   - Experience bank size
+   - Success rate
 
-```prometheus
-# Producer metrics
-rate(kafka_producer_requests_total{job="resume-worker"}[5m])
-rate(kafka_producer_errors_total{job="resume-worker"}[5m])
+2. **Performance**
+   - P95 evaluation latency
+   - P95 search latency
+   - HTTP request rate
+   - Error rate
 
-# Consumer metrics
-kafka_consumer_group_lag{group="resume-worker-commands"}
-rate(kafka_consumer_messages_consumed_total{group="resume-worker-commands"}[5m])
+3. **Business Metrics**
+   - Evaluations per hour
+   - Average evaluation score
+   - Bullet pass rate
+   - Job completion rate
 
-# Connection status
-kafka_producer_connection_count{job="resume-worker"}
-```
+4. **System Health**
+   - CPU usage
+   - Memory usage
+   - Event loop lag
+   - Kafka consumer lag
 
-#### Database Metrics
+5. **Queue Status**
+   - BullMQ queue size
+   - Job processing rate
+   - Failed jobs
+   - Average job duration
 
-```prometheus
-# Connection pool
-mongodb_connections_active{job="resume-worker"}
-mongodb_connections_available{job="resume-worker"}
-
-# Query performance
-histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m]))
-
-# Operation counts
-rate(mongodb_queries_total{job="resume-worker"}[5m])
-rate(mongodb_inserts_total{job="resume-worker"}[5m])
-```
-
-## Grafana Dashboard
-
-### Dashboard Layout
-
-The Grafana dashboard is organized into the following sections:
-
-#### 1. Service Overview
-- Service health status
-- Active command count
-- Queue depth
-- Error rate overview
-
-#### 2. Performance Metrics
-- Command processing rate (RPS)
-- Processing latency (P50, P95, P99)
-- HTTP request latency
-- Throughput trends
-
-#### 3. System Resources
-- CPU usage percentage
-- Memory usage (MB)
-- Network I/O
-- Disk usage
-
-#### 4. External Services
-- Kafka producer/consumer metrics
-- Database connection pool status
-- External API response times
-
-#### 5. Error Analysis
-- Error rate by type
-- Top error messages
-- Error trends over time
-
-#### 6. Business Metrics
-- Commands processed by type
-- Success/failure ratios
-- Processing time distribution
-
-### Dashboard Configuration
-
-```json
-{
-  "dashboard": {
-    "title": "resume Worker - Production Dashboard",
-    "tags": ["resume", "worker", "command-processing", "production"],
-    "timezone": "UTC",
-    "refresh": "30s",
-    "time": {
-      "from": "now-1h",
-      "to": "now"
-    }
-  }
-}
-```
+---
 
 ## Alerting Rules
 
+**File:** `prometheus-alerts.yml`
+
 ### Critical Alerts
 
-```yaml
-groups:
-  - name: resume-worker-critical
-    rules:
-      - alert: resumeWorkerDown
-        expr: up{job="resume-worker"} == 0
-        for: 5m
-        labels:
-          severity: critical
-          service: resume-worker
-        annotations:
-          summary: "resume Worker is down"
-          description: "resume Worker has been down for more than 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#service-completely-down"
+1. **High Error Rate**
+   - Condition: Error rate > 5% for 5 minutes
+   - Severity: Critical
 
-      - alert: resumeWorkerHighErrorRate
-        expr: rate(command_processing_total{status="failed", job="resume-worker"}[5m]) / rate(command_processing_total{job="resume-worker"}[5m]) > 0.1
-        for: 5m
-        labels:
-          severity: critical
-          service: resume-worker
-        annotations:
-          summary: "High command failure rate"
-          description: "Command failure rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#high-error-rate"
-```
+2. **High Evaluation Latency**
+   - Condition: P95 latency > 30s for 5 minutes
+   - Severity: Critical
+
+3. **Kafka Consumer Lag**
+   - Condition: Lag > 1000 messages for 10 minutes
+   - Severity: Critical
+
+4. **Service Down**
+   - Condition: No metrics for 2 minutes
+   - Severity: Critical
 
 ### Warning Alerts
 
-```yaml
-  - name: resume-worker-warning
-    rules:
-      - alert: resumeWorkerHighLatency
-        expr: histogram_quantile(0.95, rate(command_processing_duration_seconds_bucket{job="resume-worker"}[5m])) > 5
-        for: 5m
-        labels:
-          severity: warning
-          service: resume-worker
-        annotations:
-          summary: "High processing latency"
-          description: "P95 processing latency is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#high-latency"
+1. **High Queue Size**
+   - Condition: Queue size > 100 for 10 minutes
+   - Severity: Warning
 
-      - alert: resumeWorkerHighQueueDepth
-        expr: command_queue_depth{job="resume-worker"} > 100
-        for: 5m
-        labels:
-          severity: warning
-          service: resume-worker
-        annotations:
-          summary: "High queue depth"
-          description: "Command queue depth is {{ $value }} over the last 5 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/PERFORMANCE.md#high-queue-depth"
+2. **Low Success Rate**
+   - Condition: Success rate < 95% for 15 minutes
+   - Severity: Warning
 
-      - alert: resumeWorkerHighMemoryUsage
-        expr: process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024 > 400
-        for: 10m
-        labels:
-          severity: warning
-          service: resume-worker
-        annotations:
-          summary: "High memory usage"
-          description: "Memory usage is {{ $value | printf \"%.0f\" }}MB over the last 10 minutes."
-          runbook_url: "https://github.com/enginedge/enginedge-workers/blob/main/resume-worker/documentation/TROUBLESHOOTING.md#memory-usage-high"
+3. **High Memory Usage**
+   - Condition: Memory usage > 80% for 10 minutes
+   - Severity: Warning
+
+---
+
+## Query Examples
+
+### Business KPIs
+
+```promql
+# Daily evaluations
+sum(increase(resume_evaluations_total[24h]))
+
+# Average evaluation score
+avg(resume_evaluation_score)
+
+# Bullet pass rate
+sum(rate(bullet_evaluations_total{passed="true"}[1h])) / sum(rate(bullet_evaluations_total[1h]))
+
+# Job success rate
+sum(rate(tailoring_jobs_total{status="completed"}[1h])) / sum(rate(tailoring_jobs_total[1h]))
 ```
 
-### Info Alerts
+### Performance Monitoring
 
-```yaml
-  - name: resume-worker-info
-    rules:
-      - alert: resumeWorkerLowThroughput
-        expr: rate(command_processing_total{job="resume-worker"}[15m]) < 10
-        for: 30m
-        labels:
-          severity: info
-          service: resume-worker
-        annotations:
-          summary: "Low processing throughput"
-          description: "Command processing rate is {{ $value | printf \"%.1f\" }} commands/minute over the last 30 minutes."
+```promql
+# P95 API latency
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
 
-      - alert: resumeWorkerNoActiveCommands
-        expr: command_active_total{job="resume-worker"} == 0
-        for: 30m
-        labels:
-          severity: info
-          service: resume-worker
-        annotations:
-          summary: "No active commands"
-          description: "No commands have been processed for the last 30 minutes."
+# Slow endpoints (>1s)
+topk(10, histogram_quantile(0.95, sum by (route, le) (rate(http_request_duration_seconds_bucket[5m]))))
+
+# Error rate by endpoint
+sum by (route) (rate(http_requests_total{status_code=~"5.."}[5m]))
 ```
 
-## Logging
+### Capacity Planning
 
-### Log Levels
+```promql
+# Request rate trend
+predict_linear(http_requests_total[1h], 3600 * 24)
 
-- **ERROR**: Application errors, failed operations
-- **WARN**: Warning conditions, retry attempts
-- **INFO**: General operational messages, command processing
-- **DEBUG**: Detailed debugging information
+# Queue growth rate
+deriv(bullmq_queue_size[10m])
 
-### Structured Logging
-
-All logs follow a structured format with consistent fields:
-
-```json
-{
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "level": "info",
-  "service": "resume-worker",
-  "workerId": "worker-pod-abc-123",
-  "correlationId": "req-abc-123",
-  "taskId": "assist-001",
-  "message": "Command processing started",
-  "metadata": {
-    "taskType": "EXECUTE_ASSISTANT",
-    "payloadSize": 1024
-  }
-}
+# Memory growth rate
+deriv(nodejs_heap_size_used_bytes[1h])
 ```
 
-### Log Aggregation
+---
 
-Logs are aggregated using ELK stack (Elasticsearch, Logstash, Kibana):
+## Best Practices
 
-- **Elasticsearch**: Log storage and search
-- **Logstash**: Log processing and enrichment
-- **Kibana**: Log visualization and analysis
+1. **Set up alerts** for critical metrics
+2. **Monitor trends** over time for capacity planning
+3. **Track business KPIs** alongside technical metrics
+4. **Use dashboards** for at-a-glance health checks
+5. **Set SLOs** for key metrics (e.g., P95 latency < 5s)
+6. **Review metrics regularly** to identify optimization opportunities
 
-### Log Queries
+---
 
-```bash
-# Search for errors in last hour
-GET /logs-*/_search
-{
-  "query": {
-    "bool": {
-      "must": [
-        { "match": { "service": "resume-worker" } },
-        { "match": { "level": "error" } },
-        { "range": { "@timestamp": { "gte": "now-1h" } } }
-      ]
-    }
-  }
-}
-
-# Command processing summary
-GET /logs-*/_search
-{
-  "query": {
-    "bool": {
-      "must": [
-        { "match": { "service": "resume-worker" } },
-        { "match": { "message": "Command processing completed" } }
-      ]
-    }
-  },
-  "aggs": {
-    "by_task_type": {
-      "terms": { "field": "metadata.taskType" }
-    },
-    "avg_processing_time": {
-      "avg": { "field": "metadata.processingTime" }
-    }
-  }
-}
-```
-
-## Health Checks
-
-### Application Health
-
-The service provides multiple health check endpoints:
-
-#### GET /health
-
-Basic health check:
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "uptime": 3600,
-  "version": "1.0.0"
-}
-```
-
-#### GET /health/detailed
-
-Detailed health check including dependencies:
-
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "uptime": 3600,
-  "version": "1.0.0",
-  "checks": {
-    "kafka": {
-      "status": "up",
-      "responseTime": 45,
-      "details": {
-        "brokers": 3,
-        "topics": ["resume.commands", "resume.command-results"]
-      }
-    },
-    "database": {
-      "status": "up",
-      "responseTime": 23,
-      "details": {
-        "connections": {
-          "active": 5,
-          "available": 20,
-          "total": 25
-        }
-      }
-    },
-    "memory": {
-      "status": "up",
-      "details": {
-        "used": 180,
-        "total": 512,
-        "percentage": 35
-      }
-    }
-  }
-}
-```
-
-### Kubernetes Probes
-
-```yaml
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 3001
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
-
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 3001
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-startupProbe:
-  httpGet:
-    path: /health
-    port: 3001
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 30
-```
-
-## Performance Benchmarks
-
-### Baseline Metrics
-
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| P95 Latency | <500ms | <1s | ✅ |
-| Error Rate | <1% | <5% | ✅ |
-| CPU Usage | <50% | <70% | ✅ |
-| Memory Usage | <256MB | <512MB | ✅ |
-| Queue Depth | <50 | <100 | ✅ |
-
-### Load Testing Results
-
-**Test Scenario:** 100 concurrent users, 1000 commands/minute
-
-| Metric | Result | Threshold |
-|--------|--------|-----------|
-| Average Latency | 245ms | <500ms |
-| P95 Latency | 450ms | <1s |
-| Error Rate | 0.2% | <1% |
-| CPU Usage | 65% | <80% |
-| Memory Usage | 320MB | <512MB |
-| Throughput | 980 cmd/min | >900 cmd/min |
-
-## Troubleshooting with Metrics
-
-### High Latency Investigation
-
-1. **Check System Resources:**
-```prometheus
-# CPU saturation
-rate(process_cpu_user_seconds_total{job="resume-worker"}[5m]) > 0.8
-
-# Memory pressure
-process_resident_memory_bytes{job="resume-worker"} / 1024 / 1024 > 400
-
-# Network saturation
-rate(process_io_read_bytes_total{job="resume-worker"}[5m]) > 10485760
-```
-
-2. **Check External Dependencies:**
-```prometheus
-# Kafka lag
-kafka_consumer_group_lag{group="resume-worker-commands"} > 100
-
-# Database slow queries
-histogram_quantile(0.95, rate(mongodb_query_duration_seconds_bucket{job="resume-worker"}[5m])) > 1
-```
-
-3. **Check Application Bottlenecks:**
-```prometheus
-# Queue buildup
-command_queue_depth{job="resume-worker"} > 50
-
-# Thread pool exhaustion
-nodejs_active_handles_total{job="resume-worker"} > 100
-```
-
-### Memory Leak Detection
-
-1. **Monitor Heap Growth:**
-```prometheus
-# Heap size trend
-increase(nodejs_heap_size_used_bytes{job="resume-worker"}[1h])
-
-# GC frequency
-rate(nodejs_gc_duration_seconds_total{job="resume-worker"}[5m])
-```
-
-2. **Profile Memory Usage:**
-```bash
-# Generate heap snapshot
-kubectl exec -it <pod-name> -n enginedge-workers -- node --inspect --heap-snapshot
-
-# Analyze with Chrome DevTools
-# Open chrome://inspect and analyze heap snapshot
-```
-
-### Error Pattern Analysis
-
-1. **Categorize Errors:**
-```prometheus
-# Errors by type
-sum by (error_type) (rate(command_processing_total{status="failed", job="resume-worker"}[5m]))
-
-# HTTP errors by status
-rate(http_requests_total{status=~"5..", job="resume-worker"}[5m])
-```
-
-2. **Correlate with Logs:**
-```bash
-# Find error logs with correlation IDs
-kubectl logs deployment/resume-worker -n enginedge-workers | grep "correlationId.*error"
-```
-
-## Monitoring Best Practices
-
-### Alert Fatigue Prevention
-
-1. **Alert Grouping:** Group related alerts to reduce noise
-2. **Alert Escalation:** Use different severity levels appropriately
-3. **Auto-Resolution:** Configure alerts to auto-resolve when conditions clear
-
-### Dashboard Organization
-
-1. **Role-Based Views:** Different dashboards for different user roles
-2. **Time-Based Analysis:** Support for historical trend analysis
-3. **Comparative Views:** Compare metrics across different time periods
-
-### Metric Naming Conventions
-
-```prometheus
-# Format: namespace_subsystem_metric_name
-resume_worker_command_processing_total{status="success"}
-resume_worker_http_request_duration_seconds_bucket{le="0.1"}
-resume_worker_kafka_consumer_lag
-```
-
-### Documentation Updates
-
-- Update metric definitions when adding new metrics
-- Document alert conditions and thresholds
-- Maintain runbook URLs in alert annotations
-- Review and update dashboards quarterly
-
-## Integration with Other Tools
-
-### APM Integration (Application Performance Monitoring)
-
-```typescript
-// New Relic integration
-import newrelic from 'newrelic';
-
-@Injectable()
-export class MonitoringService {
-  recordCommandProcessing(taskId: string, duration: number, status: string) {
-    newrelic.recordCustomEvent('CommandProcessing', {
-      taskId,
-      duration,
-      status,
-      timestamp: Date.now()
-    });
-  }
-}
-```
-
-### Log Correlation
-
-```typescript
-@Injectable()
-export class CorrelationService {
-  private correlationId: string;
-
-  startCorrelation() {
-    this.correlationId = uuidv4();
-    // Set in async local storage or continuation-local-storage
-  }
-
-  getCorrelationId(): string {
-    return this.correlationId;
-  }
-}
-```
-
-This comprehensive monitoring setup ensures the resume Worker operates reliably with full observability into its performance, health, and behavior.
+**Last Updated:** November 3, 2025  
+**Version:** 1.0.0  
+**Prometheus Version:** 2.45+
