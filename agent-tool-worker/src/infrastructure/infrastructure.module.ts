@@ -15,6 +15,7 @@ import { StructuredLogger } from './adapters/logging/structured-logger';
 import { ToolValidator } from './adapters/tool-validator.adapter';
 import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -59,7 +60,10 @@ import { ToolMetrics } from './adapters/tool-metrics.adapter';
       useClass: ToolMetrics,
     },
     MetricsAdapter,
+
+    // Cache adapter
+    RedisCacheAdapter,
   ],
-  exports: ['ILogger', 'IToolValidator', 'IToolCache', 'IToolMetrics'],
+  exports: ['ILogger', 'IToolValidator', 'IToolCache', 'IToolMetrics', 'RedisCacheAdapter'],
 })
 export class InfrastructureModule {}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ApplicationModule } from '../application/application.module';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { ExperienceBankController } from './controllers/experience-bank.controller';
 import { ResumeController } from './controllers/resume.controller';
 import { JobPostingController } from './controllers/job-posting.controller';
@@ -27,7 +28,14 @@ import { CoverLetterController } from './controllers/cover-letter.controller';
     ResumeEditingController,
     CoverLetterController,
   ],
-  providers: [ResumeIteratorGateway, BulletReviewGateway, ResumeBuilderGateway],
-  exports: [],
+  providers: [
+    ResumeIteratorGateway,
+    BulletReviewGateway,
+    ResumeBuilderGateway,
+
+    // Cache adapter
+    RedisCacheAdapter,
+  ],
+  exports: [RedisCacheAdapter],
 })
 export class InfrastructureModule {}

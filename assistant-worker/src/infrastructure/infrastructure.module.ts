@@ -19,6 +19,7 @@ import {
 import { Neo4jAdapter } from './adapters/knowledge-graph';
 import { SSEStreamAdapter, WebSocketAdapter } from './adapters/streaming';
 import { MetricsAdapter } from './adapters/monitoring';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { InMemoryAgentRepository } from './adapters/storage/in-memory-agent.repository';
 import { MemoryService } from '@application/services/memory.service';
 import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
@@ -34,6 +35,7 @@ import {
   MemoryController,
   KnowledgeGraphController,
   MetricsController,
+  ModelsController,
 } from './controllers';
 
 /**
@@ -74,6 +76,9 @@ import {
 
     // Metrics controller (Phase 6)
     MetricsController,
+
+    // Models controller
+    ModelsController,
   ],
   providers: [
     // Core adapters
@@ -115,6 +120,9 @@ import {
 
     // Monitoring adapters (Phase 6)
     MetricsAdapter,
+
+    // Cache adapter
+    RedisCacheAdapter,
   ],
   exports: [
     // Export ports for application and domain layers

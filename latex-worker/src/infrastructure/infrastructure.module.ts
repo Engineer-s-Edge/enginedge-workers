@@ -11,6 +11,7 @@ import { HealthController } from '../health/health.controller';
 import { XeLaTeXCompilerAdapter } from './adapters/xelatex-compiler.adapter';
 import { NodeFileSystemAdapter } from './adapters/filesystem.adapter';
 import { StructuredLoggerAdapter } from './adapters/structured-logger.adapter';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -42,10 +43,13 @@ import { StructuredLoggerAdapter } from './adapters/structured-logger.adapter';
       useClass: XeLaTeXCompilerAdapter,
     },
 
+    // Cache adapter
+    RedisCacheAdapter,
+
     // TODO: Add MongoDB repositories
     // TODO: Add Kafka message broker
     // TODO: Add GridFS PDF storage
   ],
-  exports: ['ILogger', 'IFileSystem', 'ILaTeXCompiler'],
+  exports: ['ILogger', 'IFileSystem', 'ILaTeXCompiler', 'RedisCacheAdapter'],
 })
 export class InfrastructureModule {}

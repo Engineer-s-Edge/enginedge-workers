@@ -113,6 +113,42 @@ export interface IGoogleCalendarApiService {
     calendarId: string,
     events: Partial<CalendarEvent>[],
   ): Promise<CalendarEvent[]>;
+
+  /**
+   * Create a locked time block (immutable event)
+   */
+  createLockedBlock(
+    calendarId: string,
+    summary: string,
+    startDateTime: string,
+    endDateTime: string,
+    description?: string,
+  ): Promise<CalendarEvent>;
+
+  /**
+   * Enhanced update with time validation and overlap checking
+   */
+  updateEventEnhanced(
+    calendarId: string,
+    eventId: string,
+    eventData: Partial<CalendarEvent>,
+    newStartTime?: string,
+    newEndTime?: string,
+  ): Promise<CalendarEvent>;
+
+  /**
+   * Check if an event is locked (immutable)
+   */
+  isEventLocked(event: CalendarEvent): boolean;
+
+  /**
+   * Check for overlaps with locked blocks
+   */
+  checkOverlapWithLockedBlocks(
+    start: Date,
+    end: Date,
+    allEvents: CalendarEvent[],
+  ): { overlaps: boolean; lockedEvent?: CalendarEvent };
 }
 
 /**

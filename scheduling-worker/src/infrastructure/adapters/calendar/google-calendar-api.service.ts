@@ -423,4 +423,200 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
 
     return googleEvent;
   }
+
+  /**
+   * Create a locked time block (immutable event)
+   */
+  async createLockedBlock(
+    calendarId: string,
+    summary: string,
+    startDateTime: string,
+    endDateTime: string,
+    description?: string,
+  ): Promise<CalendarEvent> {
+    this.logger.log(`Creating locked block in calendar: ${calendarId}`);
+
+    try {
+      await this.googleAuthService.ensureValidTokens();
+
+      const googleEvent: calendar_v3.Schema$Event = {
+        summary: `🔒 ${summary}`,
+        start: { dateTime: startDateTime },
+        end: { dateTime: endDateTime },
+        description:
+          description ||
+          'This is a locked time block and cannot be modified or deleted.',
+        extendedProperties: {
+          private: {
+            immutable: 'true',
+            createdByEnginEdge: 'true',
+          },
+        },
+        colorId: '11',
+      };
+
+      const response = await this.calendar.events.insert({
+        calendarId,
+        requestBody: googleEvent,
+      });
+
+      const event = this.mapGoogleEventToEntity(response.data, calendarId);
+      if (!event) {
+        throw new Error('Failed to map created locked block');
+      }
+
+      this.logger.log(`Successfully created locked block: ${event.id}`);
+      return event;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(
+        `Failed to create locked block: ${err.message}`,
+        err.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Enhanced update with time validation and overlap checking
+   */
+  async updateEventEnhanced(
+    calendarId: string,
+    eventId: string,
+    eventData: Partial<CalendarEvent>,
+    newStartTime?: string,
+    newEndTime?: string,
+  ): Promise<CalendarEvent> {
+    this.logger.log(`Updating event enhanced: ${eventId}`);
+
+    try {
+      await this.googleAuthService.ensureValidTokens();
+
+      // Get current event
+      const currentEventResponse = await this.calendar.events.get({
+        calendarId,
+        eventId,
+      });
+      const currentEventData = currentEventResponse.data;
+      const currentEvent = this.mapGoogleEventToEntity(
+        currentEventData,
+        calendarId,
+      );
+
+      if (!currentEvent) {
+        throw new Error(`Event ${eventId} not found or invalid`);
+      }
+
+      // Check if event is locked
+      if (this.isEventLocked(currentEvent)) {
+        throw new Error('Cannot update locked event');
+      }
+
+      // Build updated event
+      let updatedGoogleEvent: calendar_v3.Schema$Event = {
+        ...currentEventData,
+        ...this.mapEntityToGoogleEvent(eventData),
+      };
+
+      // Handle time updates with validation
+      if (newStartTime || newEndTime) {
+        const currentStart = currentEvent.start
+          ? new Date(currentEvent.start)
+          : null;
+        const currentEnd = currentEvent.end ? new Date(currentEvent.end) : null;
+
+        if (!currentStart || !currentEnd) {
+          throw new Error(
+            'Cannot update times for event without valid start/end times',
+          );
+        }
+
+        const newStart = newStartTime ? new Date(newStartTime) : currentStart;
+        const newEnd = newEndTime ? new Date(newEndTime) : currentEnd;
+
+        if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
+          throw new Error('Invalid time format');
+        }
+
+        if (newStart >= newEnd) {
+          throw new Error('Start time must be before end time');
+        }
+
+        // Check for overlaps with locked blocks
+        const allEvents = await this.listEvents(calendarId, { maxResults: 100 });
+        const otherEvents = allEvents.filter((e) => e.id !== eventId);
+        const overlapCheck = this.checkOverlapWithLockedBlocks(
+          newStart,
+          newEnd,
+          otherEvents,
+        );
+
+        if (overlapCheck.overlaps) {
+          throw new Error(
+            `Cannot update event to overlap with locked time block "${overlapCheck.lockedEvent?.summary}"`,
+          );
+        }
+
+        updatedGoogleEvent.start = { dateTime: newStart.toISOString() };
+        updatedGoogleEvent.end = { dateTime: newEnd.toISOString() };
+      }
+
+      // Update event
+      const response = await this.calendar.events.update({
+        calendarId,
+        eventId,
+        requestBody: updatedGoogleEvent,
+      });
+
+      const event = this.mapGoogleEventToEntity(response.data, calendarId);
+      if (!event) {
+        throw new Error('Failed to map updated event');
+      }
+
+      this.logger.log(`Successfully updated event enhanced: ${eventId}`);
+      return event;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(
+        `Failed to update event enhanced: ${err.message}`,
+        err.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Check if an event is locked (immutable)
+   */
+  isEventLocked(event: CalendarEvent): boolean {
+    const extendedProps = (event as any).extendedProperties?.private;
+    return extendedProps?.immutable === 'true';
+  }
+
+  /**
+   * Check for overlaps with locked blocks
+   */
+  checkOverlapWithLockedBlocks(
+    start: Date,
+    end: Date,
+    allEvents: CalendarEvent[],
+  ): { overlaps: boolean; lockedEvent?: CalendarEvent } {
+    const lockedEvents = allEvents.filter((event) => this.isEventLocked(event));
+
+    for (const lockedEvent of lockedEvents) {
+      const lockedStart = lockedEvent.start
+        ? new Date(lockedEvent.start)
+        : null;
+      const lockedEnd = lockedEvent.end ? new Date(lockedEvent.end) : null;
+
+      if (!lockedStart || !lockedEnd) continue;
+
+      // Check for overlap
+      if (start < lockedEnd && end > lockedStart) {
+        return { overlaps: true, lockedEvent };
+      }
+    }
+
+    return { overlaps: false };
+  }
 }

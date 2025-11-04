@@ -20,6 +20,7 @@ import { GoogleSpeechAdapter } from './adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from './adapters/voice/azure-speech.adapter';
 import { StructuredLogger } from './adapters/logging/structured-logger';
 import { ILogger } from '@application/ports/logger.port';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import {
   MongoDbModule,
   MongoInterviewRepository,
@@ -117,6 +118,9 @@ import {
       useClass: MongoWebhookRepository,
     },
     MetricsAdapter,
+
+    // Cache adapter
+    RedisCacheAdapter,
   ],
   exports: [
     // Export logger for use in other modules

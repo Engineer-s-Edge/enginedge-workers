@@ -7,6 +7,7 @@
 import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '../application/application.module';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 
 // Database Schemas
 import {
@@ -161,6 +162,9 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
 
     // Messaging
     KafkaDataProcessingAdapter,
+
+    // Cache adapter
+    RedisCacheAdapter,
   ],
   exports: [
     // Export all loaders and infrastructure
@@ -172,6 +176,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     GoogleEmbedderAdapter,
     MongoDBVectorStoreAdapter,
     KafkaDataProcessingAdapter,
+    RedisCacheAdapter,
   ],
 })
 export class InfrastructureModule {}
