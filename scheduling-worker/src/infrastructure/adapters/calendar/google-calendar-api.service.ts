@@ -513,7 +513,7 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
       }
 
       // Build updated event
-      let updatedGoogleEvent: calendar_v3.Schema$Event = {
+      const updatedGoogleEvent: calendar_v3.Schema$Event = {
         ...currentEventData,
         ...this.mapEntityToGoogleEvent(eventData),
       };
@@ -543,7 +543,9 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
         }
 
         // Check for overlaps with locked blocks
-        const allEvents = await this.listEvents(calendarId, { maxResults: 100 });
+        const allEvents = await this.listEvents(calendarId, {
+          maxResults: 100,
+        });
         const otherEvents = allEvents.filter((e) => e.id !== eventId);
         const overlapCheck = this.checkOverlapWithLockedBlocks(
           newStart,

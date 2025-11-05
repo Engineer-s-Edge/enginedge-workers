@@ -6,7 +6,10 @@
 
 import { Injectable, Inject } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
-import { CollectiveTask, TaskState } from '@domain/entities/collective-task.entity';
+import {
+  CollectiveTask,
+  TaskState,
+} from '@domain/entities/collective-task.entity';
 
 export interface AgentCapability {
   agentId: string;
@@ -71,9 +74,12 @@ export class TaskAssignmentService {
       const currentCount = this.agentTaskCounts.get(bestAgent.agentId) || 0;
       this.agentTaskCounts.set(bestAgent.agentId, currentCount + 1);
 
-      this.logger.info(`Assigned task ${task.id} to agent ${bestAgent.agentId}`, {
-        score: bestAgent.score,
-      });
+      this.logger.info(
+        `Assigned task ${task.id} to agent ${bestAgent.agentId}`,
+        {
+          score: bestAgent.score,
+        },
+      );
 
       return bestAgent.agentId;
     }

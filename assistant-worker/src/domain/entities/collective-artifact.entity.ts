@@ -72,7 +72,8 @@ export function createCollectiveArtifact(
     version: 1,
     createdBy,
     tags: options.tags || [],
-    searchableContent: `${name} ${options.description || ''} ${content}`.toLowerCase(),
+    searchableContent:
+      `${name} ${options.description || ''} ${content}`.toLowerCase(),
     metadata: options.metadata,
     createdAt: new Date(),
     updatedAt: new Date(),

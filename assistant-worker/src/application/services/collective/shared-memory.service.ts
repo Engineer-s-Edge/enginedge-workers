@@ -49,7 +49,9 @@ export class SharedMemoryService {
   /**
    * Create or update artifact
    */
-  async createArtifact(artifact: CollectiveArtifact): Promise<CollectiveArtifact> {
+  async createArtifact(
+    artifact: CollectiveArtifact,
+  ): Promise<CollectiveArtifact> {
     // Acquire write lock
     const lockToken = await this.lockingService.acquireLock(
       artifact.id,
@@ -90,21 +92,21 @@ export class SharedMemoryService {
   /**
    * Get context for a specific task
    */
-  async getTaskContext(collectiveId: string, taskId: string): Promise<TaskContext> {
+  async getTaskContext(
+    collectiveId: string,
+    taskId: string,
+  ): Promise<TaskContext> {
     const task = this.tasks.get(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
     }
 
     // Find related artifacts
-    const relatedArtifacts = await this.searchService.search(
-      task.description,
-      {
-        collectiveId,
-        taskId,
-        limit: 10,
-      },
-    );
+    const relatedArtifacts = await this.searchService.search(task.description, {
+      collectiveId,
+      taskId,
+      limit: 10,
+    });
 
     // Get parent and child tasks
     const parentTask = task.parentTaskId

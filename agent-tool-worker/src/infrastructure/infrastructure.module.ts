@@ -65,6 +65,12 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
     // Cache adapter
     RedisCacheAdapter,
   ],
-  exports: ['ILogger', 'IToolValidator', 'IToolCache', 'IToolMetrics', 'RedisCacheAdapter'],
+  exports: [
+    'ILogger',
+    'IToolValidator',
+    'IToolCache',
+    'IToolMetrics',
+    'RedisCacheAdapter',
+  ],
 })
 export class InfrastructureModule {}

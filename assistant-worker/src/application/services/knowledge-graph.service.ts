@@ -43,7 +43,12 @@ export class KnowledgeGraphService {
   ): Promise<KGNode> {
     this.logger.info('Adding node to knowledge graph', { label, type, layer });
 
-    const node = await this.neo4jAdapter.createNode(label, type, layer, properties);
+    const node = await this.neo4jAdapter.createNode(
+      label,
+      type,
+      layer,
+      properties,
+    );
 
     // Create component for new node if component service is available
     if (this.componentService) {
@@ -355,7 +360,11 @@ export class KnowledgeGraphService {
    * @param reason Reason for locking
    * @returns true if lock acquired, false if already locked
    */
-  async lockNode(nodeId: string, actorId: string, reason: string): Promise<boolean> {
+  async lockNode(
+    nodeId: string,
+    actorId: string,
+    reason: string,
+  ): Promise<boolean> {
     this.logger.info('Locking node', { nodeId, actorId, reason });
     return await this.neo4jAdapter.lockNode(nodeId, actorId, reason);
   }
@@ -385,7 +394,10 @@ export class KnowledgeGraphService {
   /**
    * Lock a node for research
    */
-  async lockNodeForResearch(nodeId: string, agentId: string): Promise<KGNode | null> {
+  async lockNodeForResearch(
+    nodeId: string,
+    agentId: string,
+  ): Promise<KGNode | null> {
     this.logger.info('Locking node for research', { nodeId, agentId });
     return await this.neo4jAdapter.lockNodeForResearch(nodeId, agentId);
   }
@@ -400,13 +412,21 @@ export class KnowledgeGraphService {
     confidence: number,
   ): Promise<KGNode | null> {
     this.logger.info('Adding research data to node', { nodeId });
-    return await this.neo4jAdapter.addResearchData(nodeId, researchData, sources, confidence);
+    return await this.neo4jAdapter.addResearchData(
+      nodeId,
+      researchData,
+      sources,
+      confidence,
+    );
   }
 
   /**
    * Mark a node as dubious
    */
-  async markNodeAsDubious(nodeId: string, agentId: string): Promise<KGNode | null> {
+  async markNodeAsDubious(
+    nodeId: string,
+    agentId: string,
+  ): Promise<KGNode | null> {
     this.logger.warn('Marking node as dubious', { nodeId, agentId });
     return await this.neo4jAdapter.markNodeAsDubious(nodeId, agentId);
   }
@@ -447,7 +467,11 @@ export class KnowledgeGraphService {
   /**
    * Find edge between two nodes
    */
-  async findEdgeBetween(from: string, to: string, type?: string): Promise<KGEdge | null> {
+  async findEdgeBetween(
+    from: string,
+    to: string,
+    type?: string,
+  ): Promise<KGEdge | null> {
     return await this.neo4jAdapter.findEdgeBetween(from, to, type);
   }
 

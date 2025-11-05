@@ -361,9 +361,10 @@ export class AgentService {
       const instance = await this.getAgentInstance(agentId, userId);
       // Attempt to get graph-specific state if available
       const anyInstance = instance as any;
-      const state = typeof anyInstance.getGraphState === 'function'
-        ? anyInstance.getGraphState()
-        : { note: 'no_graph_state' };
+      const state =
+        typeof anyInstance.getGraphState === 'function'
+          ? anyInstance.getGraphState()
+          : { note: 'no_graph_state' };
 
       // Create checkpoint
       const checkpoint = await this.checkpoints.createCheckpoint(
@@ -375,11 +376,14 @@ export class AgentService {
       );
 
       // Abort execution
-      try { instance.abort(); } catch {}
+      try {
+        instance.abort();
+      } catch {}
 
       // Mark session(s) paused
       const sessions = this.sessions.getAgentSessions(agentId);
-      for (const s of sessions) this.sessions.updateSessionStatus(s.sessionId, 'paused');
+      for (const s of sessions)
+        this.sessions.updateSessionStatus(s.sessionId, 'paused');
 
       return { checkpointId: checkpoint.id };
     } catch (e) {
@@ -402,12 +406,19 @@ export class AgentService {
       // store in session metadata for next execution
       const sessions = this.sessions.getAgentSessions(agentId);
       if (sessions[0]) {
-        sessions[0].metadata = { ...(sessions[0].metadata || {}), restoredState: state };
+        sessions[0].metadata = {
+          ...(sessions[0].metadata || {}),
+          restoredState: state,
+        };
       }
     }
     const sessions = this.sessions.getAgentSessions(agentId);
-    for (const s of sessions) this.sessions.updateSessionStatus(s.sessionId, 'active');
-    return { ok: true, message: 'Resume triggered; start a new execution to continue.' };
+    for (const s of sessions)
+      this.sessions.updateSessionStatus(s.sessionId, 'active');
+    return {
+      ok: true,
+      message: 'Resume triggered; start a new execution to continue.',
+    };
   }
 
   /**
@@ -422,7 +433,8 @@ export class AgentService {
     const interaction = this.sessions.setupUserInteractionHandling(
       agentId,
       // pick the first active session
-      this.sessions.getAgentSessions(agentId)[0]?.sessionId || `session_${Date.now()}`,
+      this.sessions.getAgentSessions(agentId)[0]?.sessionId ||
+        `session_${Date.now()}`,
       'input',
       `node:${nodeId}`,
     );
@@ -440,7 +452,8 @@ export class AgentService {
   ): Promise<void> {
     const interaction = this.sessions.setupUserInteractionHandling(
       agentId,
-      this.sessions.getAgentSessions(agentId)[0]?.sessionId || `session_${Date.now()}`,
+      this.sessions.getAgentSessions(agentId)[0]?.sessionId ||
+        `session_${Date.now()}`,
       'approval',
       `node:${nodeId}`,
     );
@@ -459,11 +472,15 @@ export class AgentService {
   ): Promise<void> {
     const interaction = this.sessions.setupUserInteractionHandling(
       agentId,
-      this.sessions.getAgentSessions(agentId)[0]?.sessionId || `session_${Date.now()}`,
+      this.sessions.getAgentSessions(agentId)[0]?.sessionId ||
+        `session_${Date.now()}`,
       'choice',
       `node:${nodeId}:${action}`,
     );
-    this.sessions.resolveUserInteraction(interaction.interactionId, { action, input });
+    this.sessions.resolveUserInteraction(interaction.interactionId, {
+      action,
+      input,
+    });
   }
 
   /**
@@ -482,11 +499,21 @@ export class AgentService {
   async getGraphAgentExecutionState(
     agentId: string,
     userId: string,
-  ): Promise<{ isPaused: boolean; currentNodes: string[]; pausedBranches: string[]; executionHistory: Array<any> }> {
-    const isPaused = this.sessions.getAgentSessions(agentId).some((s) => s.status === 'paused');
+  ): Promise<{
+    isPaused: boolean;
+    currentNodes: string[];
+    pausedBranches: string[];
+    executionHistory: Array<any>;
+  }> {
+    const isPaused = this.sessions
+      .getAgentSessions(agentId)
+      .some((s) => s.status === 'paused');
     const instance = await this.getAgentInstance(agentId, userId);
     const anyInstance = instance as any;
-    const graphState = typeof anyInstance.getGraphState === 'function' ? anyInstance.getGraphState() : {};
+    const graphState =
+      typeof anyInstance.getGraphState === 'function'
+        ? anyInstance.getGraphState()
+        : {};
     return {
       isPaused,
       currentNodes: [],
@@ -639,7 +666,10 @@ export class AgentService {
     // Store into the first session's metadata for next execution
     const sessions = this.sessions.getAgentSessions(agentId);
     if (sessions[0] && data) {
-      sessions[0].metadata = { ...(sessions[0].metadata || {}), restoredState: data };
+      sessions[0].metadata = {
+        ...(sessions[0].metadata || {}),
+        restoredState: data,
+      };
     }
 
     return { success: !!data, data };
@@ -670,7 +700,9 @@ export class AgentService {
   async removeAgent(agentId: string, userId?: string): Promise<void> {
     const instance = this.agentInstances.get(agentId);
     if (instance) {
-      try { instance.abort(); } catch {}
+      try {
+        instance.abort();
+      } catch {}
       this.agentInstances.delete(agentId);
     }
 
@@ -700,7 +732,9 @@ export class AgentService {
    */
   async clearAllAgents(): Promise<void> {
     for (const [agentId, instance] of this.agentInstances.entries()) {
-      try { instance.abort(); } catch {}
+      try {
+        instance.abort();
+      } catch {}
       this.agentInstances.delete(agentId);
     }
   }
@@ -716,10 +750,15 @@ export class AgentService {
     options?: { checkpointId?: string; stream?: boolean },
   ): Promise<AsyncIterable<string> | ExecutionResult> {
     if (options?.checkpointId) {
-      const state = await this.checkpoints.restoreFromCheckpoint(options.checkpointId);
+      const state = await this.checkpoints.restoreFromCheckpoint(
+        options.checkpointId,
+      );
       const sessions = this.sessions.getAgentSessions(agentId);
       if (sessions[0]) {
-        sessions[0].metadata = { ...(sessions[0].metadata || {}), restoredState: state };
+        sessions[0].metadata = {
+          ...(sessions[0].metadata || {}),
+          restoredState: state,
+        };
       }
     }
 
@@ -737,7 +776,11 @@ export class AgentService {
     agentId: string,
     userId: string,
     nodeId: string,
-  ): Promise<Array<{ message: string; isUser: boolean; timestamp: Date }> | null> {
+  ): Promise<Array<{
+    message: string;
+    isUser: boolean;
+    timestamp: Date;
+  }> | null> {
     const instance = await this.getAgentInstance(agentId, userId);
     const anyInstance = instance as any;
     if (typeof anyInstance.getNodeConversationHistory === 'function') {
@@ -749,7 +792,9 @@ export class AgentService {
   /**
    * Check if any pending user interactions exist for Graph agent
    */
-  async hasGraphAgentAwaitingUserInteraction(agentId: string): Promise<boolean> {
+  async hasGraphAgentAwaitingUserInteraction(
+    agentId: string,
+  ): Promise<boolean> {
     const pending = this.sessions.getPendingUserInteractions(agentId);
     return pending.length > 0;
   }

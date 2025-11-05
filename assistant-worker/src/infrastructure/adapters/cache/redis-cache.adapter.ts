@@ -25,34 +25,47 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     @Inject('ILogger') private readonly logger: ILogger,
     private readonly configService: ConfigService,
   ) {
-    const redisUrl = this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379/2';
+    const redisUrl =
+      this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379/2';
     const db = parseInt(redisUrl.split('/').pop() || '2', 10);
 
     this.redis = new Redis({
       host: this.configService.get<string>('REDIS_HOST') || 'localhost',
-      port: parseInt(this.configService.get<string>('REDIS_PORT') || '6379', 10),
+      port: parseInt(
+        this.configService.get<string>('REDIS_PORT') || '6379',
+        10,
+      ),
       db,
       maxRetriesPerRequest: 3,
       retryDelayOnFailover: 100,
       enableReadyCheck: true,
-      keyPrefix: this.configService.get<string>('REDIS_KEY_PREFIX') || 'assistant:',
+      keyPrefix:
+        this.configService.get<string>('REDIS_KEY_PREFIX') || 'assistant:',
       lazyConnect: true,
     });
 
-    this.defaultTTL = parseInt(this.configService.get<string>('CACHE_DEFAULT_TTL') || '3600', 10);
-    this.keyPrefix = this.configService.get<string>('REDIS_KEY_PREFIX') || 'assistant:';
+    this.defaultTTL = parseInt(
+      this.configService.get<string>('CACHE_DEFAULT_TTL') || '3600',
+      10,
+    );
+    this.keyPrefix =
+      this.configService.get<string>('REDIS_KEY_PREFIX') || 'assistant:';
 
     this.redis.on('connect', () => {
       this.logger.info('RedisCacheAdapter: Connected to Redis');
     });
 
     this.redis.on('error', (error) => {
-      this.logger.error('RedisCacheAdapter: Redis error', { error: error.message });
+      this.logger.error('RedisCacheAdapter: Redis error', {
+        error: error.message,
+      });
     });
 
     // Connect to Redis
     this.redis.connect().catch((error) => {
-      this.logger.error('RedisCacheAdapter: Failed to connect to Redis', { error: error.message });
+      this.logger.error('RedisCacheAdapter: Failed to connect to Redis', {
+        error: error.message,
+      });
     });
   }
 
@@ -182,7 +195,11 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     return value;
   }
 
-  async increment(key: string, by: number = 1, options?: CacheOptions): Promise<number> {
+  async increment(
+    key: string,
+    by: number = 1,
+    options?: CacheOptions,
+  ): Promise<number> {
     try {
       const fullKey = this.buildKey(key, options?.namespace);
       const result = await this.redis.incrby(fullKey, by);

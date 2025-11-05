@@ -52,23 +52,24 @@ export class AssistantsController {
     const rc = obj.reactConfig || undefined;
     const settings = rc
       ? {
-          intelligence: rc.intelligence || rc.cot
-            ? {
-                llm: {
-                  provider: rc.intelligence?.llm?.provider,
-                  model: rc.intelligence?.llm?.model,
-                  tokenLimit: rc.intelligence?.llm?.tokenLimit,
-                  temperature:
-                    (rc as any)?.intelligence?.llm?.temperature ??
-                    (rc as any)?.cot?.temperature,
-                },
-              }
-            : undefined,
+          intelligence:
+            rc.intelligence || rc.cot
+              ? {
+                  llm: {
+                    provider: rc.intelligence?.llm?.provider,
+                    model: rc.intelligence?.llm?.model,
+                    tokenLimit: rc.intelligence?.llm?.tokenLimit,
+                    temperature:
+                      (rc as any)?.intelligence?.llm?.temperature ??
+                      (rc as any)?.cot?.temperature,
+                  },
+                }
+              : undefined,
           memory: rc.memory,
           tools: Array.isArray(rc.tools)
             ? rc.tools
                 .map((t: any) =>
-                  typeof t === 'string' ? t : t?.toolName ?? t?.name,
+                  typeof t === 'string' ? t : (t?.toolName ?? t?.name),
                 )
                 .filter((v: any) => typeof v === 'string')
             : undefined,
@@ -204,7 +205,9 @@ export class AssistantsController {
     @Param('name') name: string,
     @Body() executeDto: ExecuteAssistantDto,
   ) {
-    this.logger.info(`Executing assistant: ${name} for user: ${executeDto.userId}`);
+    this.logger.info(
+      `Executing assistant: ${name} for user: ${executeDto.userId}`,
+    );
     try {
       const result = await this.assistantsService.execute(name, executeDto);
       this.logger.info(`Successfully executed assistant: ${name}`);

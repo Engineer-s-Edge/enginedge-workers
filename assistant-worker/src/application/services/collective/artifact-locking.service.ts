@@ -59,11 +59,20 @@ export class ArtifactLockingService {
     collectiveId: string,
     timeoutMs: number = this.DEFAULT_LOCK_TIMEOUT_MS,
   ): Promise<string | null> {
-    this.logger.info(`Agent ${agentId} requesting ${lockType} lock on artifact ${artifactId}`, {});
+    this.logger.info(
+      `Agent ${agentId} requesting ${lockType} lock on artifact ${artifactId}`,
+      {},
+    );
 
     // Check if lock can be granted immediately
     if (this.canGrantLock(artifactId, lockType)) {
-      return this.grantLock(artifactId, agentId, lockType, collectiveId, timeoutMs);
+      return this.grantLock(
+        artifactId,
+        agentId,
+        lockType,
+        collectiveId,
+        timeoutMs,
+      );
     }
 
     // Add to queue and wait
@@ -114,7 +123,10 @@ export class ArtifactLockingService {
       return false;
     }
 
-    this.logger.info(`Releasing ${lock.lockType} lock on artifact ${artifactId} by ${lock.agentId}`, {});
+    this.logger.info(
+      `Releasing ${lock.lockType} lock on artifact ${artifactId} by ${lock.agentId}`,
+      {},
+    );
 
     // Remove lock
     this.activeLocks.delete(artifactId);
@@ -188,7 +200,10 @@ export class ArtifactLockingService {
 
     this.activeLocks.set(artifactId, lock);
 
-    this.logger.info(`Lock granted: ${lockType} on ${artifactId} to ${agentId}`, {});
+    this.logger.info(
+      `Lock granted: ${lockType} on ${artifactId} to ${agentId}`,
+      {},
+    );
 
     return token;
   }
@@ -225,7 +240,10 @@ export class ArtifactLockingService {
   /**
    * Remove request from queue
    */
-  private removeFromQueue(artifactId: string, request: QueuedLockRequest): void {
+  private removeFromQueue(
+    artifactId: string,
+    request: QueuedLockRequest,
+  ): void {
     const queue = this.lockQueues.get(artifactId) || [];
     const index = queue.indexOf(request);
     if (index !== -1) {

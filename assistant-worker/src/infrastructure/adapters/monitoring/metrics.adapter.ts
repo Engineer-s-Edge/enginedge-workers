@@ -505,10 +505,7 @@ export class MetricsAdapter {
   /**
    * Record expert execution duration
    */
-  recordExpertExecutionDuration(
-    durationSeconds: number,
-    status: string,
-  ): void {
+  recordExpertExecutionDuration(durationSeconds: number, status: string): void {
     this.expertPoolExecutionDuration.observe({ status }, durationSeconds);
   }
 

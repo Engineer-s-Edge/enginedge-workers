@@ -19,11 +19,11 @@ import {
  * Message timeout configuration (milliseconds)
  */
 const MESSAGE_TIMEOUTS: Record<MessagePriority, number> = {
-  [MessagePriority.CRITICAL]: 60000,      // 1 minute
-  [MessagePriority.HIGH]: 300000,          // 5 minutes
-  [MessagePriority.NORMAL]: 900000,        // 15 minutes
-  [MessagePriority.LOW]: 3600000,          // 1 hour
-  [MessagePriority.BACKGROUND]: 86400000,  // 24 hours
+  [MessagePriority.CRITICAL]: 60000, // 1 minute
+  [MessagePriority.HIGH]: 300000, // 5 minutes
+  [MessagePriority.NORMAL]: 900000, // 15 minutes
+  [MessagePriority.LOW]: 3600000, // 1 hour
+  [MessagePriority.BACKGROUND]: 86400000, // 24 hours
 };
 
 const MAX_RETRY_ATTEMPTS = 3;
@@ -255,7 +255,10 @@ export class MessageQueueService {
       this.messageQueues.set(message.targetAgentId, queue);
     }
 
-    this.logger.info(`Retrying message ${messageId} (attempt ${message.retryCount})`, {});
+    this.logger.info(
+      `Retrying message ${messageId} (attempt ${message.retryCount})`,
+      {},
+    );
 
     return true;
   }
@@ -280,7 +283,9 @@ export class MessageQueueService {
 
     // Follow chain backwards
     if (message.replyToMessageId) {
-      const parentThread = await this.getMessageThread(message.replyToMessageId);
+      const parentThread = await this.getMessageThread(
+        message.replyToMessageId,
+      );
       thread.unshift(...parentThread);
     }
 
@@ -339,7 +344,8 @@ export class MessageQueueService {
       byType[msg.type]++;
 
       if (msg.status === MessageStatus.COMPLETED && msg.deliveredAt) {
-        const deliveryTime = msg.deliveredAt.getTime() - msg.createdAt.getTime();
+        const deliveryTime =
+          msg.deliveredAt.getTime() - msg.createdAt.getTime();
         totalDeliveryTime += deliveryTime;
         deliveredCount++;
       }
@@ -354,7 +360,8 @@ export class MessageQueueService {
       byStatus,
       byPriority,
       byType,
-      averageDeliveryTime: deliveredCount > 0 ? totalDeliveryTime / deliveredCount : 0,
+      averageDeliveryTime:
+        deliveredCount > 0 ? totalDeliveryTime / deliveredCount : 0,
       failedMessages: failedCount,
     };
   }
@@ -395,7 +402,10 @@ export class MessageQueueService {
     }
 
     if (expiredCount > 0) {
-      this.logger.warn(`Expired ${expiredCount} messages in collective ${collectiveId}`, {});
+      this.logger.warn(
+        `Expired ${expiredCount} messages in collective ${collectiveId}`,
+        {},
+      );
     }
   }
 
@@ -423,7 +433,10 @@ export class MessageQueueService {
         this.messageQueues.set(message.targetAgentId, queue);
       }
 
-      this.logger.warn(`Message ${messageId} expired after ${message.retryCount} retries`, {});
+      this.logger.warn(
+        `Message ${messageId} expired after ${message.retryCount} retries`,
+        {},
+      );
     }
   }
 

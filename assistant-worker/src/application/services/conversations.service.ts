@@ -18,9 +18,15 @@ export class ConversationsService {
     private readonly metrics?: MetricsAdapter,
   ) {}
 
-  async createConversation(input: CreateConversationInput & { initialMessage?: MessageAppend }): Promise<ConversationRecord> {
+  async createConversation(
+    input: CreateConversationInput & { initialMessage?: MessageAppend },
+  ): Promise<ConversationRecord> {
     const conv = await this.repo.create(input);
-    this.logger.info('Conversation created', { conversationId: conv.id, userId: conv.userId, type: conv.type });
+    this.logger.info('Conversation created', {
+      conversationId: conv.id,
+      userId: conv.userId,
+      type: conv.type,
+    });
     if (input.initialMessage) {
       await this.repo.appendMessage(conv.id, input.initialMessage);
       this.metrics?.recordConversationEvent('message');
@@ -32,36 +38,67 @@ export class ConversationsService {
     return this.repo.findById(id);
   }
 
-  async listConversations(userId: string, limit?: number): Promise<ConversationRecord[]> {
+  async listConversations(
+    userId: string,
+    limit?: number,
+  ): Promise<ConversationRecord[]> {
     return this.repo.listByUser(userId, limit);
   }
 
-  async addMessage(conversationId: string, message: MessageAppend): Promise<{ version: number }> {
+  async addMessage(
+    conversationId: string,
+    message: MessageAppend,
+  ): Promise<{ version: number }> {
     const res = await this.repo.appendMessage(conversationId, message);
     this.metrics?.recordConversationEvent('message');
     return res;
   }
 
-  async recordToolCall(conversationId: string, call: ToolCallRecord): Promise<void> {
+  async recordToolCall(
+    conversationId: string,
+    call: ToolCallRecord,
+  ): Promise<void> {
     await this.repo.recordToolCall(conversationId, call);
     if (call.latencyMs !== undefined) {
-      this.metrics?.observeToolCallDuration(call.name, call.status, call.latencyMs / 1000);
+      this.metrics?.observeToolCallDuration(
+        call.name,
+        call.status,
+        call.latencyMs / 1000,
+      );
     }
   }
 
   async editMessage(
     conversationId: string,
-    edit: { messageId: string; version: number; role: 'user' | 'assistant' | 'system'; content: string; editedBy?: string; diff?: string },
+    edit: {
+      messageId: string;
+      version: number;
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      editedBy?: string;
+      diff?: string;
+    },
   ): Promise<void> {
     await this.repo.editMessage(conversationId, edit as any);
     this.metrics?.recordMessageEdit(edit.role);
   }
 
-  async createCheckpoint(conversationId: string, checkpoint: { checkpointId: string; name?: string; description?: string; snapshotRefId?: string }): Promise<void> {
+  async createCheckpoint(
+    conversationId: string,
+    checkpoint: {
+      checkpointId: string;
+      name?: string;
+      description?: string;
+      snapshotRefId?: string;
+    },
+  ): Promise<void> {
     return this.repo.createCheckpoint(conversationId, checkpoint as any);
   }
 
-  async updateSettings(conversationId: string, overrides: Record<string, unknown>): Promise<void> {
+  async updateSettings(
+    conversationId: string,
+    overrides: Record<string, unknown>,
+  ): Promise<void> {
     return this.repo.updateSettings(conversationId, overrides as any);
   }
 
@@ -73,7 +110,11 @@ export class ConversationsService {
     await this.repo.updateStatus(conversationId, 'active' as any);
   }
 
-  async getEvents(conversationId: string, since?: Date, limit?: number): Promise<any[]> {
+  async getEvents(
+    conversationId: string,
+    since?: Date,
+    limit?: number,
+  ): Promise<any[]> {
     return this.repo.getEvents(conversationId, since, limit);
   }
 
@@ -81,7 +122,10 @@ export class ConversationsService {
     return this.repo.addChild(parentId, childId);
   }
 
-  async updateAgentState(conversationId: string, state: Record<string, unknown>): Promise<void> {
+  async updateAgentState(
+    conversationId: string,
+    state: Record<string, unknown>,
+  ): Promise<void> {
     return this.repo.updateAgentState(conversationId, state);
   }
 
@@ -93,8 +137,19 @@ export class ConversationsService {
     query: string,
     topK: number = 10,
     conversationIds?: string[],
-  ): Promise<Array<{ id: string; conversationId: string; role: string; content: string; score: number; timestamp: Date }>> {
-    this.logger.info(`BM25 text search for messages, userId: ${userId}, query: "${query}", topK: ${topK}`);
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      role: string;
+      content: string;
+      score: number;
+      timestamp: Date;
+    }>
+  > {
+    this.logger.info(
+      `BM25 text search for messages, userId: ${userId}, query: "${query}", topK: ${topK}`,
+    );
 
     // Get messages
     const messages = await this.repo.getMessagesByUser(userId, conversationIds);
@@ -177,7 +232,15 @@ export class ConversationsService {
     query: string,
     topK: number = 10,
     conversationIds?: string[],
-  ): Promise<Array<{ id: string; conversationId: string; content: string; score: number; timestamp: Date }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      content: string;
+      score: number;
+      timestamp: Date;
+    }>
+  > {
     // For now, snippets are not stored separately - return empty
     // In production, implement snippet storage and search
     return [];

@@ -27,15 +27,13 @@ export class RefreshTokenRepository {
   }
 
   async record(jti: string, userId: string, expiresAt: Date): Promise<void> {
-    await this.mongo
-      .collection<RefreshTokenDoc>('refresh_tokens')
-      .updateOne(
-        { jti },
-        {
-          $setOnInsert: { jti, userId, createdAt: new Date() },
-          $set: { revoked: false, expiresAt },
-        },
-        { upsert: true },
-      );
+    await this.mongo.collection<RefreshTokenDoc>('refresh_tokens').updateOne(
+      { jti },
+      {
+        $setOnInsert: { jti, userId, createdAt: new Date() },
+        $set: { revoked: false, expiresAt },
+      },
+      { upsert: true },
+    );
   }
 }

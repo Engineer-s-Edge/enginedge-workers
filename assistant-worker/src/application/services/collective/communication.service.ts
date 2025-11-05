@@ -46,7 +46,10 @@ export class CommunicationService {
       },
     );
 
-    this.logger.info(`Agent ${agentId} asked PM: ${question.substring(0, 50)}...`, {});
+    this.logger.info(
+      `Agent ${agentId} asked PM: ${question.substring(0, 50)}...`,
+      {},
+    );
   }
 
   /**
@@ -74,7 +77,10 @@ export class CommunicationService {
       },
     );
 
-    this.logger.info(`PM sent directive to ${targetAgentId}: ${directive.substring(0, 50)}...`, {});
+    this.logger.info(
+      `PM sent directive to ${targetAgentId}: ${directive.substring(0, 50)}...`,
+      {},
+    );
   }
 
   /**
@@ -134,7 +140,10 @@ export class CommunicationService {
       },
     );
 
-    this.logger.info(`Agent ${fromAgentId} → ${toAgentId}: ${message.substring(0, 50)}...`, {});
+    this.logger.info(
+      `Agent ${fromAgentId} → ${toAgentId}: ${message.substring(0, 50)}...`,
+      {},
+    );
   }
 
   /**

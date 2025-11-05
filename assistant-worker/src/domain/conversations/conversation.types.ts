@@ -35,14 +35,20 @@ export interface BaseAgentState {
 
 export interface GraphAgentState {
   currentNodeId?: string;
-  nodeStatuses?: Record<string, 'pending' | 'running' | 'completed' | 'failed' | 'paused'>;
+  nodeStatuses?: Record<
+    string,
+    'pending' | 'running' | 'completed' | 'failed' | 'paused'
+  >;
   pausedAtNode?: string;
   graphConfig?: Record<string, unknown>;
 }
 
 export interface CollectiveAgentState {
   pmStatus?: 'idle' | 'coordinating' | 'paused' | 'completed' | 'failed';
-  workerStatuses?: Record<string, 'idle' | 'working' | 'blocked' | 'completed' | 'failed'>;
+  workerStatuses?: Record<
+    string,
+    'idle' | 'working' | 'blocked' | 'completed' | 'failed'
+  >;
   orchestrationConfig?: Record<string, unknown>;
 }
 

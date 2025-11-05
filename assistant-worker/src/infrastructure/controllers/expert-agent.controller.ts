@@ -205,7 +205,10 @@ export class ExpertAgentController {
     // Send heartbeat every 30 seconds to keep connection alive
     heartbeatInterval = setInterval(() => {
       subject.next({
-        data: JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() }),
+        data: JSON.stringify({
+          type: 'heartbeat',
+          timestamp: new Date().toISOString(),
+        }),
         type: 'heartbeat',
       } as MessageEvent);
     }, 30000);

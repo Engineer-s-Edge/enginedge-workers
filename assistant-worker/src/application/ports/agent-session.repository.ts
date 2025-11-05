@@ -11,7 +11,10 @@ export interface AgentSessionRecord {
 export interface IAgentSessionRepository {
   create(session: AgentSessionRecord): Promise<void>;
   findById(sessionId: string): Promise<AgentSessionRecord | null>;
-  updateStatus(sessionId: string, status: AgentSessionRecord['status']): Promise<void>;
+  updateStatus(
+    sessionId: string,
+    status: AgentSessionRecord['status'],
+  ): Promise<void>;
   updateActivity(sessionId: string, at?: Date): Promise<void>;
   delete(sessionId: string): Promise<void>;
   listByUser(userId: string, limit?: number): Promise<AgentSessionRecord[]>;

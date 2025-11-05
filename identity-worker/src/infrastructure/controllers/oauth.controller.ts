@@ -15,7 +15,10 @@ export class OauthController {
 
   @Get(':provider/auth')
   @HttpCode(HttpStatus.OK)
-  async auth(@Param('provider') provider: string, @Query('userId') userId?: string) {
+  async auth(
+    @Param('provider') provider: string,
+    @Query('userId') userId?: string,
+  ) {
     return this.oauthService.generateAuthUrl(provider, userId);
   }
 
@@ -32,7 +35,10 @@ export class OauthController {
 
   @Delete(':provider/unlink')
   @HttpCode(HttpStatus.OK)
-  async unlink(@Param('provider') provider: string, @Query('userId') userId: string) {
+  async unlink(
+    @Param('provider') provider: string,
+    @Query('userId') userId: string,
+  ) {
     await this.oauthService.unlinkAccount(provider, userId);
     return { success: true };
   }

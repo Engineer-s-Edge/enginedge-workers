@@ -39,9 +39,11 @@ export class VectorStoreService {
     @Inject('VectorStorePort')
     private readonly vectorStore: VectorStorePort,
     private readonly bm25Service: BM25SearchService,
-    @Optional() @Inject('EmbedderService')
+    @Optional()
+    @Inject('EmbedderService')
     private readonly embedderService?: EmbedderService,
-    @Optional() @InjectModel(DocumentModel.name)
+    @Optional()
+    @InjectModel(DocumentModel.name)
     private readonly documentModel?: Model<DocumentModel>,
   ) {}
 
@@ -100,11 +102,7 @@ export class VectorStoreService {
     const filter: Record<string, unknown> = {};
 
     // Access control: user can access documents they own or are allowed to access
-    filter.$or = [
-      { ownerId: userId },
-      { allowedUserIds: userId },
-      { userId },
-    ];
+    filter.$or = [{ ownerId: userId }, { allowedUserIds: userId }, { userId }];
 
     if (options.conversationId && !options.global) {
       filter.conversationId = options.conversationId;
@@ -122,24 +120,25 @@ export class VectorStoreService {
       // Get all documents for reranking
       const allDocs = await this.getAllDocumentsByAccess(userId, filter);
 
-      const searchResults = options.bertScoreAlpha !== undefined
-        ? this.embedderService.searchByHybridScore(
-            queryEmbedding,
-            allDocs,
-            topK,
-            (doc) => doc.embedding || [],
-            (doc) => doc.content,
-            query,
-            options.bertScoreAlpha,
-          )
-        : this.embedderService.searchByBertScore(
-            queryEmbedding,
-            allDocs,
-            topK,
-            (doc) => doc.embedding || [],
-            (doc) => doc.content,
-            query,
-          );
+      const searchResults =
+        options.bertScoreAlpha !== undefined
+          ? this.embedderService.searchByHybridScore(
+              queryEmbedding,
+              allDocs,
+              topK,
+              (doc) => doc.embedding || [],
+              (doc) => doc.content,
+              query,
+              options.bertScoreAlpha,
+            )
+          : this.embedderService.searchByBertScore(
+              queryEmbedding,
+              allDocs,
+              topK,
+              (doc) => doc.embedding || [],
+              (doc) => doc.content,
+              query,
+            );
 
       return searchResults.map((result) => ({
         document: result.item,
@@ -170,7 +169,10 @@ export class VectorStoreService {
 
     // Get all accessible documents
     const allDocs = await this.getAllDocumentsByAccess(userId, {
-      conversationId: options.conversationId && !options.global ? options.conversationId : undefined,
+      conversationId:
+        options.conversationId && !options.global
+          ? options.conversationId
+          : undefined,
     });
 
     if (allDocs.length === 0) {
@@ -203,7 +205,9 @@ export class VectorStoreService {
       }
     }
 
-    this.logger.log(`BM25 text search completed, returning ${results.length} results`);
+    this.logger.log(
+      `BM25 text search completed, returning ${results.length} results`,
+    );
     return results;
   }
 
@@ -215,17 +219,15 @@ export class VectorStoreService {
     filter: Record<string, unknown> = {},
   ): Promise<Document[]> {
     if (!this.documentModel) {
-      this.logger.warn('Document model not available for getAllDocumentsByAccess');
+      this.logger.warn(
+        'Document model not available for getAllDocumentsByAccess',
+      );
       return [];
     }
 
     // Access control: user can access documents they own or are allowed to access
     const accessFilter: any = {
-      $or: [
-        { ownerId: userId },
-        { allowedUserIds: userId },
-        { userId },
-      ],
+      $or: [{ ownerId: userId }, { allowedUserIds: userId }, { userId }],
       ...filter,
     };
 
@@ -236,19 +238,20 @@ export class VectorStoreService {
 
     const results = await this.documentModel.find(accessFilter).exec();
 
-    return results.map((result) =>
-      new Document(
-        result.documentId,
-        result.content,
-        {
-          ...result.metadata,
-          ownerId: result.ownerId,
-          allowedUserIds: result.allowedUserIds,
-          userId: result.userId,
-          conversationId: result.conversationId,
-        },
-        result.createdAt,
-      )
+    return results.map(
+      (result) =>
+        new Document(
+          result.documentId,
+          result.content,
+          {
+            ...result.metadata,
+            ownerId: result.ownerId,
+            allowedUserIds: result.allowedUserIds,
+            userId: result.userId,
+            conversationId: result.conversationId,
+          },
+          result.createdAt,
+        ),
     );
   }
 
@@ -266,7 +269,9 @@ export class VectorStoreService {
     const ownerId = metadata?.ownerId || metadata?.userId;
 
     if (ownerId !== userId) {
-      throw new Error('Unauthorized: Only the document owner can delete this document');
+      throw new Error(
+        'Unauthorized: Only the document owner can delete this document',
+      );
     }
 
     await this.vectorStore.deleteDocuments([docId]);

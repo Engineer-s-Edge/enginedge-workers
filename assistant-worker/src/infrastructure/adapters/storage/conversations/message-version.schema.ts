@@ -14,7 +14,7 @@ export class MessageVersion {
   @Prop({ required: true })
   version!: number;
 
-  @Prop({ required: true, enum: ['user','assistant','system'] })
+  @Prop({ required: true, enum: ['user', 'assistant', 'system'] })
   role!: string;
 
   @Prop({ required: true })
@@ -32,6 +32,10 @@ export class MessageVersion {
   _id!: string;
 }
 
-export const MessageVersionSchema = SchemaFactory.createForClass(MessageVersion);
+export const MessageVersionSchema =
+  SchemaFactory.createForClass(MessageVersion);
 
-MessageVersionSchema.index({ conversationId: 1, messageId: 1, version: 1 }, { unique: true });
+MessageVersionSchema.index(
+  { conversationId: 1, messageId: 1, version: 1 },
+  { unique: true },
+);

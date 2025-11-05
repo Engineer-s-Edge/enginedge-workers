@@ -18,7 +18,13 @@ import {
 } from '@domain/entities/tool.entities';
 
 export interface KnowledgeGraphArgs {
-  operation: 'get_node' | 'search_nodes' | 'get_neighbors' | 'get_subgraph' | 'get_stats' | 'query';
+  operation:
+    | 'get_node'
+    | 'search_nodes'
+    | 'get_neighbors'
+    | 'get_subgraph'
+    | 'get_stats'
+    | 'query';
   nodeId?: string;
   searchTerm?: string;
   layer?: string;
@@ -91,20 +97,36 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
         properties: {
           operation: {
             type: 'string',
-            enum: ['get_node', 'search_nodes', 'get_neighbors', 'get_subgraph', 'get_stats', 'query'],
+            enum: [
+              'get_node',
+              'search_nodes',
+              'get_neighbors',
+              'get_subgraph',
+              'get_stats',
+              'query',
+            ],
             description: 'The Knowledge Graph operation to perform',
           },
           nodeId: {
             type: 'string',
-            description: 'Node ID (required for get_node, get_neighbors, get_subgraph)',
+            description:
+              'Node ID (required for get_node, get_neighbors, get_subgraph)',
           },
           searchTerm: {
             type: 'string',
-            description: 'Search term for node search (required for search_nodes)',
+            description:
+              'Search term for node search (required for search_nodes)',
           },
           layer: {
             type: 'string',
-            enum: ['L1_OBSERVATIONS', 'L2_PATTERNS', 'L3_MODELS', 'L4_THEORIES', 'L5_PRINCIPLES', 'L6_SYNTHESIS'],
+            enum: [
+              'L1_OBSERVATIONS',
+              'L2_PATTERNS',
+              'L3_MODELS',
+              'L4_THEORIES',
+              'L5_PRINCIPLES',
+              'L6_SYNTHESIS',
+            ],
             description: 'ICS layer to filter by',
           },
           type: {
@@ -146,13 +168,26 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
     super();
     this.metadata = metadata;
     this.errorEvents = errorEvents;
-    this.assistantWorkerUrl = assistantWorkerUrl || process.env.ASSISTANT_WORKER_URL || 'http://localhost:3001';
+    this.assistantWorkerUrl =
+      assistantWorkerUrl ||
+      process.env.ASSISTANT_WORKER_URL ||
+      'http://localhost:3001';
   }
 
-  protected async executeInternal(
-    call: { args: KnowledgeGraphArgs },
-  ): Promise<KnowledgeGraphOutput> {
-    const { operation, nodeId, searchTerm, layer, type, depth, limit, cypher, params } = call.args;
+  protected async executeInternal(call: {
+    args: KnowledgeGraphArgs;
+  }): Promise<KnowledgeGraphOutput> {
+    const {
+      operation,
+      nodeId,
+      searchTerm,
+      layer,
+      type,
+      depth,
+      limit,
+      cypher,
+      params,
+    } = call.args;
 
     try {
       switch (operation) {
@@ -164,7 +199,9 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
 
         case 'search_nodes':
           if (!searchTerm) {
-            throw new Error('searchTerm is required for search_nodes operation');
+            throw new Error(
+              'searchTerm is required for search_nodes operation',
+            );
           }
           return await this.searchNodes(searchTerm, layer, type, limit);
 
@@ -203,10 +240,13 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
   }
 
   private async getNode(nodeId: string): Promise<KnowledgeGraphOutput> {
-    const response = await fetch(`${this.assistantWorkerUrl}/knowledge-graph/nodes/${nodeId}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await fetch(
+      `${this.assistantWorkerUrl}/knowledge-graph/nodes/${nodeId}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -256,7 +296,10 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
     };
   }
 
-  private async getNeighbors(nodeId: string, limit?: number): Promise<KnowledgeGraphOutput> {
+  private async getNeighbors(
+    nodeId: string,
+    limit?: number,
+  ): Promise<KnowledgeGraphOutput> {
     const queryParams = limit ? `?limit=${limit}` : '';
     const response = await fetch(
       `${this.assistantWorkerUrl}/knowledge-graph/nodes/${nodeId}/neighbors${queryParams}`,
@@ -278,7 +321,10 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
     };
   }
 
-  private async getSubgraph(nodeId: string, depth: number): Promise<KnowledgeGraphOutput> {
+  private async getSubgraph(
+    nodeId: string,
+    depth: number,
+  ): Promise<KnowledgeGraphOutput> {
     const response = await fetch(
       `${this.assistantWorkerUrl}/knowledge-graph/nodes/${nodeId}/subgraph?depth=${depth}`,
       {
@@ -301,10 +347,13 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
   }
 
   private async getStats(): Promise<KnowledgeGraphOutput> {
-    const response = await fetch(`${this.assistantWorkerUrl}/knowledge-graph/stats`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await fetch(
+      `${this.assistantWorkerUrl}/knowledge-graph/stats`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -322,11 +371,14 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
     cypher: string,
     params?: Record<string, unknown>,
   ): Promise<KnowledgeGraphOutput> {
-    const response = await fetch(`${this.assistantWorkerUrl}/knowledge-graph/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cypher, params: params || {} }),
-    });
+    const response = await fetch(
+      `${this.assistantWorkerUrl}/knowledge-graph/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cypher, params: params || {} }),
+      },
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

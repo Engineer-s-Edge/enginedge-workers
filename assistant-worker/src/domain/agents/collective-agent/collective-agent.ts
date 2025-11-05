@@ -186,7 +186,8 @@ export class CollectiveAgent extends BaseAgent {
       await this.checkAndResolveDeadlocks();
 
       // Distribute tasks to sub-agents
-      const assignments = await this.distributeTasksIntelligently(taskHierarchy);
+      const assignments =
+        await this.distributeTasksIntelligently(taskHierarchy);
 
       // Execute based on coordination pattern
       let results: SubAgentResult[];
@@ -290,7 +291,9 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
                 ? hierarchy[taskData.parentIndex]?.id
                 : rootTask.id,
             dependencies: taskData.dependencies
-              ? taskData.dependencies.map((idx: number) => hierarchy[idx]?.id).filter(Boolean)
+              ? taskData.dependencies
+                  .map((idx: number) => hierarchy[idx]?.id)
+                  .filter(Boolean)
               : [],
             priority: taskData.priority || 50,
           },
@@ -301,7 +304,10 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
         this.sharedMemory.storeTask(task);
       }
     } catch (error) {
-      this.logger.warn('Failed to parse task hierarchy, using simple decomposition', {});
+      this.logger.warn(
+        'Failed to parse task hierarchy, using simple decomposition',
+        {},
+      );
       // Fallback to simple decomposition
       const simpleTasks = await this.decomposeTask(input);
       for (const simpleTask of simpleTasks) {
@@ -482,7 +488,10 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     // Start deadlock check interval
     this.deadlockCheckInterval = setInterval(() => {
       this.checkAndResolveDeadlocks().catch((error) => {
-        this.logger.error('Deadlock check error', error as Record<string, unknown>);
+        this.logger.error(
+          'Deadlock check error',
+          error as Record<string, unknown>,
+        );
       });
     }, this.config.deadlockCheckInterval || 30000);
   }

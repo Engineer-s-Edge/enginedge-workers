@@ -42,7 +42,10 @@ export class ArtifactSearchService {
 
     for (const artifact of this.artifacts.values()) {
       // Filter by collective
-      if (options.collectiveId && artifact.collectiveId !== options.collectiveId) {
+      if (
+        options.collectiveId &&
+        artifact.collectiveId !== options.collectiveId
+      ) {
         continue;
       }
 
@@ -58,14 +61,17 @@ export class ArtifactSearchService {
 
       // Filter by tags
       if (options.tags && options.tags.length > 0) {
-        const hasMatchingTag = options.tags.some((tag) => artifact.tags.includes(tag));
+        const hasMatchingTag = options.tags.some((tag) =>
+          artifact.tags.includes(tag),
+        );
         if (!hasMatchingTag) {
           continue;
         }
       }
 
       // Search in content
-      const searchableText = `${artifact.name} ${artifact.description || ''} ${artifact.searchableContent}`.toLowerCase();
+      const searchableText =
+        `${artifact.name} ${artifact.description || ''} ${artifact.searchableContent}`.toLowerCase();
       if (searchableText.includes(queryLower)) {
         results.push(artifact);
       }
@@ -84,9 +90,13 @@ export class ArtifactSearchService {
   /**
    * Get most accessed artifacts
    */
-  async getMostAccessed(collectiveId: string, limit: number): Promise<CollectiveArtifact[]> {
-    const artifacts = Array.from(this.artifacts.values())
-      .filter((a) => a.collectiveId === collectiveId);
+  async getMostAccessed(
+    collectiveId: string,
+    limit: number,
+  ): Promise<CollectiveArtifact[]> {
+    const artifacts = Array.from(this.artifacts.values()).filter(
+      (a) => a.collectiveId === collectiveId,
+    );
 
     // Sort by updatedAt (most recently accessed)
     artifacts.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
@@ -97,8 +107,12 @@ export class ArtifactSearchService {
   /**
    * Calculate relevance score
    */
-  private calculateRelevance(artifact: CollectiveArtifact, query: string): number {
-    const searchableText = `${artifact.name} ${artifact.description || ''} ${artifact.searchableContent}`.toLowerCase();
+  private calculateRelevance(
+    artifact: CollectiveArtifact,
+    query: string,
+  ): number {
+    const searchableText =
+      `${artifact.name} ${artifact.description || ''} ${artifact.searchableContent}`.toLowerCase();
 
     let score = 0;
 

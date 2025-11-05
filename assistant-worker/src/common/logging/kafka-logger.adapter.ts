@@ -87,10 +87,19 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
   private enableConsole: boolean;
 
   constructor(private readonly configService: ConfigService) {
-    const brokers = (this.configService.get<string>('KAFKA_BROKERS') || 'localhost:9092').split(',');
-    const clientId = this.configService.get<string>('KAFKA_CLIENT_ID', 'enginedge-worker');
-    this.serviceName = this.configService.get<string>('SERVICE_NAME', 'assistant-worker');
-    this.enableConsole = (this.configService.get<string>('LOG_ENABLE_CONSOLE', 'true') === 'true');
+    const brokers = (
+      this.configService.get<string>('KAFKA_BROKERS') || 'localhost:9092'
+    ).split(',');
+    const clientId = this.configService.get<string>(
+      'KAFKA_CLIENT_ID',
+      'enginedge-worker',
+    );
+    this.serviceName = this.configService.get<string>(
+      'SERVICE_NAME',
+      'assistant-worker',
+    );
+    this.enableConsole =
+      this.configService.get<string>('LOG_ENABLE_CONSOLE', 'true') === 'true';
 
     this.kafka = new Kafka({
       clientId: `${clientId}-${this.serviceName}`,
@@ -98,16 +107,25 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
       retry: { initialRetryTime: 300, retries: 3 },
     });
 
-    this.producer = this.kafka.producer({ allowAutoTopicCreation: true, maxInFlightRequests: 1, idempotent: true });
+    this.producer = this.kafka.producer({
+      allowAutoTopicCreation: true,
+      maxInFlightRequests: 1,
+      idempotent: true,
+    });
 
     const logDir = this.configService.get<string>('LOG_BUFFER_DIR', 'logs');
-    const absDir = path.isAbsolute(logDir) ? logDir : path.join(process.cwd(), logDir);
+    const absDir = path.isAbsolute(logDir)
+      ? logDir
+      : path.join(process.cwd(), logDir);
     if (!fs.existsSync(absDir)) fs.mkdirSync(absDir, { recursive: true });
     this.bufferFilePath = path.join(absDir, `${this.serviceName}-buffer.log`);
 
     this.loadBufferFile();
 
-    const logLevel = this.configService.get<string>('LOG_LEVEL', 'info') as LogLevel;
+    const logLevel = this.configService.get<string>(
+      'LOG_LEVEL',
+      'info',
+    ) as LogLevel;
     this.setLevel(logLevel);
   }
 
@@ -146,7 +164,13 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     const topic = `enginedge.logs.worker.${this.serviceName}`;
     await this.producer.send({
       topic,
-      messages: [{ key: this.serviceName, value: JSON.stringify(message), timestamp: Date.now().toString() }],
+      messages: [
+        {
+          key: this.serviceName,
+          value: JSON.stringify(message),
+          timestamp: Date.now().toString(),
+        },
+      ],
     });
   }
 
@@ -195,7 +219,11 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
 
   private async appendToBufferFile(message: LogMessage): Promise<void> {
     try {
-      fs.appendFileSync(this.bufferFilePath, JSON.stringify(message) + '\n', 'utf-8');
+      fs.appendFileSync(
+        this.bufferFilePath,
+        JSON.stringify(message) + '\n',
+        'utf-8',
+      );
     } catch {}
   }
 
@@ -203,19 +231,28 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     try {
       const logsToWrite = logs || this.logBuffer;
       if (logsToWrite.length === 0) return;
-      const content = logsToWrite.map((log) => JSON.stringify(log)).join('\n') + '\n';
+      const content =
+        logsToWrite.map((log) => JSON.stringify(log)).join('\n') + '\n';
       fs.appendFileSync(this.bufferFilePath, content, 'utf-8');
     } catch {}
   }
 
   private clearBufferFile(): void {
     try {
-      if (fs.existsSync(this.bufferFilePath)) fs.unlinkSync(this.bufferFilePath);
+      if (fs.existsSync(this.bufferFilePath))
+        fs.unlinkSync(this.bufferFilePath);
     } catch {}
   }
 
-  private buildLogMessage(level: LogLevel, message: string, context?: string | LogContext, metadata?: Record<string, unknown>, error?: Error | unknown): LogMessage {
-    const ctx: LogContext = typeof context === 'string' ? { context } as any : (context || {});
+  private buildLogMessage(
+    level: LogLevel,
+    message: string,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+    error?: Error | unknown,
+  ): LogMessage {
+    const ctx: LogContext =
+      typeof context === 'string' ? ({ context } as any) : context || {};
     const redactedContext = deepRedact(ctx);
     const redactedMetadata = metadata ? deepRedact(metadata) : undefined;
 
@@ -223,13 +260,19 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
       timestamp: new Date().toISOString(),
       level,
       message,
-      context: Object.keys(redactedContext).length ? redactedContext : undefined,
+      context: Object.keys(redactedContext).length
+        ? redactedContext
+        : undefined,
       metadata: redactedMetadata,
     };
 
     if (error) {
       if (error instanceof Error) {
-        logMessage.error = { name: error.name, message: error.message, stack: error.stack };
+        logMessage.error = {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        };
         logMessage.trace = error.stack;
       } else {
         logMessage.error = { name: 'Unknown', message: String(error) };
@@ -239,9 +282,21 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     return logMessage;
   }
 
-  private async write(level: LogLevel, message: string, context?: string | LogContext, metadata?: Record<string, unknown>, error?: Error | unknown): Promise<void> {
+  private async write(
+    level: LogLevel,
+    message: string,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+    error?: Error | unknown,
+  ): Promise<void> {
     if (!this.shouldLog(level)) return;
-    const logMessage = this.buildLogMessage(level, message, context, metadata, error);
+    const logMessage = this.buildLogMessage(
+      level,
+      message,
+      context,
+      metadata,
+      error,
+    );
     if (this.enableConsole) {
       const output = `[${logMessage.timestamp}] [${level.toUpperCase()}] ${message}`;
       switch (level) {
@@ -272,13 +327,55 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     return messageIndex >= currentIndex;
   }
 
-  setLevel(level: LogLevel): void { this.currentLevel = level; }
-  getLevel(): string { return this.currentLevel; }
+  setLevel(level: LogLevel): void {
+    this.currentLevel = level;
+  }
+  getLevel(): string {
+    return this.currentLevel;
+  }
 
-  debug(message: string, context?: string | LogContext, metadata?: Record<string, unknown>): void { this.write('debug', message, context, metadata).catch(() => {}); }
-  info(message: string, context?: string | LogContext, metadata?: Record<string, unknown>): void { this.write('info', message, context, metadata).catch(() => {}); }
-  warn(message: string, context?: string | LogContext, metadata?: Record<string, unknown>): void { this.write('warn', message, context, metadata).catch(() => {}); }
-  error(message: string, error?: Error | unknown, context?: string | LogContext, metadata?: Record<string, unknown>): void { this.write('error', message, context, metadata, error).catch(() => {}); }
-  fatal(message: string, error?: Error | unknown, context?: string | LogContext, metadata?: Record<string, unknown>): void { this.write('fatal', message, context, metadata, error).catch(() => {}); }
-  verbose(message: string, context?: string | LogContext, metadata?: Record<string, unknown>): void { this.write('debug', message, context, metadata).catch(() => {}); }
+  debug(
+    message: string,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.write('debug', message, context, metadata).catch(() => {});
+  }
+  info(
+    message: string,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.write('info', message, context, metadata).catch(() => {});
+  }
+  warn(
+    message: string,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.write('warn', message, context, metadata).catch(() => {});
+  }
+  error(
+    message: string,
+    error?: Error | unknown,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.write('error', message, context, metadata, error).catch(() => {});
+  }
+  fatal(
+    message: string,
+    error?: Error | unknown,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.write('fatal', message, context, metadata, error).catch(() => {});
+  }
+  verbose(
+    message: string,
+    context?: string | LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.write('debug', message, context, metadata).catch(() => {});
+  }
 }

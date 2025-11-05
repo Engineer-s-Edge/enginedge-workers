@@ -92,15 +92,13 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
       }),
       releaseExperts: jest.fn().mockResolvedValue(true),
       getAvailableCount: jest.fn().mockResolvedValue(10),
-      getExpert: jest
-        .fn()
-        .mockResolvedValue({
-          id: 'expert-1',
-          specialization: 'ML',
-          complexity: 4,
-          availability: true,
-          expertise: ['ML'],
-        }),
+      getExpert: jest.fn().mockResolvedValue({
+        id: 'expert-1',
+        specialization: 'ML',
+        complexity: 4,
+        availability: true,
+        expertise: ['ML'],
+      }),
       getAvailableExperts: jest.fn().mockResolvedValue([]),
       isExpertAvailable: jest.fn().mockResolvedValue(true),
     };

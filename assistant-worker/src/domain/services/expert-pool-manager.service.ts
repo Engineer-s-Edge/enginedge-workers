@@ -290,10 +290,7 @@ export class ExpertPoolManager {
     topicId: string | undefined,
     executeFactory: (expertId: AgentId, expert: ExpertAgent) => Promise<any>,
   ): Promise<ExpertReport> {
-    this.logger.info(
-      `Executing expert ${expertId} for topic: "${topic}"`,
-      {},
-    );
+    this.logger.info(`Executing expert ${expertId} for topic: "${topic}"`, {});
 
     // Wait for available slot
     this.stats.totalExpertsSpawned++;
@@ -610,10 +607,7 @@ Your role is to conduct thorough research, analyze sources, and synthesize findi
         const lockAge = Date.now() - node.lock.lockedAt.getTime();
         if (lockAge > this.config.staleLockThreshold) {
           this.logger.warn(`Stale lock detected on ${nodeId}, releasing`, {});
-          await this.knowledgeGraph.unlockNode(
-            nodeId,
-            node.lock.lockedBy,
-          );
+          await this.knowledgeGraph.unlockNode(nodeId, node.lock.lockedBy);
 
           // Record collision resolution
           if (this.metrics) {

@@ -376,16 +376,14 @@ describe('MongoDBVectorStoreAdapter', () => {
 
     it('014: concurrent ops', async () => {
       mockModel.aggregate.mockReturnValue({
-        exec: jest
-          .fn()
-          .mockResolvedValue([
-            {
-              documentId: 'd1',
-              content: 'c',
-              metadata: { source: 's', sourceType: 'file' },
-              score: 0.9,
-            },
-          ]),
+        exec: jest.fn().mockResolvedValue([
+          {
+            documentId: 'd1',
+            content: 'c',
+            metadata: { source: 's', sourceType: 'file' },
+            score: 0.9,
+          },
+        ]),
       } as unknown as any);
       mockModel.deleteMany.mockReturnValue({
         exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),
@@ -448,17 +446,15 @@ describe('MongoDBVectorStoreAdapter', () => {
             score: 0.9,
           },
         ] as unknown as any);
-      jest
-        .spyOn(adapter as unknown as any, 'textSearch')
-        .mockResolvedValue([
-          {
-            document: new Document('d1', 'c', {
-              source: 's',
-              sourceType: 'file',
-            }),
-            score: 0.8,
-          },
-        ] as unknown as any);
+      jest.spyOn(adapter as unknown as any, 'textSearch').mockResolvedValue([
+        {
+          document: new Document('d1', 'c', {
+            source: 's',
+            sourceType: 'file',
+          }),
+          score: 0.8,
+        },
+      ] as unknown as any);
       const out = await adapter.hybridSearch([0.1], 't', 5);
       expect(Array.isArray(out)).toBe(true);
     });
@@ -474,16 +470,14 @@ describe('MongoDBVectorStoreAdapter', () => {
 
     it('020: rapid ops', async () => {
       mockModel.aggregate.mockReturnValue({
-        exec: jest
-          .fn()
-          .mockResolvedValue([
-            {
-              documentId: 'd1',
-              content: 'c',
-              metadata: { source: 's', sourceType: 'file' },
-              score: 0.9,
-            },
-          ]),
+        exec: jest.fn().mockResolvedValue([
+          {
+            documentId: 'd1',
+            content: 'c',
+            metadata: { source: 's', sourceType: 'file' },
+            score: 0.9,
+          },
+        ]),
       } as unknown as any);
       mockModel.deleteMany.mockReturnValue({
         exec: jest.fn().mockResolvedValue({ deletedCount: 1 }),

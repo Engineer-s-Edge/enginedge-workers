@@ -40,7 +40,10 @@ export class ArtifactVersioningService {
     versions.push(newVersion);
     this.artifactVersions.set(artifact.id, versions);
 
-    this.logger.info(`Created version ${newVersion.version} of artifact ${artifact.id}`, {});
+    this.logger.info(
+      `Created version ${newVersion.version} of artifact ${artifact.id}`,
+      {},
+    );
 
     return newVersion;
   }

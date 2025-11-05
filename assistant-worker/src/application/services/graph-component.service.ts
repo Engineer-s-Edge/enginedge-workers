@@ -8,7 +8,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
 import { KnowledgeGraphService } from './knowledge-graph.service';
-import { KGNode, KGEdge } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
+import {
+  KGNode,
+  KGEdge,
+} from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
 
 export interface GraphComponent {
   id: string;
@@ -42,10 +45,15 @@ export class GraphComponentService {
   /**
    * Create a new graph component
    */
-  async createComponent(initialNodeId: string, category?: string): Promise<string> {
+  async createComponent(
+    initialNodeId: string,
+    category?: string,
+  ): Promise<string> {
     const componentId = `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    this.logger.info(`Creating new graph component ${componentId}`, { initialNodeId });
+    this.logger.info(`Creating new graph component ${componentId}`, {
+      initialNodeId,
+    });
 
     const component: GraphComponent = {
       id: componentId,
@@ -80,19 +88,28 @@ export class GraphComponentService {
   /**
    * Merge two components when an edge connects them
    */
-  async mergeComponents(componentId1: string, componentId2: string): Promise<void> {
+  async mergeComponents(
+    componentId1: string,
+    componentId2: string,
+  ): Promise<void> {
     if (componentId1 === componentId2) {
-      this.logger.warn(`Attempted to merge component ${componentId1} with itself`);
+      this.logger.warn(
+        `Attempted to merge component ${componentId1} with itself`,
+      );
       return;
     }
 
-    this.logger.info(`Merging graph components ${componentId2} into ${componentId1}`);
+    this.logger.info(
+      `Merging graph components ${componentId2} into ${componentId1}`,
+    );
 
     const comp1 = this.components.get(componentId1);
     const comp2 = this.components.get(componentId2);
 
     if (!comp1 || !comp2) {
-      this.logger.error(`Cannot merge components: ${componentId1} or ${componentId2} not found`);
+      this.logger.error(
+        `Cannot merge components: ${componentId1} or ${componentId2} not found`,
+      );
       return;
     }
 
@@ -122,7 +139,10 @@ export class GraphComponentService {
     );
 
     const mergedRepNodes = Array.from(
-      new Set([...largerComp.representativeNodes, ...smallerComp.representativeNodes]),
+      new Set([
+        ...largerComp.representativeNodes,
+        ...smallerComp.representativeNodes,
+      ]),
     ).slice(0, 10); // Keep max 10 representative nodes
 
     // Update larger component
@@ -139,7 +159,9 @@ export class GraphComponentService {
     this.components.set(largerCompId, largerComp);
     this.components.set(smallerCompId, smallerComp);
 
-    this.logger.info(`Successfully merged component ${smallerCompId} into ${largerCompId}`);
+    this.logger.info(
+      `Successfully merged component ${smallerCompId} into ${largerCompId}`,
+    );
   }
 
   /**
@@ -155,7 +177,8 @@ export class GraphComponentService {
    * Get component count
    */
   async getComponentCount(): Promise<number> {
-    return Array.from(this.components.values()).filter((comp) => comp.isActive).length;
+    return Array.from(this.components.values()).filter((comp) => comp.isActive)
+      .length;
   }
 
   /**

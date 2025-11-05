@@ -164,9 +164,10 @@ export class MemoryService {
   async searchConversations(userId: string, query: string): Promise<any[]> {
     const list = await this.conversationsService.listConversations(userId, 200);
     const q = query.toLowerCase();
-    return list.filter((c) =>
-      (c.summaries?.latestSummary || '').toLowerCase().includes(q) ||
-      c.id.toLowerCase().includes(q)
+    return list.filter(
+      (c) =>
+        (c.summaries?.latestSummary || '').toLowerCase().includes(q) ||
+        c.id.toLowerCase().includes(q),
     );
   }
 
@@ -174,12 +175,19 @@ export class MemoryService {
    * Get memory statistics
    */
   async getStats(userId: string): Promise<any> {
-    const list = await this.conversationsService.listConversations(userId, 1000);
-    const totalMessages = list.reduce((sum, c) => sum + (c.summaries?.messageCount || 0), 0);
+    const list = await this.conversationsService.listConversations(
+      userId,
+      1000,
+    );
+    const totalMessages = list.reduce(
+      (sum, c) => sum + (c.summaries?.messageCount || 0),
+      0,
+    );
     return {
       totalConversations: list.length,
       totalMessages,
-      avgMessagesPerConversation: list.length > 0 ? totalMessages / list.length : 0,
+      avgMessagesPerConversation:
+        list.length > 0 ? totalMessages / list.length : 0,
     };
   }
 

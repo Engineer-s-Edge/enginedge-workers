@@ -35,7 +35,9 @@ export class CoordinationValidatorService {
   /**
    * Validate a coordination context
    */
-  async validateContext(context: CoordinationContext): Promise<ValidationResult> {
+  async validateContext(
+    context: CoordinationContext,
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -71,7 +73,9 @@ export class CoordinationValidatorService {
 
     // Check for potential deadlocks (legacy check)
     if (context.detectDeadlock()) {
-      warnings.push('All tasks have dependencies - potential deadlock detected');
+      warnings.push(
+        'All tasks have dependencies - potential deadlock detected',
+      );
     }
 
     // Check for orphaned tasks
@@ -283,7 +287,9 @@ export class CoordinationValidatorService {
   /**
    * Get a full validation report
    */
-  async getFullReport(context: CoordinationContext): Promise<Record<string, unknown>> {
+  async getFullReport(
+    context: CoordinationContext,
+  ): Promise<Record<string, unknown>> {
     const contextValidation = await this.validateContext(context);
     const issues = this.identifyIssues(context);
 
@@ -325,12 +331,18 @@ export class CoordinationValidatorService {
             (w) => !w.includes('Unbalanced'),
           ),
           deadlockCount: deadlocks.length,
-          deadlockSeverity: deadlocks.length > 0
-            ? deadlocks.map(d => d.severity).reduce((a, b) =>
-                a === 'high' || b === 'high' ? 'high' :
-                a === 'medium' || b === 'medium' ? 'medium' : 'low'
-              )
-            : null,
+          deadlockSeverity:
+            deadlocks.length > 0
+              ? deadlocks
+                  .map((d) => d.severity)
+                  .reduce((a, b) =>
+                    a === 'high' || b === 'high'
+                      ? 'high'
+                      : a === 'medium' || b === 'medium'
+                        ? 'medium'
+                        : 'low',
+                  )
+              : null,
           riskCount: risks.length,
         },
       },
@@ -340,13 +352,18 @@ export class CoordinationValidatorService {
   /**
    * Convert CoordinationContext to CollectiveTask array for deadlock detection
    */
-  private convertContextToTasks(context: CoordinationContext): CollectiveTask[] {
+  private convertContextToTasks(
+    context: CoordinationContext,
+  ): CollectiveTask[] {
     const tasks: CollectiveTask[] = [];
 
     for (const taskConfig of context.getTasks()) {
       // Find assigned agent
       let assignedAgentId: string | undefined;
-      for (const [agentId, agentTasks] of context.childAgentAssignments.entries()) {
+      for (const [
+        agentId,
+        agentTasks,
+      ] of context.childAgentAssignments.entries()) {
         if (agentTasks.includes(taskConfig.taskId)) {
           assignedAgentId = agentId;
           break;
@@ -368,7 +385,8 @@ export class CoordinationValidatorService {
         level: 6, // TASK level (default)
         title: taskConfig.description,
         description: taskConfig.description,
-        state: blockedBy.length > 0 ? ('blocked' as any) : ('unassigned' as any),
+        state:
+          blockedBy.length > 0 ? ('blocked' as any) : ('unassigned' as any),
         assignedAgentId,
         allowedAgentIds: taskConfig.assignedAgentTypes.map((t) => t.toString()),
         dependencies: taskConfig.dependencies,

@@ -66,14 +66,12 @@ describe('Learning Pipeline Integration Tests', () => {
     };
 
     const mockValidationAdapter = {
-      validateReport: jest
-        .fn()
-        .mockResolvedValue({
-          isValid: true,
-          score: 0.95,
-          checks: [],
-          feedback: '',
-        }),
+      validateReport: jest.fn().mockResolvedValue({
+        isValid: true,
+        score: 0.95,
+        checks: [],
+        feedback: '',
+      }),
       validateBatch: jest.fn().mockResolvedValue([
         { isValid: true, score: 0.95, checks: [], feedback: '' },
         { isValid: true, score: 0.88, checks: [], feedback: '' },

@@ -30,7 +30,10 @@ export class AuthController {
 
   @Get('profile')
   @HttpCode(HttpStatus.OK)
-  async profile(@Query('userId') userId?: string, @Headers('x-user-id') headerUserId?: string) {
+  async profile(
+    @Query('userId') userId?: string,
+    @Headers('x-user-id') headerUserId?: string,
+  ) {
     const id = userId || headerUserId;
     if (!id) {
       throw new UnauthorizedException('User ID required');

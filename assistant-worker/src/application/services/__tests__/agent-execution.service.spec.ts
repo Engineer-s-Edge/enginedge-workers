@@ -4,8 +4,12 @@ describe('AgentExecutionService (smoke)', () => {
     const mockAgentService: any = {
       getAgent: jest.fn().mockResolvedValue({ agentType: 'react' }),
       getAgentInstance: jest.fn().mockResolvedValue({
-        execute: jest.fn().mockResolvedValue({ status: 'success', output: 'ok' }),
-        stream: async function* () { yield 'ok'; },
+        execute: jest
+          .fn()
+          .mockResolvedValue({ status: 'success', output: 'ok' }),
+        stream: async function* () {
+          yield 'ok';
+        },
         abort: jest.fn(),
       }),
     };
@@ -18,7 +22,12 @@ describe('AgentExecutionService (smoke)', () => {
       getAgentSessions: jest.fn().mockReturnValue([]),
     };
 
-    const mockLogger: any = { info: jest.fn(), error: jest.fn(), debug: jest.fn(), warn: jest.fn() };
+    const mockLogger: any = {
+      info: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+    };
 
     // Lazy import to avoid dependency graph in test environment
     const { AgentExecutionService } = require('../agent-execution.service');

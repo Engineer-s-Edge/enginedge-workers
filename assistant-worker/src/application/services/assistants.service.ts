@@ -82,16 +82,17 @@ export class AssistantsService {
     return [];
   }
 
-  async getModelsByCostRange(
-    minCost: number,
-    maxCost: number,
-  ): Promise<any[]> {
+  async getModelsByCostRange(minCost: number, maxCost: number): Promise<any[]> {
     // TODO: Integrate with ModelsController
     return [];
   }
 
   async getModelsWithCapability(
-    capability: 'vision' | 'functionCalling' | 'multilingual' | 'extendedThinking',
+    capability:
+      | 'vision'
+      | 'functionCalling'
+      | 'multilingual'
+      | 'extendedThinking',
   ): Promise<any[]> {
     // TODO: Integrate with ModelsController
     return [];

@@ -12,7 +12,10 @@
 import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { BM25SearchService } from './bm25-search.service';
 import { EmbedderService } from './embedder.service';
-import { VectorStoreService, DocumentSearchResult } from './vector-store.service';
+import {
+  VectorStoreService,
+  DocumentSearchResult,
+} from './vector-store.service';
 
 export interface HybridSearchOptions {
   alpha?: number; // Weight for semantic vs BM25 (0-1, default 0.5)
@@ -34,9 +37,11 @@ export class HybridSearchService {
 
   constructor(
     private readonly bm25Service: BM25SearchService,
-    @Optional() @Inject('EmbedderService')
+    @Optional()
+    @Inject('EmbedderService')
     private readonly embedderService?: EmbedderService,
-    @Optional() @Inject('VectorStoreService')
+    @Optional()
+    @Inject('VectorStoreService')
     private readonly vectorStoreService?: VectorStoreService,
   ) {}
 
@@ -58,15 +63,10 @@ export class HybridSearchService {
     // Get BM25 results
     this.logger.debug('Running BM25 text search');
     const bm25Results = this.vectorStoreService
-      ? await this.vectorStoreService.textSearchDocs(
-          query,
-          topK * 2,
-          userId,
-          {
-            conversationId: options.conversationId,
-            global: options.global,
-          },
-        )
+      ? await this.vectorStoreService.textSearchDocs(query, topK * 2, userId, {
+          conversationId: options.conversationId,
+          global: options.global,
+        })
       : [];
 
     // Get semantic results
@@ -125,7 +125,9 @@ export class HybridSearchService {
       .sort((a, b) => b.score - a.score)
       .slice(0, topK);
 
-    this.logger.log(`Hybrid search completed, returning ${results.length} results`);
+    this.logger.log(
+      `Hybrid search completed, returning ${results.length} results`,
+    );
     return results;
   }
 
@@ -144,15 +146,17 @@ export class HybridSearchService {
       useBertScore?: boolean;
       bertScoreAlpha?: number;
     } = {},
-  ): Promise<Array<{
-    id: string;
-    conversationId: string;
-    content: string;
-    score: number;
-    bm25Score?: number;
-    semanticScore?: number;
-    bertScore?: number;
-  }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      content: string;
+      score: number;
+      bm25Score?: number;
+      semanticScore?: number;
+      bertScore?: number;
+    }>
+  > {
     this.logger.log(
       `Hybrid search for conversations, userId: ${userId}, query: "${query}", topK: ${topK}, useSnippets: ${options.useSnippets || false}`,
     );
@@ -161,7 +165,9 @@ export class HybridSearchService {
     // For now, return empty - would need to integrate with assistant-worker
     // In production, this could make HTTP calls to assistant-worker's conversation search endpoints
 
-    this.logger.warn('Conversation hybrid search not yet fully implemented - requires integration with assistant-worker');
+    this.logger.warn(
+      'Conversation hybrid search not yet fully implemented - requires integration with assistant-worker',
+    );
     return [];
   }
 
@@ -172,9 +178,13 @@ export class HybridSearchService {
     query: string,
     queryEmbedding: number[],
     results: Array<{ id: string; text: string; score: number }>,
-  ): Promise<Array<{ id: string; text: string; score: number; bertScore: number }>> {
+  ): Promise<
+    Array<{ id: string; text: string; score: number; bertScore: number }>
+  > {
     if (!this.embedderService) {
-      this.logger.warn('Embedder service not available for BERT-score reranking');
+      this.logger.warn(
+        'Embedder service not available for BERT-score reranking',
+      );
       return results.map((r) => ({ ...r, bertScore: r.score }));
     }
 

@@ -40,9 +40,18 @@ import {
   ModelsController,
 } from './controllers';
 import { AssistantsModule } from './assistants/assistants.module';
-import { Conversation, ConversationSchema } from './adapters/storage/conversations/conversation.schema';
-import { ConversationEvent, ConversationEventSchema } from './adapters/storage/conversations/conversation-event.schema';
-import { MessageVersion, MessageVersionSchema } from './adapters/storage/conversations/message-version.schema';
+import {
+  Conversation,
+  ConversationSchema,
+} from './adapters/storage/conversations/conversation.schema';
+import {
+  ConversationEvent,
+  ConversationEventSchema,
+} from './adapters/storage/conversations/conversation-event.schema';
+import {
+  MessageVersion,
+  MessageVersionSchema,
+} from './adapters/storage/conversations/message-version.schema';
 import { MongoDBConversationsRepository } from './adapters/storage/mongodb-conversations.repository';
 import { ConversationsController } from './controllers/conversations.controller';
 import { GraphComponentService } from '@application/services/graph-component.service';

@@ -15,7 +15,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DomainModule } from '../domain/domain.module';
-import { DocumentModel, DocumentSchema } from '../infrastructure/database/schemas/document.schema';
+import {
+  DocumentModel,
+  DocumentSchema,
+} from '../infrastructure/database/schemas/document.schema';
 import { LoaderRegistryService } from './services/loader-registry.service';
 import { DocumentProcessingService } from './services/document-processing.service';
 import { UrlDetectionService } from './services/url-detection.service';

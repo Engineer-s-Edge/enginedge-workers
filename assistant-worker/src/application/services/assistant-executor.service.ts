@@ -61,7 +61,12 @@ export class AssistantExecutorService {
       const agentId = `assistant-${assistant.id}`;
 
       // Ensure conversation
-      const convType = assistant.agentType === 'react' ? 'react' : assistant.agentType === 'graph' ? 'graph' : 'base';
+      const convType =
+        assistant.agentType === 'react'
+          ? 'react'
+          : assistant.agentType === 'graph'
+            ? 'graph'
+            : 'base';
       let conversationId = executeDto.conversationId;
       if (!conversationId) {
         const conv = await this.conversations.createConversation({
@@ -126,10 +131,7 @@ export class AssistantExecutorService {
       };
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Failed to execute assistant: ${name}`,
-        e.message,
-      );
+      this.logger.error(`Failed to execute assistant: ${name}`, e.message);
       return { success: false, error: e.message };
     }
   }

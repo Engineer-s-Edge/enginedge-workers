@@ -7,7 +7,10 @@
 
 import { Injectable, Inject } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
-import { CollectiveTask, TaskState } from '@domain/entities/collective-task.entity';
+import {
+  CollectiveTask,
+  TaskState,
+} from '@domain/entities/collective-task.entity';
 import {
   IDeadlockDetectionService,
   DeadlockInfo,
@@ -23,9 +26,7 @@ export class DeadlockDetectionService implements IDeadlockDetectionService {
   /**
    * Detect all deadlocks in a task graph
    */
-  async detectDeadlocks(
-    tasks: CollectiveTask[],
-  ): Promise<DeadlockInfo[]> {
+  async detectDeadlocks(tasks: CollectiveTask[]): Promise<DeadlockInfo[]> {
     const blockedTasks = tasks.filter((t) => t.state === TaskState.BLOCKED);
     const deadlocks: DeadlockInfo[] = [];
     const visitedGlobal = new Set<string>();
@@ -116,7 +117,10 @@ export class DeadlockDetectionService implements IDeadlockDetectionService {
   /**
    * Get agents involved in deadlock
    */
-  private getInvolvedAgents(cycle: string[], tasks: CollectiveTask[]): string[] {
+  private getInvolvedAgents(
+    cycle: string[],
+    tasks: CollectiveTask[],
+  ): string[] {
     const agents = new Set<string>();
 
     for (const taskId of cycle) {

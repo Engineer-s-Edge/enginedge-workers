@@ -10,16 +10,30 @@ import {
   ToolCallRecord,
   CheckpointRecord,
 } from '@application/ports/conversations.repository';
-import { Conversation, ConversationDocument } from './conversations/conversation.schema';
-import { ConversationEvent, ConversationEventDocument } from './conversations/conversation-event.schema';
-import { MessageVersion, MessageVersionDocument } from './conversations/message-version.schema';
+import {
+  Conversation,
+  ConversationDocument,
+} from './conversations/conversation.schema';
+import {
+  ConversationEvent,
+  ConversationEventDocument,
+} from './conversations/conversation-event.schema';
+import {
+  MessageVersion,
+  MessageVersionDocument,
+} from './conversations/message-version.schema';
 
 @Injectable()
-export class MongoDBConversationsRepository implements IConversationsRepository {
+export class MongoDBConversationsRepository
+  implements IConversationsRepository
+{
   constructor(
-    @InjectModel(Conversation.name) private readonly convModel: Model<ConversationDocument>,
-    @InjectModel(ConversationEvent.name) private readonly eventModel: Model<ConversationEventDocument>,
-    @InjectModel(MessageVersion.name) private readonly verModel: Model<MessageVersionDocument>,
+    @InjectModel(Conversation.name)
+    private readonly convModel: Model<ConversationDocument>,
+    @InjectModel(ConversationEvent.name)
+    private readonly eventModel: Model<ConversationEventDocument>,
+    @InjectModel(MessageVersion.name)
+    private readonly verModel: Model<MessageVersionDocument>,
   ) {}
 
   private toRecord(doc: ConversationDocument): ConversationRecord {
@@ -70,7 +84,9 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
   }
 
   async updateSettings(id: string, overrides: any): Promise<void> {
-    await this.convModel.updateOne({ _id: id }, { $set: { settingsOverrides: overrides } }).exec();
+    await this.convModel
+      .updateOne({ _id: id }, { $set: { settingsOverrides: overrides } })
+      .exec();
   }
 
   async updateStatus(id: string, status: any): Promise<void> {
@@ -78,14 +94,28 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
   }
 
   async addChild(parentId: string, childId: string): Promise<void> {
-    await this.convModel.updateOne({ _id: parentId }, { $addToSet: { childConversationIds: childId } }).exec();
+    await this.convModel
+      .updateOne(
+        { _id: parentId },
+        { $addToSet: { childConversationIds: childId } },
+      )
+      .exec();
   }
 
-  async updateAgentState(id: string, state: Record<string, unknown>): Promise<void> {
-    await this.convModel.updateOne({ _id: id }, { $set: { agentState: state } }).exec();
+  async updateAgentState(
+    id: string,
+    state: Record<string, unknown>,
+  ): Promise<void> {
+    await this.convModel
+      .updateOne({ _id: id }, { $set: { agentState: state } })
+      .exec();
   }
 
-  async appendMessage(conversationId: string, message: MessageAppend, ts?: Date): Promise<{ version: number }> {
+  async appendMessage(
+    conversationId: string,
+    message: MessageAppend,
+    ts?: Date,
+  ): Promise<{ version: number }> {
     const now = ts || new Date();
     // message versions start at 1
     const version = 1;
@@ -101,12 +131,23 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
       conversationId,
       ts: now,
       type: 'message',
-      payload: { kind: 'message', data: { messageId: message.messageId, role: message.role, content: message.content, metadata: message.metadata, version } },
+      payload: {
+        kind: 'message',
+        data: {
+          messageId: message.messageId,
+          role: message.role,
+          content: message.content,
+          metadata: message.metadata,
+          version,
+        },
+      },
     } as any);
-    await this.convModel.updateOne(
-      { _id: conversationId },
-      { $set: { updatedAt: now }, $inc: { 'summaries.messageCount': 1 } },
-    ).exec();
+    await this.convModel
+      .updateOne(
+        { _id: conversationId },
+        { $set: { updatedAt: now }, $inc: { 'summaries.messageCount': 1 } },
+      )
+      .exec();
     return { version };
   }
 
@@ -127,12 +168,26 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
       conversationId,
       ts: now,
       type: 'message',
-      payload: { kind: 'message', data: { messageId: edit.messageId, role: edit.role, content: edit.content, version: edit.version } },
+      payload: {
+        kind: 'message',
+        data: {
+          messageId: edit.messageId,
+          role: edit.role,
+          content: edit.content,
+          version: edit.version,
+        },
+      },
     } as any);
-    await this.convModel.updateOne({ _id: conversationId }, { $set: { updatedAt: now } }).exec();
+    await this.convModel
+      .updateOne({ _id: conversationId }, { $set: { updatedAt: now } })
+      .exec();
   }
 
-  async recordToolCall(conversationId: string, call: ToolCallRecord, ts?: Date): Promise<void> {
+  async recordToolCall(
+    conversationId: string,
+    call: ToolCallRecord,
+    ts?: Date,
+  ): Promise<void> {
     const now = ts || new Date();
     await this.eventModel.create({
       conversationId,
@@ -140,10 +195,16 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
       type: 'tool_call',
       payload: { kind: 'tool_call', data: call },
     } as any);
-    await this.convModel.updateOne({ _id: conversationId }, { $set: { updatedAt: now } }).exec();
+    await this.convModel
+      .updateOne({ _id: conversationId }, { $set: { updatedAt: now } })
+      .exec();
   }
 
-  async createCheckpoint(conversationId: string, checkpoint: CheckpointRecord, ts?: Date): Promise<void> {
+  async createCheckpoint(
+    conversationId: string,
+    checkpoint: CheckpointRecord,
+    ts?: Date,
+  ): Promise<void> {
     const now = ts || new Date();
     await this.eventModel.create({
       conversationId,
@@ -151,33 +212,72 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
       type: 'checkpoint',
       payload: { kind: 'checkpoint', data: checkpoint },
     } as any);
-    await this.convModel.updateOne({ _id: conversationId }, { $set: { updatedAt: now } }).exec();
+    await this.convModel
+      .updateOne({ _id: conversationId }, { $set: { updatedAt: now } })
+      .exec();
   }
 
-  async getEvents(conversationId: string, sinceTs?: Date, limit = 200): Promise<any[]> {
+  async getEvents(
+    conversationId: string,
+    sinceTs?: Date,
+    limit = 200,
+  ): Promise<any[]> {
     const q: any = { conversationId };
     if (sinceTs) q.ts = { $gt: sinceTs };
-    const docs = await this.eventModel.find(q).sort({ ts: 1 }).limit(limit).exec();
-    return docs.map((d) => ({ id: d._id?.toString(), conversationId: d.conversationId, ts: d.ts, type: d.type, payload: d.payload }));
+    const docs = await this.eventModel
+      .find(q)
+      .sort({ ts: 1 })
+      .limit(limit)
+      .exec();
+    return docs.map((d) => ({
+      id: d._id?.toString(),
+      conversationId: d.conversationId,
+      ts: d.ts,
+      type: d.type,
+      payload: d.payload,
+    }));
   }
 
-  async getMessagesByUser(userId: string, conversationIds?: string[]): Promise<Array<{ id: string; conversationId: string; role: string; content: string; timestamp: Date }>> {
+  async getMessagesByUser(
+    userId: string,
+    conversationIds?: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      role: string;
+      content: string;
+      timestamp: Date;
+    }>
+  > {
     // Get conversations for user
     const convQuery: any = { userId };
     if (conversationIds && conversationIds.length > 0) {
       convQuery._id = { $in: conversationIds };
     }
-    const conversations = await this.convModel.find(convQuery).select('_id').exec();
+    const conversations = await this.convModel
+      .find(convQuery)
+      .select('_id')
+      .exec();
     const convIds = conversations.map((c) => c._id.toString());
 
     // Get message events
-    const messageEvents = await this.eventModel.find({
-      conversationId: { $in: convIds },
-      type: 'message',
-    }).sort({ ts: 1 }).exec();
+    const messageEvents = await this.eventModel
+      .find({
+        conversationId: { $in: convIds },
+        type: 'message',
+      })
+      .sort({ ts: 1 })
+      .exec();
 
     // Extract messages from events
-    const messages: Array<{ id: string; conversationId: string; role: string; content: string; timestamp: Date }> = [];
+    const messages: Array<{
+      id: string;
+      conversationId: string;
+      role: string;
+      content: string;
+      timestamp: Date;
+    }> = [];
     for (const event of messageEvents) {
       const payload = event.payload as any;
       if (payload.kind === 'message' && payload.data) {
@@ -194,7 +294,17 @@ export class MongoDBConversationsRepository implements IConversationsRepository 
     return messages;
   }
 
-  async getSnippetsByUser(userId: string, conversationIds?: string[]): Promise<Array<{ id: string; conversationId: string; content: string; timestamp: Date }>> {
+  async getSnippetsByUser(
+    userId: string,
+    conversationIds?: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      content: string;
+      timestamp: Date;
+    }>
+  > {
     // For now, snippets are not stored separately - they would need to be extracted from messages
     // This is a placeholder - in production, you might want to store snippets separately
     // For now, return empty array or derive from messages

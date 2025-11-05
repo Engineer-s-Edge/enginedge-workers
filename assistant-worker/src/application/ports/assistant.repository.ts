@@ -31,7 +31,10 @@ export interface IAssistantRepository {
   /**
    * Update assistant by name
    */
-  update(name: string, updateData: Partial<Assistant>): Promise<Assistant | null>;
+  update(
+    name: string,
+    updateData: Partial<Assistant>,
+  ): Promise<Assistant | null>;
 
   /**
    * Delete assistant by name

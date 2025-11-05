@@ -69,7 +69,10 @@ export class AgentExecutionService {
     let timedOut = false;
     try {
       // Get instance
-      const instance = await this.agentService.getAgentInstance(agentId, userId);
+      const instance = await this.agentService.getAgentInstance(
+        agentId,
+        userId,
+      );
 
       // Setup timeout
       const abortPromise = new Promise<never>((_, reject) => {
@@ -121,7 +124,10 @@ export class AgentExecutionService {
         },
       });
 
-      this.sessions.updateSessionStatus(session.sessionId, timedOut ? 'failed' : 'failed');
+      this.sessions.updateSessionStatus(
+        session.sessionId,
+        timedOut ? 'failed' : 'failed',
+      );
 
       const duration = (Date.now() - start) / 1000;
       try {
@@ -179,10 +185,13 @@ export class AgentExecutionService {
     let timedOut = false;
 
     try {
-      const instance = await this.agentService.getAgentInstance(agentId, userId);
+      const instance = await this.agentService.getAgentInstance(
+        agentId,
+        userId,
+      );
 
       // Setup timeout
-      let resolveAbort: (() => void) | null = null;
+      const resolveAbort: (() => void) | null = null;
       const abortPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(() => {
           timedOut = true;
@@ -228,7 +237,11 @@ export class AgentExecutionService {
         agentId,
         userId,
         timestamp: new Date(),
-        data: { sessionId: session.sessionId, reason: timedOut ? 'timeout' : 'error', message: err.message },
+        data: {
+          sessionId: session.sessionId,
+          reason: timedOut ? 'timeout' : 'error',
+          message: err.message,
+        },
       });
 
       this.sessions.updateSessionStatus(session.sessionId, 'failed');

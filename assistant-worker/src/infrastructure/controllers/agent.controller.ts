@@ -258,9 +258,7 @@ export class AgentController {
    */
   @Get('stats')
   async getStats(@Query('userId') userId?: string) {
-    const sessions = userId
-      ? this.sessions.getUserSessions(userId)
-      : [];
+    const sessions = userId ? this.sessions.getUserSessions(userId) : [];
 
     return {
       sessions: sessions.length,

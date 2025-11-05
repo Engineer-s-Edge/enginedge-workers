@@ -48,13 +48,17 @@ export class ModelsController {
       if (fs.existsSync(modelsPath)) {
         const data = fs.readFileSync(modelsPath, 'utf-8');
         this.models = JSON.parse(data);
-        this.logger.info(`Loaded ${this.models.length} models from models.json`);
+        this.logger.info(
+          `Loaded ${this.models.length} models from models.json`,
+        );
       } else {
         this.logger.warn('models.json not found, using empty array');
         this.models = [];
       }
     } catch (error) {
-      this.logger.error(`Failed to load models: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to load models: ${error instanceof Error ? error.message : String(error)}`,
+      );
       this.models = [];
     }
   }
@@ -245,8 +249,7 @@ export class ModelsController {
 
       const models = this.models.filter((m) => {
         if (!m.inputCostPer1M && !m.outputCostPer1M) return false;
-        const avgCost =
-          (m.inputCostPer1M || 0) + (m.outputCostPer1M || 0) / 2;
+        const avgCost = (m.inputCostPer1M || 0) + (m.outputCostPer1M || 0) / 2;
         if (min !== undefined && avgCost < min) return false;
         if (max !== undefined && avgCost > max) return false;
         return true;
@@ -272,12 +275,16 @@ export class ModelsController {
    */
   @Get(':provider/:modelId/details')
   @HttpCode(HttpStatus.OK)
-  async getModelDetails(@Param('provider') provider: string, @Param('modelId') modelId: string) {
+  async getModelDetails(
+    @Param('provider') provider: string,
+    @Param('modelId') modelId: string,
+  ) {
     try {
       const model = this.models.find(
         (m) =>
           m.provider.toLowerCase() === provider.toLowerCase() &&
-          (m.name === modelId || m.name.toLowerCase() === modelId.toLowerCase()),
+          (m.name === modelId ||
+            m.name.toLowerCase() === modelId.toLowerCase()),
       );
 
       if (!model) {
@@ -312,7 +319,8 @@ export class ModelsController {
   ) {
     try {
       const model = this.models.find(
-        (m) => m.name === modelId || m.name.toLowerCase() === modelId.toLowerCase(),
+        (m) =>
+          m.name === modelId || m.name.toLowerCase() === modelId.toLowerCase(),
       );
 
       if (!model || !model.inputCostPer1M || !model.outputCostPer1M) {
@@ -323,7 +331,8 @@ export class ModelsController {
       }
 
       const inputCost = (body.inputTokens / 1_000_000) * model.inputCostPer1M;
-      const outputCost = (body.outputTokens / 1_000_000) * model.outputCostPer1M;
+      const outputCost =
+        (body.outputTokens / 1_000_000) * model.outputCostPer1M;
       const totalCost = inputCost + outputCost;
 
       return {

@@ -77,7 +77,9 @@ export class MemoryController {
         });
       }
     } catch (e) {
-      this.logger.warn('Failed to mirror memory message to conversations', { conversationId });
+      this.logger.warn('Failed to mirror memory message to conversations', {
+        conversationId,
+      });
     }
 
     return {

@@ -13,7 +13,12 @@ import { AgentId } from '../entities/agent.entity';
 export interface KGModification {
   timestamp: Date;
   expertId: AgentId;
-  operationType: 'create-node' | 'update-node' | 'create-edge' | 'add-research' | 'skin';
+  operationType:
+    | 'create-node'
+    | 'update-node'
+    | 'create-edge'
+    | 'add-research'
+    | 'skin';
   nodeId?: string;
   edgeId?: string;
   success: boolean;

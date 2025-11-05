@@ -166,7 +166,9 @@ export class BM25SearchService {
       sorted = sorted.slice(0, limit);
     }
 
-    this.logger.debug(`BM25 search completed, returning ${sorted.length} results`);
+    this.logger.debug(
+      `BM25 search completed, returning ${sorted.length} results`,
+    );
     return sorted;
   }
 

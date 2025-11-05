@@ -74,7 +74,9 @@ export class AssistantsCrudService {
   }
 
   async findAll(filters: AssistantFiltersDto = {}): Promise<Assistant[]> {
-    this.logger.info(`Finding all assistants with filters: ${JSON.stringify(filters)}`);
+    this.logger.info(
+      `Finding all assistants with filters: ${JSON.stringify(filters)}`,
+    );
     try {
       const assistants = await this.assistantsRepository.findAll(filters);
       this.logger.info(`Found ${assistants.length} assistants`);
@@ -237,7 +239,8 @@ export class AssistantsCrudService {
     if (m !== undefined) entity.primaryMode = m;
     if (dto.agentType !== undefined) entity.agentType = dto.agentType;
     if (dto.blocks !== undefined) entity.blocks = dto.blocks;
-    if (dto.customPrompts !== undefined) entity.customPrompts = dto.customPrompts;
+    if (dto.customPrompts !== undefined)
+      entity.customPrompts = dto.customPrompts;
     if (dto.contextBlocks !== undefined)
       entity.contextBlocks = dto.contextBlocks;
     if (dto.tools !== undefined) entity.tools = dto.tools;

@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { ConversationStatus, ConversationType } from '@domain/conversations/conversation.types';
+import {
+  ConversationStatus,
+  ConversationType,
+} from '@domain/conversations/conversation.types';
 
 export type ConversationDocument = Conversation & Document;
 
@@ -18,7 +21,11 @@ class SettingsOverridesSchema {
 @Schema({ _id: false })
 class SummarySchema {
   @Prop() latestSummary?: string;
-  @Prop({ type: Object }) tokens?: { input?: number; output?: number; total?: number };
+  @Prop({ type: Object }) tokens?: {
+    input?: number;
+    output?: number;
+    total?: number;
+  };
   @Prop() messageCount?: number;
 }
 
@@ -30,10 +37,19 @@ export class Conversation {
   @Prop({ type: String, index: true })
   rootAgentId!: string;
 
-  @Prop({ type: String, enum: ['base','react','expert','pm','graph','collective','genius'], index: true })
+  @Prop({
+    type: String,
+    enum: ['base', 'react', 'expert', 'pm', 'graph', 'collective', 'genius'],
+    index: true,
+  })
   type!: ConversationType;
 
-  @Prop({ type: String, enum: ['active','paused','completed','failed','archived'], index: true, default: 'active' })
+  @Prop({
+    type: String,
+    enum: ['active', 'paused', 'completed', 'failed', 'archived'],
+    index: true,
+    default: 'active',
+  })
   status!: ConversationStatus;
 
   @Prop({ type: SettingsOverridesSchema })

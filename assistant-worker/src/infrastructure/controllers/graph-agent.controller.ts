@@ -116,7 +116,10 @@ export class GraphAgentController {
   ) {
     this.logger.info('Getting workflow state', { agentId });
 
-    const state = await this.agentService.getGraphAgentExecutionState(agentId, userId);
+    const state = await this.agentService.getGraphAgentExecutionState(
+      agentId,
+      userId,
+    );
 
     return {
       agentId,
@@ -140,11 +143,22 @@ export class GraphAgentController {
     this.logger.info('Creating workflow checkpoint', { agentId });
 
     // Fetch graph state if available
-    const instance = await this.agentService.getAgentInstance(agentId, body.userId);
+    const instance = await this.agentService.getAgentInstance(
+      agentId,
+      body.userId,
+    );
     const anyInstance = instance as any;
-    const state = typeof anyInstance.getGraphState === 'function' ? anyInstance.getGraphState() : {};
+    const state =
+      typeof anyInstance.getGraphState === 'function'
+        ? anyInstance.getGraphState()
+        : {};
 
-    const cp = await this.checkpoints.createCheckpoint(agentId, body.userId, state, body.name);
+    const cp = await this.checkpoints.createCheckpoint(
+      agentId,
+      body.userId,
+      state,
+      body.name,
+    );
 
     return {
       checkpointId: cp.id,
@@ -172,7 +186,11 @@ export class GraphAgentController {
       checkpointId: body.checkpointId,
     });
 
-    const res = await this.agentService.resumeGraphAgent(agentId, body.userId, body.checkpointId);
+    const res = await this.agentService.resumeGraphAgent(
+      agentId,
+      body.userId,
+      body.checkpointId,
+    );
 
     return {
       success: res.ok,
@@ -189,7 +207,9 @@ export class GraphAgentController {
     @Param('id') agentId: string,
     @Body() body: { userId: string; reason?: string },
   ) {
-    const res = await this.agentService.pauseGraphAgent(agentId, body.userId, { reason: body.reason });
+    const res = await this.agentService.pauseGraphAgent(agentId, body.userId, {
+      reason: body.reason,
+    });
     return { success: true, checkpointId: res.checkpointId };
   }
 
@@ -212,7 +232,12 @@ export class GraphAgentController {
       nodeId: body.nodeId,
     });
 
-    await this.agentService.provideGraphAgentUserInput(agentId, body.userId, body.nodeId, body.input);
+    await this.agentService.provideGraphAgentUserInput(
+      agentId,
+      body.userId,
+      body.nodeId,
+      body.input,
+    );
 
     return {
       success: true,
@@ -245,7 +270,13 @@ export class GraphAgentController {
   @HttpCode(HttpStatus.OK)
   async provideChatAction(
     @Param('id') agentId: string,
-    @Body() body: { userId: string; nodeId: string; action: 'continue' | 'end'; input?: string },
+    @Body()
+    body: {
+      userId: string;
+      nodeId: string;
+      action: 'continue' | 'end';
+      input?: string;
+    },
   ) {
     await this.agentService.provideGraphAgentChatAction(
       agentId,
@@ -264,7 +295,13 @@ export class GraphAgentController {
   @HttpCode(HttpStatus.OK)
   async continueWithInput(
     @Param('id') agentId: string,
-    @Body() body: { userId: string; input: string; checkpointId?: string; stream?: boolean },
+    @Body()
+    body: {
+      userId: string;
+      input: string;
+      checkpointId?: string;
+      stream?: boolean;
+    },
   ) {
     const res = await this.agentService.continueGraphAgentWithInput(
       agentId,
@@ -290,7 +327,11 @@ export class GraphAgentController {
     @Param('id') agentId: string,
     @Query('userId') _userId: string,
   ) {
-    const pending = await this.agentService.getGraphAgentPendingUserInteractions(agentId, _userId);
+    const pending =
+      await this.agentService.getGraphAgentPendingUserInteractions(
+        agentId,
+        _userId,
+      );
     return { pending };
   }
 
@@ -302,7 +343,8 @@ export class GraphAgentController {
     @Param('id') agentId: string,
     @Query('userId') _userId: string,
   ) {
-    const has = await this.agentService.hasGraphAgentAwaitingUserInteraction(agentId);
+    const has =
+      await this.agentService.hasGraphAgentAwaitingUserInteraction(agentId);
     return { has };
   }
 }

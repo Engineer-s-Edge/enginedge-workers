@@ -6,7 +6,8 @@ export type ConversationEventDocument = ConversationEvent & Document;
 @Schema({ _id: false })
 class MessagePayloadSchema {
   @Prop({ required: true }) messageId!: string;
-  @Prop({ required: true, enum: ['user','assistant','system'] }) role!: string;
+  @Prop({ required: true, enum: ['user', 'assistant', 'system'] })
+  role!: string;
   @Prop({ required: true }) content!: string;
   @Prop({ type: Object }) metadata?: Record<string, unknown>;
   @Prop({ required: true }) version!: number;
@@ -17,7 +18,7 @@ class ToolCallPayloadSchema {
   @Prop({ required: true }) name!: string;
   @Prop({ type: Object, required: true }) args!: Record<string, unknown>;
   @Prop() result?: unknown;
-  @Prop({ required: true, enum: ['ok','error'] }) status!: string;
+  @Prop({ required: true, enum: ['ok', 'error'] }) status!: string;
   @Prop() latencyMs?: number;
   @Prop() tokensIn?: number;
   @Prop() tokensOut?: number;
@@ -66,7 +67,18 @@ export class ConversationEvent {
   @Prop({ type: Date, index: true, required: true })
   ts!: Date;
 
-  @Prop({ type: String, enum: ['message','tool_call','checkpoint','state_change','config_change','note'], required: true })
+  @Prop({
+    type: String,
+    enum: [
+      'message',
+      'tool_call',
+      'checkpoint',
+      'state_change',
+      'config_change',
+      'note',
+    ],
+    required: true,
+  })
   type!: string;
 
   @Prop({ type: PayloadSchema, required: true })
@@ -75,6 +87,7 @@ export class ConversationEvent {
   _id!: string;
 }
 
-export const ConversationEventSchema = SchemaFactory.createForClass(ConversationEvent);
+export const ConversationEventSchema =
+  SchemaFactory.createForClass(ConversationEvent);
 
 ConversationEventSchema.index({ conversationId: 1, ts: 1 });

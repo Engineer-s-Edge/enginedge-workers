@@ -36,7 +36,10 @@ export class ConversationsController {
 
   @Get()
   async list(@Query('userId') userId: string, @Query('limit') limit?: number) {
-    const list = await this.service.listConversations(userId, limit ? Number(limit) : undefined);
+    const list = await this.service.listConversations(
+      userId,
+      limit ? Number(limit) : undefined,
+    );
     return { success: true, conversations: list, count: list.length };
   }
 
@@ -99,8 +102,16 @@ export class ConversationsController {
   }
 
   @Get(':id/events')
-  async events(@Param('id') id: string, @Query('since') since?: string, @Query('limit') limit?: number) {
-    const list = await this.service.getEvents(id, since ? new Date(since) : undefined, limit ? Number(limit) : undefined);
+  async events(
+    @Param('id') id: string,
+    @Query('since') since?: string,
+    @Query('limit') limit?: number,
+  ) {
+    const list = await this.service.getEvents(
+      id,
+      since ? new Date(since) : undefined,
+      limit ? Number(limit) : undefined,
+    );
     return { success: true, events: list };
   }
 

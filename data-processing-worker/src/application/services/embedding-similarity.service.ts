@@ -113,9 +113,7 @@ export class EmbeddingSimilarityService {
     }
 
     // Magnitude-based confidence
-    const queryMag = Math.sqrt(
-      queryEmbed.reduce((s, v) => s + v * v, 0),
-    );
+    const queryMag = Math.sqrt(queryEmbed.reduce((s, v) => s + v * v, 0));
     const textMag = Math.sqrt(textEmbed.reduce((s, v) => s + v * v, 0));
     const avgMag = (queryMag + textMag) / 2;
 
@@ -206,7 +204,12 @@ export class EmbeddingSimilarityService {
     const results = validItems.map((item) => {
       const emb = embeddingAccessor(item);
       const itemText = textAccessor ? textAccessor(item) : undefined;
-      const bertScore = this.bertScoreSimilarity(query, emb, queryText, itemText);
+      const bertScore = this.bertScoreSimilarity(
+        query,
+        emb,
+        queryText,
+        itemText,
+      );
 
       return {
         item,

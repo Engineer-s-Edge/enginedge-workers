@@ -1,7 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Response } from 'express';
 import { SSEStreamAdapter } from './sse-stream.adapter';
-import { AgentEventService, AgentEvent, EventFilter } from '@application/services/agent-event.service';
+import {
+  AgentEventService,
+  AgentEvent,
+  EventFilter,
+} from '@application/services/agent-event.service';
 
 @Injectable()
 export class AgentSSEPublisher {
@@ -16,13 +20,17 @@ export class AgentSSEPublisher {
     this.sse.initializeStream(streamId, res);
 
     const subscriptionId = `sub-${streamId}`;
-    this.events.subscribeToAgentEvents(subscriptionId, filter || {}, (event: AgentEvent) => {
-      this.sse.sendToStream(streamId, {
-        type: 'progress',
-        data: event,
-        timestamp: new Date(),
-      });
-    });
+    this.events.subscribeToAgentEvents(
+      subscriptionId,
+      filter || {},
+      (event: AgentEvent) => {
+        this.sse.sendToStream(streamId, {
+          type: 'progress',
+          data: event,
+          timestamp: new Date(),
+        });
+      },
+    );
 
     // Send initial heartbeat
     this.sse.sendToStream(streamId, {

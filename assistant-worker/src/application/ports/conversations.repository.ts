@@ -1,4 +1,8 @@
-import { ConversationType, ConversationStatus, ConversationSettingsOverrides } from '@domain/conversations/conversation.types';
+import {
+  ConversationType,
+  ConversationStatus,
+  ConversationSettingsOverrides,
+} from '@domain/conversations/conversation.types';
 
 export interface CreateConversationInput {
   userId: string;
@@ -67,19 +71,59 @@ export interface IConversationsRepository {
   create(input: CreateConversationInput): Promise<ConversationRecord>;
   findById(id: string): Promise<ConversationRecord | null>;
   listByUser(userId: string, limit?: number): Promise<ConversationRecord[]>;
-  updateSettings(id: string, overrides: ConversationSettingsOverrides): Promise<void>;
+  updateSettings(
+    id: string,
+    overrides: ConversationSettingsOverrides,
+  ): Promise<void>;
   updateStatus(id: string, status: ConversationStatus): Promise<void>;
   addChild(parentId: string, childId: string): Promise<void>;
   updateAgentState(id: string, state: Record<string, unknown>): Promise<void>;
 
-  appendMessage(conversationId: string, message: MessageAppend, ts?: Date): Promise<{ version: number }>;
+  appendMessage(
+    conversationId: string,
+    message: MessageAppend,
+    ts?: Date,
+  ): Promise<{ version: number }>;
   editMessage(conversationId: string, edit: MessageEdit): Promise<void>;
-  recordToolCall(conversationId: string, call: ToolCallRecord, ts?: Date): Promise<void>;
-  createCheckpoint(conversationId: string, checkpoint: CheckpointRecord, ts?: Date): Promise<void>;
+  recordToolCall(
+    conversationId: string,
+    call: ToolCallRecord,
+    ts?: Date,
+  ): Promise<void>;
+  createCheckpoint(
+    conversationId: string,
+    checkpoint: CheckpointRecord,
+    ts?: Date,
+  ): Promise<void>;
 
-  getEvents(conversationId: string, sinceTs?: Date, limit?: number): Promise<any[]>;
+  getEvents(
+    conversationId: string,
+    sinceTs?: Date,
+    limit?: number,
+  ): Promise<any[]>;
 
   // Conversation search methods
-  getMessagesByUser(userId: string, conversationIds?: string[]): Promise<Array<{ id: string; conversationId: string; role: string; content: string; timestamp: Date }>>;
-  getSnippetsByUser(userId: string, conversationIds?: string[]): Promise<Array<{ id: string; conversationId: string; content: string; timestamp: Date }>>;
+  getMessagesByUser(
+    userId: string,
+    conversationIds?: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      role: string;
+      content: string;
+      timestamp: Date;
+    }>
+  >;
+  getSnippetsByUser(
+    userId: string,
+    conversationIds?: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      conversationId: string;
+      content: string;
+      timestamp: Date;
+    }>
+  >;
 }

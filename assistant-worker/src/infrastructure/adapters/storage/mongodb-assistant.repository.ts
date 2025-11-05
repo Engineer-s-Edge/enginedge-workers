@@ -10,10 +10,7 @@ import { Model, FilterQuery } from 'mongoose';
 import { IAssistantRepository } from '@application/ports/assistant.repository';
 import { Assistant, AssistantStatus } from '@domain/entities/assistant.entity';
 import { AssistantFiltersDto } from '@application/dto/assistant.dto';
-import {
-  AssistantDocument,
-  AssistantSchema,
-} from './assistant.schema';
+import { AssistantDocument, AssistantSchema } from './assistant.schema';
 
 @Injectable()
 export class MongoDBAssistantRepository implements IAssistantRepository {

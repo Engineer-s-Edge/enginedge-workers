@@ -118,8 +118,7 @@ export class Neo4jAdapter {
   private nodes: Map<string, KGNode> = new Map();
   private edges: Map<string, KGEdge> = new Map();
 
-  constructor() // @Inject('NEO4J_DRIVER') private readonly driver: any,
-  {
+  constructor() { // @Inject('NEO4J_DRIVER') private readonly driver: any,
     // Initialize Neo4j connection here
     // this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
   }
@@ -603,7 +602,10 @@ export class Neo4jAdapter {
    */
   async getUnresearchedNodes(layer?: ICSLayer): Promise<KGNode[]> {
     return Array.from(this.nodes.values()).filter((node) => {
-      if (node.researchStatus !== ResearchStatus.UNRESEARCHED && node.researchStatus !== undefined) {
+      if (
+        node.researchStatus !== ResearchStatus.UNRESEARCHED &&
+        node.researchStatus !== undefined
+      ) {
         return false;
       }
       if (layer && node.layer !== layer) {
@@ -616,7 +618,10 @@ export class Neo4jAdapter {
   /**
    * Lock a node for research
    */
-  async lockNodeForResearch(nodeId: string, agentId: string): Promise<KGNode | null> {
+  async lockNodeForResearch(
+    nodeId: string,
+    agentId: string,
+  ): Promise<KGNode | null> {
     const node = this.nodes.get(nodeId);
     if (!node) {
       return null;
@@ -659,7 +664,10 @@ export class Neo4jAdapter {
   /**
    * Mark a node as dubious
    */
-  async markNodeAsDubious(nodeId: string, agentId: string): Promise<KGNode | null> {
+  async markNodeAsDubious(
+    nodeId: string,
+    agentId: string,
+  ): Promise<KGNode | null> {
     const node = this.nodes.get(nodeId);
     if (!node) {
       return null;
@@ -730,7 +738,11 @@ export class Neo4jAdapter {
   /**
    * Find edge between two nodes
    */
-  async findEdgeBetween(from: string, to: string, type?: string): Promise<KGEdge | null> {
+  async findEdgeBetween(
+    from: string,
+    to: string,
+    type?: string,
+  ): Promise<KGEdge | null> {
     for (const edge of this.edges.values()) {
       if (edge.from === from && edge.to === to) {
         if (!type || edge.type === type) {
