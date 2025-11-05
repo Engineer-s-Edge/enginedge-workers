@@ -79,6 +79,7 @@ import { ChromaDBVectorStoreAdapter } from './adapters/vectorstores/chromadb.vec
 
 // Messaging
 import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-processing.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
 /**
  * Infrastructure module - All adapters and implementations
@@ -103,6 +104,11 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
   ],
   controllers: [DocumentController, VectorStoreController, EmbedderController],
   providers: [
+    // Logger
+    {
+      provide: 'ILogger',
+      useClass: KafkaLoggerAdapter,
+    },
     // Filesystem Loaders
     PdfLoaderAdapter,
     DocxLoaderAdapter,
@@ -165,6 +171,12 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
 
     // Cache adapter
     RedisCacheAdapter,
+
+    // Provide VectorStorePort alias for dependency injection
+    {
+      provide: 'VectorStorePort',
+      useExisting: MongoDBVectorStoreAdapter,
+    },
   ],
   exports: [
     // Export all loaders and infrastructure

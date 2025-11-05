@@ -22,6 +22,7 @@ import { TenantRepository } from './adapters/repositories/tenant.repository';
 import { KeyRepository } from './adapters/repositories/key.repository';
 import { RefreshTokenRepository } from './adapters/repositories/refresh-token.repository';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -49,6 +50,11 @@ import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
     JwksController,
   ],
   providers: [
+    // Logger
+    {
+      provide: 'ILogger',
+      useClass: KafkaLoggerAdapter,
+    },
     { provide: USER_REPOSITORY, useClass: UserRepository },
     RoleRepository,
     TenantRepository,

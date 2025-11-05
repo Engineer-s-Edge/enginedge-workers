@@ -19,6 +19,7 @@ import {
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { ILogger } from '@application/ports/logger.port';
+import { CheckpointService } from '@application/services/checkpoint.service';
 
 /**
  * Graph Agent specialized controller
@@ -30,6 +31,7 @@ export class GraphAgentController {
     private readonly executeAgentUseCase: ExecuteAgentUseCase,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    private readonly checkpoints: CheckpointService,
   ) {}
 
   /**
@@ -114,17 +116,11 @@ export class GraphAgentController {
   ) {
     this.logger.info('Getting workflow state', { agentId });
 
-    const agent = await this.agentService.getAgent(agentId, userId);
-
-    if (!agent) {
-      throw new Error(`Agent ${agentId} not found`);
-    }
+    const state = await this.agentService.getGraphAgentExecutionState(agentId, userId);
 
     return {
       agentId,
-      currentNode: null,
-      executedNodes: [],
-      pendingNodes: [],
+      ...state,
     };
   }
 
@@ -143,16 +139,23 @@ export class GraphAgentController {
   ) {
     this.logger.info('Creating workflow checkpoint', { agentId });
 
+    // Fetch graph state if available
+    const instance = await this.agentService.getAgentInstance(agentId, body.userId);
+    const anyInstance = instance as any;
+    const state = typeof anyInstance.getGraphState === 'function' ? anyInstance.getGraphState() : {};
+
+    const cp = await this.checkpoints.createCheckpoint(agentId, body.userId, state, body.name);
+
     return {
-      checkpointId: `checkpoint_${Date.now()}`,
+      checkpointId: cp.id,
       agentId,
-      name: body.name || 'Unnamed checkpoint',
-      createdAt: new Date().toISOString(),
+      name: cp.name,
+      createdAt: cp.createdAt.toISOString(),
     };
   }
 
   /**
-   * POST /agents/graph/:id/resume - Resume from checkpoint
+   * POST /agents/graph/:id/resume - Resume from checkpoint (pause/resume semantics)
    */
   @Post(':id/resume')
   @HttpCode(HttpStatus.OK)
@@ -161,7 +164,7 @@ export class GraphAgentController {
     @Body()
     body: {
       userId: string;
-      checkpointId: string;
+      checkpointId?: string;
     },
   ) {
     this.logger.info('Resuming from checkpoint', {
@@ -169,10 +172,25 @@ export class GraphAgentController {
       checkpointId: body.checkpointId,
     });
 
+    const res = await this.agentService.resumeGraphAgent(agentId, body.userId, body.checkpointId);
+
     return {
-      success: true,
-      message: `Resumed agent ${agentId} from checkpoint ${body.checkpointId}`,
+      success: res.ok,
+      message: res.message,
     };
+  }
+
+  /**
+   * POST /agents/graph/:id/pause - Pause and checkpoint
+   */
+  @Post(':id/pause')
+  @HttpCode(HttpStatus.OK)
+  async pauseGraph(
+    @Param('id') agentId: string,
+    @Body() body: { userId: string; reason?: string },
+  ) {
+    const res = await this.agentService.pauseGraphAgent(agentId, body.userId, { reason: body.reason });
+    return { success: true, checkpointId: res.checkpointId };
   }
 
   /**
@@ -194,9 +212,97 @@ export class GraphAgentController {
       nodeId: body.nodeId,
     });
 
+    await this.agentService.provideGraphAgentUserInput(agentId, body.userId, body.nodeId, body.input);
+
     return {
       success: true,
       message: `Input provided to node ${body.nodeId}`,
     };
+  }
+
+  /**
+   * POST /agents/graph/:id/approval - Provide approval for a node
+   */
+  @Post(':id/approval')
+  @HttpCode(HttpStatus.OK)
+  async provideApproval(
+    @Param('id') agentId: string,
+    @Body() body: { userId: string; nodeId: string; approved: boolean },
+  ) {
+    await this.agentService.provideGraphAgentUserApproval(
+      agentId,
+      body.userId,
+      body.nodeId,
+      body.approved,
+    );
+    return { success: true };
+  }
+
+  /**
+   * POST /agents/graph/:id/chat-action - Provide chat action for a node
+   */
+  @Post(':id/chat-action')
+  @HttpCode(HttpStatus.OK)
+  async provideChatAction(
+    @Param('id') agentId: string,
+    @Body() body: { userId: string; nodeId: string; action: 'continue' | 'end'; input?: string },
+  ) {
+    await this.agentService.provideGraphAgentChatAction(
+      agentId,
+      body.userId,
+      body.nodeId,
+      body.action,
+      body.input,
+    );
+    return { success: true };
+  }
+
+  /**
+   * POST /agents/graph/:id/continue - Continue with new input (optionally from checkpoint)
+   */
+  @Post(':id/continue')
+  @HttpCode(HttpStatus.OK)
+  async continueWithInput(
+    @Param('id') agentId: string,
+    @Body() body: { userId: string; input: string; checkpointId?: string; stream?: boolean },
+  ) {
+    const res = await this.agentService.continueGraphAgentWithInput(
+      agentId,
+      body.userId,
+      body.input,
+      { checkpointId: body.checkpointId, stream: body.stream },
+    );
+
+    if (body.stream && Symbol.asyncIterator in Object(res)) {
+      // In a real HTTP streaming scenario you'd pipe this to response.
+      // For now return a simple marker.
+      return { success: true, message: 'Streaming started' };
+    }
+
+    return res;
+  }
+
+  /**
+   * GET /agents/graph/:id/pending - List pending interactions
+   */
+  @Get(':id/pending')
+  async listPendingInteractions(
+    @Param('id') agentId: string,
+    @Query('userId') _userId: string,
+  ) {
+    const pending = await this.agentService.getGraphAgentPendingUserInteractions(agentId, _userId);
+    return { pending };
+  }
+
+  /**
+   * GET /agents/graph/:id/has-pending - Check pending interactions
+   */
+  @Get(':id/has-pending')
+  async hasPending(
+    @Param('id') agentId: string,
+    @Query('userId') _userId: string,
+  ) {
+    const has = await this.agentService.hasGraphAgentAwaitingUserInteraction(agentId);
+    return { has };
   }
 }

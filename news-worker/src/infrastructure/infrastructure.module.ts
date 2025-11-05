@@ -13,6 +13,7 @@ import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { NewsController } from './controllers/news.controller';
 import { InMemoryNewsRepository } from './adapters/news/in-memory-news.repository';
 import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -40,7 +41,7 @@ import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter'
     // Logger adapter
     {
       provide: 'ILogger',
-      useClass: ConsoleLoggerAdapter,
+      useClass: KafkaLoggerAdapter,
     },
 
     // Cache adapter

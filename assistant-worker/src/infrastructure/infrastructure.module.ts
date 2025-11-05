@@ -5,6 +5,7 @@
  */
 
 import { Module, Global } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '@application/application.module';
 import { ThreadingModule } from './threading/threading.module';
 import { MockLLMAdapter, ConsoleLoggerAdapter } from './adapters';
@@ -20,6 +21,7 @@ import { Neo4jAdapter } from './adapters/knowledge-graph';
 import { SSEStreamAdapter, WebSocketAdapter } from './adapters/streaming';
 import { MetricsAdapter } from './adapters/monitoring';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { InMemoryAgentRepository } from './adapters/storage/in-memory-agent.repository';
 import { MemoryService } from '@application/services/memory.service';
 import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
@@ -37,6 +39,13 @@ import {
   MetricsController,
   ModelsController,
 } from './controllers';
+import { AssistantsModule } from './assistants/assistants.module';
+import { Conversation, ConversationSchema } from './adapters/storage/conversations/conversation.schema';
+import { ConversationEvent, ConversationEventSchema } from './adapters/storage/conversations/conversation-event.schema';
+import { MessageVersion, MessageVersionSchema } from './adapters/storage/conversations/message-version.schema';
+import { MongoDBConversationsRepository } from './adapters/storage/mongodb-conversations.repository';
+import { ConversationsController } from './controllers/conversations.controller';
+import { GraphComponentService } from '@application/services/graph-component.service';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -54,6 +63,12 @@ import {
   imports: [
     ApplicationModule,
     ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
+    AssistantsModule, // Assistants CRUD and execution
+    MongooseModule.forFeature([
+      { name: Conversation.name, schema: ConversationSchema },
+      { name: ConversationEvent.name, schema: ConversationEventSchema },
+      { name: MessageVersion.name, schema: MessageVersionSchema },
+    ]),
   ],
   controllers: [
     // Core controllers
@@ -79,6 +94,7 @@ import {
 
     // Models controller
     ModelsController,
+    ConversationsController,
   ],
   providers: [
     // Core adapters
@@ -88,7 +104,7 @@ import {
     },
     {
       provide: 'ILogger',
-      useClass: ConsoleLoggerAdapter,
+      useClass: KafkaLoggerAdapter,
     },
 
     // Repository adapters
@@ -103,13 +119,15 @@ import {
     SummaryMemoryAdapter,
     VectorMemoryAdapter,
     EntityMemoryAdapter,
-    MongoDBPersistenceAdapter,
 
     // Memory Service (moved from ApplicationModule to avoid circular dependency)
     MemoryService,
 
     // Knowledge Graph Service (moved from ApplicationModule to avoid circular dependency)
     KnowledgeGraphService,
+
+    // Graph Component Service
+    GraphComponentService,
 
     // Knowledge Graph adapter (Phase 4)
     Neo4jAdapter,
@@ -123,6 +141,12 @@ import {
 
     // Cache adapter
     RedisCacheAdapter,
+
+    // Conversations repository
+    {
+      provide: 'IConversationsRepository',
+      useClass: MongoDBConversationsRepository,
+    },
   ],
   exports: [
     // Export ports for application and domain layers

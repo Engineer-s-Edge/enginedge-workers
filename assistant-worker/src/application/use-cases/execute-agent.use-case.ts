@@ -8,6 +8,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { ILogger, ILLMProvider } from '@application/ports';
 import { AgentService } from '@application/services/agent.service';
 import { ExecutionContext, ExecutionResult } from '@domain/entities';
+import { AgentExecutionService } from '@application/services/agent-execution.service';
 
 export interface ExecuteAgentRequest {
   agentId: string;
@@ -31,6 +32,7 @@ export interface ExecuteAgentResponse {
 export class ExecuteAgentUseCase {
   constructor(
     private readonly agentService: AgentService,
+    private readonly execService: AgentExecutionService,
     @Inject('ILogger')
     private readonly logger: ILogger,
     @Inject('ILLMProvider')
@@ -69,8 +71,8 @@ export class ExecuteAgentUseCase {
         ...request.context,
       } as ExecutionContext;
 
-      // Execute agent
-      const result = await this.agentService.executeAgent(
+      // Execute via AgentExecutionService
+      const result = await this.execService.execute(
         request.agentId,
         request.userId,
         request.input,

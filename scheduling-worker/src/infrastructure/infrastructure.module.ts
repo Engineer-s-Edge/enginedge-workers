@@ -27,6 +27,7 @@ import { MongoGoalRepository } from './adapters/persistence/mongo-goal.repositor
 // Logging
 import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter';
 import { StructuredLogger } from './adapters/logging/structured-logger';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
 // Messaging
 import { KafkaMessageBrokerAdapter } from './adapters/messaging/kafka-message-broker.adapter';
@@ -99,12 +100,11 @@ import { MLController } from './controllers/ml.controller';
     },
 
     // Logging
-    ConsoleLoggerAdapter,
+    KafkaLoggerAdapter,
     {
       provide: 'ILogger',
-      useClass: ConsoleLoggerAdapter,
+      useClass: KafkaLoggerAdapter,
     },
-    StructuredLogger,
 
     // Messaging
     KafkaMessageBrokerAdapter,

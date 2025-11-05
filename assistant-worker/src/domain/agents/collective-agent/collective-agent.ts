@@ -1,14 +1,42 @@
 /**
- * Collective Agent - Multi-Agent Orchestration
+ * Collective Agent - Complete Multi-Agent Orchestration System
  *
- * Implements multi-agent coordination with task distribution,
- * result aggregation, and conflict resolution.
+ * Complete revamp with full infrastructure integration:
+ * - Message-based A2A communication
+ * - Task hierarchy management (8 levels)
+ * - Artifact management and locking
+ * - Deadlock detection and resolution
+ * - PM agent orchestration
+ * - Shared memory and context retrieval
  */
 
 import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult } from '../../entities';
 import { ILogger } from '@application/ports/logger.port';
 import { ILLMProvider } from '@application/ports/llm-provider.port';
+import { MessageQueueService } from '@application/services/collective/message-queue.service';
+import { CommunicationService } from '@application/services/collective/communication.service';
+import { SharedMemoryService } from '@application/services/collective/shared-memory.service';
+import { ArtifactLockingService } from '@application/services/collective/artifact-locking.service';
+import { TaskAssignmentService } from '@application/services/collective/task-assignment.service';
+import { DeadlockDetectionService } from '@application/services/collective/deadlock-detection.service';
+import { CoordinationValidatorService } from '@domain/services/coordination-validator.service';
+import {
+  CollectiveTask,
+  TaskLevel,
+  TaskState,
+  createCollectiveTask,
+} from '@domain/entities/collective-task.entity';
+import {
+  CollectiveArtifact,
+  ArtifactType,
+  createCollectiveArtifact,
+} from '@domain/entities/collective-artifact.entity';
+import {
+  CollectiveMessage,
+  MessagePriority,
+  MessageType,
+} from '@domain/entities/collective-message.entity';
 import {
   TaskDistributionStrategy,
   AggregationMethod,
@@ -23,23 +51,42 @@ import {
   SubAgentType,
 } from './collective-agent.types';
 
+export interface CollectiveAgentConfig {
+  collectiveId: string;
+  maxSubAgents?: number;
+  defaultStrategy?: TaskDistributionStrategy;
+  temperature?: number;
+  model?: string;
+  enablePM?: boolean; // Enable PM agent
+  deadlockCheckInterval?: number;
+}
+
 /**
- * Collective Agent - Orchestrates multiple sub-agents
+ * Collective Agent - Complete multi-agent orchestration
  */
 export class CollectiveAgent extends BaseAgent {
   private collectiveState: CollectiveAgentState;
+  private tasks: Map<string, CollectiveTask> = new Map();
+  private artifacts: Map<string, CollectiveArtifact> = new Map();
+  private pmLoopInterval?: NodeJS.Timeout;
+  private deadlockCheckInterval?: NodeJS.Timeout;
+  private collectiveId: string;
 
   constructor(
     llmProvider: ILLMProvider,
     logger: ILogger,
-    private config: {
-      maxSubAgents?: number;
-      defaultStrategy?: TaskDistributionStrategy;
-      temperature?: number;
-      model?: string;
-    } = {},
+    private readonly messageQueue: MessageQueueService,
+    private readonly communication: CommunicationService,
+    private readonly sharedMemory: SharedMemoryService,
+    private readonly artifactLocking: ArtifactLockingService,
+    private readonly taskAssignment: TaskAssignmentService,
+    private readonly deadlockDetection: DeadlockDetectionService,
+    private readonly coordinationValidator: CoordinationValidatorService,
+    private config: CollectiveAgentConfig,
   ) {
     super(llmProvider, logger);
+    this.collectiveId = config.collectiveId;
+
     this.collectiveState = {
       subAgents: [],
       activeTasks: [],
@@ -53,6 +100,11 @@ export class CollectiveAgent extends BaseAgent {
       conflicts: [],
       totalTasksProcessed: 0,
     };
+
+    // Start PM loop if enabled
+    if (config.enablePM !== false) {
+      this.startPMLoop();
+    }
   }
 
   /**
@@ -65,7 +117,7 @@ export class CollectiveAgent extends BaseAgent {
   /**
    * Register a sub-agent in the collective
    */
-  registerSubAgent(subAgent: SubAgentRef): void {
+  async registerSubAgent(subAgent: SubAgentRef): Promise<void> {
     this.collectiveState = {
       ...this.collectiveState,
       subAgents: [...this.collectiveState.subAgents, subAgent],
@@ -82,32 +134,21 @@ export class CollectiveAgent extends BaseAgent {
         },
       ],
     };
+
+    // Register agent capabilities with task assignment service
+    this.taskAssignment.registerAgent(subAgent.agentId, {
+      agentId: subAgent.agentId,
+      agentType: subAgent.type,
+      currentLoad: 0,
+      capabilities: [...subAgent.specialties],
+      availability: subAgent.isActive,
+    });
+
     this.logger.info('Registered sub-agent', {
       agentId: subAgent.agentId,
       type: subAgent.type,
+      collectiveId: this.collectiveId,
     });
-  }
-
-  /**
-   * Set distribution strategy
-   */
-  setDistributionStrategy(strategy: TaskDistributionStrategy): void {
-    this.collectiveState = {
-      ...this.collectiveState,
-      distributionStrategy: strategy,
-    };
-    this.logger.info('Updated distribution strategy', { strategy });
-  }
-
-  /**
-   * Set coordination pattern
-   */
-  setCoordinationPattern(pattern: CoordinationPattern): void {
-    this.collectiveState = {
-      ...this.collectiveState,
-      coordinationPattern: pattern,
-    };
-    this.logger.info('Updated coordination pattern', { pattern });
   }
 
   /**
@@ -122,13 +163,30 @@ export class CollectiveAgent extends BaseAgent {
         input,
         subAgents: this.collectiveState.subAgents.length,
         strategy: this.collectiveState.distributionStrategy,
+        collectiveId: this.collectiveId,
       });
 
-      // Break down task into subtasks
-      const subtasks = await this.decomposeTask(input);
+      // Create root task (Vision level)
+      const rootTask = createCollectiveTask(
+        this.collectiveId,
+        'Root Task',
+        input,
+        TaskLevel.VISION,
+        {
+          priority: 100,
+        },
+      );
+      this.tasks.set(rootTask.id, rootTask);
+      this.sharedMemory.storeTask(rootTask);
+
+      // Decompose task into 8-level hierarchy
+      const taskHierarchy = await this.decomposeTaskHierarchy(rootTask, input);
+
+      // Detect and handle deadlocks
+      await this.checkAndResolveDeadlocks();
 
       // Distribute tasks to sub-agents
-      const assignments = this.distributeTasks(subtasks);
+      const assignments = await this.distributeTasksIntelligently(taskHierarchy);
 
       // Execute based on coordination pattern
       let results: SubAgentResult[];
@@ -150,17 +208,18 @@ export class CollectiveAgent extends BaseAgent {
       this.collectiveState = {
         ...this.collectiveState,
         totalTasksProcessed:
-          this.collectiveState.totalTasksProcessed + subtasks.length,
+          this.collectiveState.totalTasksProcessed + taskHierarchy.length,
       };
 
       return {
         status: 'success',
         output: String(aggregated.finalResult),
         metadata: {
-          subtasks: subtasks.length,
+          subtasks: taskHierarchy.length,
           subAgents: this.collectiveState.subAgents.length,
           strategy: this.collectiveState.distributionStrategy,
           pattern: this.collectiveState.coordinationPattern,
+          collectiveId: this.collectiveId,
         },
       };
     } catch (error) {
@@ -179,110 +238,414 @@ export class CollectiveAgent extends BaseAgent {
   }
 
   /**
-   * Streaming execution - implements BaseAgent.runStream()
+   * Decompose task into 8-level hierarchy (Vision → Subtask)
    */
-  protected async *runStream(
+  private async decomposeTaskHierarchy(
+    rootTask: CollectiveTask,
     input: string,
-    context: ExecutionContext,
-  ): AsyncGenerator<string> {
-    yield `🤝 Collective Agent: Starting coordination\n`;
-    yield `Sub-agents: ${this.collectiveState.subAgents.length}\n`;
-    yield `Strategy: ${this.collectiveState.distributionStrategy}\n\n`;
+  ): Promise<CollectiveTask[]> {
+    const hierarchy: CollectiveTask[] = [rootTask];
 
-    // Decompose task
-    yield `📋 Decomposing task into subtasks...\n`;
-    const subtasks = await this.decomposeTask(input);
-    yield `Created ${subtasks.length} subtasks\n\n`;
-
-    // Distribute tasks
-    yield `📤 Distributing tasks to sub-agents...\n`;
-    const assignments = this.distributeTasks(subtasks);
-    for (const assignment of assignments) {
-      yield `- Assigned task to ${assignment.agentId}\n`;
-    }
-    yield `\n`;
-
-    // Execute
-    yield `⚙️ Executing tasks...\n`;
-    const results = await this.executeParallel(assignments);
-    yield `Completed ${results.length} tasks\n\n`;
-
-    // Aggregate
-    yield `📊 Aggregating results...\n`;
-    const aggregated = this.aggregateResults(results);
-    yield `\n${String(aggregated.finalResult)}\n`;
-  }
-
-  /**
-   * Decompose task into subtasks using LLM
-   */
-  private async decomposeTask(input: string): Promise<Task[]> {
+    // Use LLM to decompose into hierarchical structure
     const response = await this.llmProvider.complete({
       model: this.config.model || 'gpt-4',
       messages: [
         {
           role: 'system',
-          content:
-            'You are a task decomposition expert. Break down complex tasks into smaller subtasks.',
+          content: `You are a project management expert. Break down tasks into an 8-level hierarchy:
+Level 0: Vision (overall goal)
+Level 1: Portfolio (major initiatives)
+Level 2: Program (programs within portfolio)
+Level 3: Epic (large features)
+Level 4: Feature (features within epic)
+Level 5: Story (user stories)
+Level 6: Task (specific tasks)
+Level 7: Subtask (subtasks within task)
+
+Return a JSON array of tasks with: level (0-7), title, description, dependencies (array of task indices), priority (0-100).`,
         },
         {
           role: 'user',
-          content: `Decompose this task into 3-5 subtasks:\n${input}`,
+          content: `Decompose this task: ${input}`,
         },
       ],
       temperature: this.config.temperature || 0.5,
-      maxTokens: 500,
+      maxTokens: 2000,
     });
 
-    // Parse subtasks from response
-    const subtaskLines = response.content
-      .split('\n')
-      .filter(
-        (line) =>
-          line.trim().length > 0 && (line.match(/^\d+\./) || line.match(/^-/)),
-      )
-      .slice(0, 5);
+    // Parse hierarchy from response
+    try {
+      const parsed = JSON.parse(response.content);
+      const tasks = Array.isArray(parsed) ? parsed : parsed.tasks || [];
 
-    return subtaskLines.map((line, idx) => ({
-      taskId: `task_${idx}`,
-      description: line
-        .replace(/^\d+\.\s*/, '')
-        .replace(/^-\s*/, '')
-        .trim(),
-      input: line,
-      priority: 'medium' as const,
-      timeout: 30000,
-      createdAt: new Date(),
-    }));
+      for (const taskData of tasks) {
+        const task = createCollectiveTask(
+          this.collectiveId,
+          taskData.title || taskData.name || 'Untitled Task',
+          taskData.description || taskData.desc || '',
+          (taskData.level || 6) as TaskLevel,
+          {
+            parentTaskId:
+              taskData.parentIndex !== undefined
+                ? hierarchy[taskData.parentIndex]?.id
+                : rootTask.id,
+            dependencies: taskData.dependencies
+              ? taskData.dependencies.map((idx: number) => hierarchy[idx]?.id).filter(Boolean)
+              : [],
+            priority: taskData.priority || 50,
+          },
+        );
+
+        hierarchy.push(task);
+        this.tasks.set(task.id, task);
+        this.sharedMemory.storeTask(task);
+      }
+    } catch (error) {
+      this.logger.warn('Failed to parse task hierarchy, using simple decomposition', {});
+      // Fallback to simple decomposition
+      const simpleTasks = await this.decomposeTask(input);
+      for (const simpleTask of simpleTasks) {
+        const task = createCollectiveTask(
+          this.collectiveId,
+          simpleTask.description,
+          simpleTask.description,
+          TaskLevel.TASK,
+          {
+            parentTaskId: rootTask.id,
+            priority: 50,
+          },
+        );
+        hierarchy.push(task);
+        this.tasks.set(task.id, task);
+        this.sharedMemory.storeTask(task);
+      }
+    }
+
+    return hierarchy;
   }
 
   /**
-   * Distribute tasks to sub-agents
+   * Distribute tasks intelligently using TaskAssignmentService
    */
-  private distributeTasks(tasks: Task[]): TaskAssignment[] {
-    const activeAgents = this.collectiveState.subAgents.filter(
-      (sa) => sa.isActive,
-    );
+  private async distributeTasksIntelligently(
+    tasks: CollectiveTask[],
+  ): Promise<TaskAssignment[]> {
+    const assignments: TaskAssignment[] = [];
+    const availableAgents = this.collectiveState.subAgents
+      .filter((sa) => sa.isActive)
+      .map((sa) => sa.agentId);
 
-    if (activeAgents.length === 0) {
+    if (availableAgents.length === 0) {
       throw new Error('No active sub-agents available');
     }
 
-    const assignments: TaskAssignment[] = [];
+    // Sort tasks by priority (highest first)
+    const sortedTasks = [...tasks].sort((a, b) => b.priority - a.priority);
 
-    // Simple round-robin distribution
-    tasks.forEach((task, idx) => {
-      const agent = activeAgents[idx % activeAgents.length];
-      assignments.push({
-        assignmentId: `assignment_${idx}`,
-        taskId: task.taskId,
-        agentId: agent.agentId,
-        assignedAt: new Date(),
-        status: 'pending',
+    for (const task of sortedTasks) {
+      // Skip if already assigned or has unmet dependencies
+      if (task.assignedAgentId || task.state !== TaskState.UNASSIGNED) {
+        continue;
+      }
+
+      // Check dependencies
+      const canExecute = task.dependencies.every((depId) => {
+        const depTask = this.tasks.get(depId);
+        return depTask?.state === TaskState.COMPLETED;
       });
-    });
+
+      if (!canExecute) {
+        task.state = TaskState.BLOCKED;
+        task.blockedBy = task.dependencies.filter((depId) => {
+          const depTask = this.tasks.get(depId);
+          return depTask?.state !== TaskState.COMPLETED;
+        });
+        this.tasks.set(task.id, task);
+        continue;
+      }
+
+      // Assign using TaskAssignmentService
+      const assignedAgentId = await this.taskAssignment.assignTask(
+        task,
+        availableAgents,
+      );
+
+      if (assignedAgentId) {
+        task.assignedAgentId = assignedAgentId;
+        task.state = TaskState.ASSIGNED;
+        this.tasks.set(task.id, task);
+
+        assignments.push({
+          assignmentId: `assignment_${Date.now()}_${assignments.length}`,
+          taskId: task.id,
+          agentId: assignedAgentId,
+          assignedAt: new Date(),
+          status: 'pending',
+        });
+
+        // Send task assignment message to agent
+        await this.communication.delegateTask(
+          this.collectiveId,
+          'pm_agent',
+          assignedAgentId,
+          task.description,
+          {
+            taskId: task.id,
+            priority: this.getPriorityFromTask(task),
+          },
+        );
+      }
+    }
 
     return assignments;
+  }
+
+  /**
+   * Check and resolve deadlocks
+   */
+  private async checkAndResolveDeadlocks(): Promise<void> {
+    const tasks = Array.from(this.tasks.values());
+    const deadlocks = await this.deadlockDetection.detectDeadlocks(tasks);
+
+    if (deadlocks.length > 0) {
+      this.logger.warn(`Detected ${deadlocks.length} deadlocks`, {});
+
+      for (const deadlock of deadlocks) {
+        // Resolve by escalating to PM or breaking cycle
+        if (deadlock.severity === 'high') {
+          // Escalate to PM agent
+          await this.communication.askPM(
+            this.collectiveId,
+            'pm_agent',
+            `Deadlock detected: ${deadlock.cycle.join(' → ')}. Please resolve.`,
+            {
+              metadata: { deadlock: deadlock.cycle },
+            },
+          );
+        } else {
+          // Auto-resolve by breaking lowest priority task dependency
+          this.breakDeadlockCycle(deadlock.cycle);
+        }
+      }
+    }
+  }
+
+  /**
+   * Break deadlock cycle by removing lowest priority dependency
+   */
+  private breakDeadlockCycle(cycle: string[]): void {
+    if (cycle.length === 0) return;
+
+    // Find task with lowest priority
+    const cycleTasks = cycle
+      .map((id) => this.tasks.get(id))
+      .filter((t): t is CollectiveTask => t !== undefined);
+
+    if (cycleTasks.length === 0) return;
+
+    const lowestPriorityTask = cycleTasks.reduce((lowest, current) =>
+      current.priority < lowest.priority ? current : lowest,
+    );
+
+    // Remove one dependency to break cycle
+    if (lowestPriorityTask.dependencies.length > 0) {
+      const removedDep = lowestPriorityTask.dependencies[0];
+      lowestPriorityTask.dependencies = lowestPriorityTask.dependencies.filter(
+        (d) => d !== removedDep,
+      );
+      lowestPriorityTask.blockedBy = lowestPriorityTask.blockedBy.filter(
+        (b) => b !== removedDep,
+      );
+
+      if (lowestPriorityTask.blockedBy.length === 0) {
+        lowestPriorityTask.state = TaskState.UNASSIGNED;
+      }
+
+      this.tasks.set(lowestPriorityTask.id, lowestPriorityTask);
+      this.logger.info(
+        `Broke deadlock by removing dependency from task ${lowestPriorityTask.id}`,
+        {},
+      );
+    }
+  }
+
+  /**
+   * Start PM main loop (processes messages, assigns tasks, monitors)
+   */
+  private startPMLoop(): void {
+    this.pmLoopInterval = setInterval(() => {
+      this.runPMMainLoop().catch((error) => {
+        this.logger.error('PM loop error', error as Record<string, unknown>);
+      });
+    }, 1000); // Run every second
+
+    // Start deadlock check interval
+    this.deadlockCheckInterval = setInterval(() => {
+      this.checkAndResolveDeadlocks().catch((error) => {
+        this.logger.error('Deadlock check error', error as Record<string, unknown>);
+      });
+    }, this.config.deadlockCheckInterval || 30000);
+  }
+
+  /**
+   * PM main loop - processes messages and assigns tasks
+   */
+  private async runPMMainLoop(): Promise<void> {
+    // Process high-priority messages first
+    const criticalMessage = await this.messageQueue.getNextMessage('pm_agent');
+    if (criticalMessage) {
+      await this.handlePMessage(criticalMessage);
+      await this.messageQueue.markDelivered(criticalMessage.id);
+    }
+
+    // Assign pending tasks to available agents
+    const unassignedTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.state === TaskState.UNASSIGNED,
+    );
+
+    if (unassignedTasks.length > 0) {
+      await this.distributeTasksIntelligently(unassignedTasks);
+    }
+
+    // Process normal-priority messages
+    const normalMessage = await this.messageQueue.getNextMessage('pm_agent');
+    if (normalMessage && normalMessage.priority !== MessagePriority.CRITICAL) {
+      await this.handlePMessage(normalMessage);
+      await this.messageQueue.markDelivered(normalMessage.id);
+    }
+  }
+
+  /**
+   * Handle message for PM agent
+   */
+  private async handlePMessage(message: CollectiveMessage): Promise<void> {
+    switch (message.type) {
+      case MessageType.HELP_REQUEST:
+        // Agent asking for help - provide guidance
+        await this.handleHelpRequest(message);
+        break;
+      case MessageType.STATUS_UPDATE:
+        // Agent status update - update task state
+        await this.handleStatusUpdate(message);
+        break;
+      case MessageType.RESULT:
+        // Task result - update task and artifacts
+        await this.handleTaskResult(message);
+        break;
+      default:
+        this.logger.debug(`PM received message type: ${message.type}`, {});
+    }
+  }
+
+  /**
+   * Handle help request from agent
+   */
+  private async handleHelpRequest(message: CollectiveMessage): Promise<void> {
+    const taskId = message.taskId;
+    if (!taskId) return;
+
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+
+    // Provide guidance via communication service
+    await this.communication.pmDirective(
+      this.collectiveId,
+      message.sourceAgentId,
+      `Guidance for task ${taskId}: Review related artifacts and context.`,
+      {
+        taskId,
+      },
+    );
+  }
+
+  /**
+   * Handle status update from agent
+   */
+  private async handleStatusUpdate(message: CollectiveMessage): Promise<void> {
+    const taskId = message.taskId;
+    if (!taskId) return;
+
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+
+    // Update task state based on message content
+    if (message.content.includes('started')) {
+      task.state = TaskState.IN_PROGRESS;
+      task.startedAt = new Date();
+    } else if (message.content.includes('blocked')) {
+      task.state = TaskState.BLOCKED;
+    }
+
+    this.tasks.set(task.id, task);
+  }
+
+  /**
+   * Handle task result from agent
+   */
+  private async handleTaskResult(message: CollectiveMessage): Promise<void> {
+    const taskId = message.taskId;
+    if (!taskId) return;
+
+    const task = this.tasks.get(taskId);
+    if (!task || !task.assignedAgentId) return;
+
+    // Mark task as completed
+    task.state = TaskState.COMPLETED;
+    task.completedAt = new Date();
+    this.tasks.set(task.id, task);
+
+    // Create artifact from result
+    const artifact = createCollectiveArtifact(
+      this.collectiveId,
+      taskId,
+      `Result for ${task.title}`,
+      message.content,
+      task.assignedAgentId,
+      {
+        type: ArtifactType.OTHER,
+        description: `Result from task: ${task.title}`,
+      },
+    );
+
+    await this.sharedMemory.createArtifact(artifact);
+    this.artifacts.set(artifact.id, artifact);
+
+    // Release agent load
+    this.taskAssignment.releaseTask(task.assignedAgentId);
+
+    // Update stats
+    const stats = this.collectiveState.subAgentStats.find(
+      (s) => s.agentId === task.assignedAgentId,
+    );
+    if (stats) {
+      const newStats: SubAgentStats = {
+        ...stats,
+        tasksCompleted: stats.tasksCompleted + 1,
+        successRate:
+          (stats.tasksCompleted + 1) /
+          (stats.tasksCompleted + stats.tasksFailed + 1),
+        lastTaskAt: new Date(),
+      };
+      this.collectiveState = {
+        ...this.collectiveState,
+        subAgentStats: this.collectiveState.subAgentStats.map((s) =>
+          s.agentId === task.assignedAgentId ? newStats : s,
+        ),
+      };
+    }
+
+    // Unblock dependent tasks
+    for (const dependentTask of this.tasks.values()) {
+      if (dependentTask.dependencies.includes(taskId)) {
+        dependentTask.blockedBy = dependentTask.blockedBy.filter(
+          (b) => b !== taskId,
+        );
+        if (dependentTask.blockedBy.length === 0) {
+          dependentTask.state = TaskState.UNASSIGNED;
+        }
+        this.tasks.set(dependentTask.id, dependentTask);
+      }
+    }
   }
 
   /**
@@ -314,57 +677,54 @@ export class CollectiveAgent extends BaseAgent {
   }
 
   /**
-   * Execute a single task
+   * Execute a single task (simplified - in real implementation would delegate to agent)
    */
   private async executeTask(
     assignment: TaskAssignment,
   ): Promise<SubAgentResult> {
     const startTime = Date.now();
+    const task = this.tasks.get(assignment.taskId);
+
+    if (!task) {
+      throw new Error(`Task ${assignment.taskId} not found`);
+    }
 
     try {
-      // Simulate task execution using LLM
+      // Get task context from shared memory
+      const context = await this.sharedMemory.getTaskContext(
+        this.collectiveId,
+        task.id,
+      );
+
+      // Simulate task execution (in real implementation, delegate to agent)
+      // For now, we'll use LLM to simulate agent execution
       const response = await this.llmProvider.complete({
         model: this.config.model || 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant executing a subtask.',
+            content: `You are executing task: ${task.title}\nDescription: ${task.description}`,
           },
           {
             role: 'user',
-            content: `Execute task: ${assignment.taskId}`,
+            content: `Execute this task with context from related artifacts.`,
           },
         ],
         temperature: 0.7,
-        maxTokens: 300,
+        maxTokens: 500,
       });
 
       const executionTime = Date.now() - startTime;
 
-      // Update stats immutably
-      const stats = this.collectiveState.subAgentStats.find(
-        (s) => s.agentId === assignment.agentId,
+      // Send result via communication service
+      await this.communication.sendResult(
+        this.collectiveId,
+        assignment.agentId,
+        response.content,
+        {
+          taskId: task.id,
+        },
       );
-      if (stats) {
-        const newStats: SubAgentStats = {
-          ...stats,
-          tasksCompleted: stats.tasksCompleted + 1,
-          averageExecutionTime:
-            (stats.averageExecutionTime * stats.tasksCompleted +
-              executionTime) /
-            (stats.tasksCompleted + 1),
-          successRate:
-            (stats.tasksCompleted + 1) /
-            (stats.tasksCompleted + stats.tasksFailed + 1),
-          lastTaskAt: new Date(),
-        };
-        this.collectiveState = {
-          ...this.collectiveState,
-          subAgentStats: this.collectiveState.subAgentStats.map((s) =>
-            s.agentId === assignment.agentId ? newStats : s,
-          ),
-        };
-      }
 
       return {
         resultId: `result_${Date.now()}`,
@@ -423,10 +783,25 @@ export class CollectiveAgent extends BaseAgent {
       };
     }
 
-    // Simple concatenation
-    const finalResult = successfulResults
-      .map((r, idx) => `${idx + 1}. ${String(r.output)}`)
-      .join('\n\n');
+    // Aggregate based on method
+    let finalResult: string;
+    switch (this.collectiveState.aggregationMethod) {
+      case AggregationMethod.CONSENSUS:
+        // Use LLM to synthesize consensus
+        finalResult = successfulResults
+          .map((r) => String(r.output))
+          .join('\n\n');
+        break;
+      case AggregationMethod.ALL_RESULTS:
+        finalResult = successfulResults
+          .map((r, idx) => `${idx + 1}. ${String(r.output)}`)
+          .join('\n\n');
+        break;
+      default:
+        finalResult = successfulResults
+          .map((r) => String(r.output))
+          .join('\n\n');
+    }
 
     return {
       aggregationId: `agg_${Date.now()}`,
@@ -437,5 +812,69 @@ export class CollectiveAgent extends BaseAgent {
       conflicts: [],
       timestamp: new Date(),
     };
+  }
+
+  /**
+   * Decompose task (fallback method)
+   */
+  private async decomposeTask(input: string): Promise<Task[]> {
+    const response = await this.llmProvider.complete({
+      model: this.config.model || 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a task decomposition expert. Break down complex tasks into smaller subtasks.',
+        },
+        {
+          role: 'user',
+          content: `Decompose this task into 3-5 subtasks:\n${input}`,
+        },
+      ],
+      temperature: this.config.temperature || 0.5,
+      maxTokens: 500,
+    });
+
+    const subtaskLines = response.content
+      .split('\n')
+      .filter(
+        (line) =>
+          line.trim().length > 0 && (line.match(/^\d+\./) || line.match(/^-/)),
+      )
+      .slice(0, 5);
+
+    return subtaskLines.map((line, idx) => ({
+      taskId: `task_${idx}`,
+      description: line
+        .replace(/^\d+\.\s*/, '')
+        .replace(/^-\s*/, '')
+        .trim(),
+      input: line,
+      priority: 'medium' as const,
+      timeout: 30000,
+      createdAt: new Date(),
+    }));
+  }
+
+  /**
+   * Convert task priority to message priority
+   */
+  private getPriorityFromTask(task: CollectiveTask): MessagePriority {
+    if (task.priority >= 80) return MessagePriority.HIGH;
+    if (task.priority >= 60) return MessagePriority.NORMAL;
+    if (task.priority >= 40) return MessagePriority.LOW;
+    return MessagePriority.BACKGROUND;
+  }
+
+  /**
+   * Cleanup on destroy
+   */
+  destroy(): void {
+    if (this.pmLoopInterval) {
+      clearInterval(this.pmLoopInterval);
+    }
+    if (this.deadlockCheckInterval) {
+      clearInterval(this.deadlockCheckInterval);
+    }
   }
 }

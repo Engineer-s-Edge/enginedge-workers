@@ -28,6 +28,12 @@ export class DocumentModel extends MongooseDocument {
   userId?: string;
 
   @Prop()
+  ownerId?: string;
+
+  @Prop({ type: [String] })
+  allowedUserIds?: string[];
+
+  @Prop()
   conversationId?: string;
 
   @Prop()
@@ -53,6 +59,8 @@ DocumentSchema.index({ content: 'text', 'metadata.source': 'text' });
 
 // Create index for user and conversation filtering
 DocumentSchema.index({ userId: 1, conversationId: 1 });
+DocumentSchema.index({ ownerId: 1 });
+DocumentSchema.index({ allowedUserIds: 1 });
 
 // Create index for parent-child relationships
 DocumentSchema.index({ parentDocumentId: 1, chunkIndex: 1 });

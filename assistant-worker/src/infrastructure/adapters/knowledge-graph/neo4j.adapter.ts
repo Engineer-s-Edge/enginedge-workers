@@ -20,6 +20,48 @@ export enum ICSLayer {
 }
 
 /**
+ * Research status for knowledge graph nodes
+ */
+export enum ResearchStatus {
+  UNRESEARCHED = 'unresearched',
+  IN_PROGRESS = 'in_progress',
+  RESEARCHED = 'researched',
+  NEEDS_UPDATE = 'needs_update',
+  DUBIOUS = 'dubious',
+}
+
+/**
+ * Source citation for node information
+ */
+export interface SourceCitation {
+  url?: string;
+  title?: string;
+  author?: string;
+  retrievedAt: Date;
+  sourceType: 'web' | 'academic' | 'document' | 'user' | 'llm';
+}
+
+/**
+ * Research data gathered during research phase
+ */
+export interface ResearchData {
+  summary?: string;
+  keyPoints?: string[];
+  examples?: string[];
+  relatedConcepts?: string[];
+  equations?: string[];
+}
+
+/**
+ * Node lock information
+ */
+export interface NodeLock {
+  lockedBy: string; // Agent ID or user ID
+  lockedAt: Date;
+  reason: string;
+}
+
+/**
  * Knowledge Graph Node
  */
 export interface KGNode {
@@ -30,6 +72,14 @@ export interface KGNode {
   properties: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
+  lock?: NodeLock;
+  researchStatus?: ResearchStatus;
+  confidence?: number;
+  validationCount?: number;
+  validatedBy?: string[];
+  sources?: SourceCitation[];
+  researchData?: ResearchData;
+  graphComponentId?: string;
 }
 
 /**
@@ -41,6 +91,10 @@ export interface KGEdge {
   to: string; // Target node ID
   type: string; // Relationship type
   properties: Record<string, any>;
+  weight?: number;
+  confidence?: number;
+  equation?: string;
+  rationale?: string;
   createdAt: Date;
 }
 
@@ -87,6 +141,11 @@ export class Neo4jAdapter {
       properties,
       createdAt: new Date(),
       updatedAt: new Date(),
+      researchStatus: ResearchStatus.UNRESEARCHED,
+      confidence: 0.5,
+      validationCount: 0,
+      validatedBy: [],
+      sources: [],
     };
 
     // Mock storage (replace with actual Neo4j operation)
@@ -199,6 +258,10 @@ export class Neo4jAdapter {
     to: string,
     type: string,
     properties: Record<string, any> = {},
+    weight?: number,
+    confidence?: number,
+    equation?: string,
+    rationale?: string,
   ): Promise<KGEdge> {
     // Verify nodes exist
     if (!this.nodes.has(from) || !this.nodes.has(to)) {
@@ -211,6 +274,10 @@ export class Neo4jAdapter {
       to,
       type,
       properties,
+      weight: weight ?? 1.0,
+      confidence: confidence ?? 0.7,
+      equation,
+      rationale,
       createdAt: new Date(),
     };
 
@@ -446,6 +513,253 @@ export class Neo4jAdapter {
     // } finally {
     //   await session.close();
     // }
+  }
+
+  /**
+   * Lock a node for exclusive access
+   * @param nodeId Node to lock
+   * @param actorId ID of agent/user acquiring the lock
+   * @param reason Reason for locking
+   * @returns true if lock acquired, false if already locked
+   */
+  async lockNode(
+    nodeId: string,
+    actorId: string,
+    reason: string,
+  ): Promise<boolean> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return false;
+    }
+
+    // Check if already locked by someone else
+    if (node.lock && node.lock.lockedBy !== actorId) {
+      return false;
+    }
+
+    // Lock the node
+    node.lock = {
+      lockedBy: actorId,
+      lockedAt: new Date(),
+      reason,
+    };
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+
+    // In production:
+    // const session = this.driver.session();
+    // try {
+    //   const result = await session.run(
+    //     'MATCH (n:Node {id: $id}) WHERE NOT EXISTS(n.lock) OR n.lock.lockedBy = $actorId SET n.lock = {lockedBy: $actorId, lockedAt: $lockedAt, reason: $reason}, n.updatedAt = $updatedAt RETURN n',
+    //     { id: nodeId, actorId, lockedAt: new Date().toISOString(), reason, updatedAt: new Date().toISOString() }
+    //   );
+    //   return result.records.length > 0;
+    // } finally {
+    //   await session.close();
+    // }
+
+    return true;
+  }
+
+  /**
+   * Unlock a node
+   * @param nodeId Node to unlock
+   * @param actorId ID of agent/user releasing the lock (must match lock owner)
+   * @returns true if unlocked, false if not locked or wrong actor
+   */
+  async unlockNode(nodeId: string, actorId: string): Promise<boolean> {
+    const node = this.nodes.get(nodeId);
+    if (!node || !node.lock) {
+      return false;
+    }
+
+    // Check if actor owns the lock
+    if (node.lock.lockedBy !== actorId) {
+      return false;
+    }
+
+    // Unlock the node
+    delete node.lock;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+
+    // In production:
+    // const session = this.driver.session();
+    // try {
+    //   const result = await session.run(
+    //     'MATCH (n:Node {id: $id}) WHERE n.lock.lockedBy = $actorId REMOVE n.lock SET n.updatedAt = $updatedAt RETURN n',
+    //     { id: nodeId, actorId, updatedAt: new Date().toISOString() }
+    //   );
+    //   return result.records.length > 0;
+    // } finally {
+    //   await session.close();
+    // }
+
+    return true;
+  }
+
+  /**
+   * Get unresearched nodes, optionally filtered by layer
+   */
+  async getUnresearchedNodes(layer?: ICSLayer): Promise<KGNode[]> {
+    return Array.from(this.nodes.values()).filter((node) => {
+      if (node.researchStatus !== ResearchStatus.UNRESEARCHED && node.researchStatus !== undefined) {
+        return false;
+      }
+      if (layer && node.layer !== layer) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Lock a node for research
+   */
+  async lockNodeForResearch(nodeId: string, agentId: string): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    const locked = await this.lockNode(nodeId, agentId, 'research_in_progress');
+    if (!locked) {
+      return null;
+    }
+
+    node.researchStatus = ResearchStatus.IN_PROGRESS;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Add research data to a node
+   */
+  async addResearchData(
+    nodeId: string,
+    researchData: ResearchData,
+    sources: SourceCitation[],
+    confidence: number,
+  ): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    node.researchData = researchData;
+    node.sources = [...(node.sources || []), ...sources];
+    node.confidence = Math.max(node.confidence || 0.5, confidence);
+    node.researchStatus = ResearchStatus.RESEARCHED;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Mark a node as dubious
+   */
+  async markNodeAsDubious(nodeId: string, agentId: string): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    node.researchStatus = ResearchStatus.DUBIOUS;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Validate a node (increase confidence)
+   */
+  async validateNode(nodeId: string, agentId: string): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    node.validationCount = (node.validationCount || 0) + 1;
+    node.validatedBy = [...(node.validatedBy || []), agentId];
+    node.confidence = Math.min(1.0, (node.confidence || 0.5) + 0.1);
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Get connected edges for a node
+   */
+  async getConnectedEdges(nodeId: string): Promise<KGEdge[]> {
+    return Array.from(this.edges.values()).filter(
+      (edge) => edge.from === nodeId || edge.to === nodeId,
+    );
+  }
+
+  /**
+   * Get outgoing edges from a node
+   */
+  async getOutgoingEdges(nodeId: string, type?: string): Promise<KGEdge[]> {
+    return Array.from(this.edges.values()).filter((edge) => {
+      if (edge.from !== nodeId) {
+        return false;
+      }
+      if (type && edge.type !== type) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Get incoming edges to a node
+   */
+  async getIncomingEdges(nodeId: string, type?: string): Promise<KGEdge[]> {
+    return Array.from(this.edges.values()).filter((edge) => {
+      if (edge.to !== nodeId) {
+        return false;
+      }
+      if (type && edge.type !== type) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Find edge between two nodes
+   */
+  async findEdgeBetween(from: string, to: string, type?: string): Promise<KGEdge | null> {
+    for (const edge of this.edges.values()) {
+      if (edge.from === from && edge.to === to) {
+        if (!type || edge.type === type) {
+          return edge;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find or create a node
+   */
+  async findOrCreateNode(
+    label: string,
+    type: string,
+    layer: ICSLayer,
+    properties: Record<string, any> = {},
+  ): Promise<KGNode> {
+    // Try to find existing node
+    const existing = Array.from(this.nodes.values()).find(
+      (n) => n.label === label && n.type === type && n.layer === layer,
+    );
+    if (existing) {
+      return existing;
+    }
+
+    // Create new node
+    return await this.createNode(label, type, layer, properties);
   }
 
   /**

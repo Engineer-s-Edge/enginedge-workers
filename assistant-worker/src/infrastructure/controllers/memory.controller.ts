@@ -22,6 +22,7 @@ import {
   MemoryType,
 } from '@application/services/memory.service';
 import { Message, MessageRole } from '@domain/value-objects/message.vo';
+import { ConversationsService } from '@application/services/conversations.service';
 import { ILogger } from '@application/ports/logger.port';
 
 /**
@@ -33,6 +34,7 @@ export class MemoryController {
     private readonly memoryService: MemoryService,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    private readonly conversations?: ConversationsService,
   ) {}
 
   /**
@@ -63,6 +65,20 @@ export class MemoryController {
       message,
       body.memoryType || 'buffer',
     );
+
+    // Also append to conversations event log if service available
+    try {
+      if (this.conversations) {
+        await this.conversations.addMessage(conversationId, {
+          messageId: message.id,
+          role: body.role,
+          content: body.content,
+          metadata: body.metadata,
+        });
+      }
+    } catch (e) {
+      this.logger.warn('Failed to mirror memory message to conversations', { conversationId });
+    }
 
     return {
       success: true,

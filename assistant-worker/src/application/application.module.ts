@@ -22,6 +22,8 @@ import { CheckpointService } from './services/checkpoint.service';
 import { HITLService } from './services/hitl.service';
 import { ExecuteAgentUseCase } from './use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.use-case';
+import { CollectiveModule } from './services/collective/collective.module';
+import { AgentExecutionService } from './services/agent-execution.service';
 
 /**
  * Application module - use cases and application services
@@ -32,6 +34,7 @@ import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.
 @Module({
   imports: [
     DomainModule, // Domain services (AgentFactory, MemoryManager, etc.)
+    CollectiveModule, // Collective infrastructure services
   ],
   providers: [
     // Core Services
@@ -44,6 +47,7 @@ import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.
     // Advanced Services (Phase 5)
     CheckpointService,
     HITLService,
+    AgentExecutionService,
 
     // Use Cases
     ExecuteAgentUseCase,
@@ -61,10 +65,14 @@ import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.
     AgentSessionService,
     CheckpointService,
     HITLService,
+    AgentExecutionService,
 
     // Export use cases for controllers
     ExecuteAgentUseCase,
     StreamAgentExecutionUseCase,
+
+    // Export collective module
+    CollectiveModule,
   ],
 })
 export class ApplicationModule {}

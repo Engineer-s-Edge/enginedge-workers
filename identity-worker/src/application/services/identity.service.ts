@@ -70,6 +70,14 @@ export class IdentityService {
       refreshToken,
       tokenType: 'Bearer',
       expiresIn: process.env.ACCESS_TOKEN_TTL || '15m',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        tenantId: user.tenantId,
+        tenantSlug: tenant?.slug,
+        roles,
+      },
     };
   }
 

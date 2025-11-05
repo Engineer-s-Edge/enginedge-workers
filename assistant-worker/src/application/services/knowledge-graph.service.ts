@@ -5,7 +5,7 @@
  * Supports ICS (Integrated Concept Synthesis) methodology.
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
 import {
   Neo4jAdapter,
@@ -13,7 +13,11 @@ import {
   KGNode,
   KGEdge,
   QueryResult,
+  ResearchStatus,
+  SourceCitation,
+  ResearchData,
 } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
+import { GraphComponentService } from './graph-component.service';
 
 /**
  * Knowledge Graph Service
@@ -24,6 +28,8 @@ export class KnowledgeGraphService {
     private readonly neo4jAdapter: Neo4jAdapter,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Optional()
+    private readonly componentService?: GraphComponentService,
   ) {}
 
   /**
@@ -37,7 +43,15 @@ export class KnowledgeGraphService {
   ): Promise<KGNode> {
     this.logger.info('Adding node to knowledge graph', { label, type, layer });
 
-    return await this.neo4jAdapter.createNode(label, type, layer, properties);
+    const node = await this.neo4jAdapter.createNode(label, type, layer, properties);
+
+    // Create component for new node if component service is available
+    if (this.componentService) {
+      const category = properties?.category || type;
+      await this.componentService.createComponent(node.id, category);
+    }
+
+    return node;
   }
 
   /**
@@ -332,5 +346,291 @@ export class KnowledgeGraphService {
     }
 
     return path;
+  }
+
+  /**
+   * Lock a node for exclusive access
+   * @param nodeId Node to lock
+   * @param actorId ID of agent/user acquiring the lock
+   * @param reason Reason for locking
+   * @returns true if lock acquired, false if already locked
+   */
+  async lockNode(nodeId: string, actorId: string, reason: string): Promise<boolean> {
+    this.logger.info('Locking node', { nodeId, actorId, reason });
+    return await this.neo4jAdapter.lockNode(nodeId, actorId, reason);
+  }
+
+  /**
+   * Unlock a node
+   * @param nodeId Node to unlock
+   * @param actorId ID of agent/user releasing the lock (must match lock owner)
+   * @returns true if unlocked, false if not locked or wrong actor
+   */
+  async unlockNode(nodeId: string, actorId: string): Promise<boolean> {
+    this.logger.info('Unlocking node', { nodeId, actorId });
+    return await this.neo4jAdapter.unlockNode(nodeId, actorId);
+  }
+
+  // ============================
+  // Research Operations
+  // ============================
+
+  /**
+   * Get all unresearched nodes, optionally filtered by layer
+   */
+  async getUnresearchedNodes(layer?: ICSLayer): Promise<KGNode[]> {
+    return await this.neo4jAdapter.getUnresearchedNodes(layer);
+  }
+
+  /**
+   * Lock a node for research
+   */
+  async lockNodeForResearch(nodeId: string, agentId: string): Promise<KGNode | null> {
+    this.logger.info('Locking node for research', { nodeId, agentId });
+    return await this.neo4jAdapter.lockNodeForResearch(nodeId, agentId);
+  }
+
+  /**
+   * Add research data to a node
+   */
+  async addResearchData(
+    nodeId: string,
+    researchData: ResearchData,
+    sources: SourceCitation[],
+    confidence: number,
+  ): Promise<KGNode | null> {
+    this.logger.info('Adding research data to node', { nodeId });
+    return await this.neo4jAdapter.addResearchData(nodeId, researchData, sources, confidence);
+  }
+
+  /**
+   * Mark a node as dubious
+   */
+  async markNodeAsDubious(nodeId: string, agentId: string): Promise<KGNode | null> {
+    this.logger.warn('Marking node as dubious', { nodeId, agentId });
+    return await this.neo4jAdapter.markNodeAsDubious(nodeId, agentId);
+  }
+
+  /**
+   * Validate a node (increase confidence)
+   */
+  async validateNode(nodeId: string, agentId: string): Promise<KGNode | null> {
+    this.logger.info('Validating node', { nodeId, agentId });
+    return await this.neo4jAdapter.validateNode(nodeId, agentId);
+  }
+
+  // ============================
+  // Enhanced Edge Operations
+  // ============================
+
+  /**
+   * Get all edges connected to a node
+   */
+  async getConnectedEdges(nodeId: string): Promise<KGEdge[]> {
+    return await this.neo4jAdapter.getConnectedEdges(nodeId);
+  }
+
+  /**
+   * Get outgoing edges from a node
+   */
+  async getOutgoingEdges(nodeId: string, type?: string): Promise<KGEdge[]> {
+    return await this.neo4jAdapter.getOutgoingEdges(nodeId, type);
+  }
+
+  /**
+   * Get incoming edges to a node
+   */
+  async getIncomingEdges(nodeId: string, type?: string): Promise<KGEdge[]> {
+    return await this.neo4jAdapter.getIncomingEdges(nodeId, type);
+  }
+
+  /**
+   * Find edge between two nodes
+   */
+  async findEdgeBetween(from: string, to: string, type?: string): Promise<KGEdge | null> {
+    return await this.neo4jAdapter.findEdgeBetween(from, to, type);
+  }
+
+  // ============================
+  // Enhanced Node Operations
+  // ============================
+
+  /**
+   * Find or create a node with given label and type
+   */
+  async findOrCreateNode(
+    label: string,
+    type: string,
+    layer: ICSLayer,
+  ): Promise<KGNode> {
+    return await this.neo4jAdapter.findOrCreateNode(label, type, layer);
+  }
+
+  /**
+   * Connect two nodes with an edge (with optional properties)
+   */
+  async connectNodes(
+    sourceId: string,
+    targetId: string,
+    edgeType: string,
+    options?: {
+      weight?: number;
+      confidence?: number;
+      equation?: string;
+      rationale?: string;
+    },
+  ): Promise<KGEdge> {
+    // Check if edge already exists
+    const existing = await this.findEdgeBetween(sourceId, targetId, edgeType);
+    if (existing) {
+      // Update existing edge
+      return await this.updateRelationship(existing.id, {
+        weight: options?.weight ?? existing.weight,
+        confidence: options?.confidence ?? existing.confidence,
+        equation: options?.equation ?? existing.equation,
+        rationale: options?.rationale ?? existing.rationale,
+      });
+    }
+
+    // Create new edge
+    return await this.createRelationship(
+      sourceId,
+      targetId,
+      edgeType,
+      {},
+      options?.weight,
+      options?.confidence,
+      options?.equation,
+      options?.rationale,
+    );
+  }
+
+  /**
+   * Update relationship properties
+   */
+  private async updateRelationship(
+    edgeId: string,
+    updates: Partial<KGEdge>,
+  ): Promise<KGEdge> {
+    const edge = await this.neo4jAdapter.getEdge(edgeId);
+    if (!edge) {
+      throw new Error(`Edge ${edgeId} not found`);
+    }
+
+    const updated: KGEdge = { ...edge, ...updates };
+    // In production, update in Neo4j
+    return updated;
+  }
+
+  /**
+   * Create relationship with enhanced properties
+   */
+  private async createRelationship(
+    from: string,
+    to: string,
+    type: string,
+    properties: Record<string, any> = {},
+    weight?: number,
+    confidence?: number,
+    equation?: string,
+    rationale?: string,
+  ): Promise<KGEdge> {
+    const edge = await this.neo4jAdapter.createEdge(
+      from,
+      to,
+      type,
+      properties,
+      weight,
+      confidence,
+      equation,
+      rationale,
+    );
+
+    // Handle component merging if component service is available
+    if (this.componentService) {
+      const [sourceCompId, targetCompId] = await Promise.all([
+        this.componentService.getComponentId(from),
+        this.componentService.getComponentId(to),
+      ]);
+
+      if (sourceCompId && targetCompId && sourceCompId !== targetCompId) {
+        // Merge components
+        await this.componentService.mergeComponents(sourceCompId, targetCompId);
+      } else if (sourceCompId) {
+        // Increment edge count for component
+        await this.componentService.incrementEdgeCount(sourceCompId);
+      } else if (targetCompId) {
+        await this.componentService.incrementEdgeCount(targetCompId);
+      }
+    }
+
+    return edge;
+  }
+
+  /**
+   * Get the full graph structure (nodes and edges)
+   */
+  async getGraphStructure(): Promise<{
+    nodes: KGNode[];
+    edges: KGEdge[];
+  }> {
+    const allNodes = await this.getAllNodes();
+    const allEdges = await this.getAllEdges();
+    return { nodes: allNodes, edges: allEdges };
+  }
+
+  /**
+   * Get graph statistics
+   */
+  async getGraphStatistics(): Promise<{
+    totalNodes: number;
+    totalEdges: number;
+    nodesByCategory: Record<string, number>;
+    nodesByLayer: Record<number, number>;
+    nodesByStatus: Record<string, number>;
+  }> {
+    const stats = await this.neo4jAdapter.getStats();
+    const allNodes = await this.getAllNodes();
+
+    const nodesByCategory: Record<string, number> = {};
+    const nodesByStatus: Record<string, number> = {};
+
+    for (const node of allNodes) {
+      const category = (node.properties?.category as string) || 'Unknown';
+      nodesByCategory[category] = (nodesByCategory[category] || 0) + 1;
+
+      const status = node.researchStatus || 'unknown';
+      nodesByStatus[status] = (nodesByStatus[status] || 0) + 1;
+    }
+
+    return {
+      totalNodes: stats.totalNodes,
+      totalEdges: stats.totalEdges,
+      nodesByCategory,
+      nodesByLayer: stats.nodesByLayer as any,
+      nodesByStatus,
+    };
+  }
+
+  /**
+   * Get all nodes
+   */
+  private async getAllNodes(): Promise<KGNode[]> {
+    // Get all nodes by querying all layers
+    const allNodes: KGNode[] = [];
+    for (const layer of Object.values(ICSLayer)) {
+      const nodes = await this.getNodesByLayer(layer);
+      allNodes.push(...nodes);
+    }
+    return allNodes;
+  }
+
+  /**
+   * Get all edges
+   */
+  private async getAllEdges(): Promise<KGEdge[]> {
+    // This would require a method in the adapter to get all edges
+    // For now, return empty array - in production, implement getAllEdges in adapter
+    return [];
   }
 }

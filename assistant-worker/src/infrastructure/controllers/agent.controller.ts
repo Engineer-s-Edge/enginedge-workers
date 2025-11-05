@@ -9,11 +9,16 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from '@application/use-cases/stream-agent-execution.use-case';
 import { AgentService } from '@application/services/agent.service';
 import { ILogger } from '@application/ports/logger.port';
+import { AgentEventService } from '@application/services/agent-event.service';
+import { SSEStreamAdapter } from '@infrastructure/adapters/streaming/sse-stream.adapter';
+import { AgentSessionService } from '@application/services/agent-session.service';
 
 /**
  * Agent Controller - HTTP API for agent operations (Phase 1 Complete)
@@ -35,6 +40,9 @@ export class AgentController {
     private readonly agentService: AgentService,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    private readonly events: AgentEventService,
+    private readonly sse: SSEStreamAdapter,
+    private readonly sessions: AgentSessionService,
   ) {}
 
   /**
@@ -209,5 +217,55 @@ export class AgentController {
     await this.agentService.abortAgent(agentId);
 
     return { success: true, message: 'Agent execution aborted' };
+  }
+
+  /**
+   * GET /agents/events/stream - Subscribe to agent events via SSE
+   */
+  @Get('events/stream')
+  async streamAgentEvents(
+    @Res() res: Response,
+    @Query('userId') userId?: string,
+    @Query('agentId') agentId?: string,
+    @Query('types') types?: string,
+  ) {
+    const filter = {
+      userId,
+      agentId,
+      types: types ? (types.split(',') as any) : undefined,
+    } as any;
+
+    const streamId = `events-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
+    // Initialize SSE stream
+    this.sse.initializeStream(streamId, res);
+
+    // Subscribe to events and forward to SSE
+    const subscriptionId = `sub-${streamId}`;
+    this.events.subscribeToAgentEvents(subscriptionId, filter, (event) => {
+      this.sse.sendToStream(streamId, {
+        type: 'progress',
+        data: event,
+        timestamp: new Date(),
+      });
+    });
+  }
+
+  /**
+   * GET /agents/stats - Basic agent/session stats
+   */
+  @Get('stats')
+  async getStats(@Query('userId') userId?: string) {
+    const sessions = userId
+      ? this.sessions.getUserSessions(userId)
+      : [];
+
+    return {
+      sessions: sessions.length,
+      activeSessions: sessions.filter((s) => s.status === 'active').length,
+      pausedSessions: sessions.filter((s) => s.status === 'paused').length,
+    };
   }
 }

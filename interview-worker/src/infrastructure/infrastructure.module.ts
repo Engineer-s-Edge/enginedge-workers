@@ -72,12 +72,10 @@ import {
   ],
   providers: [
     // Logger
+    KafkaLoggerAdapter,
     {
       provide: 'ILogger',
-      useFactory: () => {
-        const logger = new StructuredLogger('interview-worker');
-        return logger;
-      },
+      useClass: KafkaLoggerAdapter,
     },
     // WebSocket Gateway
     InterviewWebSocketGateway,

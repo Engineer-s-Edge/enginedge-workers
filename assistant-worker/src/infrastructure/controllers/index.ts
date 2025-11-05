@@ -10,3 +10,4 @@ export { MemoryController } from './memory.controller';
 export { KnowledgeGraphController } from './knowledge-graph.controller';
 export { MetricsController } from './metrics.controller';
 export { ModelsController } from './models.controller';
+export { AssistantsController } from './assistants.controller';

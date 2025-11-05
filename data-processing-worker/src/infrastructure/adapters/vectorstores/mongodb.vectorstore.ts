@@ -89,9 +89,14 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
         },
       ];
 
-      // Add filter if provided
+      // Add filter if provided (handle access control)
       if (filter) {
-        pipeline.push({ $match: filter } as any);
+        // Handle $or for access control separately
+        if (filter.$or) {
+          pipeline.push({ $match: filter } as any);
+        } else {
+          pipeline.push({ $match: filter } as any);
+        }
       }
 
       const results = await this.documentModel

@@ -22,6 +22,7 @@ import { WolframRetriever } from './retrievers/wolfram.retriever';
 import { FilesystemRetriever } from './retrievers/filesystem.retriever';
 import { LocalDBRetriever } from './retrievers/localdb.retriever';
 import { OCRRetriever } from './retrievers/ocr.retriever';
+import { KnowledgeGraphRetriever } from './retrievers/knowledge-graph.retriever';
 
 @Module({
   imports: [ApplicationModule],
@@ -60,6 +61,7 @@ import { OCRRetriever } from './retrievers/ocr.retriever';
         filesystemRetriever: FilesystemRetriever,
         localDBRetriever: LocalDBRetriever,
         ocrRetriever: OCRRetriever,
+        knowledgeGraphRetriever: KnowledgeGraphRetriever,
         toolRegistry: ToolRegistry,
       ) => {
         // Register tools with the registry
@@ -78,6 +80,7 @@ import { OCRRetriever } from './retrievers/ocr.retriever';
         toolRegistry.registerTool(filesystemRetriever);
         toolRegistry.registerTool(localDBRetriever);
         toolRegistry.registerTool(ocrRetriever);
+        toolRegistry.registerTool(knowledgeGraphRetriever);
         return 'tools-registered';
       },
       inject: [
@@ -96,6 +99,7 @@ import { OCRRetriever } from './retrievers/ocr.retriever';
         FilesystemRetriever,
         LocalDBRetriever,
         OCRRetriever,
+        KnowledgeGraphRetriever,
         ToolRegistry,
       ],
     },
@@ -116,6 +120,7 @@ import { OCRRetriever } from './retrievers/ocr.retriever';
     FilesystemRetriever,
     LocalDBRetriever,
     OCRRetriever,
+    KnowledgeGraphRetriever,
   ],
 })
 export class ToolsInfrastructureModule {}

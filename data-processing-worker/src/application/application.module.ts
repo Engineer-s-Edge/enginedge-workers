@@ -13,13 +13,19 @@
  */
 
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import { DomainModule } from '../domain/domain.module';
+import { DocumentModel, DocumentSchema } from '../infrastructure/database/schemas/document.schema';
 import { LoaderRegistryService } from './services/loader-registry.service';
 import { DocumentProcessingService } from './services/document-processing.service';
 import { UrlDetectionService } from './services/url-detection.service';
 import { TextSplitterFactoryService } from './services/text-splitter-factory.service';
 import { EmbedderFactoryService } from './services/embedder-factory.service';
 import { EmbedderService } from './services/embedder.service';
+import { EmbeddingSimilarityService } from './services/embedding-similarity.service';
+import { BM25SearchService } from './services/bm25-search.service';
+import { VectorStoreService } from './services/vector-store.service';
+import { HybridSearchService } from './services/hybrid-search.service';
 
 /**
  * Application module - use cases and application services
@@ -28,7 +34,12 @@ import { EmbedderService } from './services/embedder.service';
  * Default implementations are aliased here for dependency injection.
  */
 @Module({
-  imports: [DomainModule],
+  imports: [
+    DomainModule,
+    MongooseModule.forFeature([
+      { name: DocumentModel.name, schema: DocumentSchema },
+    ]),
+  ],
   providers: [
     LoaderRegistryService,
     DocumentProcessingService,
@@ -36,6 +47,19 @@ import { EmbedderService } from './services/embedder.service';
     TextSplitterFactoryService,
     EmbedderFactoryService,
     EmbedderService,
+    EmbeddingSimilarityService,
+    BM25SearchService,
+    VectorStoreService,
+    HybridSearchService,
+    // Provide EmbedderService and VectorStoreService with aliases for dependency injection
+    {
+      provide: 'EmbedderService',
+      useExisting: EmbedderService,
+    },
+    {
+      provide: 'VectorStoreService',
+      useExisting: VectorStoreService,
+    },
   ],
   exports: [
     LoaderRegistryService,
@@ -44,6 +68,10 @@ import { EmbedderService } from './services/embedder.service';
     TextSplitterFactoryService,
     EmbedderFactoryService,
     EmbedderService,
+    EmbeddingSimilarityService,
+    BM25SearchService,
+    VectorStoreService,
+    HybridSearchService,
   ],
 })
 export class ApplicationModule {}

@@ -15,6 +15,10 @@ import { AgentType } from '@domain/enums/agent-type.enum';
 import { ExecutionResult } from '@domain/entities';
 import { AgentFactory } from '@domain/services/agent-factory.service';
 import { CreateAgentDTO, UpdateAgentDTO } from '../dto';
+import { AgentExecutionService } from './agent-execution.service';
+import { CheckpointService } from './checkpoint.service';
+import { AgentSessionService } from './agent-session.service';
+import { AgentEventService } from './agent-event.service';
 
 /**
  * AgentService - Core agent management
@@ -37,6 +41,10 @@ export class AgentService {
     @Inject('IAgentRepository')
     private readonly agentRepository: IAgentRepository,
     private readonly agentFactory: AgentFactory,
+    private readonly execution: AgentExecutionService,
+    private readonly checkpoints: CheckpointService,
+    private readonly sessions: AgentSessionService,
+    private readonly events: AgentEventService,
   ) {
     this.logger.info('AgentService initialized', {
       agentsInRegistry: this.agentRegistry.size,
@@ -266,17 +274,14 @@ export class AgentService {
   }
 
   /**
-   * Get or create agent instance
+   * Get (or create) agent instance
    */
   async getAgentInstance(agentId: string, userId: string): Promise<BaseAgent> {
+    let instance = this.agentInstances.get(agentId);
+
+    if (instance) return instance;
+
     try {
-      // Check if instance already exists
-      let instance = this.agentInstances.get(agentId);
-
-      if (instance) {
-        return instance;
-      }
-
       // Get agent definition
       const agent = await this.getAgent(agentId, userId);
 
@@ -302,7 +307,7 @@ export class AgentService {
   }
 
   /**
-   * Execute agent
+   * Execute agent (delegates to AgentExecutionService)
    */
   async executeAgent(
     agentId: string,
@@ -310,34 +315,11 @@ export class AgentService {
     input: string,
     context?: any,
   ): Promise<ExecutionResult> {
-    try {
-      const instance = await this.getAgentInstance(agentId, userId);
-      const agent = await this.getAgent(agentId, userId);
-
-      this.logger.info('Executing agent', {
-        agentId,
-        userId,
-        inputLength: input.length,
-      });
-
-      // Execute
-      const result = await instance.execute(input, context);
-
-      // Note: execution stats would be tracked separately in a metrics system
-      // Agent entity is immutable and doesn't have executionCount/lastExecuted
-
-      return result;
-    } catch (error) {
-      this.logger.error(
-        'Failed to execute agent',
-        error as Record<string, unknown>,
-      );
-      throw error;
-    }
+    return this.execution.execute(agentId, userId, input, context);
   }
 
   /**
-   * Stream agent execution
+   * Stream agent execution (delegates to AgentExecutionService)
    */
   async *streamAgent(
     agentId: string,
@@ -345,24 +327,13 @@ export class AgentService {
     input: string,
     context?: any,
   ): AsyncGenerator<string> {
-    try {
-      const instance = await this.getAgentInstance(agentId, userId);
-      const agent = await this.getAgent(agentId, userId);
-
-      this.logger.info('Streaming agent execution', { agentId, userId });
-
-      // Stream execution
-      for await (const chunk of instance.stream(input, context)) {
-        yield chunk;
-      }
-
-      // Note: execution stats would be tracked separately in a metrics system
-    } catch (error) {
-      this.logger.error(
-        'Failed to stream agent',
-        error as Record<string, unknown>,
-      );
-      throw error;
+    for await (const chunk of this.execution.stream(
+      agentId,
+      userId,
+      input,
+      context,
+    )) {
+      yield chunk;
     }
   }
 
@@ -370,19 +341,158 @@ export class AgentService {
    * Abort agent execution
    */
   async abortAgent(agentId: string): Promise<void> {
-    try {
-      const instance = this.agentInstances.get(agentId);
-
-      if (!instance) {
-        throw new NotFoundException(`Agent instance '${agentId}' not found`);
-      }
-
-      instance.abort();
-      this.logger.info('Agent execution aborted', { agentId });
-    } catch (error) {
-      this.logger.error('Failed to abort agent', { error, agentId });
-      throw error;
+    const instance = this.agentInstances.get(agentId);
+    if (!instance) {
+      throw new NotFoundException(`Agent instance '${agentId}' not found`);
     }
+    instance.abort();
+    this.logger.info('Agent execution aborted', { agentId });
+  }
+
+  /**
+   * Graph agent: pause by aborting and checkpointing
+   */
+  async pauseGraphAgent(
+    agentId: string,
+    userId: string,
+    options?: { reason?: string },
+  ): Promise<{ checkpointId?: string }> {
+    try {
+      const instance = await this.getAgentInstance(agentId, userId);
+      // Attempt to get graph-specific state if available
+      const anyInstance = instance as any;
+      const state = typeof anyInstance.getGraphState === 'function'
+        ? anyInstance.getGraphState()
+        : { note: 'no_graph_state' };
+
+      // Create checkpoint
+      const checkpoint = await this.checkpoints.createCheckpoint(
+        agentId,
+        userId,
+        state,
+        'Paused checkpoint',
+        { reason: options?.reason || 'pause' },
+      );
+
+      // Abort execution
+      try { instance.abort(); } catch {}
+
+      // Mark session(s) paused
+      const sessions = this.sessions.getAgentSessions(agentId);
+      for (const s of sessions) this.sessions.updateSessionStatus(s.sessionId, 'paused');
+
+      return { checkpointId: checkpoint.id };
+    } catch (e) {
+      this.logger.error('Failed to pause graph agent', { agentId, userId, e });
+      throw e;
+    }
+  }
+
+  /**
+   * Graph agent: resume (placeholder - relies on executing again)
+   */
+  async resumeGraphAgent(
+    agentId: string,
+    userId: string,
+    checkpointId?: string,
+  ): Promise<{ ok: boolean; message?: string }> {
+    // Currently, resuming uses a new execution; checkpoint restoration can enrich context
+    if (checkpointId) {
+      const state = await this.checkpoints.restoreFromCheckpoint(checkpointId);
+      // store in session metadata for next execution
+      const sessions = this.sessions.getAgentSessions(agentId);
+      if (sessions[0]) {
+        sessions[0].metadata = { ...(sessions[0].metadata || {}), restoredState: state };
+      }
+    }
+    const sessions = this.sessions.getAgentSessions(agentId);
+    for (const s of sessions) this.sessions.updateSessionStatus(s.sessionId, 'active');
+    return { ok: true, message: 'Resume triggered; start a new execution to continue.' };
+  }
+
+  /**
+   * Graph agent: provide user input for pending interaction
+   */
+  async provideGraphAgentUserInput(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    input: unknown,
+  ): Promise<void> {
+    const interaction = this.sessions.setupUserInteractionHandling(
+      agentId,
+      // pick the first active session
+      this.sessions.getAgentSessions(agentId)[0]?.sessionId || `session_${Date.now()}`,
+      'input',
+      `node:${nodeId}`,
+    );
+    this.sessions.resolveUserInteraction(interaction.interactionId, input);
+  }
+
+  /**
+   * Graph agent: provide approval
+   */
+  async provideGraphAgentUserApproval(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    approved: boolean,
+  ): Promise<void> {
+    const interaction = this.sessions.setupUserInteractionHandling(
+      agentId,
+      this.sessions.getAgentSessions(agentId)[0]?.sessionId || `session_${Date.now()}`,
+      'approval',
+      `node:${nodeId}`,
+    );
+    this.sessions.resolveUserInteraction(interaction.interactionId, approved);
+  }
+
+  /**
+   * Graph agent: provide chat action
+   */
+  async provideGraphAgentChatAction(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    action: 'continue' | 'end',
+    input?: string,
+  ): Promise<void> {
+    const interaction = this.sessions.setupUserInteractionHandling(
+      agentId,
+      this.sessions.getAgentSessions(agentId)[0]?.sessionId || `session_${Date.now()}`,
+      'choice',
+      `node:${nodeId}:${action}`,
+    );
+    this.sessions.resolveUserInteraction(interaction.interactionId, { action, input });
+  }
+
+  /**
+   * Graph agent: get pending interactions
+   */
+  async getGraphAgentPendingUserInteractions(
+    agentId: string,
+    userId: string,
+  ): Promise<unknown[]> {
+    return this.sessions.getPendingUserInteractions(agentId);
+  }
+
+  /**
+   * Graph agent: get execution state summary
+   */
+  async getGraphAgentExecutionState(
+    agentId: string,
+    userId: string,
+  ): Promise<{ isPaused: boolean; currentNodes: string[]; pausedBranches: string[]; executionHistory: Array<any> }> {
+    const isPaused = this.sessions.getAgentSessions(agentId).some((s) => s.status === 'paused');
+    const instance = await this.getAgentInstance(agentId, userId);
+    const anyInstance = instance as any;
+    const graphState = typeof anyInstance.getGraphState === 'function' ? anyInstance.getGraphState() : {};
+    return {
+      isPaused,
+      currentNodes: [],
+      pausedBranches: [],
+      executionHistory: [],
+    };
   }
 
   /**
@@ -450,5 +560,197 @@ export class AgentService {
       // Note: execution stats would be tracked separately in a metrics system
       totalExecutions: 0,
     };
+  }
+
+  /**
+   * Reconfigure agent at runtime (updates config, recreates instance)
+   */
+  async reconfigureAgent(
+    agentId: string,
+    userId: string,
+    updates: Record<string, unknown>,
+  ): Promise<Agent> {
+    let agent = await this.getAgent(agentId, userId);
+
+    const updatedConfig = agent.config.update(updates as any);
+    agent = agent.withConfig(updatedConfig);
+
+    await this.agentRepository.save(agent);
+    this.agentRegistry.set(agentId, agent);
+
+    // Recreate instance to apply changes immediately
+    this.agentInstances.delete(agentId);
+    await this.getAgentInstance(agentId, userId);
+
+    this.logger.info('Agent reconfigured at runtime', { agentId });
+    return agent;
+  }
+
+  /**
+   * Switch LLM provider/model at runtime
+   */
+  async switchAgentProvider(
+    agentId: string,
+    userId: string,
+    provider: string,
+    model?: string,
+  ): Promise<void> {
+    await this.reconfigureAgent(agentId, userId, {
+      provider,
+      model: model || undefined,
+    });
+  }
+
+  /**
+   * Switch memory configuration at runtime
+   */
+  async switchAgentMemory(
+    agentId: string,
+    userId: string,
+    memory: Record<string, unknown>,
+  ): Promise<void> {
+    await this.reconfigureAgent(agentId, userId, {
+      memory,
+    } as any);
+  }
+
+  /**
+   * Restore agent state from checkpoint (by id or name)
+   */
+  async restoreAgentCheckpoint(
+    agentId: string,
+    userId: string,
+    search: { id?: string; name?: string; description?: string },
+  ): Promise<{ success: boolean; data: any | undefined }> {
+    let data: any | undefined;
+
+    if (search.id) {
+      const cp = await this.checkpoints.getCheckpoint(search.id);
+      data = cp?.state;
+    } else if (search.name) {
+      const list = await this.checkpoints.listCheckpoints(agentId);
+      const cp = list.find((c) => c.name === search.name);
+      data = cp?.state;
+    } else {
+      const latest = await this.checkpoints.getLatestCheckpoint(agentId);
+      data = latest?.state;
+    }
+
+    // Store into the first session's metadata for next execution
+    const sessions = this.sessions.getAgentSessions(agentId);
+    if (sessions[0] && data) {
+      sessions[0].metadata = { ...(sessions[0].metadata || {}), restoredState: data };
+    }
+
+    return { success: !!data, data };
+  }
+
+  /**
+   * Send a correction/interruption to an agent
+   */
+  async correctAgent(
+    agentId: string,
+    userId: string,
+    correctionInput: string,
+    context?: string,
+  ): Promise<void> {
+    // Emit correction event; consumers can incorporate it on next execution
+    this.events.emitEvent({
+      type: 'agent.message',
+      agentId,
+      userId,
+      timestamp: new Date(),
+      data: { kind: 'correction', input: correctionInput, context },
+    });
+  }
+
+  /**
+   * Remove an agent instance from memory
+   */
+  async removeAgent(agentId: string, userId?: string): Promise<void> {
+    const instance = this.agentInstances.get(agentId);
+    if (instance) {
+      try { instance.abort(); } catch {}
+      this.agentInstances.delete(agentId);
+    }
+
+    // Close sessions for this agent
+    const sessions = this.sessions.getAgentSessions(agentId);
+    for (const s of sessions) {
+      this.sessions.updateSessionStatus(s.sessionId, 'completed');
+      this.sessions.deleteSession(s.sessionId);
+    }
+
+    // Emit aborted/cleanup event
+    if (userId) {
+      this.events.emitEvent({
+        type: 'agent.aborted',
+        agentId,
+        userId,
+        timestamp: new Date(),
+        data: { reason: 'removed' },
+      });
+    }
+
+    this.logger.info('Agent instance removed', { agentId });
+  }
+
+  /**
+   * Clear all agent instances from memory
+   */
+  async clearAllAgents(): Promise<void> {
+    for (const [agentId, instance] of this.agentInstances.entries()) {
+      try { instance.abort(); } catch {}
+      this.agentInstances.delete(agentId);
+    }
+  }
+
+  /**
+   * Continue Graph agent with new input (after checkpoint)
+   * If stream is true, returns an async generator.
+   */
+  async continueGraphAgentWithInput(
+    agentId: string,
+    userId: string,
+    newInput: string,
+    options?: { checkpointId?: string; stream?: boolean },
+  ): Promise<AsyncIterable<string> | ExecutionResult> {
+    if (options?.checkpointId) {
+      const state = await this.checkpoints.restoreFromCheckpoint(options.checkpointId);
+      const sessions = this.sessions.getAgentSessions(agentId);
+      if (sessions[0]) {
+        sessions[0].metadata = { ...(sessions[0].metadata || {}), restoredState: state };
+      }
+    }
+
+    if (options?.stream) {
+      return this.execution.stream(agentId, userId, newInput, {});
+    }
+
+    return this.execution.execute(agentId, userId, newInput, {});
+  }
+
+  /**
+   * Get Graph node conversation history (if supported by instance)
+   */
+  async getGraphAgentNodeConversationHistory(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+  ): Promise<Array<{ message: string; isUser: boolean; timestamp: Date }> | null> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const anyInstance = instance as any;
+    if (typeof anyInstance.getNodeConversationHistory === 'function') {
+      return (await anyInstance.getNodeConversationHistory(nodeId)) || null;
+    }
+    return null;
+  }
+
+  /**
+   * Check if any pending user interactions exist for Graph agent
+   */
+  async hasGraphAgentAwaitingUserInteraction(agentId: string): Promise<boolean> {
+    const pending = this.sessions.getPendingUserInteractions(agentId);
+    return pending.length > 0;
   }
 }

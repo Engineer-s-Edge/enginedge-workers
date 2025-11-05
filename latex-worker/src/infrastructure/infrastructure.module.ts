@@ -11,6 +11,7 @@ import { HealthController } from '../health/health.controller';
 import { XeLaTeXCompilerAdapter } from './adapters/xelatex-compiler.adapter';
 import { NodeFileSystemAdapter } from './adapters/filesystem.adapter';
 import { StructuredLoggerAdapter } from './adapters/structured-logger.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 
 /**
@@ -28,7 +29,7 @@ import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
     // Logger
     {
       provide: 'ILogger',
-      useClass: StructuredLoggerAdapter,
+      useClass: KafkaLoggerAdapter,
     },
 
     // FileSystem

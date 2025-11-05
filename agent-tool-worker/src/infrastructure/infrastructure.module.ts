@@ -16,6 +16,7 @@ import { ToolValidator } from './adapters/tool-validator.adapter';
 import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -42,7 +43,7 @@ import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
     // Logger provider - available globally via DI
     {
       provide: 'ILogger',
-      useFactory: () => new StructuredLogger('agent-tool-worker'),
+      useClass: KafkaLoggerAdapter,
     },
     // Tool Validator provider - available globally via DI
     {

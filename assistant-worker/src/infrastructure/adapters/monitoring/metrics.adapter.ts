@@ -64,6 +64,18 @@ export class MetricsAdapter {
   private dataProcessingRequestDuration: Histogram<string>;
   private dataProcessingErrorCounter: Counter<string>;
 
+  // Expert Pool metrics
+  private expertPoolActiveExperts: Gauge<string>;
+  private expertPoolExecutionsTotal: Counter<string>;
+  private expertPoolExecutionDuration: Histogram<string>;
+  private expertPoolCollisionsTotal: Counter<string>;
+  private expertPoolModificationsTotal: Counter<string>;
+
+  // Conversations metrics
+  private conversationEventsTotal: Counter<string>;
+  private conversationMessageEditsTotal: Counter<string>;
+  private conversationToolCallDuration: Histogram<string>;
+
   constructor() {
     this.registry = new Registry();
 
@@ -132,6 +144,29 @@ export class MetricsAdapter {
     this.conversationsGauge = new Gauge({
       name: 'assistant_worker_conversations_total',
       help: 'Total number of active conversations',
+      registers: [this.registry],
+    });
+
+    // Conversations metrics
+    this.conversationEventsTotal = new Counter({
+      name: 'assistant_worker_conversation_events_total',
+      help: 'Total number of conversation events',
+      labelNames: ['type'],
+      registers: [this.registry],
+    });
+
+    this.conversationMessageEditsTotal = new Counter({
+      name: 'assistant_worker_conversation_message_edits_total',
+      help: 'Total number of message edits',
+      labelNames: ['role'],
+      registers: [this.registry],
+    });
+
+    this.conversationToolCallDuration = new Histogram({
+      name: 'assistant_worker_conversation_tool_call_duration_seconds',
+      help: 'Tool call duration in seconds',
+      labelNames: ['name', 'status'],
+      buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5, 10],
       registers: [this.registry],
     });
 
@@ -304,6 +339,42 @@ export class MetricsAdapter {
       registers: [this.registry],
     });
 
+    // Initialize Expert Pool metrics
+    this.expertPoolActiveExperts = new Gauge({
+      name: 'assistant_worker_expert_pool_active_experts',
+      help: 'Number of currently active expert executions',
+      registers: [this.registry],
+    });
+
+    this.expertPoolExecutionsTotal = new Counter({
+      name: 'assistant_worker_expert_pool_executions_total',
+      help: 'Total number of expert executions',
+      labelNames: ['status'],
+      registers: [this.registry],
+    });
+
+    this.expertPoolExecutionDuration = new Histogram({
+      name: 'assistant_worker_expert_pool_execution_duration_seconds',
+      help: 'Expert execution duration in seconds',
+      labelNames: ['status'],
+      buckets: [1, 5, 10, 30, 60, 300, 600],
+      registers: [this.registry],
+    });
+
+    this.expertPoolCollisionsTotal = new Counter({
+      name: 'assistant_worker_expert_pool_collisions_total',
+      help: 'Total number of knowledge graph node collisions',
+      labelNames: ['resolution'],
+      registers: [this.registry],
+    });
+
+    this.expertPoolModificationsTotal = new Counter({
+      name: 'assistant_worker_expert_pool_modifications_total',
+      help: 'Total number of knowledge graph modifications by experts',
+      labelNames: ['operation_type', 'success'],
+      registers: [this.registry],
+    });
+
     // Start collecting system metrics
     this.startSystemMetricsCollection();
   }
@@ -414,11 +485,76 @@ export class MetricsAdapter {
     this.dbQueryDuration.observe({ database, operation }, durationSeconds);
   }
 
+  // ===== Expert Pool Metrics =====
+
+  /**
+   * Update active experts count
+   */
+  updateExpertPoolActiveExperts(count: number): void {
+    this.expertPoolActiveExperts.set(count);
+  }
+
+  /**
+   * Record expert execution
+   */
+  recordExpertExecution(agentType: string, status: string): void {
+    this.expertPoolExecutionsTotal.inc({ status });
+    this.agentExecutionCounter.inc({ type: agentType, status });
+  }
+
+  /**
+   * Record expert execution duration
+   */
+  recordExpertExecutionDuration(
+    durationSeconds: number,
+    status: string,
+  ): void {
+    this.expertPoolExecutionDuration.observe({ status }, durationSeconds);
+  }
+
+  /**
+   * Record expert pool allocation
+   */
+  recordExpertPoolAllocation(): void {
+    // This can be used for additional tracking if needed
+    // For now, we track through executions
+  }
+
+  /**
+   * Record knowledge graph collision
+   */
+  recordKGCollision(resolution: string): void {
+    this.expertPoolCollisionsTotal.inc({ resolution });
+  }
+
+  /**
+   * Record knowledge graph modification
+   */
+  recordKGModification(operationType: string, success: boolean): void {
+    this.expertPoolModificationsTotal.inc({
+      operation_type: operationType,
+      success: success.toString(),
+    });
+  }
+
   /**
    * Get metrics in Prometheus format
    */
   async getMetrics(): Promise<string> {
     return this.registry.metrics();
+  }
+
+  // ===== Conversations Metrics =====
+  recordConversationEvent(type: string): void {
+    this.conversationEventsTotal.inc({ type });
+  }
+
+  recordMessageEdit(role: string): void {
+    this.conversationMessageEditsTotal.inc({ role });
+  }
+
+  observeToolCallDuration(name: string, status: string, seconds: number): void {
+    this.conversationToolCallDuration.observe({ name, status }, seconds);
   }
 
   // ===== Phase 8: RAG Pipeline Metrics =====

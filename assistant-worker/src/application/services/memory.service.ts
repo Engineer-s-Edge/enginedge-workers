@@ -15,8 +15,8 @@ import {
   SummaryMemoryAdapter,
   VectorMemoryAdapter,
   EntityMemoryAdapter,
-  MongoDBPersistenceAdapter,
 } from '@infrastructure/adapters/memory';
+import { ConversationsService } from './conversations.service';
 
 export type MemoryType = 'buffer' | 'window' | 'summary' | 'vector' | 'entity';
 
@@ -33,7 +33,7 @@ export class MemoryService {
     private readonly summaryMemory: SummaryMemoryAdapter,
     private readonly vectorMemory: VectorMemoryAdapter,
     private readonly entityMemory: EntityMemoryAdapter,
-    private readonly persistence: MongoDBPersistenceAdapter,
+    private readonly conversationsService: ConversationsService,
     @Inject('ILogger')
     private readonly logger: ILogger,
   ) {
@@ -109,8 +109,7 @@ export class MemoryService {
     const adapter = this.getAdapter(memoryType);
     await adapter.clear(conversationId);
 
-    // Also clear from persistence
-    await this.persistence.deleteConversation(conversationId);
+    // Conversations persistence managed by conversations service/events
   }
 
   /**
@@ -149,28 +148,39 @@ export class MemoryService {
    * Load conversation from persistence
    */
   async loadConversation(conversationId: string): Promise<any> {
-    return await this.persistence.loadConversation(conversationId);
+    return await this.conversationsService.getConversation(conversationId);
   }
 
   /**
    * List conversations for a user
    */
   async listConversations(userId: string, limit?: number): Promise<any[]> {
-    return await this.persistence.listConversations(userId, limit);
+    return await this.conversationsService.listConversations(userId, limit);
   }
 
   /**
    * Search conversations
    */
   async searchConversations(userId: string, query: string): Promise<any[]> {
-    return await this.persistence.searchConversations(userId, query);
+    const list = await this.conversationsService.listConversations(userId, 200);
+    const q = query.toLowerCase();
+    return list.filter((c) =>
+      (c.summaries?.latestSummary || '').toLowerCase().includes(q) ||
+      c.id.toLowerCase().includes(q)
+    );
   }
 
   /**
    * Get memory statistics
    */
   async getStats(userId: string): Promise<any> {
-    return await this.persistence.getStats(userId);
+    const list = await this.conversationsService.listConversations(userId, 1000);
+    const totalMessages = list.reduce((sum, c) => sum + (c.summaries?.messageCount || 0), 0);
+    return {
+      totalConversations: list.length,
+      totalMessages,
+      avgMessagesPerConversation: list.length > 0 ? totalMessages / list.length : 0,
+    };
   }
 
   /**
@@ -193,34 +203,7 @@ export class MemoryService {
     conversationId: string,
     memoryType: MemoryType,
   ): Promise<void> {
-    // Persist every 10 messages or on summary generation
-    // This is a simplified version - in production, use more sophisticated logic
-    try {
-      const adapter = this.getAdapter(memoryType);
-      const messages = await adapter.getMessages(conversationId);
-
-      if (messages.length % 10 === 0) {
-        // Extract additional data based on memory type
-        const options: any = {};
-
-        if (memoryType === 'summary') {
-          options.summary = await this.summaryMemory.getSummary(conversationId);
-        }
-
-        if (memoryType === 'entity') {
-          options.entities = this.entityMemory.getEntities(conversationId);
-        }
-
-        // Save to MongoDB (userId should be extracted from context)
-        await this.persistence.saveConversation(
-          conversationId,
-          'user-id', // TODO: Get from context
-          messages,
-          options,
-        );
-      }
-    } catch (error) {
-      this.logger.error('Failed to persist memory', { error, conversationId });
-    }
+    // Persistence is handled by ConversationsService via controller mirroring.
+    return;
   }
 }

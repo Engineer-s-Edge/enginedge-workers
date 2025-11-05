@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ApplicationModule } from '../application/application.module';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { ExperienceBankController } from './controllers/experience-bank.controller';
 import { ResumeController } from './controllers/resume.controller';
@@ -29,6 +30,11 @@ import { CoverLetterController } from './controllers/cover-letter.controller';
     CoverLetterController,
   ],
   providers: [
+    // Logger
+    {
+      provide: 'ILogger',
+      useClass: KafkaLoggerAdapter,
+    },
     ResumeIteratorGateway,
     BulletReviewGateway,
     ResumeBuilderGateway,

@@ -8,6 +8,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { ILogger, ILLMProvider } from '@application/ports';
 import { AgentService } from '@application/services/agent.service';
 import { ExecutionContext } from '@domain/entities';
+import { AgentExecutionService } from '@application/services/agent-execution.service';
 
 export interface StreamAgentRequest {
   agentId: string;
@@ -23,6 +24,7 @@ export interface StreamAgentRequest {
 export class StreamAgentExecutionUseCase {
   constructor(
     private readonly agentService: AgentService,
+    private readonly execService: AgentExecutionService,
     @Inject('ILogger')
     private readonly logger: ILogger,
     @Inject('ILLMProvider')
@@ -59,10 +61,10 @@ export class StreamAgentExecutionUseCase {
         ...request.context,
       } as ExecutionContext;
 
-      // Stream agent execution
+      // Stream via AgentExecutionService
       yield `[START] Executing agent ${request.agentId}\n`;
 
-      for await (const chunk of this.agentService.streamAgent(
+      for await (const chunk of this.execService.stream(
         request.agentId,
         request.userId,
         request.input,

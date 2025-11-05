@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EmbedderPort } from '@domain/ports/processing.port';
 import { EmbedderFactoryService } from './embedder-factory.service';
+import {
+  EmbeddingSimilarityService,
+  SearchResult,
+} from './embedding-similarity.service';
 
 /**
  * Embedder Service (Application Layer)
@@ -10,6 +14,8 @@ import { EmbedderFactoryService } from './embedder-factory.service';
  * - Batch embedding with caching
  * - Multi-embedder strategies
  * - Embedding reuse and deduplication
+ * - BERT-score similarity and hybrid scoring
+ * - Search and reranking with advanced similarity metrics
  */
 @Injectable()
 export class EmbedderService {
@@ -17,7 +23,10 @@ export class EmbedderService {
   private embeddingCache: Map<string, number[]> = new Map();
   private currentEmbedder: EmbedderPort;
 
-  constructor(private readonly embedderFactory: EmbedderFactoryService) {
+  constructor(
+    private readonly embedderFactory: EmbedderFactoryService,
+    private readonly similarityService: EmbeddingSimilarityService,
+  ) {
     this.currentEmbedder = this.embedderFactory.getDefaultEmbedder();
     this.logger.log('EmbedderService initialized');
   }
@@ -219,5 +228,146 @@ export class EmbedderService {
       misses: 0,
       ratio: 0,
     };
+  }
+
+  // ============================
+  // Similarity Operations
+  // ============================
+
+  /**
+   * Normalize an embedding vector to unit length
+   */
+  normalizeEmbedding(embedding: number[]): number[] {
+    return this.similarityService.normalize(embedding);
+  }
+
+  /**
+   * Adjust embedding dimension (pad or truncate)
+   */
+  adjustDimension(embedding: number[], targetDim: number): number[] {
+    return this.similarityService.adjustDimension(embedding, targetDim);
+  }
+
+  /**
+   * Compute cosine similarity between two embeddings
+   */
+  cosineSimilarity(a: number[], b: number[]): number {
+    return this.similarityService.cosineSimilarity(a, b);
+  }
+
+  /**
+   * Compute BERT-score similarity between query and text embeddings
+   */
+  bertScoreSimilarity(
+    queryEmbed: number[],
+    textEmbed: number[],
+    queryText?: string,
+    text?: string,
+  ): number {
+    return this.similarityService.bertScoreSimilarity(
+      queryEmbed,
+      textEmbed,
+      queryText,
+      text,
+    );
+  }
+
+  /**
+   * Compute hybrid score combining cosine similarity and BERT-score
+   */
+  hybridSimilarity(
+    queryEmbed: number[],
+    textEmbed: number[],
+    queryText?: string,
+    text?: string,
+    alpha: number = 0.5,
+  ): number {
+    return this.similarityService.hybridSimilarity(
+      queryEmbed,
+      textEmbed,
+      queryText,
+      text,
+      alpha,
+    );
+  }
+
+  /**
+   * Search for items by cosine similarity
+   */
+  searchBySimilarity<T>(
+    query: number[],
+    items: T[],
+    k: number = 10,
+    embeddingAccessor: (item: T) => number[],
+  ): SearchResult<T>[] {
+    return this.similarityService.searchBySimilarity(
+      query,
+      items,
+      k,
+      embeddingAccessor,
+    );
+  }
+
+  /**
+   * Search for items using BERT-score similarity
+   */
+  searchByBertScore<T>(
+    query: number[],
+    items: T[],
+    k: number = 10,
+    embeddingAccessor: (item: T) => number[],
+    textAccessor?: (item: T) => string,
+    queryText?: string,
+  ): SearchResult<T>[] {
+    return this.similarityService.searchByBertScore(
+      query,
+      items,
+      k,
+      embeddingAccessor,
+      textAccessor,
+      queryText,
+    );
+  }
+
+  /**
+   * Search with hybrid scoring (cosine + BERT-score)
+   */
+  searchByHybridScore<T>(
+    query: number[],
+    items: T[],
+    k: number = 10,
+    embeddingAccessor: (item: T) => number[],
+    textAccessor?: (item: T) => string,
+    queryText?: string,
+    alpha: number = 0.5,
+  ): SearchResult<T>[] {
+    return this.similarityService.searchByHybridScore(
+      query,
+      items,
+      k,
+      embeddingAccessor,
+      textAccessor,
+      queryText,
+      alpha,
+    );
+  }
+
+  /**
+   * Rerank initial search results using BERT-score
+   */
+  rerankWithBertScore<T>(
+    query: number[],
+    initialResults: SearchResult<T>[],
+    embeddingAccessor: (item: T) => number[],
+    textAccessor?: (item: T) => string,
+    queryText?: string,
+  ): SearchResult<T>[] {
+    return this.similarityService.rerankWithBertScore(
+      query,
+      initialResults,
+      embeddingAccessor,
+      textAccessor,
+      queryText,
+    );
   }
 }
