@@ -26,13 +26,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware
+# CORS middleware (restrict origins via env ALLOWED_ORIGINS, comma-separated)
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in allowed_origins if o.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Import services (after environment setup)
@@ -111,7 +112,9 @@ async def evaluate_bullet(request: BulletEvaluationRequest):
             is_current_role=request.isCurrentRole,
         )
         return result
-    except Exception as e:
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -132,7 +135,9 @@ async def extract_posting(request: PostingExtractionRequest):
     try:
         result = posting_extractor.extract(text=request.text, html=request.html)
         return result
-    except Exception as e:
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -153,7 +158,9 @@ async def parse_pdf(request: PDFParseRequest):
     try:
         result = resume_parser.parse_pdf(request.pdfBytes)
         return result
-    except Exception as e:
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 

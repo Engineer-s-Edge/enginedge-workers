@@ -7,7 +7,14 @@
 import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 export interface CacheOptions {
   ttl?: number;
@@ -21,7 +28,7 @@ export class RedisCacheAdapter implements OnModuleDestroy {
   private readonly keyPrefix: string;
 
   constructor(
-    @Inject('ILogger') private readonly logger: ILogger,
+    @Inject('ILogger') private readonly logger: Logger,
     private readonly configService: ConfigService,
   ) {
     const redisUrl =
@@ -58,13 +65,11 @@ export class RedisCacheAdapter implements OnModuleDestroy {
         error: error.message,
       }),
     );
-    this.redis
-      .connect()
-      .catch((error) =>
-        this.logger.error('RedisCacheAdapter: Failed to connect', {
-          error: error.message,
-        }),
-      );
+    this.redis.connect().catch((error) =>
+      this.logger.error('RedisCacheAdapter: Failed to connect', {
+        error: error.message,
+      }),
+    );
   }
 
   async onModuleDestroy() {

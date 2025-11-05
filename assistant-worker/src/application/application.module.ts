@@ -12,7 +12,13 @@
  */
 
 import { Module } from '@nestjs/common';
-import { DomainModule } from '@domain/domain.module';
+import { PromptBuilder } from '@domain/services/prompt-builder.service';
+import { ResponseParser } from '@domain/services/response-parser.service';
+import { MemoryManager } from '@domain/services/memory-manager.service';
+import { AgentFactory } from '@domain/services/agent-factory.service';
+import { StateMachineService } from '@domain/services/state-machine.service';
+import { CoordinationValidatorService } from '@domain/services/coordination-validator.service';
+import { ExpertPoolManager } from '@domain/services/expert-pool-manager.service';
 import { AgentService } from './services/agent.service';
 import { AgentValidationService } from './services/agent-validation.service';
 import { AgentConfigurationService } from './services/agent-configuration.service';
@@ -33,11 +39,39 @@ import { AgentExecutionService } from './services/agent-execution.service';
  */
 @Module({
   imports: [
-    DomainModule, // Domain services (AgentFactory, MemoryManager, etc.)
     CollectiveModule, // Collective infrastructure services
   ],
   providers: [
     // Core Services
+    // Domain services (framework-agnostic)
+    PromptBuilder,
+    ResponseParser,
+    MemoryManager,
+    StateMachineService,
+    CoordinationValidatorService,
+    {
+      provide: AgentFactory,
+      useFactory: (
+        logger: any,
+        llm: any,
+        memory: MemoryManager,
+        parser: ResponseParser,
+        prompts: PromptBuilder,
+      ) => new AgentFactory(logger, llm, memory, parser, prompts),
+      deps: [
+        'ILogger',
+        'ILLMProvider',
+        MemoryManager,
+        ResponseParser,
+        PromptBuilder,
+      ],
+    },
+    {
+      provide: ExpertPoolManager,
+      useFactory: (llm: any, logger: any, kg: any, metrics?: any) =>
+        new ExpertPoolManager(llm, logger, kg, metrics),
+      deps: ['ILLMProvider', 'ILogger', 'KnowledgeGraphPort', 'MetricsAdapter'],
+    },
     AgentService,
     AgentValidationService,
     AgentConfigurationService,
@@ -54,10 +88,15 @@ import { AgentExecutionService } from './services/agent-execution.service';
     StreamAgentExecutionUseCase,
   ],
   exports: [
-    // Export domain module so infrastructure can access it
-    DomainModule,
-
     // Export services for other modules
+    // Domain services
+    PromptBuilder,
+    ResponseParser,
+    MemoryManager,
+    StateMachineService,
+    CoordinationValidatorService,
+    AgentFactory,
+    ExpertPoolManager,
     AgentService,
     AgentValidationService,
     AgentConfigurationService,

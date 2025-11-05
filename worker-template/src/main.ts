@@ -1,11 +1,27 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
+import { LoggingInterceptor } from './infrastructure/interceptors/logging.interceptor';
 
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
     app.enableCors();
+
+    // Global validation pipe (template default)
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+
+    // Global exception filter and logging interceptor (template default)
+    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalInterceptors(new LoggingInterceptor());
     const port = process.env.PORT || 3001;
     await app.listen(port);
     Logger.log(`Application running on port ${port}`, 'Bootstrap');

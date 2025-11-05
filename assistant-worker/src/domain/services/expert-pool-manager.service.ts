@@ -14,16 +14,15 @@
  * - Factory pattern support for on-demand creation
  */
 
-import { Injectable, Inject, Optional } from '@nestjs/common';
+import { KnowledgeGraphPort } from '../ports/knowledge-graph.port';
 import pLimit from 'p-limit';
 import { ExpertAgent } from '../agents/expert-agent';
 import { Agent } from '../entities/agent.entity';
 import { AgentId } from '../entities/agent.entity';
 import { AgentConfig } from '../value-objects/agent-config.vo';
 import { AgentCapability } from '../value-objects/agent-capability.vo';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
-import { ILogger } from '@application/ports/logger.port';
-import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
+import { ILLMProvider } from '../ports/llm-provider.port';
+import { ILogger } from '../ports/logger.port';
 import {
   ExpertPoolConfig,
   ExpertPoolStats,
@@ -68,7 +67,6 @@ export interface ExpertAgentInstance {
  * Expert Pool Manager
  * Encapsulates expert agent creation, lifecycle management, and execution coordination
  */
-@Injectable()
 export class ExpertPoolManager {
   private expertPool: Map<AgentId, ExpertAgentInstance> = new Map();
   private activeExecutions: Map<AgentId, ActiveExecution> = new Map();
@@ -112,15 +110,10 @@ export class ExpertPoolManager {
   private completionTimes: number[] = [];
 
   constructor(
-    @Inject('ILLMProvider')
     private readonly llmProvider: ILLMProvider,
-    @Inject('ILogger')
     private readonly logger: ILogger,
-    @Inject(KnowledgeGraphService)
-    private readonly knowledgeGraph: KnowledgeGraphService,
-    @Optional()
-    @Inject('MetricsAdapter')
-    private readonly metrics?: any, // MetricsAdapter - optional to avoid circular dependency
+    private readonly knowledgeGraph: KnowledgeGraphPort,
+    private readonly metrics?: any,
   ) {
     // Initialize semaphores
     this.expertSemaphore = pLimit(this.config.maxConcurrentExperts);

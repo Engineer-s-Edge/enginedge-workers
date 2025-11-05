@@ -18,7 +18,13 @@ import {
 } from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
-import { ILogger } from '@application/ports/logger.port';
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 /**
  * Manager Agent specialized controller
@@ -29,7 +35,7 @@ export class ManagerAgentController {
     private readonly agentService: AgentService,
     private readonly executeAgentUseCase: ExecuteAgentUseCase,
     @Inject('ILogger')
-    private readonly logger: ILogger,
+    private readonly logger: Logger,
   ) {}
 
   /**

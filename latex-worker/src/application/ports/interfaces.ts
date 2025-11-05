@@ -1,9 +1,9 @@
-import { Command, CommandResult } from '@domain/entities/command.entities';
+import { CommandDto, CommandResultDto } from '../dto/command.dto';
 
 export interface ICommandProcessor {
-  processCommand(command: Command): Promise<CommandResult>;
+  processCommand(command: CommandDto): Promise<CommandResultDto>;
 }
 
 export interface IMessagePublisher {
-  publishResult(result: CommandResult): Promise<void>;
+  publishResult(result: CommandResultDto): Promise<void>;
 }

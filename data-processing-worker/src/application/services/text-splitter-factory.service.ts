@@ -1,18 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { TextSplitterPort } from '@domain/ports/processing.port';
-import { RecursiveCharacterSplitterAdapter } from '@infrastructure/adapters/splitters/recursive-character.splitter';
-import { CharacterSplitterAdapter } from '@infrastructure/adapters/splitters/character.splitter';
-import { TokenSplitterAdapter } from '@infrastructure/adapters/splitters/token.splitter';
-import { SemanticSplitterAdapter } from '@infrastructure/adapters/splitters/semantic.splitter';
-import { PythonSplitterAdapter } from '@infrastructure/adapters/splitters/python.splitter';
-import { JavaScriptSplitterAdapter } from '@infrastructure/adapters/splitters/javascript.splitter';
-import { TypeScriptSplitterAdapter } from '@infrastructure/adapters/splitters/typescript.splitter';
-import { JavaSplitterAdapter } from '@infrastructure/adapters/splitters/java.splitter';
-import { CppSplitterAdapter } from '@infrastructure/adapters/splitters/cpp.splitter';
-import { GoSplitterAdapter } from '@infrastructure/adapters/splitters/go.splitter';
-import { LatexSplitterAdapter } from '@infrastructure/adapters/splitters/latex.splitter';
-import { MarkdownSplitterAdapter } from '@infrastructure/adapters/splitters/markdown.splitter';
-import { HtmlSplitterAdapter } from '@infrastructure/adapters/splitters/html.splitter';
 
 /**
  * Text Splitter Factory Service
@@ -25,19 +12,30 @@ export class TextSplitterFactoryService {
   private readonly logger = new Logger(TextSplitterFactoryService.name);
 
   constructor(
-    private readonly recursiveCharacterSplitter: RecursiveCharacterSplitterAdapter,
-    private readonly characterSplitter: CharacterSplitterAdapter,
-    private readonly tokenSplitter: TokenSplitterAdapter,
-    private readonly semanticSplitter: SemanticSplitterAdapter,
-    private readonly pythonSplitter: PythonSplitterAdapter,
-    private readonly javaScriptSplitter: JavaScriptSplitterAdapter,
-    private readonly typeScriptSplitter: TypeScriptSplitterAdapter,
-    private readonly javaSplitter: JavaSplitterAdapter,
-    private readonly cppSplitter: CppSplitterAdapter,
-    private readonly goSplitter: GoSplitterAdapter,
-    private readonly latexSplitter: LatexSplitterAdapter,
-    private readonly markdownSplitter: MarkdownSplitterAdapter,
-    private readonly htmlSplitter: HtmlSplitterAdapter,
+    @Inject('TextSplitter.recursive')
+    private readonly recursiveCharacterSplitter: TextSplitterPort,
+    @Inject('TextSplitter.character')
+    private readonly characterSplitter: TextSplitterPort,
+    @Inject('TextSplitter.token')
+    private readonly tokenSplitter: TextSplitterPort,
+    @Inject('TextSplitter.semantic')
+    private readonly semanticSplitter: TextSplitterPort,
+    @Inject('TextSplitter.python')
+    private readonly pythonSplitter: TextSplitterPort,
+    @Inject('TextSplitter.javascript')
+    private readonly javaScriptSplitter: TextSplitterPort,
+    @Inject('TextSplitter.typescript')
+    private readonly typeScriptSplitter: TextSplitterPort,
+    @Inject('TextSplitter.java')
+    private readonly javaSplitter: TextSplitterPort,
+    @Inject('TextSplitter.cpp') private readonly cppSplitter: TextSplitterPort,
+    @Inject('TextSplitter.go') private readonly goSplitter: TextSplitterPort,
+    @Inject('TextSplitter.latex')
+    private readonly latexSplitter: TextSplitterPort,
+    @Inject('TextSplitter.markdown')
+    private readonly markdownSplitter: TextSplitterPort,
+    @Inject('TextSplitter.html')
+    private readonly htmlSplitter: TextSplitterPort,
   ) {
     this.logger.log('TextSplitterFactory initialized with 13 splitters');
   }

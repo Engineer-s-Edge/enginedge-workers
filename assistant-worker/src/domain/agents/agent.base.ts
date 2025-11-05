@@ -1,4 +1,3 @@
-import { Injectable, Scope } from '@nestjs/common';
 import { EventEmitter2 } from 'eventemitter2';
 import {
   ExecutionContext,
@@ -7,8 +6,8 @@ import {
   Message,
   AgentStateType,
 } from '../entities';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
+import { ILogger } from '../../ports/logger.port';
+import { ILLMProvider } from '../../ports/llm-provider.port';
 
 /**
  * Internal agent execution state
@@ -44,7 +43,6 @@ interface InternalAgentState {
  * - Abort handling
  * - Error recovery
  */
-@Injectable({ scope: Scope.TRANSIENT })
 export abstract class BaseAgent {
   protected internalState: InternalAgentState = {
     status: 'idle',

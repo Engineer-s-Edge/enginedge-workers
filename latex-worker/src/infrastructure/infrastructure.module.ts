@@ -13,6 +13,8 @@ import { NodeFileSystemAdapter } from './adapters/filesystem.adapter';
 import { StructuredLoggerAdapter } from './adapters/structured-logger.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -46,6 +48,10 @@ import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 
     // Cache adapter
     RedisCacheAdapter,
+
+    // Global filter/interceptor providers for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
 
     // TODO: Add MongoDB repositories
     // TODO: Add Kafka message broker

@@ -8,15 +8,24 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Message } from '@domain/value-objects/message.vo';
 import { ILogger } from '@application/ports/logger.port';
-import {
-  IMemoryAdapter,
-  BufferMemoryAdapter,
-  WindowMemoryAdapter,
-  SummaryMemoryAdapter,
-  VectorMemoryAdapter,
-  EntityMemoryAdapter,
-} from '@infrastructure/adapters/memory';
 import { ConversationsService } from './conversations.service';
+
+// Memory adapter interface (matches IMemoryAdapter from infrastructure)
+export interface IMemoryAdapter {
+  addMessage(conversationId: string, message: Message): Promise<void>;
+  getMessages(conversationId: string, limit?: number): Promise<Message[]>;
+  clear(conversationId: string): Promise<void>;
+  getContext(conversationId: string, query?: string): Promise<string>;
+  // Extended methods for specific adapters (optional)
+  getSummary?(conversationId: string): Promise<string>;
+  searchSimilar?(
+    conversationId: string,
+    query: string,
+    topK?: number,
+  ): Promise<Message[]>;
+  getEntities?(conversationId: string): Promise<any[]>;
+  searchEntities?(conversationId: string, query: string): Promise<any[]>;
+}
 
 export type MemoryType = 'buffer' | 'window' | 'summary' | 'vector' | 'entity';
 
@@ -28,11 +37,16 @@ export class MemoryService {
   private memoryAdapters: Map<string, IMemoryAdapter> = new Map();
 
   constructor(
-    private readonly bufferMemory: BufferMemoryAdapter,
-    private readonly windowMemory: WindowMemoryAdapter,
-    private readonly summaryMemory: SummaryMemoryAdapter,
-    private readonly vectorMemory: VectorMemoryAdapter,
-    private readonly entityMemory: EntityMemoryAdapter,
+    @Inject('MemoryAdapter.buffer')
+    private readonly bufferMemory: IMemoryAdapter,
+    @Inject('MemoryAdapter.window')
+    private readonly windowMemory: IMemoryAdapter,
+    @Inject('MemoryAdapter.summary')
+    private readonly summaryMemory: IMemoryAdapter,
+    @Inject('MemoryAdapter.vector')
+    private readonly vectorMemory: IMemoryAdapter,
+    @Inject('MemoryAdapter.entity')
+    private readonly entityMemory: IMemoryAdapter,
     private readonly conversationsService: ConversationsService,
     @Inject('ILogger')
     private readonly logger: ILogger,
@@ -88,10 +102,7 @@ export class MemoryService {
 
     // Vector memory supports query-based context
     if (memoryType === 'vector' && query) {
-      return await (adapter as VectorMemoryAdapter).getContext(
-        conversationId,
-        query,
-      );
+      return await adapter.getContext(conversationId, query);
     }
 
     return await adapter.getContext(conversationId);
@@ -116,6 +127,9 @@ export class MemoryService {
    * Get conversation summary (for summary memory)
    */
   async getSummary(conversationId: string): Promise<string> {
+    if (!this.summaryMemory.getSummary) {
+      throw new Error('Summary memory adapter does not support getSummary');
+    }
     return await this.summaryMemory.getSummary(conversationId);
   }
 
@@ -127,6 +141,9 @@ export class MemoryService {
     query: string,
     topK?: number,
   ): Promise<Message[]> {
+    if (!this.vectorMemory.searchSimilar) {
+      throw new Error('Vector memory adapter does not support searchSimilar');
+    }
     return await this.vectorMemory.searchSimilar(conversationId, query, topK);
   }
 
@@ -134,6 +151,9 @@ export class MemoryService {
    * Get entities (for entity memory)
    */
   async getEntities(conversationId: string): Promise<any[]> {
+    if (!this.entityMemory.getEntities) {
+      throw new Error('Entity memory adapter does not support getEntities');
+    }
     return this.entityMemory.getEntities(conversationId);
   }
 
@@ -141,6 +161,9 @@ export class MemoryService {
    * Search entities (for entity memory)
    */
   async searchEntities(conversationId: string, query: string): Promise<any[]> {
+    if (!this.entityMemory.searchEntities) {
+      throw new Error('Entity memory adapter does not support searchEntities');
+    }
     return this.entityMemory.searchEntities(conversationId, query);
   }
 

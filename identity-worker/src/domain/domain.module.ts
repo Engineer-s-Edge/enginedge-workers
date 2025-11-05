@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdentityPolicyService } from './services/identity-policy.service';
 
 /**
  * Domain Module - Pure business logic with NO external dependencies
@@ -14,7 +15,7 @@ import { Module } from '@nestjs/common';
  * - Transformation services for domain logic
  */
 @Module({
-  providers: [],
-  exports: [],
+  providers: [IdentityPolicyService],
+  exports: [IdentityPolicyService],
 })
 export class DomainModule {}

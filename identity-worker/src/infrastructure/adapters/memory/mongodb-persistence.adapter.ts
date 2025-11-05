@@ -43,7 +43,8 @@ export class MongoDBPersistenceAdapter {
   // Mock in-memory storage (replace with actual MongoDB connection)
   private storage: Map<string, ConversationDocument> = new Map();
 
-  constructor() { // @Inject('MONGODB_CONNECTION') private readonly mongoClient: any,
+  constructor() {
+    // @Inject('MONGODB_CONNECTION') private readonly mongoClient: any,
     // Initialize MongoDB connection here
   }
 

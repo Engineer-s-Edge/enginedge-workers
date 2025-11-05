@@ -11,8 +11,8 @@
 
 import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult } from '../../entities';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
+import { ILogger } from '../../ports/logger.port';
+import { ILLMProvider } from '../../ports/llm-provider.port';
 import {
   LearningMode,
   ModelType,

@@ -17,6 +17,8 @@ import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -64,6 +66,10 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
     // Cache adapter
     RedisCacheAdapter,
+
+    // Global filter/interceptor for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [
     'ILogger',

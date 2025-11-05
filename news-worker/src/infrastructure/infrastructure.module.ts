@@ -12,6 +12,7 @@ import { MetricsAdapter } from './adapters/monitoring/metrics.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { NewsController } from './controllers/news.controller';
 import { InMemoryNewsRepository } from './adapters/news/in-memory-news.repository';
+import { FileNewsRepository } from './adapters/news/file-news.repository';
 import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
@@ -46,11 +47,15 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
     // Cache adapter
     RedisCacheAdapter,
+    { provide: 'ICachePort', useExisting: RedisCacheAdapter },
 
-    // Repository adapter
+    // Repository adapter (file-based by default; set NEWS_REPOSITORY=inmemory to use in-memory)
     {
       provide: 'INewsRepository',
-      useClass: InMemoryNewsRepository,
+      useClass:
+        (process.env.NEWS_REPOSITORY || 'file').toLowerCase() === 'inmemory'
+          ? InMemoryNewsRepository
+          : FileNewsRepository,
     },
 
     // Metrics
@@ -58,6 +63,7 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
   ],
   exports: [
     RedisCacheAdapter,
+    'ICachePort',
     'INewsRepository',
   ],
 })

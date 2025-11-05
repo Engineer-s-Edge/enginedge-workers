@@ -8,13 +8,20 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { NewsArticle } from '@domain/entities/news-article.entity';
 import { INewsRepository } from '@application/ports/news.repository.port';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 @Injectable()
 export class InMemoryNewsRepository implements INewsRepository, OnModuleInit {
   private articles: Map<string, NewsArticle> = new Map();
 
-  constructor(@Inject('ILogger') private readonly logger: ILogger) {}
+  constructor(@Inject('ILogger') private readonly logger: Logger) {}
 
   async onModuleInit() {
     // Load sample articles for development

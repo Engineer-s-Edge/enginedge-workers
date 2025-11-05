@@ -5,12 +5,9 @@
  * Handles text extraction, JSON parsing, and response validation.
  */
 
-import { Injectable } from '@nestjs/common';
-
 /**
  * Service for parsing LLM responses
  */
-@Injectable()
 export class ResponseParser {
   /**
    * Parse raw LLM response

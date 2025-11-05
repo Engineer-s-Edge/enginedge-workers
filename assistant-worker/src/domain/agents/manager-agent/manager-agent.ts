@@ -11,8 +11,8 @@
 
 import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult, AgentState } from '../../entities';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider, LLMRequest } from '@application/ports/llm-provider.port';
+import { ILogger } from '../../ports/logger.port';
+import { ILLMProvider, LLMRequest } from '../../ports/llm-provider.port';
 import { MemoryManager } from '../../services/memory-manager.service';
 import { StateMachine } from '../../services/state-machine.service';
 import { ResponseParser } from '../../services/response-parser.service';

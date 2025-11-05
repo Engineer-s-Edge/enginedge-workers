@@ -1,7 +1,7 @@
 /**
  * Integration Tests - Phase 8
  * Simple integration tests to verify worker communication patterns
- * 
+ *
  * Test IDs: phase8-int-001 to phase8-int-010
  */
 
@@ -112,7 +112,7 @@ describe('Phase 8 Integration Tests', () => {
         expect(id).toMatch(/^[a-zA-Z0-9_-]+$/);
       });
 
-      invalid ConversationIds.forEach((id) => {
+      invalidConversationIds.forEach((id) => {
         if (id) {
           expect(id).not.toMatch(/^[a-zA-Z0-9_-]+$/);
         } else {

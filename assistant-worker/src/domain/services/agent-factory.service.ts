@@ -5,9 +5,8 @@
  * Encapsulates agent creation logic and type-specific setup.
  */
 
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
+import { ILogger } from '../ports/logger.port';
+import { ILLMProvider } from '../ports/llm-provider.port';
 import { Agent } from '../entities/agent.entity';
 import { BaseAgent } from '../agents/agent.base';
 import { ReActAgent } from '../agents/react-agent/react-agent';
@@ -31,15 +30,12 @@ import { PromptBuilder } from '../services/prompt-builder.service';
  * - Configuration validation
  * - Initialization
  */
-@Injectable()
 export class AgentFactory {
   // Note: StateMachineService is not injected as instance because agents need the class constructor
   // Agents use: new StateMachine(...) for their own state management
 
   constructor(
-    @Inject('ILogger')
     private readonly logger: ILogger,
-    @Inject('ILLMProvider')
     private readonly llmProvider: ILLMProvider,
     private readonly memoryManager: MemoryManager,
     private readonly responseParser: ResponseParser,
@@ -72,9 +68,7 @@ export class AgentFactory {
         case 'interview':
           return this.createInterviewAgent(agent);
         default:
-          throw new BadRequestException(
-            `Unknown agent type: ${agent.agentType}`,
-          );
+          throw new Error(`Unknown agent type: ${agent.agentType}`);
       }
     } catch (error) {
       this.logger.error('Failed to create agent instance', {

@@ -5,13 +5,12 @@
  * Ensures coordination context is well-formed before execution.
  */
 
-import { Injectable, Inject, Optional } from '@nestjs/common';
 import { CoordinationContext } from '../value-objects/coordination-context.vo';
 import { TaskConfig } from '../value-objects/task-config.vo';
 import { AgentReference } from '../value-objects/agent-reference.vo';
 import { IDeadlockDetectionService } from '../ports/deadlock-detection.port';
 import { CollectiveTask } from '../entities/collective-task.entity';
-import { ILogger } from '@application/ports/logger.port';
+import { ILogger } from '../ports/logger.port';
 
 export interface ValidationResult {
   valid: boolean;
@@ -23,13 +22,9 @@ export interface ValidationResult {
  * Service for validating Collective agent coordination
  * Enhanced with deadlock detection integration
  */
-@Injectable()
 export class CoordinationValidatorService {
   constructor(
-    @Optional()
-    @Inject('IDeadlockDetectionService')
     private readonly deadlockDetection?: IDeadlockDetectionService,
-    @Inject('ILogger')
     private readonly logger?: ILogger,
   ) {}
   /**

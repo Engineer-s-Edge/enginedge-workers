@@ -6,7 +6,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EvaluatorService } from '../../../application/services/evaluator.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { InterviewSession, InterviewReport, CandidateProfile, Transcript } from '../../../domain/entities';
+import {
+  InterviewSession,
+  InterviewReport,
+  CandidateProfile,
+  Transcript,
+} from '../../../domain/entities';
 import { Interview } from '../../../domain/entities';
 import { mock } from 'jest-mock-extended';
 import {
@@ -39,10 +44,22 @@ describe('EvaluatorService', () => {
       providers: [
         EvaluatorService,
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: 'IInterviewSessionRepository', useValue: mockSessionRepository },
-        { provide: 'ICandidateProfileRepository', useValue: mockProfileRepository },
-        { provide: 'ITranscriptRepository', useValue: mockTranscriptRepository },
-        { provide: 'IInterviewReportRepository', useValue: mockReportRepository },
+        {
+          provide: 'IInterviewSessionRepository',
+          useValue: mockSessionRepository,
+        },
+        {
+          provide: 'ICandidateProfileRepository',
+          useValue: mockProfileRepository,
+        },
+        {
+          provide: 'ITranscriptRepository',
+          useValue: mockTranscriptRepository,
+        },
+        {
+          provide: 'IInterviewReportRepository',
+          useValue: mockReportRepository,
+        },
         { provide: 'IInterviewRepository', useValue: mockInterviewRepository },
       ],
     }).compile();
@@ -110,7 +127,7 @@ describe('EvaluatorService', () => {
     mockedAxios.post.mockResolvedValue({
       data: {
         content: JSON.stringify({
-          score: { overall: 85, byPhase: { technical: 85 } } },
+          score: { overall: 85, byPhase: { technical: 85 } },
           feedback: 'Strong candidate',
         }),
       },
@@ -193,4 +210,3 @@ describe('EvaluatorService', () => {
     expect(mockedAxios.post).not.toHaveBeenCalled();
   });
 });
-

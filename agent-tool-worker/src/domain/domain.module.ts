@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ToolDefinitionFactory } from './services/tool-definition.factory';
 
 /**
  * Domain Module - Pure business logic with NO external dependencies
@@ -14,7 +15,7 @@ import { Module } from '@nestjs/common';
  * - Transformation services for domain logic
  */
 @Module({
-  providers: [],
-  exports: [],
+  providers: [ToolDefinitionFactory],
+  exports: [ToolDefinitionFactory],
 })
 export class DomainModule {}

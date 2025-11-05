@@ -1,4 +1,3 @@
-import { Module } from '@nestjs/common';
 import { PromptBuilder } from './services/prompt-builder.service';
 import { ResponseParser } from './services/response-parser.service';
 import { MemoryManager } from './services/memory-manager.service';
@@ -20,30 +19,13 @@ import { ExpertPoolManager } from './services/expert-pool-manager.service';
  * - Validation services for business rules
  * - Transformation services for domain logic
  */
-@Module({
-  providers: [
-    // Existing services
-    PromptBuilder,
-    ResponseParser,
-    MemoryManager,
-    // New agent management services
-    AgentFactory,
-    StateMachineService,
-    CoordinationValidatorService,
-    // Expert pool management
-    ExpertPoolManager,
-  ],
-  exports: [
-    // Existing exports
-    PromptBuilder,
-    ResponseParser,
-    MemoryManager,
-    // New exports
-    AgentFactory,
-    StateMachineService,
-    CoordinationValidatorService,
-    // Export for use in infrastructure adapters
-    ExpertPoolManager,
-  ],
-})
-export class DomainModule {}
+// NOTE: DomainModule removed Nest dependency. Keep as plain re-export barrel if needed.
+export const DomainProviders = {
+  PromptBuilder,
+  ResponseParser,
+  MemoryManager,
+  AgentFactory,
+  StateMachineService,
+  CoordinationValidatorService,
+  ExpertPoolManager,
+};

@@ -1,7 +1,14 @@
 import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
 import { Worker } from 'worker_threads';
 import * as os from 'os';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 export interface WorkerTask<T = unknown, R = unknown> {
   id: string;
@@ -30,7 +37,7 @@ export class WorkerThreadPool implements OnModuleDestroy {
   private shutdownRequested = false;
 
   constructor(
-    @Inject('ILogger') private readonly logger: ILogger,
+    @Inject('ILogger') private readonly logger: Logger,
     @Inject('WORKER_THREAD_CONFIG') config?: Partial<WorkerThreadConfig>,
   ) {
     const cpuCount = os.cpus().length;

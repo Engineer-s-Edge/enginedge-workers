@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HealthModule } from './health/health.module';
-import { DomainModule } from './domain/domain.module';
 import { ApplicationModule } from './application/application.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
 
@@ -52,7 +51,6 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
       },
     ),
     HealthModule,
-    DomainModule,
     ApplicationModule,
     InfrastructureModule,
   ],

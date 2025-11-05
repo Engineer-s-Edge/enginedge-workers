@@ -23,7 +23,14 @@ import {
 } from '@application/services/memory.service';
 import { Message, MessageRole } from '@domain/value-objects/message.vo';
 import { ConversationsService } from '@application/services/conversations.service';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 /**
  * Memory Controller
@@ -33,7 +40,7 @@ export class MemoryController {
   constructor(
     private readonly memoryService: MemoryService,
     @Inject('ILogger')
-    private readonly logger: ILogger,
+    private readonly logger: Logger,
     private readonly conversations?: ConversationsService,
   ) {}
 

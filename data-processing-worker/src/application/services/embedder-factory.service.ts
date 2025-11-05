@@ -1,10 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EmbedderPort } from '@domain/ports/processing.port';
-import { OpenAIEmbedderAdapter } from '@infrastructure/adapters/embedders/openai.embedder';
-import { GoogleEmbedderAdapter } from '@infrastructure/adapters/embedders/google.embedder';
-import { CohereEmbedderAdapter } from '@infrastructure/adapters/embedders/cohere.embedder';
-import { LocalEmbedderAdapter } from '@infrastructure/adapters/embedders/local.embedder';
-import { HuggingFaceEmbedderAdapter } from '@infrastructure/adapters/embedders/huggingface.embedder';
 
 /**
  * Embedder Factory Service
@@ -18,11 +13,12 @@ export class EmbedderFactoryService {
   private readonly defaultEmbedder: EmbedderPort;
 
   constructor(
-    private readonly openAIEmbedder: OpenAIEmbedderAdapter,
-    private readonly googleEmbedder: GoogleEmbedderAdapter,
-    private readonly cohereEmbedder: CohereEmbedderAdapter,
-    private readonly localEmbedder: LocalEmbedderAdapter,
-    private readonly huggingFaceEmbedder: HuggingFaceEmbedderAdapter,
+    @Inject('Embedder.openai') private readonly openAIEmbedder: EmbedderPort,
+    @Inject('Embedder.google') private readonly googleEmbedder: EmbedderPort,
+    @Inject('Embedder.cohere') private readonly cohereEmbedder: EmbedderPort,
+    @Inject('Embedder.local') private readonly localEmbedder: EmbedderPort,
+    @Inject('Embedder.huggingface')
+    private readonly huggingFaceEmbedder: EmbedderPort,
   ) {
     this.logger.log('EmbedderFactory initialized with 5 embedders');
     // Default to OpenAI, fallback to local if unavailable

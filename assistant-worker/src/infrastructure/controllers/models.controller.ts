@@ -9,9 +9,16 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
-import { ILogger } from '@application/ports/logger.port';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 interface Model {
   name: string;
@@ -35,9 +42,9 @@ interface Model {
 @Controller('models')
 export class ModelsController {
   private models: Model[] = [];
-  private readonly logger: ILogger;
+  private readonly logger: Logger;
 
-  constructor(@Inject('ILogger') logger: ILogger) {
+  constructor(@Inject('ILogger') logger: Logger) {
     this.logger = logger;
     this.loadModels();
   }

@@ -118,7 +118,8 @@ export class Neo4jAdapter {
   private nodes: Map<string, KGNode> = new Map();
   private edges: Map<string, KGEdge> = new Map();
 
-  constructor() { // @Inject('NEO4J_DRIVER') private readonly driver: any,
+  constructor() {
+    // @Inject('NEO4J_DRIVER') private readonly driver: any,
     // Initialize Neo4j connection here
     // this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
   }

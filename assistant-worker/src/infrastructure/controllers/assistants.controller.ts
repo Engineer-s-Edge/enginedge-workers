@@ -28,14 +28,20 @@ import {
   AssistantFiltersDto,
 } from '@application/dto/assistant.dto';
 import { ExecuteAssistantDto } from '@application/dto/execution.dto';
-import { ILogger } from '@application/ports/logger.port';
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 @Controller('assistants')
 export class AssistantsController {
   constructor(
     private readonly assistantsService: AssistantsService,
     @Inject('ILogger')
-    private readonly logger: ILogger,
+    private readonly logger: Logger,
   ) {
     this.logger.info('AssistantsController initialized');
   }

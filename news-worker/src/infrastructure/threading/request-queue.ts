@@ -1,5 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 export interface QueuedRequest<T = unknown> {
   id: string;
@@ -27,7 +34,7 @@ export class RequestQueue<T = unknown> {
   private waitTimes: number[] = [];
   private readonly maxWaitTimeSamples = 100;
 
-  constructor(@Inject('ILogger') private readonly logger: ILogger) {}
+  constructor(@Inject('ILogger') private readonly logger: Logger) {}
 
   enqueue(
     id: string,

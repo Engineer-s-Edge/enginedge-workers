@@ -5,7 +5,6 @@
  * Provides conversation tracking, context extraction, and memory operations.
  */
 
-import { Injectable } from '@nestjs/common';
 import { Message } from '../value-objects/message.vo';
 
 export interface ConversationContext {
@@ -29,7 +28,6 @@ export interface MemorySnapshot {
 /**
  * Service for managing agent memory and conversation context
  */
-@Injectable()
 export class MemoryManager {
   private conversations: Map<string, ConversationContext> = new Map();
   private snapshots: Map<string, MemorySnapshot> = new Map();

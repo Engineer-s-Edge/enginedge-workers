@@ -15,8 +15,15 @@ import { Response } from 'express';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from '@application/use-cases/stream-agent-execution.use-case';
 import { AgentService } from '@application/services/agent.service';
-import { ILogger } from '@application/ports/logger.port';
 import { AgentEventService } from '@application/services/agent-event.service';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 import { SSEStreamAdapter } from '@infrastructure/adapters/streaming/sse-stream.adapter';
 import { AgentSessionService } from '@application/services/agent-session.service';
 
@@ -39,7 +46,7 @@ export class AgentController {
     private readonly streamAgentExecutionUseCase: StreamAgentExecutionUseCase,
     private readonly agentService: AgentService,
     @Inject('ILogger')
-    private readonly logger: ILogger,
+    private readonly logger: Logger,
     private readonly events: AgentEventService,
     private readonly sse: SSEStreamAdapter,
     private readonly sessions: AgentSessionService,

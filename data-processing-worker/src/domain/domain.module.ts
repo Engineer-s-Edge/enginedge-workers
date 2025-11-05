@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ProcessingPipelineFactory } from './services/processing-pipeline.factory';
 
 /**
  * Domain Module - Pure business logic with NO external dependencies
@@ -14,7 +15,7 @@ import { Module } from '@nestjs/common';
  * - Transformation services for domain logic
  */
 @Module({
-  providers: [],
-  exports: [],
+  providers: [ProcessingPipelineFactory],
+  exports: [ProcessingPipelineFactory],
 })
 export class DomainModule {}

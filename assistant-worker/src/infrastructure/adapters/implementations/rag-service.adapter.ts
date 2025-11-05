@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { MetricsAdapter } from '../monitoring/metrics.adapter';
 import {
-  IRAGServiceAdapter,
+  IRAGServicePort,
   RAGDocument,
   RAGDocumentProcessingResult,
   RAGSearchRequest,
@@ -19,7 +19,7 @@ import {
   RAGConversationDocsRequest,
   RAGConversationDocsResult,
   EmbeddingModelsResult,
-} from '../interfaces/rag-service.adapter.interface';
+} from '@domain/ports/rag-service.port';
 
 /**
  * Configuration for RAG service connection
@@ -32,7 +32,7 @@ interface RAGServiceConfig {
 }
 
 @Injectable()
-export class RAGServiceAdapter implements IRAGServiceAdapter {
+export class RAGServiceAdapter implements IRAGServicePort {
   private readonly logger = new Logger(RAGServiceAdapter.name);
   private readonly httpClient: AxiosInstance;
   private readonly config: RAGServiceConfig;

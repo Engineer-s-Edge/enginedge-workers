@@ -1,5 +1,12 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 export enum LoadLevel {
   LOW = 'low',
@@ -35,7 +42,7 @@ export class BackpressureHandler {
   private totalRequests = 0;
 
   constructor(
-    @Inject('ILogger') private readonly logger: ILogger,
+    @Inject('ILogger') private readonly logger: Logger,
     @Inject('BACKPRESSURE_CONFIG') config?: Partial<BackpressureConfig>,
   ) {
     this.config = {

@@ -80,6 +80,8 @@ import { ChromaDBVectorStoreAdapter } from './adapters/vectorstores/chromadb.vec
 // Messaging
 import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-processing.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - All adapters and implementations
@@ -150,6 +152,32 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
     LatexSplitterAdapter,
     MarkdownSplitterAdapter,
     HtmlSplitterAdapter,
+    // Text Splitter tokens for application layer
+    {
+      provide: 'TextSplitter.recursive',
+      useExisting: RecursiveCharacterSplitterAdapter,
+    },
+    {
+      provide: 'TextSplitter.character',
+      useExisting: CharacterSplitterAdapter,
+    },
+    { provide: 'TextSplitter.token', useExisting: TokenSplitterAdapter },
+    { provide: 'TextSplitter.semantic', useExisting: SemanticSplitterAdapter },
+    { provide: 'TextSplitter.python', useExisting: PythonSplitterAdapter },
+    {
+      provide: 'TextSplitter.javascript',
+      useExisting: JavaScriptSplitterAdapter,
+    },
+    {
+      provide: 'TextSplitter.typescript',
+      useExisting: TypeScriptSplitterAdapter,
+    },
+    { provide: 'TextSplitter.java', useExisting: JavaSplitterAdapter },
+    { provide: 'TextSplitter.cpp', useExisting: CppSplitterAdapter },
+    { provide: 'TextSplitter.go', useExisting: GoSplitterAdapter },
+    { provide: 'TextSplitter.latex', useExisting: LatexSplitterAdapter },
+    { provide: 'TextSplitter.markdown', useExisting: MarkdownSplitterAdapter },
+    { provide: 'TextSplitter.html', useExisting: HtmlSplitterAdapter },
 
     // Embedders
     OpenAIEmbedderAdapter,
@@ -157,6 +185,15 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
     CohereEmbedderAdapter,
     HuggingFaceEmbedderAdapter,
     LocalEmbedderAdapter,
+    // Embedder tokens for application layer
+    { provide: 'Embedder.openai', useExisting: OpenAIEmbedderAdapter },
+    { provide: 'Embedder.google', useExisting: GoogleEmbedderAdapter },
+    { provide: 'Embedder.cohere', useExisting: CohereEmbedderAdapter },
+    {
+      provide: 'Embedder.huggingface',
+      useExisting: HuggingFaceEmbedderAdapter,
+    },
+    { provide: 'Embedder.local', useExisting: LocalEmbedderAdapter },
 
     // Vector Stores (6 total - MongoDB ENABLED, others disabled)
     MongoDBVectorStoreAdapter,
@@ -177,6 +214,10 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
       provide: 'VectorStorePort',
       useExisting: MongoDBVectorStoreAdapter,
     },
+
+    // Global filter/interceptor providers for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [
     // Export all loaders and infrastructure

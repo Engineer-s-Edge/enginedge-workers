@@ -5,12 +5,9 @@
  * Provides templates, system prompts, and prompt customization.
  */
 
-import { Injectable } from '@nestjs/common';
-
 /**
  * Service for building prompts
  */
-@Injectable()
 export class PromptBuilder {
   /**
    * Build system prompt for different agent types

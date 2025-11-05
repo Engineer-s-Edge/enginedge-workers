@@ -5,7 +5,6 @@
  * Ensures all agents follow proper state machine rules.
  */
 
-import { Injectable } from '@nestjs/common';
 import { Agent } from '../entities/agent.entity';
 import { AgentState, AgentStateType } from '../entities/agent-state.entity';
 import { AgentType } from '../enums/agent-type.enum';
@@ -25,7 +24,6 @@ export interface StateTransitionResult {
 /**
  * Service for managing and validating state transitions
  */
-@Injectable()
 export class StateMachineService {
   /**
    * Check if a state transition is valid

@@ -21,15 +21,14 @@ from nltk import sent_tokenize
 
 class BulletEvaluator:
     def __init__(self):
-        # Load spaCy model
+        # Load spaCy model (must be preinstalled in the image)
         try:
             self.nlp = spacy.load("en_core_web_lg")
-        except OSError:
-            print("Downloading spaCy model...")
-            import subprocess
-
-            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_lg"])
-            self.nlp = spacy.load("en_core_web_lg")
+        except OSError as e:
+            raise RuntimeError(
+                "spaCy model 'en_core_web_lg' not found. Install it at build time: "
+                "RUN python -m spacy download en_core_web_lg"
+            ) from e
 
         # Load action verbs (200+ strong verbs)
         self.action_verbs = self._load_action_verbs()

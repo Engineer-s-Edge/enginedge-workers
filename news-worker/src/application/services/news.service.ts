@@ -9,14 +9,14 @@ import { NewsArticle } from '@domain/entities/news-article.entity';
 import { NewsFeed, NewsFilter, NewsMetadata } from '@domain/entities/news-feed.entity';
 import { ILogger } from '../ports/logger.port';
 import { INewsRepository } from '../ports/news.repository.port';
-import { RedisCacheAdapter } from '@infrastructure/adapters/cache/redis-cache.adapter';
+import { ICachePort } from '../ports/cache.port';
 
 @Injectable()
 export class NewsService {
   constructor(
     @Inject('ILogger') private readonly logger: ILogger,
     @Inject('INewsRepository') private readonly newsRepository: INewsRepository,
-    private readonly cache: RedisCacheAdapter,
+    @Inject('ICachePort') private readonly cache: ICachePort,
   ) {}
 
   /**

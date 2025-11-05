@@ -31,6 +31,8 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
 // Messaging
 import { KafkaMessageBrokerAdapter } from './adapters/messaging/kafka-message-broker.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 // Controllers
 import { CalendarController } from './controllers/calendar.controller';
@@ -112,6 +114,10 @@ import { MLController } from './controllers/ml.controller';
       provide: 'IMessageBroker',
       useClass: KafkaMessageBrokerAdapter,
     },
+
+    // Global filter/interceptor providers for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [
     GoogleAuthService,

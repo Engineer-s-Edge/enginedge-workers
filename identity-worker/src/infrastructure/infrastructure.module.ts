@@ -23,6 +23,8 @@ import { KeyRepository } from './adapters/repositories/key.repository';
 import { RefreshTokenRepository } from './adapters/repositories/refresh-token.repository';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -65,6 +67,10 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
     // Cache adapter
     RedisCacheAdapter,
+
+    // Global filter/interceptor providers for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [RedisCacheAdapter],
 })

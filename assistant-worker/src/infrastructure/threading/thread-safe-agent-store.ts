@@ -1,6 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Agent } from '@domain/entities/agent.entity';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 interface LockHandle {
   agentId: string;
@@ -14,7 +21,7 @@ export class ThreadSafeAgentStore {
   private locks = new Map<string, LockHandle>();
   private readonly lockTimeout = 30000; // 30s default
 
-  constructor(@Inject('ILogger') private readonly logger: ILogger) {}
+  constructor(@Inject('ILogger') private readonly logger: Logger) {}
 
   async acquireLock(
     agentId: string,

@@ -18,7 +18,13 @@ import {
   Inject,
 } from '@nestjs/common';
 import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
-import { ILogger } from '@application/ports/logger.port';
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 import { ICSLayer } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
 
 /**
@@ -29,7 +35,7 @@ export class KnowledgeGraphController {
   constructor(
     private readonly knowledgeGraphService: KnowledgeGraphService,
     @Inject('ILogger')
-    private readonly logger: ILogger,
+    private readonly logger: Logger,
   ) {}
 
   /**

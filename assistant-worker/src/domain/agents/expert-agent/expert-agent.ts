@@ -9,9 +9,9 @@
 
 import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult } from '../../entities';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
-import { IRAGServiceAdapter } from '@infrastructure/adapters/interfaces';
+import { ILogger } from '../../ports/logger.port';
+import { ILLMProvider } from '../../ports/llm-provider.port';
+import { IRAGServicePort } from '../../ports/rag-service.port';
 import {
   ResearchPhase,
   ResearchTopic,
@@ -35,7 +35,7 @@ export class ExpertAgent extends BaseAgent {
   constructor(
     llmProvider: ILLMProvider,
     logger: ILogger,
-    private ragAdapter?: IRAGServiceAdapter,
+    private ragAdapter?: IRAGServicePort,
     private config: {
       aim_iterations?: number;
       shoot_iterations?: number;
