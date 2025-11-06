@@ -172,14 +172,14 @@ export class WorkerThreadPool implements OnModuleDestroy {
     this.activeTaskCount++;
 
     // Set up message handler for this task
-    const messageHandler = (result: { success: boolean; result?: R; error?: string; stack?: string }) => {
+    const messageHandler = (result: { success: boolean; result?: unknown; error?: string; stack?: string }) => {
       worker.off('message', messageHandler);
       this.availableWorkers.push(worker);
 
       this.activeTaskCount--;
 
       if (result.success) {
-        task.resolve(result.result as R);
+        task.resolve(result.result);
       } else {
         task.reject(new Error(result.error || 'Unknown worker error'));
       }

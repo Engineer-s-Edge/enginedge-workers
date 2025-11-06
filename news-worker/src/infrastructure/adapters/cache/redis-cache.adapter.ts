@@ -27,6 +27,10 @@ export class RedisCacheAdapter implements OnModuleDestroy {
   private redis: Redis;
   private readonly defaultTTL: number;
   private readonly keyPrefix: string;
+  private lastErrorLogAt = 0;
+  private errorLogIntervalMs = 60000;
+  private suppressErrorLogs = true;
+  private loggedFirstError = false;
 
   constructor(
     @Inject('ILogger') private readonly logger: Logger,
@@ -40,7 +44,6 @@ export class RedisCacheAdapter implements OnModuleDestroy {
       port: parseInt(this.configService.get<string>('REDIS_PORT') || '6379', 10),
       db,
       maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
       enableReadyCheck: true,
       keyPrefix: this.configService.get<string>('REDIS_KEY_PREFIX') || 'news:',
       lazyConnect: true,
@@ -49,17 +52,45 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     this.defaultTTL = parseInt(this.configService.get<string>('CACHE_DEFAULT_TTL') || '3600', 10);
     this.keyPrefix = this.configService.get<string>('REDIS_KEY_PREFIX') || 'news:';
 
+    // Error logging controls
+    this.errorLogIntervalMs = parseInt(
+      this.configService.get<string>('REDIS_ERROR_LOG_INTERVAL_MS') || '60000',
+      10,
+    );
+    this.suppressErrorLogs =
+      (this.configService.get<string>('REDIS_SUPPRESS_ERRORS') || 'true') ===
+      'true';
+
     this.redis.on('connect', () => {
       this.logger.info('RedisCacheAdapter: Connected to Redis');
     });
 
     this.redis.on('error', (error) => {
-      this.logger.error('RedisCacheAdapter: Redis error', { error: error.message });
+      if (this.suppressErrorLogs) return;
+      const now = Date.now();
+      if (!this.loggedFirstError) {
+        this.loggedFirstError = true;
+        this.lastErrorLogAt = now;
+        this.logger.warn('RedisCacheAdapter: Redis error', {
+          error: error?.message || 'unknown',
+        });
+        return;
+      }
+      if (now - this.lastErrorLogAt >= this.errorLogIntervalMs) {
+        this.lastErrorLogAt = now;
+        this.logger.warn('RedisCacheAdapter: Redis error', {
+          error: error?.message || 'unknown',
+        });
+      }
     });
 
     // Connect to Redis
     this.redis.connect().catch((error) => {
-      this.logger.error('RedisCacheAdapter: Failed to connect to Redis', { error: error.message });
+      if (!this.suppressErrorLogs) {
+        this.logger.warn('RedisCacheAdapter: Failed to connect', {
+          error: error?.message || 'unknown',
+        });
+      }
     });
   }
 

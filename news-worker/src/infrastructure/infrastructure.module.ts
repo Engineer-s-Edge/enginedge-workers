@@ -6,8 +6,6 @@
 
 import { Module, Global } from '@nestjs/common';
 import { ApplicationModule } from '@application/application.module';
-import { HealthController } from '../health/health.controller';
-import { ThreadingModule } from './threading/threading.module';
 import { MetricsAdapter } from './adapters/monitoring/metrics.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { NewsController } from './controllers/news.controller';
@@ -15,6 +13,8 @@ import { InMemoryNewsRepository } from './adapters/news/in-memory-news.repositor
 import { FileNewsRepository } from './adapters/news/file-news.repository';
 import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -32,10 +32,9 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 @Module({
   imports: [
     ApplicationModule,
-    ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
+    // ThreadingModule moved to AppModule to avoid circular dependency
   ],
   controllers: [
-    HealthController,
     NewsController,
   ],
   providers: [
@@ -60,8 +59,13 @@ import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 
     // Metrics
     MetricsAdapter,
+
+    // Global filters and interceptors
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [
+    'ILogger',
     RedisCacheAdapter,
     'ICachePort',
     'INewsRepository',

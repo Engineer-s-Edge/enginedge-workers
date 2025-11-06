@@ -4,7 +4,7 @@
  * Configures adapters, controllers, and external integrations for document processing.
  */
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '../application/application.module';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
@@ -102,7 +102,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     MongooseModule.forFeature([
       { name: DocumentModel.name, schema: DocumentSchema },
     ]),
-    ApplicationModule,
+    forwardRef(() => ApplicationModule),
   ],
   controllers: [DocumentController, VectorStoreController, EmbedderController],
   providers: [
@@ -230,6 +230,28 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     MongoDBVectorStoreAdapter,
     KafkaDataProcessingAdapter,
     RedisCacheAdapter,
+    // Export TextSplitter tokens for ApplicationModule
+    'TextSplitter.recursive',
+    'TextSplitter.character',
+    'TextSplitter.token',
+    'TextSplitter.semantic',
+    'TextSplitter.python',
+    'TextSplitter.javascript',
+    'TextSplitter.typescript',
+    'TextSplitter.java',
+    'TextSplitter.cpp',
+    'TextSplitter.go',
+    'TextSplitter.latex',
+    'TextSplitter.markdown',
+    'TextSplitter.html',
+    // Export Embedder tokens for ApplicationModule
+    'Embedder.openai',
+    'Embedder.google',
+    'Embedder.cohere',
+    'Embedder.huggingface',
+    'Embedder.local',
+    // Export VectorStorePort for ApplicationModule
+    'VectorStorePort',
   ],
 })
 export class InfrastructureModule {}

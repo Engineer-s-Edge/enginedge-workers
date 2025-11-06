@@ -331,9 +331,9 @@ export class ResumeEvaluatorService {
 
     // Generate fixes for low-scoring bullets
     for (let i = 0; i < bulletEvaluations.length; i++) {
-      const eval = bulletEvaluations[i];
-      if (eval.overallScore < 0.7 && eval.suggestedFixes) {
-        for (const fix of eval.suggestedFixes) {
+      const evaluation = bulletEvaluations[i];
+      if (evaluation.overallScore < 0.7 && evaluation.suggestedFixes) {
+        for (const fix of evaluation.suggestedFixes) {
           fixes.push({
             type: 'bullet_improvement',
             bulletIndex: i,
@@ -405,14 +405,14 @@ export class ResumeEvaluatorService {
 
     // Bullet issues
     for (let i = 0; i < bulletEvaluations.length; i++) {
-      const eval = bulletEvaluations[i];
-      if (eval.overallScore < 0.7) {
+      const evaluation = bulletEvaluations[i];
+      if (evaluation.overallScore < 0.7) {
         findings.push({
           type: 'bullet',
           code: 'LOW_QUALITY_BULLET',
           location: { bulletIndex: i },
-          evidence: eval.feedback.join('; '),
-          autoFixes: eval.suggestedFixes || [],
+          evidence: evaluation.feedback?.join('; ') || '',
+          autoFixes: evaluation.suggestedFixes || [],
         });
       }
     }

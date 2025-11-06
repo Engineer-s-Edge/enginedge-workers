@@ -23,8 +23,21 @@ export class KafkaMessageBrokerAdapter
   private consumer!: Consumer;
   private producer!: Producer;
   private connected = false;
+  private lastErrorLogAt = 0;
+  private errorLogIntervalMs = 60000;
+  private suppressErrorLogs = true;
+  private loggedFirstError = false;
 
   constructor(private readonly configService: ConfigService) {
+    // Error logging controls
+    this.errorLogIntervalMs = parseInt(
+      this.configService.get<string>('KAFKA_ERROR_LOG_INTERVAL_MS') || '60000',
+      10,
+    );
+    this.suppressErrorLogs =
+      (this.configService.get<string>('KAFKA_SUPPRESS_ERRORS') || 'true') ===
+      'true';
+
     this.initializeKafka();
   }
 
@@ -46,9 +59,27 @@ export class KafkaMessageBrokerAdapter
     const saslUsername = this.configService.get<string>('KAFKA_SASL_USERNAME');
     const saslPassword = this.configService.get<string>('KAFKA_SASL_PASSWORD');
 
+    // Suppress KafkaJS internal logs by default to avoid console spam
+    const kafkaLogLevel =
+      this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+    const logCreator = () => {
+      return () => {
+        // no-op (silence KafkaJS internal logs)
+      };
+    };
+
     const kafkaConfig: KafkaConfig = {
       clientId: 'worker-node',
       brokers: brokers.split(',').map((broker) => broker.trim()),
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
     };
 
     // Add SASL configuration if security protocol requires it
@@ -90,9 +121,16 @@ export class KafkaMessageBrokerAdapter
 
   /**
    * Connect to Kafka on module initialization
+   * Non-blocking: app can start even if Kafka is unavailable
    */
   async onModuleInit(): Promise<void> {
-    await this.connect();
+    // Connect in background, don't block app startup (silent mode)
+    // Errors are handled silently to avoid log spam
+    this.connect(true).catch(() => {
+      this.connected = false;
+      // Connection errors are suppressed during startup
+      // Will retry automatically when sendMessage/subscribe are called
+    });
   }
 
   /**
@@ -105,23 +143,48 @@ export class KafkaMessageBrokerAdapter
   /**
    * Connect to Kafka broker
    */
-  async connect(): Promise<void> {
+  async connect(silent = false): Promise<void> {
     try {
-      this.logger.log('Connecting to Kafka...');
+      if (!silent) {
+        this.logger.log('Connecting to Kafka...');
+      }
 
       await this.consumer.connect();
-      this.logger.log('Kafka consumer connected');
+      if (!silent) {
+        this.logger.log('Kafka consumer connected');
+      }
 
       await this.producer.connect();
-      this.logger.log('Kafka producer connected');
+      if (!silent) {
+        this.logger.log('Kafka producer connected');
+      }
 
       this.connected = true;
-      this.logger.log('Successfully connected to Kafka');
+      if (!silent) {
+        this.logger.log('Successfully connected to Kafka');
+      }
     } catch (error) {
-      this.logger.error(
-        'Failed to connect to Kafka:',
-        error as Record<string, unknown>,
-      );
+      // Only log errors if not in silent mode and suppression allows it
+      if (!silent) {
+        const now = Date.now();
+        const shouldLog =
+          !this.suppressErrorLogs ||
+          !this.loggedFirstError ||
+          now - this.lastErrorLogAt >= this.errorLogIntervalMs;
+
+        if (shouldLog) {
+          this.loggedFirstError = true;
+          this.lastErrorLogAt = now;
+          const logLevel = this.suppressErrorLogs ? 'warn' : 'error';
+          this.logger[logLevel](
+            this.suppressErrorLogs
+              ? 'Failed to connect to Kafka (suppressed)'
+              : 'Failed to connect to Kafka',
+            { error: (error as Error).message },
+          );
+        }
+      }
+      // Always throw error to allow retry logic, but don't log in silent mode
       throw error;
     }
   }
@@ -159,6 +222,11 @@ export class KafkaMessageBrokerAdapter
    */
   async sendMessage(topic: string, message: unknown): Promise<void> {
     try {
+      // Auto-connect if not connected
+      if (!this.connected) {
+        await this.connect();
+      }
+
       await this.producer.send({
         topic,
         messages: [{ value: JSON.stringify(message) }],
@@ -169,6 +237,7 @@ export class KafkaMessageBrokerAdapter
         `Failed to send message to topic ${topic}:`,
         error as Record<string, unknown>,
       );
+      this.connected = false; // Mark as disconnected on error
       throw error;
     }
   }
@@ -181,6 +250,11 @@ export class KafkaMessageBrokerAdapter
     handler: (message: unknown) => Promise<void>,
   ): Promise<void> {
     try {
+      // Auto-connect if not connected
+      if (!this.connected) {
+        await this.connect();
+      }
+
       await this.consumer.subscribe({ topic, fromBeginning: false });
       this.logger.log(`Subscribed to topic: ${topic}`);
 
@@ -214,6 +288,7 @@ export class KafkaMessageBrokerAdapter
         `Failed to subscribe to topic ${topic}:`,
         error as Record<string, unknown>,
       );
+      this.connected = false; // Mark as disconnected on error
       throw error;
     }
   }

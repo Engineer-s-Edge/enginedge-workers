@@ -32,13 +32,13 @@ import {
   imports: [
     MongooseModule.forFeature([
       {
-        name: ExperienceBankItemSchema.name,
+        name: 'ExperienceBankItem',
         schema: ExperienceBankItemSchemaFactory,
       },
-      { name: ResumeSchema.name, schema: ResumeSchemaFactory },
-      { name: JobPostingSchema.name, schema: JobPostingSchemaFactory },
+      { name: 'Resume', schema: ResumeSchemaFactory },
+      { name: 'JobPosting', schema: JobPostingSchemaFactory },
       {
-        name: EvaluationReportSchema.name,
+        name: 'EvaluationReport',
         schema: EvaluationReportSchemaFactory,
       },
     ]),

@@ -26,6 +26,10 @@ export class RedisCacheAdapter implements OnModuleDestroy {
   private redis: Redis;
   private readonly defaultTTL: number;
   private readonly keyPrefix: string;
+  private lastErrorLogAt = 0;
+  private errorLogIntervalMs = 60000;
+  private suppressErrorLogs = true;
+  private loggedFirstError = false;
 
   constructor(
     @Inject('ILogger') private readonly logger: Logger,
@@ -43,7 +47,6 @@ export class RedisCacheAdapter implements OnModuleDestroy {
       ),
       db,
       maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
       enableReadyCheck: true,
       keyPrefix:
         this.configService.get<string>('REDIS_KEY_PREFIX') || 'resume:',
@@ -57,19 +60,60 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     this.keyPrefix =
       this.configService.get<string>('REDIS_KEY_PREFIX') || 'resume:';
 
+    // Error logging controls
+    this.errorLogIntervalMs = parseInt(
+      this.configService.get<string>('REDIS_ERROR_LOG_INTERVAL_MS') || '60000',
+      10,
+    );
+    this.suppressErrorLogs =
+      (this.configService.get<string>('REDIS_SUPPRESS_ERRORS') || 'true') ===
+      'true';
+
     this.redis.on('connect', () =>
       this.logger.info('RedisCacheAdapter: Connected to Redis'),
     );
-    this.redis.on('error', (error) =>
-      this.logger.error('RedisCacheAdapter: Redis error', {
-        error: error.message,
-      }),
-    );
-    this.redis.connect().catch((error) =>
-      this.logger.error('RedisCacheAdapter: Failed to connect', {
-        error: error.message,
-      }),
-    );
+    this.redis.on('error', (error) => {
+      if (!this.suppressErrorLogs) {
+        this.logger.error('RedisCacheAdapter: Redis error', {
+          error: error.message,
+        });
+        return;
+      }
+
+      const now = Date.now();
+      const shouldLog =
+        !this.loggedFirstError ||
+        now - this.lastErrorLogAt >= this.errorLogIntervalMs;
+
+      if (shouldLog) {
+        this.loggedFirstError = true;
+        this.lastErrorLogAt = now;
+        this.logger.warn('RedisCacheAdapter: Redis error (suppressed)', {
+          error: error.message,
+        });
+      }
+    });
+    this.redis.connect().catch((error) => {
+      if (!this.suppressErrorLogs) {
+        this.logger.error('RedisCacheAdapter: Failed to connect', {
+          error: error.message,
+        });
+        return;
+      }
+
+      const now = Date.now();
+      const shouldLog =
+        !this.loggedFirstError ||
+        now - this.lastErrorLogAt >= this.errorLogIntervalMs;
+
+      if (shouldLog) {
+        this.loggedFirstError = true;
+        this.lastErrorLogAt = now;
+        this.logger.warn('RedisCacheAdapter: Failed to connect (suppressed)', {
+          error: error.message,
+        });
+      }
+    });
   }
 
   async onModuleDestroy() {

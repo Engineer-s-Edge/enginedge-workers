@@ -6,7 +6,6 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
-import { Message } from '@domain/entities/command.entities';
 
 // MongoDB document interface
 interface ConversationDocument {
@@ -54,7 +53,11 @@ export class MongoDBPersistenceAdapter {
   async saveConversation(
     conversationId: string,
     userId: string,
-    messages: Message[],
+    messages: Array<{
+      role: string;
+      content: string;
+      metadata?: Record<string, unknown>;
+    }>,
     options?: {
       summary?: string;
       entities?: any[];

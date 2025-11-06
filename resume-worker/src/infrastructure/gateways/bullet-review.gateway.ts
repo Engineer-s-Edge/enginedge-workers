@@ -28,7 +28,7 @@ export class BulletReviewGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private readonly logger = new Logger(BulletReviewGateway.name);
   private sessions = new Map<string, ReviewSession>();
@@ -64,7 +64,7 @@ export class BulletReviewGateway
       const unreviewed = await this.experienceBankService.list(data.userId, {
         reviewed: false,
       });
-      bulletIds = unreviewed.map((b) => b._id.toString());
+      bulletIds = unreviewed.map((b: any) => b._id.toString());
     }
 
     // Create session

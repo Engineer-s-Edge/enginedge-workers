@@ -5,12 +5,13 @@ import {
   SignJWT,
   jwtVerify,
   importJWK,
+  KeyLike,
 } from 'jose';
 import { KeyRepository } from '../repositories/key.repository';
 
 @Injectable()
 export class JwtIssuerService implements OnModuleInit {
-  private privateKey!: CryptoKey;
+  private privateKey!: KeyLike;
   private publicJwk!: any;
   private kid!: string;
   private readonly logger = new Logger(JwtIssuerService.name);
@@ -18,27 +19,71 @@ export class JwtIssuerService implements OnModuleInit {
   constructor(private readonly keys: KeyRepository) {}
 
   async onModuleInit() {
-    const existing = await this.keys.getActiveKey();
-    if (existing) {
-      this.kid = existing.kid;
-      this.publicJwk = existing.publicJwk;
-      // For demo, privateJwkEnc is stored as plain JSON of the JWK
-      const privateJwk = JSON.parse(existing.privateJwkEnc);
-      this.privateKey = await importJWK(privateJwk, 'RS256');
-    } else {
+    try {
+      // Retry mechanism to wait for MongoDB to be ready
+      let retries = 10;
+      let existing = null;
+      while (retries > 0) {
+        try {
+          existing = await this.keys.getActiveKey();
+          break;
+        } catch (error: any) {
+          if (error?.message?.includes('not initialized')) {
+            retries--;
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (existing) {
+        this.kid = existing.kid;
+        this.publicJwk = existing.publicJwk;
+        // For demo, privateJwkEnc is stored as plain JSON of the JWK
+        const privateJwk = JSON.parse(existing.privateJwkEnc);
+        const importedKey = await importJWK(privateJwk, 'RS256');
+        this.privateKey = importedKey as KeyLike;
+      } else {
+        const { privateKey, publicKey } = await generateKeyPair('RS256');
+        this.privateKey = privateKey;
+        this.publicJwk = await exportJWK(publicKey);
+        this.kid = Math.random().toString(36).slice(2);
+        this.publicJwk.kid = this.kid;
+        this.publicJwk.alg = 'RS256';
+        const privJwk = await exportJWK(privateKey);
+        await this.keys.saveKey({
+          kid: this.kid,
+          publicJwk: this.publicJwk,
+          privateJwkEnc: JSON.stringify(privJwk),
+          createdAt: new Date(),
+        } as any);
+      }
+    } catch (error) {
+      // If MongoDB is not available, generate a new key pair anyway
+      // This allows the service to start even without MongoDB
+      // Silently handle MongoDB unavailability (no logging to prevent spam)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isMongoNotInitialized =
+        errorMessage.includes('not initialized') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('MongoService');
+
+      if (!isMongoNotInitialized) {
+        // Only log non-connection errors
+        this.logger.warn(
+          'Failed to load existing key from MongoDB, generating new key pair',
+          { error: errorMessage },
+        );
+      }
+
       const { privateKey, publicKey } = await generateKeyPair('RS256');
       this.privateKey = privateKey;
       this.publicJwk = await exportJWK(publicKey);
       this.kid = Math.random().toString(36).slice(2);
       this.publicJwk.kid = this.kid;
       this.publicJwk.alg = 'RS256';
-      const privJwk = await exportJWK(privateKey);
-      await this.keys.saveKey({
-        kid: this.kid,
-        publicJwk: this.publicJwk,
-        privateJwkEnc: JSON.stringify(privJwk),
-        createdAt: new Date(),
-      } as any);
     }
   }
 

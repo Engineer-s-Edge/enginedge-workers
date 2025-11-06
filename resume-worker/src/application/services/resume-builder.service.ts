@@ -235,7 +235,10 @@ export class ResumeBuilderService {
             technologies: [], // TODO: Extract from bullet
             role: experience.role,
             company: experience.company,
-            dateRange: experience.dateRange,
+            dateRange:
+              typeof experience.dateRange === 'string'
+                ? { start: new Date(), end: null }
+                : experience.dateRange,
             metrics: [], // TODO: Extract from bullet
             keywords: [], // TODO: Extract from bullet
             reviewed: false, // Needs review
@@ -261,7 +264,7 @@ export class ResumeBuilderService {
             technologies: [],
             role: 'Project',
             company: project.name,
-            dateRange: '',
+            dateRange: { start: new Date(), end: null },
             metrics: [],
             keywords: [],
             reviewed: false,

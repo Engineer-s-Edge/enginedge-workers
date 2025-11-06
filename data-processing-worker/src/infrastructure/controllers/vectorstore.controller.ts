@@ -158,7 +158,9 @@ export class VectorStoreController {
     } = body;
 
     // Build filter for conversation-scoped documents
-    const filter: Record<string, unknown> = {
+    const filter: {
+      $or: Array<Record<string, unknown>>;
+    } = {
       $or: [{ 'metadata.conversationId': conversationId }],
     };
 

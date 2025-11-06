@@ -32,7 +32,7 @@ export class UserRepository implements IUserRepository {
     const res = await this.mongo
       .collection<User>('users')
       .insertOne(doc as any);
-    return { ...doc, _id: res.insertedId.toHexString() };
+    return { ...doc, _id: res.insertedId.toString() };
   }
 
   async update(id: string, updates: Partial<User>): Promise<User | null> {
@@ -44,7 +44,7 @@ export class UserRepository implements IUserRepository {
         { $set: updates },
         { returnDocument: 'after' },
       );
-    return res.value ?? null;
+    return (res as any)?.value ?? null;
   }
 
   async delete(id: string): Promise<void> {

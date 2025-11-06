@@ -80,7 +80,8 @@ export class ResumeTailoringService {
       id: jobId,
       userId: request.userId,
       resumeId: request.resumeId,
-      jobPostingId: jobPosting._id.toString(),
+      jobPostingId:
+        (jobPosting as any)._id?.toString() || jobPosting.id?.toString() || '',
       status: 'queued',
       progress: 0,
       currentIteration: 0,
@@ -159,9 +160,10 @@ export class ResumeTailoringService {
         job.status = 'completed';
       }
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
-        `[${jobId}] Error processing job: ${error.message}`,
-        error.stack,
+        `[${jobId}] Error processing job: ${err.message}`,
+        err.stack,
       );
       job.status = 'failed';
       throw error;

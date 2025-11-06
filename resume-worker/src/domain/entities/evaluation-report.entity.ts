@@ -18,6 +18,11 @@ export interface EvaluationGates {
   atsFail: boolean;
   contactMissing: boolean;
   pageOver: boolean;
+  atsCompatible?: boolean;
+  spellcheckPassed?: boolean;
+  minBulletQuality?: boolean;
+  noRepetition?: boolean;
+  roleAlignment?: boolean | null;
 }
 
 export interface AutoFix {

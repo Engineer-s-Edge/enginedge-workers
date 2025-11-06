@@ -9,21 +9,29 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Logger,
+  Inject,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+// Logger interface (matches ILogger)
+interface LoggerLike {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
+
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(LoggingInterceptor.name);
+  constructor(@Inject('ILogger') private readonly logger: LoggerLike) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     const { method, url, body, query, params } = request;
     const now = Date.now();
 
-    this.logger.log(`Incoming ${method} ${url}`, {
+    this.logger.info(`Incoming ${method} ${url}`, {
       body: this.sanitizeBody(body),
       query,
       params,
@@ -33,15 +41,14 @@ export class LoggingInterceptor implements NestInterceptor {
       tap({
         next: (data) => {
           const duration = Date.now() - now;
-          this.logger.log(`Outgoing ${method} ${url} - ${duration}ms`, {
+          this.logger.info(`Outgoing ${method} ${url} - ${duration}ms`, {
             statusCode: context.switchToHttp().getResponse().statusCode,
           });
         },
         error: (error) => {
           const duration = Date.now() - now;
           this.logger.error(`Error ${method} ${url} - ${duration}ms`, {
-            error: error.message,
-            stack: error.stack,
+            error: error?.message,
           });
         },
       }),

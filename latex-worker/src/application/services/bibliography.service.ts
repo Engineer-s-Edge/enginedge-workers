@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IFileSystem } from '../../domain/ports';
 import * as path from 'path';
 
@@ -92,7 +92,9 @@ export class BibliographyService {
   private readonly fieldPattern =
     /(\w+)\s*=\s*\{([^}]*)\}|(\w+)\s*=\s*"([^"]*)"/g;
 
-  constructor(private readonly fileSystem: IFileSystem) {}
+  constructor(
+    @Inject('IFileSystem') private readonly fileSystem: IFileSystem,
+  ) {}
 
   /**
    * Validate a .bib file

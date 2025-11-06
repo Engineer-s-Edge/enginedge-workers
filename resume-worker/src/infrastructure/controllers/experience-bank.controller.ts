@@ -15,14 +15,14 @@ import { ExperienceBankService } from '../../application/services/experience-ban
 import { ExperienceBankItemMetadata } from '../../domain/entities/experience-bank-item.entity';
 
 export class AddBulletDto {
-  userId: string;
-  bulletText: string;
-  vector: number[];
-  metadata: ExperienceBankItemMetadata;
+  userId!: string;
+  bulletText!: string;
+  vector!: number[];
+  metadata!: ExperienceBankItemMetadata;
 }
 
 export class SearchBankDto {
-  userId: string;
+  userId!: string;
   text?: string;
   technologies?: string[];
   role?: string;
@@ -33,7 +33,7 @@ export class SearchBankDto {
 }
 
 export class MarkReviewedDto {
-  reviewed: boolean;
+  reviewed!: boolean;
 }
 
 @Controller('experience-bank')

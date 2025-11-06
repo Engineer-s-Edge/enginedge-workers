@@ -24,7 +24,7 @@ export class ResumeBuilderGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private readonly logger = new Logger(ResumeBuilderGateway.name);
   private clientSessions = new Map<string, string>(); // clientId -> sessionId

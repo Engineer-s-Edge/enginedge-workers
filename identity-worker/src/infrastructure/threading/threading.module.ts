@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
+import { InfrastructureModule } from '../infrastructure.module';
 
 /**
  * Threading Module
@@ -8,6 +9,7 @@ import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
  * Uses ILogger from InfrastructureModule (which is @Global).
  */
 @Module({
+  imports: [forwardRef(() => InfrastructureModule)], // Use forwardRef to avoid circular dependency
   providers: [
     {
       provide: 'WORKER_THREAD_CONFIG',

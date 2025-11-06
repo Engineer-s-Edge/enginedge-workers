@@ -6,7 +6,13 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
-import { Message } from '@domain/entities/command.entities';
+
+// Message interface for conversation persistence
+interface Message {
+  role: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
 
 // MongoDB document interface
 interface ConversationDocument {

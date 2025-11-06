@@ -37,10 +37,10 @@ export class ReportController {
    * GET /sessions/:sessionId/report
    * Get generated report
    */
-  @Get(':sessionId')
+  @Get()
   async getReport(
     @Param('sessionId') sessionId: string,
-  ): Promise<InterviewReport> {
+  ): Promise<InterviewReport | null> {
     return await this.evaluatorService.getReport(sessionId);
   }
 

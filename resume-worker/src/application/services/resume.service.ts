@@ -24,7 +24,7 @@ export interface UpdateResumeDto {
 @Injectable()
 export class ResumeService {
   constructor(
-    @InjectModel(ResumeSchema.name)
+    @InjectModel('Resume')
     private readonly resumeModel: Model<ResumeSchema>,
   ) {}
 

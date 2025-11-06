@@ -8,6 +8,7 @@ import {
   Param,
   Query,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -35,7 +36,9 @@ export class CalendarController {
   private readonly logger = new Logger(CalendarController.name);
 
   constructor(
+    @Inject('IGoogleAuthService')
     private readonly googleAuthService: IGoogleAuthService,
+    @Inject('IGoogleCalendarApiService')
     private readonly googleCalendarService: IGoogleCalendarApiService,
   ) {
     this.logger.log('CalendarController initialized');

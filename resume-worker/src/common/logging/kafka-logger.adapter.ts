@@ -77,10 +77,29 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     );
     this.enableConsole =
       this.configService.get<string>('LOG_ENABLE_CONSOLE', 'true') === 'true';
+
+    // Suppress KafkaJS internal logs by default to avoid console spam
+    const kafkaLogLevel =
+      this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+    const logCreator = () => {
+      return () => {
+        // no-op (silence KafkaJS internal logs)
+      };
+    };
+
     this.kafka = new Kafka({
       clientId: `${clientId}-${this.serviceName}`,
       brokers,
       retry: { initialRetryTime: 300, retries: 3 },
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
     });
     this.producer = this.kafka.producer({
       allowAutoTopicCreation: true,

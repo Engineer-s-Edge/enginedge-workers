@@ -126,7 +126,17 @@ export class VectorStoreService {
               queryEmbedding,
               allDocs,
               topK,
-              (doc) => doc.embedding || [],
+              (doc) => {
+                if (!doc.embedding) return [];
+                if (Array.isArray(doc.embedding)) return doc.embedding;
+                if (
+                  typeof doc.embedding === 'object' &&
+                  'vector' in doc.embedding
+                ) {
+                  return (doc.embedding as any).vector;
+                }
+                return [];
+              },
               (doc) => doc.content,
               query,
               options.bertScoreAlpha,
@@ -135,7 +145,17 @@ export class VectorStoreService {
               queryEmbedding,
               allDocs,
               topK,
-              (doc) => doc.embedding || [],
+              (doc) => {
+                if (!doc.embedding) return [];
+                if (Array.isArray(doc.embedding)) return doc.embedding;
+                if (
+                  typeof doc.embedding === 'object' &&
+                  'vector' in doc.embedding
+                ) {
+                  return (doc.embedding as any).vector;
+                }
+                return [];
+              },
               (doc) => doc.content,
               query,
             );
@@ -244,6 +264,10 @@ export class VectorStoreService {
           result.documentId,
           result.content,
           {
+            source: (result.metadata?.source as string) || 'unknown',
+            sourceType:
+              (result.metadata?.sourceType as 'file' | 'url' | 'text') ||
+              'text',
             ...result.metadata,
             ownerId: result.ownerId,
             allowedUserIds: result.allowedUserIds,
@@ -251,6 +275,7 @@ export class VectorStoreService {
             conversationId: result.conversationId,
           },
           result.createdAt,
+          result.embedding,
         ),
     );
   }

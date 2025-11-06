@@ -10,3 +10,4 @@ export * from './response.repository';
 export * from './profile.repository';
 export * from './transcript.repository';
 export * from './report.repository';
+export * from './webhook.repository';

@@ -4,6 +4,7 @@ import { HealthModule } from './health/health.module';
 import { DomainModule } from './domain/domain.module';
 import { ApplicationModule } from './application/application.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
+import { ThreadingModule } from './infrastructure/threading/threading.module';
 
 /**
  * App Module - Root module with clean hexagonal architecture
@@ -47,7 +48,8 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
     HealthModule,
     DomainModule,
     ApplicationModule,
-    InfrastructureModule,
+    InfrastructureModule, // Must be imported before ThreadingModule (provides ILogger)
+    ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
   ],
   controllers: [],
   providers: [],

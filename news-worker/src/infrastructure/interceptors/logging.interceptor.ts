@@ -22,8 +22,9 @@ export class LoggingInterceptor implements NestInterceptor {
   constructor(@Inject('ILogger') private readonly logger: Logger) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const { method, url, correlationId } = request;
+    const request = context.switchToHttp().getRequest<Request & { correlationId?: string }>();
+    const { method, url } = request;
+    const correlationId = (request as any).correlationId;
     const startTime = Date.now();
 
     this.logger.info('LoggingInterceptor: Incoming request', {

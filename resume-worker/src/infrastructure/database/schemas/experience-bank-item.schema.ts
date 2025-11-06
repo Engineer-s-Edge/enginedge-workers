@@ -4,16 +4,16 @@ import { Document, Types } from 'mongoose';
 @Schema({ timestamps: true })
 export class ExperienceBankItemSchema extends Document {
   @Prop({ required: true, index: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  bulletText: string;
+  bulletText!: string;
 
   @Prop({ type: [Number], required: true })
-  vector: number[];
+  vector!: number[];
 
   @Prop({ required: true, default: 'text-embedding-004' })
-  vectorModel: string;
+  vectorModel!: string;
 
   @Prop({
     type: {
@@ -36,7 +36,7 @@ export class ExperienceBankItemSchema extends Document {
     },
     required: true,
   })
-  metadata: {
+  metadata!: {
     technologies: string[];
     role: string;
     company: string;
@@ -56,13 +56,13 @@ export class ExperienceBankItemSchema extends Document {
   };
 
   @Prop({ required: true, unique: true, index: true })
-  hash: string;
+  hash!: string;
 
   @Prop()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop()
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 export const ExperienceBankItemSchemaFactory = SchemaFactory.createForClass(

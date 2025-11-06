@@ -7,9 +7,8 @@
  */
 
 import { Module, Global } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApplicationModule } from '@application/application.module';
-import { HealthController } from 'health/health.controller';
-import { ThreadingModule } from './threading/threading.module';
 import { MetricsAdapter } from './adapters/monitoring';
 
 // Auth
@@ -50,10 +49,9 @@ import { MLController } from './controllers/ml.controller';
 @Module({
   imports: [
     ApplicationModule,
-    ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
+    // ThreadingModule moved to AppModule to avoid circular dependency
   ],
   controllers: [
-    HealthController,
     CalendarController,
     HabitController,
     GoalController,
@@ -102,6 +100,16 @@ import { MLController } from './controllers/ml.controller';
     },
 
     // Logging
+    ConsoleLoggerAdapter,
+    {
+      provide: StructuredLogger,
+      useFactory: (configService: ConfigService) => {
+        const serviceName =
+          configService.get<string>('SERVICE_NAME') || 'scheduling-worker';
+        return new StructuredLogger(serviceName);
+      },
+      inject: [ConfigService],
+    },
     KafkaLoggerAdapter,
     {
       provide: 'ILogger',
@@ -120,6 +128,13 @@ import { MLController } from './controllers/ml.controller';
     LoggingInterceptor,
   ],
   exports: [
+    'ILogger', // Export ILogger so ThreadingModule can use it
+    'ICalendarEventRepository', // Export repository tokens for ApplicationModule
+    'IHabitRepository',
+    'IGoalRepository',
+    'IGoogleAuthService', // Export service tokens for ApplicationModule
+    'IGoogleCalendarApiService',
+    'ICalendarSyncService',
     GoogleAuthService,
     GoogleCalendarApiService,
     CalendarSyncService,

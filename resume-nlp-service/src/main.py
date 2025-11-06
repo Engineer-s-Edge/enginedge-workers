@@ -37,10 +37,10 @@ app.add_middleware(
 )
 
 # Import services (after environment setup)
-from services.bullet_evaluator import BulletEvaluator  # noqa: E402
-from services.posting_extractor import PostingExtractor  # noqa: E402
-from services.resume_parser import ResumeParser  # noqa: E402
-from services.text_analyzer import TextAnalyzer  # noqa: E402
+from .services.bullet_evaluator import BulletEvaluator  # noqa: E402
+from .services.posting_extractor import PostingExtractor  # noqa: E402
+from .services.resume_parser import ResumeParser  # noqa: E402
+from .services.text_analyzer import TextAnalyzer  # noqa: E402
 
 # Initialize services
 bullet_evaluator = BulletEvaluator()

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { InfrastructureModule } from '../infrastructure.module';
 import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
 
 /**
@@ -8,6 +9,7 @@ import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
  * Uses ILogger from InfrastructureModule (which is @Global).
  */
 @Module({
+  imports: [InfrastructureModule], // Import to access ILogger
   providers: [
     {
       provide: 'WORKER_THREAD_CONFIG',

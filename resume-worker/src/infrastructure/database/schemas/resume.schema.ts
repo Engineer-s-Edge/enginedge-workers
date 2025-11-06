@@ -4,22 +4,22 @@ import { Document, Types } from 'mongoose';
 @Schema({ _id: false })
 export class ResumeVersionSchema {
   @Prop({ required: true })
-  versionNumber: number;
+  versionNumber!: number;
 
   @Prop({ required: true })
-  content: string;
+  content!: string;
 
   @Prop({ required: true })
-  timestamp: Date;
+  timestamp!: Date;
 
   @Prop({ required: true })
-  changes: string;
+  changes!: string;
 
   @Prop({ required: true })
-  hash: string;
+  hash!: string;
 
   @Prop({ required: true })
-  createdBy: string;
+  createdBy!: string;
 
   @Prop()
   diff?: string;
@@ -46,10 +46,10 @@ export class ResumeMetadataSchema {
   lastEvaluationReport?: Types.ObjectId;
 
   @Prop({ type: [Types.ObjectId], default: [] })
-  bulletPointIds: Types.ObjectId[];
+  bulletPointIds!: Types.ObjectId[];
 
   @Prop({ enum: ['draft', 'in-review', 'finalized'], default: 'draft' })
-  status: string;
+  status!: string;
 }
 
 const ResumeMetadataSchemaFactory =
@@ -58,28 +58,28 @@ const ResumeMetadataSchemaFactory =
 @Schema({ timestamps: true })
 export class ResumeSchema extends Document {
   @Prop({ required: true, index: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ required: true })
-  name: string;
+  name!: string;
 
   @Prop({ required: true })
-  latexContent: string;
+  latexContent!: string;
 
   @Prop({ required: true, default: 1 })
-  currentVersion: number;
+  currentVersion!: number;
 
   @Prop({ type: [ResumeVersionSchemaFactory], default: [] })
-  versions: ResumeVersionSchema[];
+  versions!: ResumeVersionSchema[];
 
   @Prop({ type: ResumeMetadataSchemaFactory, required: true })
-  metadata: ResumeMetadataSchema;
+  metadata!: ResumeMetadataSchema;
 
   @Prop()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop()
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 export const ResumeSchemaFactory = SchemaFactory.createForClass(ResumeSchema);

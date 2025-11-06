@@ -127,13 +127,21 @@ export class EvaluatorService {
       sessionId,
       reportId: report.reportId,
     });
+    // Optional: send a notification (recipient resolution handled by service integration)
     await this.notificationService.sendEmailNotification(
-      session.candidateEmail,
+      session.candidateId,
       'Interview Report Generated',
-      `Your interview report for session ${sessionId} has been generated. You can view it at ${this.configService.get<string>('FRONTEND_URL')}/reports/${report.reportId}`,
+      `Your interview report for session ${sessionId} has been generated.`,
     );
 
     return report;
+  }
+
+  /**
+   * Retrieve previously generated report by session
+   */
+  async getReport(sessionId: string): Promise<InterviewReport | null> {
+    return this.reportRepository.findBySessionId(sessionId);
   }
 
   /**

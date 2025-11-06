@@ -190,20 +190,25 @@ export class HybridSearchService {
 
     this.logger.debug(`Reranking ${results.length} results with BERT-score`);
 
-    const reranked = this.embedderService.rerankWithBertScore(
+    type BM25ResultItem = { id: string; text: string; score: number };
+    const reranked = this.embedderService.rerankWithBertScore<BM25ResultItem>(
       queryEmbedding,
       results.map((r) => ({
         item: r,
         score: r.score,
       })),
-      (item) => item.text,
-      (item) => item.text,
+      (item: BM25ResultItem) => {
+        // BM25 results don't have embeddings, return empty array
+        // The reranker will compute embeddings from text if needed
+        return [] as number[];
+      },
+      (item: BM25ResultItem) => item.text,
       query,
     );
 
     return reranked.map((r) => ({
-      id: (r.item as any).id,
-      text: (r.item as any).text,
+      id: r.item.id,
+      text: r.item.text,
       score: r.combinedScore || r.score,
       bertScore: r.bertScore || r.score,
     }));

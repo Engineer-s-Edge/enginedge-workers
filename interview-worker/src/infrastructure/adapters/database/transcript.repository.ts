@@ -35,7 +35,7 @@ export class MongoTranscriptRepository
     try {
       const doc = {
         sessionId: transcript.sessionId,
-        messages: transcript.messages.map((msg) => ({
+        messages: transcript.messages.map((msg: any) => ({
           timestamp: msg.timestamp,
           speaker: msg.speaker,
           text: msg.text,
@@ -66,21 +66,23 @@ export class MongoTranscriptRepository
 
       return {
         sessionId: doc.sessionId as string,
-        messages: (doc.messages as Record<string, unknown>[]).map((msg) => ({
-          timestamp: msg.timestamp
-            ? new Date(msg.timestamp as string)
-            : new Date(),
-          speaker: msg.speaker as 'candidate' | 'agent',
-          text: msg.text as string,
-          type: msg.type as
-            | 'user-input'
-            | 'voice-transcription'
-            | 'agent-response'
-            | 'followup',
-          followupForQuestionId: msg.followupForQuestionId as
-            | string
-            | undefined,
-        })),
+        messages: (doc.messages as Record<string, unknown>[]).map(
+          (msg: any) => ({
+            timestamp: msg.timestamp
+              ? new Date(msg.timestamp as string)
+              : new Date(),
+            speaker: msg.speaker as 'candidate' | 'agent',
+            text: msg.text as string,
+            type: msg.type as
+              | 'user-input'
+              | 'voice-transcription'
+              | 'agent-response'
+              | 'followup',
+            followupForQuestionId: msg.followupForQuestionId as
+              | string
+              | undefined,
+          }),
+        ),
       };
     } catch (error) {
       this.logger.error(
@@ -129,7 +131,7 @@ export class MongoTranscriptRepository
     try {
       const updateDoc: Record<string, unknown> = {};
       if (transcript.messages) {
-        updateDoc.messages = transcript.messages.map((msg) => ({
+        updateDoc.messages = transcript.messages.map((msg: any) => ({
           timestamp: msg.timestamp,
           speaker: msg.speaker,
           text: msg.text,
@@ -148,21 +150,23 @@ export class MongoTranscriptRepository
 
       return {
         sessionId: result.sessionId as string,
-        messages: (result.messages as Record<string, unknown>[]).map((msg) => ({
-          timestamp: msg.timestamp
-            ? new Date(msg.timestamp as string)
-            : new Date(),
-          speaker: msg.speaker as 'candidate' | 'agent',
-          text: msg.text as string,
-          type: msg.type as
-            | 'user-input'
-            | 'voice-transcription'
-            | 'agent-response'
-            | 'followup',
-          followupForQuestionId: msg.followupForQuestionId as
-            | string
-            | undefined,
-        })),
+        messages: (result.messages as Record<string, unknown>[]).map(
+          (msg: any) => ({
+            timestamp: msg.timestamp
+              ? new Date(msg.timestamp as string)
+              : new Date(),
+            speaker: msg.speaker as 'candidate' | 'agent',
+            text: msg.text as string,
+            type: msg.type as
+              | 'user-input'
+              | 'voice-transcription'
+              | 'agent-response'
+              | 'followup',
+            followupForQuestionId: msg.followupForQuestionId as
+              | string
+              | undefined,
+          }),
+        ),
       };
     } catch (error) {
       this.logger.error(

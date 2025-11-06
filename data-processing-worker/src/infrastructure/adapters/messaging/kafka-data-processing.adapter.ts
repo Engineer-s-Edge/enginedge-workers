@@ -5,7 +5,13 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kafka, Consumer, Producer, EachMessagePayload } from 'kafkajs';
+import {
+  Kafka,
+  Consumer,
+  Producer,
+  EachMessagePayload,
+  Partitioners,
+} from 'kafkajs';
 import { DocumentProcessingService } from '../../../application/services/document-processing.service';
 
 /**
@@ -36,22 +42,58 @@ export class KafkaDataProcessingAdapter
       'localhost:9092',
     );
 
+    // Suppress KafkaJS verbose logging to reduce spam when Kafka is unavailable
+    const kafkaLogLevel =
+      this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logCreator = () => {
+      return () => {
+        // No-op: suppress all KafkaJS logs by default
+      };
+    };
+
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+
     this.kafka = new Kafka({
       clientId: 'data-processing-worker',
       brokers: brokers.split(',').map((broker) => broker.trim()),
+      retry: { initialRetryTime: 300, retries: 3 },
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
     });
 
     this.consumer = this.kafka.consumer({
       groupId: 'data-processing-worker-group',
     });
-    this.producer = this.kafka.producer();
+    this.producer = this.kafka.producer({
+      createPartitioner: Partitioners.LegacyPartitioner, // Added to silence warning
+      allowAutoTopicCreation: true,
+      maxInFlightRequests: 1,
+      idempotent: true,
+    });
 
     this.logger.log(`Kafka initialized with brokers: ${brokers}`);
   }
 
   async onModuleInit(): Promise<void> {
-    await this.connect();
-    await this.subscribe();
+    try {
+      await this.connect();
+      if (this.connected) {
+        await this.subscribe();
+      } else {
+        // Schedule retry if initial connection failed
+        setTimeout(() => this.onModuleInit(), 5000);
+      }
+    } catch (error) {
+      // Silently handle initialization errors
+      // Schedule retry
+      setTimeout(() => this.onModuleInit(), 5000);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -68,11 +110,11 @@ export class KafkaDataProcessingAdapter
       this.connected = true;
       this.logger.log('Successfully connected to Kafka');
     } catch (error) {
-      this.logger.error(
-        'Failed to connect to Kafka:',
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw error;
+      // Silently handle connection errors to prevent log spam
+      // KafkaJS will automatically retry based on configuration
+      this.connected = false;
+      // Don't throw - let the service continue without Kafka
+      // The subscribe method will handle retries
     }
   }
 

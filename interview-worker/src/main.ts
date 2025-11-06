@@ -23,8 +23,9 @@ async function bootstrap() {
       }),
     );
 
-    // Global logging interceptor
-    app.useGlobalInterceptors(new LoggingInterceptor());
+    // Global logging interceptor (inject ILogger instance)
+    const appLogger = app.get<any>('ILogger');
+    app.useGlobalInterceptors(new LoggingInterceptor(appLogger));
 
     const port = process.env.PORT || 3004;
     const server = await app.listen(port);

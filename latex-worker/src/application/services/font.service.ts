@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IFileSystem } from '../../domain/ports';
 import * as path from 'path';
 
@@ -90,7 +90,9 @@ export class FontService {
     'DejaVu Sans Mono',
   ]);
 
-  constructor(private readonly fileSystem: IFileSystem) {}
+  constructor(
+    @Inject('IFileSystem') private readonly fileSystem: IFileSystem,
+  ) {}
 
   /**
    * Detect fonts used in a .tex file

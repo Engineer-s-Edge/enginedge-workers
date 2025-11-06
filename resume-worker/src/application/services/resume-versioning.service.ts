@@ -77,7 +77,7 @@ export class ResumeVersioningService {
 
     // Find target version
     const targetVersion = resume.versions.find(
-      (v) => v.versionNumber === versionNumber,
+      (v: ResumeVersion) => v.versionNumber === versionNumber,
     );
     if (!targetVersion) {
       throw new Error(`Version ${versionNumber} not found`);
@@ -116,7 +116,9 @@ export class ResumeVersioningService {
     }
 
     return (
-      resume.versions.find((v) => v.versionNumber === versionNumber) || null
+      resume.versions.find(
+        (v: ResumeVersion) => v.versionNumber === versionNumber,
+      ) || null
     );
   }
 
@@ -137,8 +139,12 @@ export class ResumeVersioningService {
       throw new Error(`Resume ${resumeId} not found`);
     }
 
-    const v1 = resume.versions.find((v) => v.versionNumber === version1);
-    const v2 = resume.versions.find((v) => v.versionNumber === version2);
+    const v1 = resume.versions.find(
+      (v: ResumeVersion) => v.versionNumber === version1,
+    );
+    const v2 = resume.versions.find(
+      (v: ResumeVersion) => v.versionNumber === version2,
+    );
 
     if (!v1 || !v2) {
       throw new Error('One or both versions not found');
@@ -203,7 +209,7 @@ export class ResumeVersioningService {
     }
 
     const targetVersion = resume.versions.find(
-      (v) => v.versionNumber === versionNumber,
+      (v: ResumeVersion) => v.versionNumber === versionNumber,
     );
     if (!targetVersion) {
       throw new Error(`Version ${versionNumber} not found`);

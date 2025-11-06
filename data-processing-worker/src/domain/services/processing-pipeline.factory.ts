@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DocumentModel } from '../entities/document.entity';
+import { DocumentModel } from '../../infrastructure/database/schemas/document.schema';
 
 export interface ProcessingStep<T = unknown> {
   name: string;

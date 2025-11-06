@@ -214,7 +214,7 @@ export class CoverLetterService {
     position: string,
     tone: string,
   ): string {
-    const intros = {
+    const intros: Record<string, string> = {
       professional: `I am writing to express my strong interest in the ${position} position at ${company}. With my proven track record in software development and passion for innovation, I am confident I would be a valuable addition to your team.`,
       casual: `I'm excited to apply for the ${position} role at ${company}! Your company's mission really resonates with me, and I believe my experience would be a great fit.`,
       enthusiastic: `I am thrilled to apply for the ${position} position at ${company}! Your company's innovative approach and commitment to excellence align perfectly with my career goals and values.`,
@@ -262,7 +262,7 @@ export class CoverLetterService {
    * Generate closing paragraph.
    */
   private generateClosing(company: string, tone: string): string {
-    const closings = {
+    const closings: Record<string, string> = {
       professional: `I am eager to bring my skills and experience to ${company} and contribute to your continued success. Thank you for considering my application. I look forward to the opportunity to discuss how I can contribute to your team.`,
       casual: `I'd love to chat more about how I can contribute to ${company}'s success. Thanks for taking the time to review my application!`,
       enthusiastic: `I am incredibly excited about the possibility of joining ${company} and making a meaningful impact. Thank you for considering my application, and I look forward to speaking with you soon!`,

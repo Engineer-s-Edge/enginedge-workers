@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IFileSystem } from '../../domain/ports';
 import * as path from 'path';
 
@@ -47,7 +47,9 @@ export class MultiFileService {
   private readonly graphicsPattern =
     /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
 
-  constructor(private readonly fileSystem: IFileSystem) {}
+  constructor(
+    @Inject('IFileSystem') private readonly fileSystem: IFileSystem,
+  ) {}
 
   /**
    * Analyze a multi-file LaTeX project and build dependency graph

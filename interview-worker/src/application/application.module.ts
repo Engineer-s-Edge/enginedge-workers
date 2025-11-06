@@ -25,6 +25,8 @@ import { PauseInterviewUseCase } from './use-cases/pause-interview.use-case';
 import { ResumeInterviewUseCase } from './use-cases/resume-interview.use-case';
 import { SkipQuestionUseCase } from './use-cases/skip-question.use-case';
 import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
+import { WebhookService } from './services/webhook.service';
+import { NotificationService } from './services/notification.service';
 
 /**
  * Application module - use cases and application services
@@ -51,6 +53,8 @@ import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
     InterviewService,
     CandidateProfileService,
     EvaluatorService,
+    WebhookService,
+    NotificationService,
   ],
   exports: [
     // Export domain module so infrastructure can access it
@@ -61,6 +65,8 @@ import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
     InterviewService,
     CandidateProfileService,
     EvaluatorService,
+    WebhookService,
+    NotificationService,
   ],
 })
 export class ApplicationModule {}

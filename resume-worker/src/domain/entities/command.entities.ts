@@ -10,3 +10,9 @@ export interface CommandResult {
   result?: Record<string, unknown>;
   error?: string;
 }
+
+export interface Message {
+  role: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}

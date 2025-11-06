@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import {
   ICalendarSyncService,
   SyncState,
@@ -22,7 +22,9 @@ export class CalendarSyncService implements ICalendarSyncService {
     ConflictResolutionStrategy.LAST_WRITE_WINS;
 
   constructor(
+    @Inject('IGoogleCalendarApiService')
     private readonly calendarApiService: IGoogleCalendarApiService,
+    @Inject('ICalendarEventRepository')
     private readonly eventRepository: ICalendarEventRepository,
   ) {}
 

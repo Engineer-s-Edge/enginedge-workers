@@ -171,15 +171,12 @@ export class DocumentController {
         topK: topK || 5,
         filters: filters || {},
       },
-      chunks:
-        result.documents?.map((doc) => ({
-          id: doc.id,
-          content: doc.content,
-          metadata: doc.metadata,
-          embedding: doc.embedding,
-        })) || [],
-      totalChunks: result.documents?.length || 0,
-      processingTime: result.processingTime,
+      chunks: result.documentIds.map((id) => ({
+        id,
+        content: '',
+        metadata: {},
+      })),
+      totalChunks: result.chunks,
     };
   }
 

@@ -4,25 +4,25 @@ import { Document, Types } from 'mongoose';
 @Schema({ _id: false })
 export class EvaluationScoresSchema {
   @Prop({ required: true })
-  atsParseability: number;
+  atsParseability!: number;
 
   @Prop({ required: true })
-  bulletQuality: number;
+  bulletQuality!: number;
 
   @Prop({ required: true })
-  roleJdAlignment: number;
+  roleJdAlignment!: number;
 
   @Prop({ required: true })
-  repetitionCoverage: number;
+  repetitionCoverage!: number;
 
   @Prop({ required: true })
-  scanability: number;
+  scanability!: number;
 
   @Prop({ required: true })
-  mechanics: number;
+  mechanics!: number;
 
   @Prop({ required: true })
-  overall: number;
+  overall!: number;
 }
 
 const EvaluationScoresSchemaFactory = SchemaFactory.createForClass(
@@ -32,13 +32,28 @@ const EvaluationScoresSchemaFactory = SchemaFactory.createForClass(
 @Schema({ _id: false })
 export class EvaluationGatesSchema {
   @Prop({ required: true })
-  atsFail: boolean;
+  atsFail!: boolean;
 
   @Prop({ required: true })
-  contactMissing: boolean;
+  contactMissing!: boolean;
 
   @Prop({ required: true })
-  pageOver: boolean;
+  pageOver!: boolean;
+
+  @Prop()
+  atsCompatible?: boolean;
+
+  @Prop()
+  spellcheckPassed?: boolean;
+
+  @Prop()
+  minBulletQuality?: boolean;
+
+  @Prop()
+  noRepetition?: boolean;
+
+  @Prop({ type: Boolean, required: false })
+  roleAlignment?: boolean | null;
 }
 
 const EvaluationGatesSchemaFactory = SchemaFactory.createForClass(
@@ -48,13 +63,13 @@ const EvaluationGatesSchemaFactory = SchemaFactory.createForClass(
 @Schema({ timestamps: true })
 export class EvaluationReportSchema extends Document {
   @Prop({ type: Types.ObjectId, required: true, index: true })
-  resumeId: Types.ObjectId;
+  resumeId!: Types.ObjectId;
 
   @Prop({ required: true, index: true })
-  userId: string;
+  userId!: string;
 
   @Prop({ enum: ['standalone', 'role-guided', 'jd-match'], required: true })
-  mode: string;
+  mode!: string;
 
   @Prop({ type: Types.ObjectId })
   jobPostingId?: Types.ObjectId;
@@ -63,25 +78,25 @@ export class EvaluationReportSchema extends Document {
   targetRole?: string;
 
   @Prop({ type: EvaluationScoresSchemaFactory, required: true })
-  scores: EvaluationScoresSchema;
+  scores!: EvaluationScoresSchema;
 
   @Prop({ type: EvaluationGatesSchemaFactory, required: true })
-  gates: EvaluationGatesSchema;
+  gates!: EvaluationGatesSchema;
 
   @Prop({ type: [Object], default: [] })
-  findings: any[];
+  findings!: any[];
 
   @Prop({ type: Object, required: true })
-  coverage: any;
+  coverage!: any;
 
   @Prop({ type: Object, required: true })
-  repetition: any;
+  repetition!: any;
 
   @Prop({ type: [Object], default: [] })
-  suggestedSwaps: any[];
+  suggestedSwaps!: any[];
 
   @Prop()
-  createdAt: Date;
+  createdAt!: Date;
 }
 
 export const EvaluationReportSchemaFactory = SchemaFactory.createForClass(

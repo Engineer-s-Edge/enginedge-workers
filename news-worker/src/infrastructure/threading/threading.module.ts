@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { InfrastructureModule } from '../infrastructure.module';
 import { WorkerThreadPool, WorkerThreadConfig } from './worker-thread-pool';
 import { RequestQueue } from './request-queue';
 import { BackpressureHandler, BackpressureConfig } from './backpressure-handler';
@@ -10,6 +11,7 @@ import { BackpressureHandler, BackpressureConfig } from './backpressure-handler'
  * Uses ILogger from InfrastructureModule (which is @Global).
  */
 @Module({
+  imports: [InfrastructureModule],
   providers: [
     {
       provide: 'WORKER_THREAD_CONFIG',

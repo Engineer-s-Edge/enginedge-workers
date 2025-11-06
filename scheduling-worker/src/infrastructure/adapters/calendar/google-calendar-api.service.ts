@@ -520,10 +520,12 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
 
       // Handle time updates with validation
       if (newStartTime || newEndTime) {
-        const currentStart = currentEvent.start
-          ? new Date(currentEvent.start)
+        const currentStart = currentEvent.startTime
+          ? new Date(currentEvent.startTime)
           : null;
-        const currentEnd = currentEvent.end ? new Date(currentEvent.end) : null;
+        const currentEnd = currentEvent.endTime
+          ? new Date(currentEvent.endTime)
+          : null;
 
         if (!currentStart || !currentEnd) {
           throw new Error(
@@ -555,7 +557,7 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
 
         if (overlapCheck.overlaps) {
           throw new Error(
-            `Cannot update event to overlap with locked time block "${overlapCheck.lockedEvent?.summary}"`,
+            `Cannot update event to overlap with locked time block "${overlapCheck.lockedEvent?.title}"`,
           );
         }
 
@@ -606,10 +608,12 @@ export class GoogleCalendarApiService implements IGoogleCalendarApiService {
     const lockedEvents = allEvents.filter((event) => this.isEventLocked(event));
 
     for (const lockedEvent of lockedEvents) {
-      const lockedStart = lockedEvent.start
-        ? new Date(lockedEvent.start)
+      const lockedStart = lockedEvent.startTime
+        ? new Date(lockedEvent.startTime)
         : null;
-      const lockedEnd = lockedEvent.end ? new Date(lockedEvent.end) : null;
+      const lockedEnd = lockedEvent.endTime
+        ? new Date(lockedEvent.endTime)
+        : null;
 
       if (!lockedStart || !lockedEnd) continue;
 

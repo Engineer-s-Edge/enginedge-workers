@@ -26,6 +26,9 @@ export class RedisCacheAdapter implements OnModuleDestroy {
   private redis: Redis;
   private readonly defaultTTL: number;
   private readonly keyPrefix: string;
+  private isConnected = false;
+  private reconnectInterval: NodeJS.Timeout | null = null;
+  private readonly reconnectIntervalMs = 5000; // Check every 5 seconds
 
   constructor(
     @Inject('ILogger') private readonly logger: Logger,
@@ -43,11 +46,15 @@ export class RedisCacheAdapter implements OnModuleDestroy {
       ),
       db,
       maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
       enableReadyCheck: true,
       keyPrefix:
         this.configService.get<string>('REDIS_KEY_PREFIX') || 'identity:',
       lazyConnect: true,
+      retryStrategy: () => {
+        // Return null to stop automatic retries (we'll handle it manually)
+        return null;
+      },
+      enableOfflineQueue: false, // Disable offline queue to prevent command accumulation when disconnected
     });
 
     this.defaultTTL = parseInt(
@@ -57,40 +64,132 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     this.keyPrefix =
       this.configService.get<string>('REDIS_KEY_PREFIX') || 'identity:';
 
-    this.redis.on('connect', () =>
-      this.logger.info('RedisCacheAdapter: Connected to Redis'),
-    );
-    this.redis.on('error', (error) =>
-      this.logger.error('RedisCacheAdapter: Redis error', {
-        error: error.message,
-      }),
-    );
-    this.redis.connect().catch((error) =>
-      this.logger.error('RedisCacheAdapter: Failed to connect', {
-        error: error.message,
-      }),
-    );
+    // Handle successful connection
+    this.redis.on('connect', () => {
+      if (!this.isConnected) {
+        this.logger.info('RedisCacheAdapter: Connected to Redis');
+        this.isConnected = true;
+        // Clear any reconnect interval since we're connected
+        if (this.reconnectInterval) {
+          clearInterval(this.reconnectInterval);
+          this.reconnectInterval = null;
+        }
+      }
+    });
+
+    // Handle disconnection
+    this.redis.on('close', () => {
+      if (this.isConnected) {
+        this.isConnected = false;
+        this.startReconnectAttempts();
+      }
+    });
+
+    // Handle errors gracefully to prevent log spam
+    this.redis.on('error', (err: Error | AggregateError) => {
+      // Check for connection refused errors (Redis not available)
+      const errorMessage = err.message || '';
+      const errorString = String(err);
+      const isConnectionRefused =
+        errorMessage.includes('ECONNREFUSED') ||
+        errorString.includes('ECONNREFUSED') ||
+        (err instanceof AggregateError &&
+          err.errors?.some(
+            (e: any) =>
+              String(e).includes('ECONNREFUSED') ||
+              e.message?.includes('ECONNREFUSED'),
+          ));
+
+      if (isConnectionRefused) {
+        // Connection refused - Redis is likely not running
+        // Silently handle this (no logging to prevent spam)
+        if (this.isConnected) {
+          this.isConnected = false;
+        }
+        // Start periodic reconnection attempts if not already started
+        if (!this.reconnectInterval) {
+          this.startReconnectAttempts();
+        }
+        return;
+      }
+      // Log other errors that might be important (but only as warning to reduce spam)
+      this.logger.warn('RedisCacheAdapter: Redis error', {
+        error: errorMessage || errorString,
+      });
+    });
+
+    // Initial connection attempt
+    this.redis.connect().catch(() => {
+      // Connection failed - start periodic reconnection attempts
+      this.startReconnectAttempts();
+    });
+  }
+
+  private startReconnectAttempts(): void {
+    if (this.reconnectInterval) {
+      return; // Already attempting reconnection
+    }
+
+    this.reconnectInterval = setInterval(async () => {
+      if (this.isConnected) {
+        // Already connected, clear interval
+        if (this.reconnectInterval) {
+          clearInterval(this.reconnectInterval);
+          this.reconnectInterval = null;
+        }
+        return;
+      }
+
+      try {
+        // Attempt to reconnect
+        await this.redis.connect();
+      } catch (error) {
+        // Connection failed, will retry on next interval
+        // Error is already handled by the error event handler
+      }
+    }, this.reconnectIntervalMs);
   }
 
   async onModuleDestroy() {
-    await this.redis.quit();
-    this.logger.info('RedisCacheAdapter: Disconnected from Redis');
+    if (this.reconnectInterval) {
+      clearInterval(this.reconnectInterval);
+      this.reconnectInterval = null;
+    }
+    try {
+      await this.redis.quit();
+      this.logger.info('RedisCacheAdapter: Disconnected from Redis');
+    } catch (error) {
+      // Ignore errors during shutdown
+    }
   }
 
   async get<T>(key: string): Promise<T | null> {
+    if (!this.isConnected) {
+      return null; // Silently return null if not connected
+    }
     try {
       const value = await this.redis.get(this.buildKey(key));
       return value ? (JSON.parse(value) as T) : null;
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Get error', {
-        key,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Get error', {
+          key,
+          error: errorMessage,
+        });
+      }
       return null;
     }
   }
 
   async set<T>(key: string, value: T, options?: CacheOptions): Promise<void> {
+    if (!this.isConnected) {
+      return; // Silently skip if not connected
+    }
     try {
       const fullKey = this.buildKey(key, options?.namespace);
       const ttl = options?.ttl || this.defaultTTL;
@@ -98,25 +197,45 @@ export class RedisCacheAdapter implements OnModuleDestroy {
       if (ttl > 0) await this.redis.setex(fullKey, ttl, serialized);
       else await this.redis.set(fullKey, serialized);
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Set error', {
-        key,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Set error', {
+          key,
+          error: errorMessage,
+        });
+      }
     }
   }
 
   async delete(key: string, namespace?: string): Promise<void> {
+    if (!this.isConnected) {
+      return; // Silently skip if not connected
+    }
     try {
       await this.redis.del(this.buildKey(key, namespace));
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Delete error', {
-        key,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Delete error', {
+          key,
+          error: errorMessage,
+        });
+      }
     }
   }
 
   async deletePattern(pattern: string, namespace?: string): Promise<number> {
+    if (!this.isConnected) {
+      return 0; // Silently return 0 if not connected
+    }
     try {
       const fullPattern = this.buildKey(pattern, namespace);
       const stream = this.redis.scanStream({ match: fullPattern, count: 100 });
@@ -128,22 +247,39 @@ export class RedisCacheAdapter implements OnModuleDestroy {
       });
       return keys.length > 0 ? await this.redis.del(...keys) : 0;
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Delete pattern error', {
-        pattern,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Delete pattern error', {
+          pattern,
+          error: errorMessage,
+        });
+      }
       return 0;
     }
   }
 
   async exists(key: string, namespace?: string): Promise<boolean> {
+    if (!this.isConnected) {
+      return false; // Silently return false if not connected
+    }
     try {
       return (await this.redis.exists(this.buildKey(key, namespace))) === 1;
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Exists error', {
-        key,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Exists error', {
+          key,
+          error: errorMessage,
+        });
+      }
       return false;
     }
   }
@@ -165,28 +301,48 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     by: number = 1,
     options?: CacheOptions,
   ): Promise<number> {
+    if (!this.isConnected) {
+      return 0; // Silently return 0 if not connected
+    }
     try {
       const fullKey = this.buildKey(key, options?.namespace);
       const result = await this.redis.incrby(fullKey, by);
       if (options?.ttl) await this.redis.expire(fullKey, options.ttl);
       return result;
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Increment error', {
-        key,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Increment error', {
+          key,
+          error: errorMessage,
+        });
+      }
       return 0;
     }
   }
 
   async getTTL(key: string, namespace?: string): Promise<number> {
+    if (!this.isConnected) {
+      return -1; // Silently return -1 if not connected
+    }
     try {
       return await this.redis.ttl(this.buildKey(key, namespace));
     } catch (error: any) {
-      this.logger.error('RedisCacheAdapter: Get TTL error', {
-        key,
-        error: error.message,
-      });
+      // Only log if it's not a connection error
+      const errorMessage = error?.message || String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('not connected')
+      ) {
+        this.logger.warn('RedisCacheAdapter: Get TTL error', {
+          key,
+          error: errorMessage,
+        });
+      }
       return -1;
     }
   }

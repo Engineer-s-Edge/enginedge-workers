@@ -56,31 +56,31 @@ const JobPostingParsedSchemaFactory = SchemaFactory.createForClass(
 @Schema({ timestamps: true })
 export class JobPostingSchema extends Document {
   @Prop({ required: true, index: true })
-  userId: string;
+  userId!: string;
 
   @Prop()
   url?: string;
 
   @Prop({ required: true })
-  rawText: string;
+  rawText!: string;
 
   @Prop()
   rawHtml?: string;
 
   @Prop({ type: JobPostingParsedSchemaFactory, required: true })
-  parsed: JobPostingParsedSchema;
+  parsed!: JobPostingParsedSchema;
 
   @Prop({ enum: ['nlp-only', 'llm-assisted'], required: true })
-  extractionMethod: string;
+  extractionMethod!: string;
 
   @Prop({ required: true, min: 0, max: 1 })
-  confidence: number;
+  confidence!: number;
 
   @Prop()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop()
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 export const JobPostingSchemaFactory =

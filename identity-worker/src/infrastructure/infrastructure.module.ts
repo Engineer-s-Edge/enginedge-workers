@@ -4,14 +4,12 @@
  * Configures adapters, controllers, and external integrations.
  */
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { ApplicationModule } from '@application/application.module';
-import { HealthController } from 'health/health.controller';
 import { AuthController } from './controllers/auth.controller';
 import { OauthController } from './controllers/oauth.controller';
 import { UsersController } from './controllers/users.controller';
 import { JwksController } from './controllers/jwks.controller';
-import { ThreadingModule } from './threading/threading.module';
 import { MetricsAdapter } from './adapters/monitoring';
 import { MongoModule } from './adapters/database/mongo.module';
 import { UserRepository } from './adapters/repositories/user.repository';
@@ -40,12 +38,12 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
 @Global()
 @Module({
   imports: [
-    ApplicationModule,
-    ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
+    forwardRef(() => ApplicationModule), // Use forwardRef to resolve circular dependency
+    // ThreadingModule moved to AppModule to avoid circular dependency
     MongoModule,
   ],
   controllers: [
-    HealthController,
+    // HealthController is registered in HealthModule
     AuthController,
     OauthController,
     UsersController,
@@ -72,6 +70,15 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     GlobalExceptionFilter,
     LoggingInterceptor,
   ],
-  exports: [RedisCacheAdapter],
+  exports: [
+    'ILogger', // Export ILogger so it can be used by other modules
+    USER_REPOSITORY, // Export USER_REPOSITORY for ApplicationModule
+    JwtIssuerService, // Export JwtIssuerService for ApplicationModule
+    RoleRepository, // Export RoleRepository for ApplicationModule
+    TenantRepository, // Export TenantRepository for ApplicationModule
+    RefreshTokenRepository, // Export RefreshTokenRepository for ApplicationModule
+    MongoModule, // Export MongoModule so ApplicationModule can access MongoService
+    RedisCacheAdapter,
+  ],
 })
 export class InfrastructureModule {}

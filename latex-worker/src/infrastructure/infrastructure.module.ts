@@ -6,11 +6,11 @@
  */
 
 import { Module, Global } from '@nestjs/common';
-import { ApplicationModule } from '../application/application.module';
-import { HealthController } from '../health/health.controller';
+import { HealthModule } from '../health/health.module';
 import { XeLaTeXCompilerAdapter } from './adapters/xelatex-compiler.adapter';
 import { NodeFileSystemAdapter } from './adapters/filesystem.adapter';
 import { StructuredLoggerAdapter } from './adapters/structured-logger.adapter';
+import { InMemoryPackageCacheRepository } from './database/repositories/inmemory-package-cache.repository';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
@@ -25,8 +25,8 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
  */
 @Global()
 @Module({
-  imports: [ApplicationModule],
-  controllers: [HealthController],
+  imports: [HealthModule],
+  controllers: [],
   providers: [
     // Logger
     {
@@ -49,6 +49,12 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     // Cache adapter
     RedisCacheAdapter,
 
+    // Package cache repository (in-memory default)
+    {
+      provide: 'IPackageCacheRepository',
+      useClass: InMemoryPackageCacheRepository,
+    },
+
     // Global filter/interceptor providers for DI resolution
     GlobalExceptionFilter,
     LoggingInterceptor,
@@ -57,6 +63,12 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     // TODO: Add Kafka message broker
     // TODO: Add GridFS PDF storage
   ],
-  exports: ['ILogger', 'IFileSystem', 'ILaTeXCompiler', 'RedisCacheAdapter'],
+  exports: [
+    'ILogger',
+    'IFileSystem',
+    'ILaTeXCompiler',
+    RedisCacheAdapter,
+    'IPackageCacheRepository',
+  ],
 })
 export class InfrastructureModule {}

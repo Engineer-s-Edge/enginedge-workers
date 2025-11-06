@@ -5,6 +5,8 @@
  */
 
 import { Module, Global } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { ApplicationModule } from '@application/application.module';
 import { HealthModule } from '../health/health.module';
 import { ThreadingModule } from './threading/threading.module';
@@ -71,7 +73,6 @@ import {
   ],
   providers: [
     // Logger
-    KafkaLoggerAdapter,
     {
       provide: 'ILogger',
       useClass: KafkaLoggerAdapter,

@@ -47,7 +47,28 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     const clientId = this.configService.get<string>('KAFKA_CLIENT_ID', 'enginedge-worker');
     this.serviceName = this.configService.get<string>('SERVICE_NAME', 'news-worker');
     this.enableConsole = (this.configService.get<string>('LOG_ENABLE_CONSOLE', 'true') === 'true');
-    this.kafka = new Kafka({ clientId: `${clientId}-${this.serviceName}`, brokers, retry: { initialRetryTime: 300, retries: 3 } });
+    // Suppress KafkaJS internal logs by default to avoid console spam
+    const kafkaLogLevel = this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+    const logCreator = () => {
+      return () => {
+        // no-op (silence KafkaJS internal logs)
+      };
+    };
+
+    this.kafka = new Kafka({
+      clientId: `${clientId}-${this.serviceName}`,
+      brokers,
+      retry: { initialRetryTime: 300, retries: 3 },
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
+    });
     this.producer = this.kafka.producer({ allowAutoTopicCreation: true, maxInFlightRequests: 1, idempotent: true });
     const dir = this.configService.get<string>('LOG_BUFFER_DIR', 'logs');
     const absDir = path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir);
