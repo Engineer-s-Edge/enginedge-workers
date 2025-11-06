@@ -114,7 +114,7 @@ export class AssistantsController {
       const e = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
         `Failed to create assistant: ${createAssistantDto.name}`,
-        e.message,
+        { error: e.message },
       );
       return {
         success: false,
@@ -223,7 +223,9 @@ export class AssistantsController {
       };
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to execute assistant: ${name}`, e.message);
+      this.logger.error(`Failed to execute assistant: ${name}`, {
+        error: e.message,
+      });
       return {
         success: false,
         error: e.message,
@@ -280,7 +282,9 @@ export class AssistantsController {
       this.logger.info(`Completed streaming for assistant: ${name}`);
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to stream assistant: ${name}`, e.message);
+      this.logger.error(`Failed to stream assistant: ${name}`, {
+        error: e.message,
+      });
       response.write(
         `data: ${JSON.stringify({ type: 'error', error: e.message })}\n\n`,
       );

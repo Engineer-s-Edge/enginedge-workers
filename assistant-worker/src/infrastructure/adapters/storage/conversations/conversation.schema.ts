@@ -47,8 +47,8 @@ export class Conversation {
   @Prop({
     type: String,
     enum: ['active', 'paused', 'completed', 'failed', 'archived'],
-    index: true,
     default: 'active',
+    index: true,
   })
   status!: ConversationStatus;
 
@@ -81,5 +81,4 @@ export class Conversation {
 export const ConversationSchema = SchemaFactory.createForClass(Conversation);
 
 ConversationSchema.index({ userId: 1, updatedAt: -1 });
-ConversationSchema.index({ status: 1 });
-ConversationSchema.index({ type: 1 });
+// Note: status and type indexes are defined in @Prop decorators above

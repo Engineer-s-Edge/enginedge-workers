@@ -53,9 +53,29 @@ export class InterviewAgent extends BaseAgent {
   }
 
   /**
-   * Initialize interview context from interview-worker
+   * Initialize execution context - overrides base implementation
    */
-  async initializeContext(): Promise<void> {
+  protected initializeContext(
+    input: string,
+    context: Partial<ExecutionContext>,
+  ): ExecutionContext {
+    // Call base implementation first
+    const baseContext = super.initializeContext(input, context);
+
+    // Initialize interview context asynchronously (fire and forget)
+    this.initializeInterviewContext().catch((error) => {
+      this.logger.warn('Failed to initialize interview context', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
+    return baseContext;
+  }
+
+  /**
+   * Initialize interview context from interview-worker (async helper)
+   */
+  private async initializeInterviewContext(): Promise<void> {
     try {
       const baseUrl = this.config.interviewWorkerBaseUrl!;
 
@@ -258,7 +278,8 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
     context: ExecutionContext,
   ): Promise<ExecutionResult> {
     try {
-      await this.initializeContext();
+      // Initialize context (will also initialize interview context asynchronously)
+      this.initializeContext(input, context);
 
       // Add to conversation memory
       this.conversationMemory.push({
@@ -296,7 +317,7 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
       // Handle tool calls
       if (response.toolCalls && response.toolCalls.length > 0) {
         const toolResults = await Promise.all(
-          response.toolCalls.map((tc) =>
+          response.toolCalls.map((tc: any) =>
             this.executeTool(
               tc.function.name,
               JSON.parse(tc.function.arguments || '{}'),
@@ -353,7 +374,8 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
     context: ExecutionContext,
   ): AsyncGenerator<string> {
     try {
-      await this.initializeContext();
+      // Initialize context (will also initialize interview context asynchronously)
+      this.initializeContext(input, context);
 
       this.conversationMemory.push({
         role: 'candidate',
@@ -380,13 +402,21 @@ Current question: ${ctx.currentQuestion || 'None - ready for next question'}`;
         tools,
       };
 
-      // Stream response
-      for await (const chunk of this.llmProvider.stream(llmRequest)) {
-        yield chunk;
+      // Get response and stream it in chunks
+      const response = await this.llmProvider.complete(llmRequest);
+
+      // Stream response in chunks
+      const chunkSize = 50;
+      for (let i = 0; i < response.content.length; i += chunkSize) {
+        yield response.content.substring(i, i + chunkSize);
       }
 
-      // Update conversation memory with full response (would need to accumulate chunks)
-      // For now, simplified
+      // Update conversation memory with full response
+      this.conversationMemory.push({
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+      });
     } catch (error) {
       yield `Error: ${error instanceof Error ? error.message : String(error)}\n`;
       throw error;

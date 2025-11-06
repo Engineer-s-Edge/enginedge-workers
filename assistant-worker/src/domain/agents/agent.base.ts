@@ -6,8 +6,8 @@ import {
   Message,
   AgentStateType,
 } from '../entities';
-import { ILogger } from '../../ports/logger.port';
-import { ILLMProvider } from '../../ports/llm-provider.port';
+import { ILogger } from '../ports/logger.port';
+import { ILLMProvider } from '../ports/llm-provider.port';
 
 /**
  * Internal agent execution state

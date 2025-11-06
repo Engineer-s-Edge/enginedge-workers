@@ -40,6 +40,14 @@ export class AgentFactory {
     private readonly memoryManager: MemoryManager,
     private readonly responseParser: ResponseParser,
     private readonly promptBuilder: PromptBuilder,
+    // Optional collective services for CollectiveAgent
+    private readonly messageQueue?: any,
+    private readonly communication?: any,
+    private readonly sharedMemory?: any,
+    private readonly artifactLocking?: any,
+    private readonly taskAssignment?: any,
+    private readonly deadlockDetection?: any,
+    private readonly coordinationValidator?: any,
   ) {}
 
   /**
@@ -173,13 +181,42 @@ export class AgentFactory {
    * Best for: Large-scale coordination tasks
    */
   private createCollectiveAgent(agent: Agent): CollectiveAgent {
+    if (
+      !this.messageQueue ||
+      !this.communication ||
+      !this.sharedMemory ||
+      !this.artifactLocking ||
+      !this.taskAssignment ||
+      !this.deadlockDetection ||
+      !this.coordinationValidator
+    ) {
+      throw new Error(
+        'CollectiveAgent requires collective services (MessageQueueService, CommunicationService, etc.) to be injected into AgentFactory',
+      );
+    }
+
     const config = {
+      collectiveId: `collective_${agent.id || Date.now()}`,
       maxSubAgents: 10,
       temperature: agent.config.temperature || 0.6,
       model: agent.config.model,
+      defaultStrategy: undefined,
+      enablePM: true,
+      deadlockCheckInterval: 5000,
     };
 
-    return new CollectiveAgent(this.llmProvider, this.logger, config);
+    return new CollectiveAgent(
+      this.llmProvider,
+      this.logger,
+      this.messageQueue,
+      this.communication,
+      this.sharedMemory,
+      this.artifactLocking,
+      this.taskAssignment,
+      this.deadlockDetection,
+      this.coordinationValidator,
+      config,
+    );
   }
 
   /**
@@ -210,18 +247,18 @@ export class AgentFactory {
    * Best for: Conducting mock interviews
    */
   private createInterviewAgent(agent: Agent): InterviewAgent {
+    // Interview-specific config - these should come from agent metadata or be passed separately
+    // For now, use defaults and environment variables
     const config = {
       interviewWorkerBaseUrl:
-        agent.config.interviewWorkerBaseUrl ||
-        process.env.INTERVIEW_WORKER_URL ||
-        'http://localhost:3004',
-      sessionId: agent.config.sessionId || '',
-      interviewId: agent.config.interviewId || '',
-      candidateId: agent.config.candidateId || '',
+        process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
+      sessionId: '',
+      interviewId: '',
+      candidateId: '',
       temperature: agent.config.temperature || 0.7,
       model: agent.config.model || 'gpt-4',
-      difficulty: agent.config.difficulty || 'medium',
-      communicationMode: agent.config.communicationMode || 'text',
+      difficulty: 'medium' as const,
+      communicationMode: 'text' as const,
     };
 
     return new InterviewAgent(this.llmProvider, this.logger, config);

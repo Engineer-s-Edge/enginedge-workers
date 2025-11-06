@@ -11,7 +11,7 @@
  * Phase 5: Advanced features ⏳
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PromptBuilder } from '@domain/services/prompt-builder.service';
 import { ResponseParser } from '@domain/services/response-parser.service';
 import { MemoryManager } from '@domain/services/memory-manager.service';
@@ -30,6 +30,19 @@ import { ExecuteAgentUseCase } from './use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.use-case';
 import { CollectiveModule } from './services/collective/collective.module';
 import { AgentExecutionService } from './services/agent-execution.service';
+import { MessageQueueService } from './services/collective/message-queue.service';
+import { CommunicationService } from './services/collective/communication.service';
+import { SharedMemoryService } from './services/collective/shared-memory.service';
+import { ArtifactLockingService } from './services/collective/artifact-locking.service';
+import { TaskAssignmentService } from './services/collective/task-assignment.service';
+import { DeadlockDetectionService } from './services/collective/deadlock-detection.service';
+import { GraphComponentService } from './services/graph-component.service';
+import { LLMProviderModule } from '@infrastructure/adapters/llm/llm-provider.module';
+import { MetricsAdapter } from '@infrastructure/adapters/monitoring/metrics.adapter';
+import { AssistantsCrudService } from './services/assistants-crud.service';
+import { AssistantExecutorService } from './services/assistant-executor.service';
+import { AssistantsModule } from '@infrastructure/assistants/assistants.module';
+import { ConversationsService } from './services/conversations.service';
 
 /**
  * Application module - use cases and application services
@@ -40,6 +53,13 @@ import { AgentExecutionService } from './services/agent-execution.service';
 @Module({
   imports: [
     CollectiveModule, // Collective infrastructure services
+    // Import LLMProviderModule to make ILLMProvider available in ApplicationModule
+    LLMProviderModule.register({
+      defaultProvider: (process.env.LLM_PROVIDER as any) || 'openai',
+    }),
+    // Import AssistantsModule to access IAssistantRepository
+    // Use forwardRef to handle circular dependency (AssistantsModule also imports ApplicationModule)
+    forwardRef(() => AssistantsModule),
   ],
   providers: [
     // Core Services
@@ -57,20 +77,48 @@ import { AgentExecutionService } from './services/agent-execution.service';
         memory: MemoryManager,
         parser: ResponseParser,
         prompts: PromptBuilder,
-      ) => new AgentFactory(logger, llm, memory, parser, prompts),
-      deps: [
+        messageQueue: any,
+        communication: any,
+        sharedMemory: any,
+        artifactLocking: any,
+        taskAssignment: any,
+        deadlockDetection: any,
+        coordinationValidator: CoordinationValidatorService,
+      ) =>
+        new AgentFactory(
+          logger,
+          llm,
+          memory,
+          parser,
+          prompts,
+          messageQueue,
+          communication,
+          sharedMemory,
+          artifactLocking,
+          taskAssignment,
+          deadlockDetection,
+          coordinationValidator,
+        ),
+      inject: [
         'ILogger',
         'ILLMProvider',
         MemoryManager,
         ResponseParser,
         PromptBuilder,
+        MessageQueueService,
+        CommunicationService,
+        SharedMemoryService,
+        ArtifactLockingService,
+        TaskAssignmentService,
+        DeadlockDetectionService,
+        CoordinationValidatorService,
       ],
     },
     {
       provide: ExpertPoolManager,
-      useFactory: (llm: any, logger: any, kg: any, metrics?: any) =>
+      useFactory: (llm: any, logger: any, kg: any, metrics?: MetricsAdapter) =>
         new ExpertPoolManager(llm, logger, kg, metrics),
-      deps: ['ILLMProvider', 'ILogger', 'KnowledgeGraphPort', 'MetricsAdapter'],
+      inject: ['ILLMProvider', 'ILogger', 'KnowledgeGraphPort', MetricsAdapter],
     },
     AgentService,
     AgentValidationService,
@@ -79,6 +127,7 @@ import { AgentExecutionService } from './services/agent-execution.service';
     AgentSessionService,
 
     // Advanced Services (Phase 5)
+    GraphComponentService,
     CheckpointService,
     HITLService,
     AgentExecutionService,
@@ -86,6 +135,13 @@ import { AgentExecutionService } from './services/agent-execution.service';
     // Use Cases
     ExecuteAgentUseCase,
     StreamAgentExecutionUseCase,
+
+    // Assistant services
+    AssistantsCrudService,
+    AssistantExecutorService,
+
+    // Conversations service
+    ConversationsService,
   ],
   exports: [
     // Export services for other modules
@@ -109,6 +165,13 @@ import { AgentExecutionService } from './services/agent-execution.service';
     // Export use cases for controllers
     ExecuteAgentUseCase,
     StreamAgentExecutionUseCase,
+
+    // Export assistant services
+    AssistantsCrudService,
+    AssistantExecutorService,
+
+    // Export conversations service
+    ConversationsService,
 
     // Export collective module
     CollectiveModule,

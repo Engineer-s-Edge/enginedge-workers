@@ -27,6 +27,9 @@ export class RedisCacheAdapter implements OnModuleDestroy {
   private redis: Redis;
   private readonly defaultTTL: number;
   private readonly keyPrefix: string;
+  private isConnected = false;
+  private reconnectInterval: NodeJS.Timeout | null = null;
+  private readonly reconnectIntervalMs = 5000; // Check every 5 seconds
 
   constructor(
     @Inject('ILogger') private readonly logger: Logger,
@@ -44,11 +47,15 @@ export class RedisCacheAdapter implements OnModuleDestroy {
       ),
       db,
       maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
       enableReadyCheck: true,
       keyPrefix:
         this.configService.get<string>('REDIS_KEY_PREFIX') || 'assistant:',
       lazyConnect: true,
+      retryStrategy: () => {
+        // Return null to stop automatic retries (we'll handle it manually)
+        return null;
+      },
+      enableOfflineQueue: false, // Disable offline queue to prevent command accumulation when disconnected
     });
 
     this.defaultTTL = parseInt(
@@ -58,27 +65,103 @@ export class RedisCacheAdapter implements OnModuleDestroy {
     this.keyPrefix =
       this.configService.get<string>('REDIS_KEY_PREFIX') || 'assistant:';
 
+    // Handle successful connection
     this.redis.on('connect', () => {
-      this.logger.info('RedisCacheAdapter: Connected to Redis');
+      if (!this.isConnected) {
+        this.logger.info('RedisCacheAdapter: Connected to Redis');
+        this.isConnected = true;
+        // Clear any reconnect interval since we're connected
+        if (this.reconnectInterval) {
+          clearInterval(this.reconnectInterval);
+          this.reconnectInterval = null;
+        }
+      }
     });
 
-    this.redis.on('error', (error) => {
-      this.logger.error('RedisCacheAdapter: Redis error', {
-        error: error.message,
+    // Handle disconnection
+    this.redis.on('close', () => {
+      if (this.isConnected) {
+        this.isConnected = false;
+        this.startReconnectAttempts();
+      }
+    });
+
+    // Handle errors gracefully to prevent log spam
+    this.redis.on('error', (err: Error | AggregateError) => {
+      // Check for connection refused errors (Redis not available)
+      const errorMessage = err.message || '';
+      const errorString = String(err);
+      const isConnectionRefused =
+        errorMessage.includes('ECONNREFUSED') ||
+        errorString.includes('ECONNREFUSED') ||
+        (err instanceof AggregateError &&
+          err.errors?.some(
+            (e: any) =>
+              String(e).includes('ECONNREFUSED') ||
+              e.message?.includes('ECONNREFUSED'),
+          ));
+
+      if (isConnectionRefused) {
+        // Connection refused - Redis is likely not running
+        // Silently handle this (no logging to prevent spam)
+        if (this.isConnected) {
+          this.isConnected = false;
+        }
+        // Start periodic reconnection attempts if not already started
+        if (!this.reconnectInterval) {
+          this.startReconnectAttempts();
+        }
+        return;
+      }
+      // Log other errors that might be important (but only as warning to reduce spam)
+      this.logger.warn('RedisCacheAdapter: Redis error', {
+        error: errorMessage || errorString,
       });
     });
 
-    // Connect to Redis
-    this.redis.connect().catch((error) => {
-      this.logger.error('RedisCacheAdapter: Failed to connect to Redis', {
-        error: error.message,
-      });
+    // Initial connection attempt
+    this.redis.connect().catch(() => {
+      // Connection failed - start periodic reconnection attempts
+      this.startReconnectAttempts();
     });
   }
 
+  private startReconnectAttempts(): void {
+    if (this.reconnectInterval) {
+      return; // Already attempting reconnection
+    }
+
+    this.reconnectInterval = setInterval(async () => {
+      if (this.isConnected) {
+        // Already connected, clear interval
+        if (this.reconnectInterval) {
+          clearInterval(this.reconnectInterval);
+          this.reconnectInterval = null;
+        }
+        return;
+      }
+
+      try {
+        // Attempt to reconnect
+        await this.redis.connect();
+      } catch (error) {
+        // Connection failed, will retry on next interval
+        // Error is already handled by the error event handler
+      }
+    }, this.reconnectIntervalMs);
+  }
+
   async onModuleDestroy() {
-    await this.redis.quit();
-    this.logger.info('RedisCacheAdapter: Disconnected from Redis');
+    if (this.reconnectInterval) {
+      clearInterval(this.reconnectInterval);
+      this.reconnectInterval = null;
+    }
+    try {
+      await this.redis.quit();
+      this.logger.info('RedisCacheAdapter: Disconnected from Redis');
+    } catch (error) {
+      // Ignore errors during shutdown
+    }
   }
 
   async get<T>(key: string): Promise<T | null> {

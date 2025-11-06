@@ -126,3 +126,12 @@ export class ErrorEvent {
     public readonly retryable: boolean = false,
   ) {}
 }
+
+export interface ToolConfig {
+  timeoutMs: number;
+  retry: {
+    maxAttempts: number;
+    backoffMs: number;
+  };
+  cacheTtlMs: number;
+}

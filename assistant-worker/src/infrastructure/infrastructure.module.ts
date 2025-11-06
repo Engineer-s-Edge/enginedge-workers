@@ -55,7 +55,6 @@ import {
 } from './adapters/storage/conversations/message-version.schema';
 import { MongoDBConversationsRepository } from './adapters/storage/mongodb-conversations.repository';
 import { ConversationsController } from './controllers/conversations.controller';
-import { GraphComponentService } from '@application/services/graph-component.service';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapter';
@@ -146,9 +145,6 @@ import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapte
     // Knowledge Graph Service (moved from ApplicationModule to avoid circular dependency)
     KnowledgeGraphService,
 
-    // Graph Component Service
-    GraphComponentService,
-
     // Knowledge Graph adapter (Phase 4)
     Neo4jAdapter,
 
@@ -175,20 +171,25 @@ import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapte
       useExisting: RAGServiceAdapter,
     } as any,
 
+    // Domain port binding for knowledge graph
+    {
+      provide: 'KnowledgeGraphPort',
+      useExisting: KnowledgeGraphService,
+    } as any,
+
     // Global filter/interceptor providers for DI resolution in main.ts
     GlobalExceptionFilter,
     LoggingInterceptor,
   ],
   exports: [
     // Export ports for application and domain layers
-    'ILLMProvider',
+    // Note: 'ILLMProvider' is exported by LLMProviderModule (imported above) and available globally
     'ILogger',
     'IAgentRepository',
-    // Domain port binding for knowledge graph
-    {
-      provide: 'KnowledgeGraphPort',
-      useExisting: KnowledgeGraphService,
-    } as any,
+    // Conversations repository (provided above)
+    'IConversationsRepository',
+    // Domain port binding for knowledge graph (provided above)
+    'KnowledgeGraphPort',
     // Domain port binding for RAG service
     'IRAGServicePort',
     // Memory adapter tokens
@@ -200,6 +201,8 @@ import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapte
     // Export services moved from ApplicationModule
     MemoryService,
     KnowledgeGraphService,
+    // Export MetricsAdapter for application layer
+    MetricsAdapter,
   ],
 })
 export class InfrastructureModule {}

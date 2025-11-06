@@ -62,7 +62,7 @@ export abstract class BaseTool<
   /**
    * Public entrypoint for tool execution with full error handling and metrics
    */
-  async execute(call: ToolCall): Promise<ToolResult<TArgs, TOutput>> {
+  async execute(call: ToolCall): Promise<ToolResult<TOutput>> {
     const startTime = new Date();
 
     try {
@@ -74,10 +74,11 @@ export abstract class BaseTool<
           retryable: false,
         };
         await this.recordMetrics(call.name, startTime, false, error.name);
-        return this.createFailure(call, error, startTime) as ToolResult<
-          TArgs,
-          TOutput
-        >;
+        return this.createFailure(
+          call,
+          error,
+          startTime,
+        ) as ToolResult<TOutput>;
       }
 
       // Check cache for retrievers
@@ -86,7 +87,7 @@ export abstract class BaseTool<
         const cached = await this.cache.get(cacheKey);
         if (cached) {
           await this.recordMetrics(call.name, startTime, true);
-          return cached as ToolResult<TArgs, TOutput>;
+          return cached as ToolResult<TOutput>;
         }
       }
 
@@ -101,10 +102,11 @@ export abstract class BaseTool<
           retryable: false,
         };
         await this.recordMetrics(call.name, startTime, false, error.name);
-        return this.createFailure(call, error, startTime) as ToolResult<
-          TArgs,
-          TOutput
-        >;
+        return this.createFailure(
+          call,
+          error,
+          startTime,
+        ) as ToolResult<TOutput>;
       }
 
       // Cache result for retrievers
@@ -123,10 +125,11 @@ export abstract class BaseTool<
       };
 
       await this.recordMetrics(call.name, startTime, false, toolError.name);
-      return this.createFailure(call, toolError, startTime) as ToolResult<
-        TArgs,
-        TOutput
-      >;
+      return this.createFailure(
+        call,
+        toolError,
+        startTime,
+      ) as ToolResult<TOutput>;
     }
   }
 
@@ -161,7 +164,7 @@ export abstract class BaseTool<
    */
   private async executeWithRetries(
     call: ToolCall,
-  ): Promise<ToolResult<TArgs, TOutput>> {
+  ): Promise<ToolResult<TOutput>> {
     let lastError: ToolError | null = null;
 
     for (let attempt = 1; attempt <= this.metadata.retries + 1; attempt++) {
@@ -185,10 +188,11 @@ export abstract class BaseTool<
       }
     }
 
-    return this.createFailure(call, lastError!, new Date()) as ToolResult<
-      TArgs,
-      TOutput
-    >;
+    return this.createFailure(
+      call,
+      lastError!,
+      new Date(),
+    ) as ToolResult<TOutput>;
   }
 
   /**
@@ -250,7 +254,7 @@ export abstract class BaseTool<
     call: ToolCall,
     output: TOutput,
     endTime: Date,
-  ): ToolSuccess<TArgs, TOutput> {
+  ): ToolSuccess<TOutput> {
     return {
       success: true,
       call,
@@ -269,7 +273,7 @@ export abstract class BaseTool<
     call: ToolCall,
     error: ToolError,
     startTime: Date,
-  ): ToolFailure<TArgs> {
+  ): ToolFailure {
     const endTime = new Date();
     return {
       success: false,

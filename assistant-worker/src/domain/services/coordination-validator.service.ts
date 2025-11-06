@@ -384,7 +384,7 @@ export class CoordinationValidatorService {
           blockedBy.length > 0 ? ('blocked' as any) : ('unassigned' as any),
         assignedAgentId,
         allowedAgentIds: taskConfig.assignedAgentTypes.map((t) => t.toString()),
-        dependencies: taskConfig.dependencies,
+        dependencies: [...taskConfig.dependencies],
         blockedBy,
         priority: taskConfig.priority,
         childTaskIds: [],

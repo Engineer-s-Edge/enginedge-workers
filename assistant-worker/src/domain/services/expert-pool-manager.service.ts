@@ -362,7 +362,7 @@ export class ExpertPoolManager {
         this.activeExecutions.delete(expertId);
         this.updateQueuedRequests();
       }
-    })();
+    });
 
     // Store active execution
     this.activeExecutions.set(expertId, {
@@ -422,9 +422,9 @@ export class ExpertPoolManager {
       sourcesUsed,
       avgConfidence,
       issuesEncountered: error ? [error] : [],
-      escalationRequired: status === 'escalated',
-      escalationReason: status === 'escalated' ? error : undefined,
-      status,
+      escalationRequired: (status as string) === 'escalated',
+      escalationReason: (status as string) === 'escalated' ? error : undefined,
+      status: status as 'completed' | 'failed' | 'timeout' | 'escalated',
       result,
     };
 

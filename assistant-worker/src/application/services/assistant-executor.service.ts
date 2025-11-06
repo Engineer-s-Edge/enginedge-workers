@@ -19,6 +19,7 @@ import { ConversationsService } from './conversations.service';
 export class AssistantExecutorService {
   constructor(
     private readonly assistantsCrudService: AssistantsCrudService,
+    @Inject('IAssistantRepository')
     private readonly assistantsRepository: IAssistantRepository,
     private readonly agentService: AgentService,
     @Inject('ILogger')
@@ -131,7 +132,9 @@ export class AssistantExecutorService {
       };
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to execute assistant: ${name}`, e.message);
+      this.logger.error(`Failed to execute assistant: ${name}`, {
+        error: e.message,
+      });
       return { success: false, error: e.message };
     }
   }
@@ -175,9 +178,10 @@ export class AssistantExecutorService {
       };
 
       // This is a placeholder - in production, use proper streaming
+      const self = this;
       async function* streamGenerator() {
         try {
-          const result = await this.agentService.executeAgent(
+          const result = await self.agentService.executeAgent(
             agentId,
             executeDto.userId || 'default-user',
             executeDto.input || '',
@@ -195,10 +199,12 @@ export class AssistantExecutorService {
         }
       }
 
-      return streamGenerator.call(this);
+      return streamGenerator();
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to stream assistant: ${name}`, e.message);
+      this.logger.error(`Failed to stream assistant: ${name}`, {
+        error: e.message,
+      });
       throw error;
     }
   }

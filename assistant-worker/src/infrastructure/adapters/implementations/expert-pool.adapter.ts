@@ -16,6 +16,7 @@ import {
   ExpertPoolManager,
   ExpertAgentInstance,
 } from '../../../domain/services/expert-pool-manager.service';
+import { AgentId } from '../../../domain/entities/agent.entity';
 
 @Injectable()
 export class ExpertPoolAdapter implements IExpertPoolAdapter {
@@ -64,7 +65,8 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
   async releaseExperts(expertIds: string[]): Promise<boolean> {
     try {
       this.logger.log(`Releasing ${expertIds.length} experts`);
-      return await this.expertPoolManager.releaseExperts(expertIds);
+      const agentIds = expertIds.map((id) => id as AgentId);
+      return await this.expertPoolManager.releaseExperts(agentIds);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Expert release failed: ${err.message}`, err.stack);
@@ -87,7 +89,9 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
 
   async getExpert(expertId: string): Promise<ExpertAgent | null> {
     try {
-      const expert = await this.expertPoolManager.getExpert(expertId);
+      const expert = await this.expertPoolManager.getExpert(
+        expertId as AgentId,
+      );
       if (!expert) return null;
 
       return {
@@ -126,7 +130,9 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
 
   async isExpertAvailable(expertId: string): Promise<boolean> {
     try {
-      return await this.expertPoolManager.isExpertAvailable(expertId);
+      return await this.expertPoolManager.isExpertAvailable(
+        expertId as AgentId,
+      );
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(

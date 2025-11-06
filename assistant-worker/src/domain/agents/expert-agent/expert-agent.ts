@@ -230,7 +230,7 @@ export class ExpertAgent extends BaseAgent {
     // Parse queries from response
     const queries = response.content
       .split('\n')
-      .filter((line) => line.trim().length > 0)
+      .filter((line: string) => line.trim().length > 0)
       .slice(0, iterations);
 
     const sources: ResearchSource[] = [];

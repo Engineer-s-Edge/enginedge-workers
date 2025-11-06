@@ -79,10 +79,32 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     this.enableConsole =
       this.configService.get<string>('LOG_ENABLE_CONSOLE', 'true') === 'true';
 
+    // Suppress KafkaJS verbose logging to reduce spam when Kafka is unavailable
+    // Set KAFKA_LOG_LEVEL=DEBUG to see all logs, or KAFKA_LOG_LEVEL=ERROR for errors only
+    const kafkaLogLevel =
+      this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logCreator = () => {
+      return () => {
+        // No-op: suppress all KafkaJS logs by default
+        // This prevents connection retry spam when Kafka is unavailable
+      };
+    };
+
+    // Map log level strings to KafkaJS log levels (0 = NOTHING, 4 = ERROR, 5 = WARN, etc.)
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+
     this.kafka = new Kafka({
       clientId: `${clientId}-${this.serviceName}`,
       brokers,
       retry: { initialRetryTime: 300, retries: 3 },
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
     });
     this.producer = this.kafka.producer({
       allowAutoTopicCreation: true,

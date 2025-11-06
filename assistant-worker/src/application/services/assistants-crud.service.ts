@@ -27,6 +27,7 @@ import { ILogger } from '../ports/logger.port';
 @Injectable()
 export class AssistantsCrudService {
   constructor(
+    @Inject('IAssistantRepository')
     private readonly assistantsRepository: IAssistantRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
@@ -67,7 +68,7 @@ export class AssistantsCrudService {
       }
       this.logger.error(
         `Failed to create assistant: ${createAssistantDto.name}`,
-        e.message,
+        { error: e.message },
       );
       throw e;
     }
@@ -83,7 +84,7 @@ export class AssistantsCrudService {
       return assistants;
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error('Failed to find assistants', e.message);
+      this.logger.error('Failed to find assistants', { error: e.message });
       throw e;
     }
   }
@@ -108,7 +109,9 @@ export class AssistantsCrudService {
       if (e instanceof NotFoundException) {
         throw e;
       }
-      this.logger.error(`Failed to find assistant: ${name}`, e.message);
+      this.logger.error(`Failed to find assistant: ${name}`, {
+        error: e.message,
+      });
       throw e;
     }
   }
@@ -140,7 +143,9 @@ export class AssistantsCrudService {
       if (e instanceof NotFoundException) {
         throw e;
       }
-      this.logger.error(`Failed to update assistant: ${name}`, e.message);
+      this.logger.error(`Failed to update assistant: ${name}`, {
+        error: e.message,
+      });
       throw e;
     }
   }
@@ -154,7 +159,9 @@ export class AssistantsCrudService {
       this.logger.info(`Successfully removed assistant: ${name}`);
     } catch (error: unknown) {
       const e = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to remove assistant: ${name}`, e.message);
+      this.logger.error(`Failed to remove assistant: ${name}`, {
+        error: e.message,
+      });
       throw e;
     }
   }
@@ -211,7 +218,8 @@ export class AssistantsCrudService {
   private transformUpdateDtoToEntity(
     dto: UpdateAssistantDto,
   ): Partial<Assistant> {
-    const entity: Partial<Assistant> = {};
+    // Use a mutable type to allow property assignments
+    const entity: Record<string, any> = {};
     const mapType = (t?: string | AssistantType): AssistantType | undefined => {
       if (!t) return undefined;
       if (typeof t === 'string') {

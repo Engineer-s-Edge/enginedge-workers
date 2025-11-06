@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema, SchemaTypes } from 'mongoose';
 
 export type ConversationEventDocument = ConversationEvent & Document;
 
@@ -17,7 +17,7 @@ class MessagePayloadSchema {
 class ToolCallPayloadSchema {
   @Prop({ required: true }) name!: string;
   @Prop({ type: Object, required: true }) args!: Record<string, unknown>;
-  @Prop() result?: unknown;
+  @Prop({ type: SchemaTypes.Mixed, required: false }) result?: any;
   @Prop({ required: true, enum: ['ok', 'error'] }) status!: string;
   @Prop() latencyMs?: number;
   @Prop() tokensIn?: number;
@@ -43,8 +43,8 @@ class StateChangePayloadSchema {
 @Schema({ _id: false })
 class ConfigChangePayloadSchema {
   @Prop({ required: true }) path!: string;
-  @Prop() old?: unknown;
-  @Prop() new?: unknown;
+  @Prop({ type: SchemaTypes.Mixed, required: false }) old?: any;
+  @Prop({ type: SchemaTypes.Mixed, required: false }) new?: any;
 }
 
 @Schema({ _id: false })
@@ -56,7 +56,7 @@ class NotePayloadSchema {
 @Schema({ _id: false, discriminatorKey: 'kind' })
 class PayloadSchema {
   @Prop({ required: true }) kind!: string;
-  @Prop({ type: Object }) data!: unknown;
+  @Prop({ type: SchemaTypes.Mixed, required: true }) data!: any;
 }
 
 @Schema({ timestamps: false })

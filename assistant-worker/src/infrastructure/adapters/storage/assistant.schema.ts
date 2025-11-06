@@ -334,6 +334,7 @@ export class AssistantDocument extends Document {
     type: String,
     enum: Object.values(AssistantType),
     default: AssistantType.CUSTOM,
+    index: true,
   })
   type!: AssistantType;
 
@@ -348,6 +349,7 @@ export class AssistantDocument extends Document {
     type: String,
     enum: Object.values(AssistantStatus),
     default: AssistantStatus.ACTIVE,
+    index: true,
   })
   status!: AssistantStatus;
 
@@ -402,9 +404,8 @@ export class AssistantDocument extends Document {
 export const AssistantSchema = SchemaFactory.createForClass(AssistantDocument);
 
 // Add indexes for performance
-AssistantSchema.index({ type: 1 });
+// Note: type and status indexes are defined in @Prop decorators above
 AssistantSchema.index({ agentType: 1 });
 AssistantSchema.index({ userId: 1 });
 AssistantSchema.index({ isPublic: 1 });
-AssistantSchema.index({ status: 1 });
-AssistantSchema.index({ name: 1 });
+// Note: name already has a unique index from @Prop({ unique: true }), so no need to add it again

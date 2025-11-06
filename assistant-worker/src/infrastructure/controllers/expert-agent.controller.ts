@@ -244,10 +244,12 @@ export class ExpertAgentController {
           input: query,
           context: {
             conversationId,
-            researchDepth,
-            maxSources: maxSources ? parseInt(maxSources, 10) : undefined,
-            maxTokens: maxTokens ? parseInt(maxTokens, 10) : undefined,
-            useBertScore: useBertScore === 'true',
+            config: {
+              researchDepth,
+              maxSources: maxSources ? parseInt(maxSources, 10) : undefined,
+              maxTokens: maxTokens ? parseInt(maxTokens, 10) : undefined,
+              useBertScore: useBertScore === 'true',
+            },
           },
         });
 

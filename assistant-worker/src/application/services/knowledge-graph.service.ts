@@ -97,8 +97,7 @@ export class KnowledgeGraphService {
     properties: Record<string, any> = {},
   ): Promise<KGEdge> {
     this.logger.info('Creating relationship', { from, to, type });
-
-    return await this.neo4jAdapter.createEdge(from, to, type, properties);
+    return this.createRelationshipInternal(from, to, type, properties);
   }
 
   /**
@@ -517,7 +516,7 @@ export class KnowledgeGraphService {
     }
 
     // Create new edge
-    return await this.createRelationship(
+    return await this.createRelationshipInternal(
       sourceId,
       targetId,
       edgeType,
@@ -547,9 +546,9 @@ export class KnowledgeGraphService {
   }
 
   /**
-   * Create relationship with enhanced properties
+   * Create relationship with enhanced properties (internal helper)
    */
-  private async createRelationship(
+  private async createRelationshipInternal(
     from: string,
     to: string,
     type: string,

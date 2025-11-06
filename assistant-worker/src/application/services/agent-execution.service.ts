@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { AgentService } from './agent.service';
 import { AgentEventService } from './agent-event.service';
 import { AgentSessionService } from './agent-session.service';
@@ -13,6 +13,7 @@ interface ExecuteOptions {
 @Injectable()
 export class AgentExecutionService {
   constructor(
+    @Inject(forwardRef(() => AgentService))
     private readonly agentService: AgentService,
     private readonly events: AgentEventService,
     private readonly sessions: AgentSessionService,

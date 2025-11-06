@@ -15,7 +15,7 @@ import { StructuredLogger } from './adapters/logging/structured-logger';
 import { ToolValidator } from './adapters/tool-validator.adapter';
 import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
-import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
+import { CacheModule } from './adapters/cache/cache.module';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
@@ -39,6 +39,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     ToolsInfrastructureModule, // Provides all tool implementations
     CommandInfrastructureModule, // Provides command processing controller and services
     HealthModule, // Provides health check controller and service
+    CacheModule, // Provides RedisCacheAdapter for caching
   ],
   controllers: [],
   providers: [
@@ -64,9 +65,6 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     },
     MetricsAdapter,
 
-    // Cache adapter
-    RedisCacheAdapter,
-
     // Global filter/interceptor for DI resolution
     GlobalExceptionFilter,
     LoggingInterceptor,
@@ -76,7 +74,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     'IToolValidator',
     'IToolCache',
     'IToolMetrics',
-    'RedisCacheAdapter',
+    CacheModule, // Re-export CacheModule to make RedisCacheAdapter available globally
   ],
 })
 export class InfrastructureModule {}

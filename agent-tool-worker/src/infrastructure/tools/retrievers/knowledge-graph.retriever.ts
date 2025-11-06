@@ -86,86 +86,113 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
       ),
     ];
 
+    const inputSchema = {
+      type: 'object',
+      additionalProperties: false,
+      required: ['operation'],
+      properties: {
+        operation: {
+          type: 'string',
+          enum: [
+            'get_node',
+            'search_nodes',
+            'get_neighbors',
+            'get_subgraph',
+            'get_stats',
+            'query',
+          ],
+          description: 'The Knowledge Graph operation to perform',
+        },
+        nodeId: {
+          type: 'string',
+          description:
+            'Node ID (required for get_node, get_neighbors, get_subgraph)',
+        },
+        searchTerm: {
+          type: 'string',
+          description:
+            'Search term for node search (required for search_nodes)',
+        },
+        layer: {
+          type: 'string',
+          enum: [
+            'L1_OBSERVATIONS',
+            'L2_PATTERNS',
+            'L3_MODELS',
+            'L4_THEORIES',
+            'L5_PRINCIPLES',
+            'L6_SYNTHESIS',
+          ],
+          description: 'ICS layer to filter by',
+        },
+        type: {
+          type: 'string',
+          description: 'Node type to filter by',
+        },
+        depth: {
+          type: 'number',
+          description: 'Depth for subgraph extraction (default: 1)',
+          default: 1,
+          minimum: 1,
+          maximum: 5,
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum number of results to return',
+          default: 10,
+          minimum: 1,
+          maximum: 100,
+        },
+        cypher: {
+          type: 'string',
+          description: 'Cypher query string (required for query operation)',
+        },
+        params: {
+          type: 'object',
+          description: 'Parameters for Cypher query',
+        },
+      },
+    };
+
+    const outputSchema = {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        operation: { type: 'string' },
+        node: { type: 'object' },
+        nodes: { type: 'array', items: { type: 'object' } },
+        edges: { type: 'array', items: { type: 'object' } },
+        stats: { type: 'object' },
+        result: { type: 'object' },
+        message: { type: 'string' },
+      },
+    };
+
+    const invocationExample = [
+      {
+        operation: 'get_node',
+        nodeId: 'node-123',
+      },
+      {
+        operation: 'search_nodes',
+        searchTerm: 'machine learning',
+        limit: 10,
+      },
+    ];
+
     const metadata = new RetrieverConfig(
       'knowledge-graph-retriever',
       'Read-only access to the Knowledge Graph',
       'Query nodes, edges, and graph structure from the persistent knowledge base. Read-only access.',
-      {
-        type: 'object',
-        additionalProperties: false,
-        required: ['operation'],
-        properties: {
-          operation: {
-            type: 'string',
-            enum: [
-              'get_node',
-              'search_nodes',
-              'get_neighbors',
-              'get_subgraph',
-              'get_stats',
-              'query',
-            ],
-            description: 'The Knowledge Graph operation to perform',
-          },
-          nodeId: {
-            type: 'string',
-            description:
-              'Node ID (required for get_node, get_neighbors, get_subgraph)',
-          },
-          searchTerm: {
-            type: 'string',
-            description:
-              'Search term for node search (required for search_nodes)',
-          },
-          layer: {
-            type: 'string',
-            enum: [
-              'L1_OBSERVATIONS',
-              'L2_PATTERNS',
-              'L3_MODELS',
-              'L4_THEORIES',
-              'L5_PRINCIPLES',
-              'L6_SYNTHESIS',
-            ],
-            description: 'ICS layer to filter by',
-          },
-          type: {
-            type: 'string',
-            description: 'Node type to filter by',
-          },
-          depth: {
-            type: 'number',
-            description: 'Depth for subgraph extraction (default: 1)',
-            default: 1,
-            minimum: 1,
-            maximum: 5,
-          },
-          limit: {
-            type: 'number',
-            description: 'Maximum number of results to return',
-            default: 10,
-            minimum: 1,
-            maximum: 100,
-          },
-          cypher: {
-            type: 'string',
-            description: 'Cypher query string (required for query operation)',
-          },
-          params: {
-            type: 'object',
-            description: 'Parameters for Cypher query',
-          },
-        },
-      },
-      {
-        retrievalType: RetrievalType.SEMANTIC,
-        supportsRAG: true,
-        caching: true,
-        maxCacheAge: 3600, // 1 hour
-      },
+      inputSchema,
+      outputSchema,
+      invocationExample,
+      RetrievalType.SEMANTIC,
+      true,
+      {},
     );
 
-    super();
+    super(metadata, errorEvents);
     this.metadata = metadata;
     this.errorEvents = errorEvents;
     this.assistantWorkerUrl =
@@ -174,9 +201,17 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
       'http://localhost:3001';
   }
 
-  protected async executeInternal(call: {
-    args: KnowledgeGraphArgs;
-  }): Promise<KnowledgeGraphOutput> {
+  get retrievalType(): string {
+    return RetrievalType.SEMANTIC;
+  }
+
+  get caching(): boolean {
+    return this.metadata.caching;
+  }
+
+  protected async retrieve(
+    args: KnowledgeGraphArgs & { ragConfig: RAGConfig },
+  ): Promise<KnowledgeGraphOutput> {
     const {
       operation,
       nodeId,
@@ -187,7 +222,7 @@ export class KnowledgeGraphRetriever extends BaseRetriever<
       limit,
       cypher,
       params,
-    } = call.args;
+    } = args;
 
     try {
       switch (operation) {

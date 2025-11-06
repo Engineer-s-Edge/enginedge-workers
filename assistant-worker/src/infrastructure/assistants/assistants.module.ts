@@ -5,7 +5,7 @@
  * Wires together all assistant-related components
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '@application/application.module';
 import { AssistantsController } from '../controllers/assistants.controller';
@@ -24,13 +24,12 @@ import { IAssistantRepository } from '@application/ports/assistant.repository';
     MongooseModule.forFeature([
       { name: AssistantDocument.name, schema: AssistantSchema },
     ]),
-    ApplicationModule,
+    forwardRef(() => ApplicationModule),
   ],
   controllers: [AssistantsController],
   providers: [
     AssistantsService,
-    AssistantsCrudService,
-    AssistantExecutorService,
+    // AssistantsCrudService and AssistantExecutorService are provided by ApplicationModule
     {
       provide: 'IAssistantRepository',
       useClass: MongoDBAssistantRepository,

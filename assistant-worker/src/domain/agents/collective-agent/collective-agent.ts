@@ -847,12 +847,12 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     const subtaskLines = response.content
       .split('\n')
       .filter(
-        (line) =>
+        (line: string) =>
           line.trim().length > 0 && (line.match(/^\d+\./) || line.match(/^-/)),
       )
       .slice(0, 5);
 
-    return subtaskLines.map((line, idx) => ({
+    return subtaskLines.map((line: string, idx: number) => ({
       taskId: `task_${idx}`,
       description: line
         .replace(/^\d+\.\s*/, '')
@@ -873,6 +873,36 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     if (task.priority >= 60) return MessagePriority.NORMAL;
     if (task.priority >= 40) return MessagePriority.LOW;
     return MessagePriority.BACKGROUND;
+  }
+
+  /**
+   * Streaming execution - implements BaseAgent.runStream()
+   */
+  protected async *runStream(
+    input: string,
+    context: ExecutionContext,
+  ): AsyncGenerator<string> {
+    yield `🤝 Collective Agent: Starting coordination for "${input}"\n\n`;
+
+    try {
+      // Execute the main run method and stream progress
+      const result = await this.run(input, context);
+
+      // Stream the result
+      if (result.output) {
+        const outputStr = String(result.output);
+        const chunkSize = 50;
+        for (let i = 0; i < outputStr.length; i += chunkSize) {
+          yield outputStr.substring(i, i + chunkSize);
+        }
+      }
+
+      yield `\n\n✅ Collective Agent: Coordination complete\n`;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      yield `\n\n❌ Collective Agent: Error - ${errorMsg}\n`;
+      throw error;
+    }
   }
 
   /**

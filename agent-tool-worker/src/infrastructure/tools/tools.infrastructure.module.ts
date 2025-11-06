@@ -5,6 +5,7 @@
  */
 
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApplicationModule } from '@application/application.module';
 import { ToolRegistry } from '@application/services/tool-registry.service';
 import { FilesystemActor } from './actors/filesystem.actor';
@@ -42,6 +43,19 @@ import { KnowledgeGraphRetriever } from './retrievers/knowledge-graph.retriever'
     FilesystemRetriever,
     LocalDBRetriever,
     OCRRetriever,
+    KnowledgeGraphRetriever,
+    // Provide ASSISTANT_WORKER_URL for KnowledgeGraphRetriever
+    {
+      provide: 'ASSISTANT_WORKER_URL',
+      useFactory: (configService: ConfigService) => {
+        return (
+          configService.get<string>('ASSISTANT_WORKER_URL') ||
+          process.env.ASSISTANT_WORKER_URL ||
+          'http://localhost:3001'
+        );
+      },
+      inject: [ConfigService],
+    },
     // Register tool with ToolRegistry on module initialization
     {
       provide: 'TOOL_REGISTRATION',

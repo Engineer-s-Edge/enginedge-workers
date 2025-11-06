@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kafka, Producer } from 'kafkajs';
+import { Kafka, Producer, Partitioners } from 'kafkajs';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -101,13 +101,33 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
     this.enableConsole =
       this.configService.get<string>('LOG_ENABLE_CONSOLE', 'true') === 'true';
 
+    // Suppress KafkaJS verbose logging to reduce spam when Kafka is unavailable
+    const kafkaLogLevel =
+      this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logCreator = () => {
+      return () => {
+        // No-op: suppress all KafkaJS logs by default
+      };
+    };
+
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+
     this.kafka = new Kafka({
       clientId: `${clientId}-${this.serviceName}`,
       brokers,
       retry: { initialRetryTime: 300, retries: 3 },
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
     });
 
     this.producer = this.kafka.producer({
+      createPartitioner: Partitioners.LegacyPartitioner,
       allowAutoTopicCreation: true,
       maxInFlightRequests: 1,
       idempotent: true,
@@ -145,8 +165,24 @@ export class KafkaLoggerAdapter implements OnModuleInit, OnModuleDestroy {
       this.connected = true;
       this.reconnectAttempts = 0;
       await this.flushBuffer();
-    } catch {
+    } catch (error) {
       this.connected = false;
+      // Silently handle connection errors - don't log to prevent spam
+      // Only log if it's not a connection refused error
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('Connection')
+      ) {
+        // Log non-connection errors (but only once to prevent spam)
+        if (this.reconnectAttempts === 0) {
+          console.warn(
+            '[KafkaLoggerAdapter] Failed to connect to Kafka:',
+            errorMessage,
+          );
+        }
+      }
       this.scheduleReconnect();
     }
   }

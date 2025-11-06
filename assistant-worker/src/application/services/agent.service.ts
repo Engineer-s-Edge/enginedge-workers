@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  forwardRef,
 } from '@nestjs/common';
 import { ILogger } from '../ports/logger.port';
 import { IAgentRepository } from '../ports/agent.repository';
@@ -41,6 +42,7 @@ export class AgentService {
     @Inject('IAgentRepository')
     private readonly agentRepository: IAgentRepository,
     private readonly agentFactory: AgentFactory,
+    @Inject(forwardRef(() => AgentExecutionService))
     private readonly execution: AgentExecutionService,
     private readonly checkpoints: CheckpointService,
     private readonly sessions: AgentSessionService,
