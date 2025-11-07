@@ -5,8 +5,9 @@
  * Supports input nodes, approval nodes, and escalations.
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
+import { NotificationService } from './notification.service';
 
 export type HITLRequestType =
   | 'input'
@@ -40,6 +41,8 @@ export class HITLService {
   constructor(
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Optional()
+    private readonly notificationService?: NotificationService,
   ) {}
 
   /**
@@ -78,6 +81,26 @@ export class HITLService {
       agentId,
       type,
     });
+
+    // Send notification for escalations
+    if (type === 'escalation' && this.notificationService) {
+      try {
+        await this.notificationService.sendEscalationNotification(
+          userId,
+          'agent-escalation',
+          {
+            agentId,
+            requestId: request.id,
+            prompt,
+            context,
+          },
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to send escalation notification: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
 
     // Set timeout if specified
     if (timeoutMs) {

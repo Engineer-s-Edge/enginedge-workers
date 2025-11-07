@@ -4,13 +4,14 @@
  * Provides local database operations for data persistence and querying.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
 import {
   ActorConfig,
   ErrorEvent,
 } from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
+import { Db } from 'mongodb';
 
 export type DatabaseOperation =
   | 'create'
@@ -87,11 +88,11 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
 
   readonly metadata: ActorConfig;
 
-  // In-memory storage for tables and records (in production, this would be a real database)
-  private tables: Map<string, Map<string, DatabaseRecord>> = new Map();
+  private readonly db: Db;
   private tableSchemas: Map<string, DatabaseArgs['schema']> = new Map();
 
-  constructor() {
+  constructor(@Inject('MONGODB_DB') db: Db) {
+    this.db = db;
     const errorEvents = [
       new ErrorEvent(
         'TableNotFound',
@@ -296,19 +297,19 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
   protected async act(args: DatabaseArgs): Promise<DatabaseOutput> {
     switch (args.operation) {
       case 'create':
-        return this.createRecord(args);
+        return await this.createRecord(args);
       case 'read':
-        return this.readRecord(args);
+        return await this.readRecord(args);
       case 'update':
-        return this.updateRecord(args);
+        return await this.updateRecord(args);
       case 'delete':
-        return this.deleteRecord(args);
+        return await this.deleteRecord(args);
       case 'query':
-        return this.queryRecords(args);
+        return await this.queryRecords(args);
       case 'list-tables':
-        return this.listTables();
+        return await this.listTables();
       case 'create-table':
-        return this.createTable(args);
+        return await this.createTable(args);
       default:
         throw Object.assign(
           new Error(`Unsupported operation: ${args.operation}`),
@@ -319,7 +320,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     }
   }
 
-  private createTable(args: DatabaseArgs): DatabaseOutput {
+  private async createTable(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.schema) {
       throw Object.assign(new Error('Schema is required for table creation'), {
         name: 'ValidationError',
@@ -328,7 +329,9 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
 
     const { table, fields } = args.schema;
 
-    if (this.tables.has(table)) {
+    // Check if collection already exists
+    const collections = await this.db.listCollections({ name: table }).toArray();
+    if (collections.length > 0) {
       throw Object.assign(new Error(`Table '${table}' already exists`), {
         name: 'TableExists',
       });
@@ -341,9 +344,22 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       });
     }
 
+    // Create collection (MongoDB table)
+    await this.db.createCollection(table);
+
     // Store schema
     this.tableSchemas.set(table, args.schema);
-    this.tables.set(table, new Map());
+
+    // Create indexes for unique fields
+    const indexSpecs: any[] = [];
+    for (const [fieldName, fieldDef] of Object.entries(fields)) {
+      if (fieldDef.unique) {
+        indexSpecs.push({ key: { [`data.${fieldName}`]: 1 }, unique: true, name: `${table}_${fieldName}_unique` });
+      }
+    }
+    if (indexSpecs.length > 0) {
+      await this.db.collection(table).createIndexes(indexSpecs);
+    }
 
     return {
       success: true,
@@ -352,7 +368,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     };
   }
 
-  private createRecord(args: DatabaseArgs): DatabaseOutput {
+  private async createRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.data) {
       throw Object.assign(
         new Error('Table and data are required for record creation'),
@@ -362,7 +378,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       );
     }
 
-    const table = this.getTable(args.table);
+    const collection = this.db.collection(args.table);
     const schema = this.tableSchemas.get(args.table);
 
     // Validate data against schema
@@ -381,7 +397,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       updatedAt: now,
     };
 
-    table.set(id, record);
+    await collection.insertOne(record);
 
     return {
       success: true,
@@ -390,7 +406,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     };
   }
 
-  private readRecord(args: DatabaseArgs): DatabaseOutput {
+  private async readRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.id) {
       throw Object.assign(
         new Error('Table and ID are required for record reading'),
@@ -400,8 +416,8 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       );
     }
 
-    const table = this.getTable(args.table);
-    const record = table.get(args.id);
+    const collection = this.db.collection(args.table);
+    const record = await collection.findOne({ id: args.id });
 
     if (!record) {
       throw Object.assign(
@@ -417,11 +433,11 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     return {
       success: true,
       operation: 'read',
-      record,
+      record: record as DatabaseRecord,
     };
   }
 
-  private updateRecord(args: DatabaseArgs): DatabaseOutput {
+  private async updateRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.id || !args.data) {
       throw Object.assign(
         new Error('Table, ID, and data are required for record update'),
@@ -431,10 +447,17 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       );
     }
 
-    const table = this.getTable(args.table);
-    const record = table.get(args.id);
+    const collection = this.db.collection(args.table);
+    const schema = this.tableSchemas.get(args.table);
 
-    if (!record) {
+    // Validate data against schema (only for fields being updated)
+    if (schema) {
+      this.validateUpdateData(args.data, schema);
+    }
+
+    // Get existing record to merge data
+    const existing = await collection.findOne({ id: args.id });
+    if (!existing) {
       throw Object.assign(
         new Error(
           `Record with ID '${args.id}' not found in table '${args.table}'`,
@@ -445,27 +468,40 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       );
     }
 
-    const schema = this.tableSchemas.get(args.table);
-
-    // Validate data against schema (only for fields being updated)
-    if (schema) {
-      this.validateUpdateData(args.data, schema);
-    }
+    // Merge data
+    const mergedData = { ...existing.data, ...args.data };
 
     // Update data
-    Object.assign(record.data, args.data);
-    record.updatedAt = new Date();
+    const updateResult = await collection.findOneAndUpdate(
+      { id: args.id },
+      {
+        $set: {
+          data: mergedData,
+          updatedAt: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    );
 
-    table.set(args.id, record);
+    if (!updateResult) {
+      throw Object.assign(
+        new Error(
+          `Record with ID '${args.id}' not found in table '${args.table}'`,
+        ),
+        {
+          name: 'RecordNotFound',
+        },
+      );
+    }
 
     return {
       success: true,
       operation: 'update',
-      record,
+      record: updateResult as DatabaseRecord,
     };
   }
 
-  private deleteRecord(args: DatabaseArgs): DatabaseOutput {
+  private async deleteRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.id) {
       throw Object.assign(
         new Error('Table and ID are required for record deletion'),
@@ -475,8 +511,8 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       );
     }
 
-    const table = this.getTable(args.table);
-    const record = table.get(args.id);
+    const collection = this.db.collection(args.table);
+    const record = await collection.findOneAndDelete({ id: args.id });
 
     if (!record) {
       throw Object.assign(
@@ -489,16 +525,14 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       );
     }
 
-    table.delete(args.id);
-
     return {
       success: true,
       operation: 'delete',
-      record,
+      record: record as DatabaseRecord,
     };
   }
 
-  private queryRecords(args: DatabaseArgs): DatabaseOutput {
+  private async queryRecords(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.query) {
       throw Object.assign(new Error('Query is required for record querying'), {
         name: 'ValidationError',
@@ -513,84 +547,73 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       offset,
       orderBy,
     } = args.query;
-    const table = this.getTable(tableName);
+    const collection = this.db.collection(tableName);
 
-    let records = Array.from(table.values());
-
-    // Apply where filter
+    // Build MongoDB query from where clause
+    const mongoQuery: any = {};
     if (where) {
-      records = records.filter((record) => {
-        return Object.entries(where).every(([key, value]) => {
-          return record.data[key] === value;
-        });
-      });
+      for (const [key, value] of Object.entries(where)) {
+        mongoQuery[`data.${key}`] = value;
+      }
     }
 
-    // Apply select (field filtering)
+    // Build projection for select
+    const projection: any = {};
     if (select && select.length > 0) {
-      records = records.map((record) => ({
-        ...record,
-        data: Object.fromEntries(
-          Object.entries(record.data).filter(([key]) => select.includes(key)),
-        ),
-      }));
-    }
-
-    // Apply ordering
-    if (orderBy) {
-      records.sort((a, b) => {
-        const aValue = a.data[orderBy.field];
-        const bValue = b.data[orderBy.field];
-
-        let comparison = 0;
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          comparison = aValue.localeCompare(bValue);
-        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-          comparison = aValue - bValue;
-        } else {
-          // For other types, convert to string for comparison
-          const aStr = String(aValue || '');
-          const bStr = String(bValue || '');
-          comparison = aStr.localeCompare(bStr);
-        }
-
-        return orderBy.direction === 'desc' ? -comparison : comparison;
+      projection.id = 1;
+      projection.table = 1;
+      projection.createdAt = 1;
+      projection.updatedAt = 1;
+      select.forEach(field => {
+        projection[`data.${field}`] = 1;
       });
     }
 
-    // Apply pagination
+    // Build sort
+    const sort: any = {};
+    if (orderBy) {
+      sort[`data.${orderBy.field}`] = orderBy.direction === 'desc' ? -1 : 1;
+    }
+
     const queryLimit = limit || 100;
     const queryOffset = offset || 0;
-    const total = records.length;
-    const paginatedRecords = records.slice(
-      queryOffset,
-      queryOffset + queryLimit,
-    );
+
+    const [records, total] = await Promise.all([
+      collection
+        .find(mongoQuery, { projection: Object.keys(projection).length > 0 ? projection : undefined })
+        .sort(sort)
+        .skip(queryOffset)
+        .limit(queryLimit)
+        .toArray(),
+      collection.countDocuments(mongoQuery),
+    ]);
+
+    // Transform records to match expected format
+    const transformedRecords = records.map(record => ({
+      id: record.id,
+      table: record.table,
+      data: record.data,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    })) as DatabaseRecord[];
 
     return {
       success: true,
       operation: 'query',
-      records: paginatedRecords,
+      records: transformedRecords,
       total,
     };
   }
 
-  private listTables(): DatabaseOutput {
+  private async listTables(): Promise<DatabaseOutput> {
+    const collections = await this.db.listCollections().toArray();
+    const tables = collections.map(col => col.name);
+
     return {
       success: true,
       operation: 'list-tables',
-      tables: Array.from(this.tables.keys()),
+      tables,
     };
-  }
-
-  private getTable(tableName: string): Map<string, DatabaseRecord> {
-    const table = this.tables.get(tableName);
-    if (!table) {
-      throw Object.assign(new Error(`Table '${tableName}' not found`), {
-        name: 'TableNotFound',
-      });
-    }
-    return table;
   }
 
   private validateData(

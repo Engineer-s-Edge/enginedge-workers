@@ -27,6 +27,27 @@ export interface PredictSlotsResponse {
   recommendations: SlotRecommendation[];
 }
 
+export interface FeedbackRequest {
+  taskId: string;
+  scheduledSlot: {
+    startTime: Date;
+    endTime: Date;
+  };
+  mlScore: number;
+  userAccepted: boolean;
+  userRating?: number;
+  completedOnTime?: boolean;
+  actualDuration?: number;
+  feedback?: string;
+}
+
+export interface UserPatternsResponse {
+  preferredHours: number[];
+  mostProductiveHours: number[];
+  averageTaskDuration: number;
+  completionRate: number;
+}
+
 /**
  * Application Service: ML Model Client
  *
@@ -178,6 +199,66 @@ export class MLModelClient {
       const stack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`Batch mapping failed: ${message}`, stack);
       throw error;
+    }
+  }
+
+  /**
+   * Submit feedback to ML service for model retraining
+   *
+   * @param feedback - User feedback on scheduled task
+   */
+  async submitFeedback(feedback: FeedbackRequest): Promise<void> {
+    try {
+      this.logger.debug(`Submitting feedback for task ${feedback.taskId}`);
+
+      await this.httpClient.post('/feedback', {
+        task_id: feedback.taskId,
+        scheduled_slot: {
+          start_time: feedback.scheduledSlot.startTime.toISOString(),
+          end_time: feedback.scheduledSlot.endTime.toISOString(),
+        },
+        ml_score: feedback.mlScore,
+        user_accepted: feedback.userAccepted,
+        user_rating: feedback.userRating,
+        completed_on_time: feedback.completedOnTime,
+        actual_duration: feedback.actualDuration,
+        feedback: feedback.feedback,
+      });
+
+      this.logger.debug('Feedback submitted successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to submit feedback: ${message}`, stack);
+      throw new Error(`ML service feedback submission failed: ${message}`);
+    }
+  }
+
+  /**
+   * Analyze user's scheduling patterns
+   *
+   * @param userId - User ID
+   * @returns Pattern analysis from ML service
+   */
+  async analyzeUserPatterns(userId: string): Promise<UserPatternsResponse | null> {
+    try {
+      this.logger.debug(`Analyzing patterns for user ${userId}`);
+
+      const response = await this.httpClient.get<UserPatternsResponse>(
+        `/analyze/${userId}`,
+      );
+
+      this.logger.debug(
+        `Pattern analysis complete: preferred hours ${response.data.preferredHours.join(', ')}, ` +
+          `completion rate ${response.data.completionRate}`,
+      );
+
+      return response.data;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.warn(`Failed to analyze user patterns: ${message}`, stack);
+      return null; // Return null to allow fallback
     }
   }
 

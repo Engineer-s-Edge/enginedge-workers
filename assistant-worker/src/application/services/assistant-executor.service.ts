@@ -14,6 +14,10 @@ import { Assistant, AssistantStatus } from '@domain/entities/assistant.entity';
 import { AgentService } from './agent.service';
 import { ExecutionContext } from '@domain/entities/execution-context.entity';
 import { ConversationsService } from './conversations.service';
+import { Agent } from '@domain/entities/agent.entity';
+import { AgentConfig } from '@domain/value-objects/agent-config.vo';
+import { AgentCapability } from '@domain/value-objects/agent-capability.vo';
+import { IAgentRepository } from '../ports/agent.repository';
 
 @Injectable()
 export class AssistantExecutorService {
@@ -22,6 +26,8 @@ export class AssistantExecutorService {
     @Inject('IAssistantRepository')
     private readonly assistantsRepository: IAssistantRepository,
     private readonly agentService: AgentService,
+    @Inject('IAgentRepository')
+    private readonly agentRepository: IAgentRepository,
     @Inject('ILogger')
     private readonly logger: ILogger,
     private readonly conversations: ConversationsService,
@@ -57,9 +63,9 @@ export class AssistantExecutorService {
         throw new BadRequestException(`Assistant '${name}' is not active`);
       }
 
-      // For now, create a temporary agent from the assistant configuration
-      // TODO: Implement proper assistant-to-agent conversion
-      const agentId = `assistant-${assistant.id}`;
+      // Convert assistant to agent configuration
+      const agent = await this.convertAssistantToAgent(assistant);
+      const agentId = agent.id;
 
       // Ensure conversation
       const convType =
@@ -177,24 +183,73 @@ export class AssistantExecutorService {
         updatedAt: new Date(),
       };
 
-      // This is a placeholder - in production, use proper streaming
+      // Convert assistant to agent
+      const agent = await this.convertAssistantToAgent(assistant);
+      const agentId = agent.id;
+
+      // Get agent instance for streaming
+      const agentInstance = await this.agentService.getAgentInstance(
+        agentId,
+        executeDto.userId || 'default-user',
+      );
+
+      // Use proper streaming execution
+      let conversationId = executeDto.conversationId;
+      if (!conversationId) {
+        const conv = await this.conversations.createConversation({
+          userId: executeDto.userId || 'default-user',
+          rootAgentId: agentId,
+          type: assistant.agentType === 'react' ? 'react' : assistant.agentType === 'graph' ? 'graph' : 'base' as any,
+          initialMessage: {
+            messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            role: 'user',
+            content: executeDto.input || '',
+          },
+        });
+        conversationId = conv.id;
+      } else {
+        await this.conversations.addMessage(conversationId, {
+          messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          role: 'user',
+          content: executeDto.input || '',
+        });
+      }
+
+      const streamContext: ExecutionContext = {
+        userId: executeDto.userId || 'default-user',
+        conversationId: conversationId!,
+        contextId: `exec-${Date.now()}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...context,
+      };
+
+      // Stream execution using agent's stream method
       const self = this;
       async function* streamGenerator() {
+        let fullOutput = '';
         try {
-          const result = await self.agentService.executeAgent(
-            agentId,
-            executeDto.userId || 'default-user',
+          for await (const chunk of agentInstance.stream(
             executeDto.input || '',
-            context as ExecutionContext,
-          );
-
-          // Simulate streaming by chunking the result
-          const output = String(result.output || '');
-          const chunkSize = 10;
-          for (let i = 0; i < output.length; i += chunkSize) {
-            yield output.substring(i, i + chunkSize);
+            streamContext,
+          )) {
+            fullOutput += chunk;
+            yield chunk;
           }
+
+          // Append full response to conversation
+          await self.conversations.addMessage(conversationId!, {
+            messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            role: 'assistant',
+            content: fullOutput,
+          });
+
+          // Update execution stats
+          await self.assistantsRepository.updateExecutionStats(name);
         } catch (error) {
+          self.logger.error(`Streaming error for assistant: ${name}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
           throw error;
         }
       }
@@ -207,5 +262,146 @@ export class AssistantExecutorService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Convert Assistant entity to Agent entity
+   * Implements proper assistant-to-agent conversion
+   */
+  private async convertAssistantToAgent(assistant: Assistant): Promise<Agent> {
+    // Check if agent already exists by name (assistants have unique names)
+    let agent = await this.agentRepository.findByName(assistant.name);
+    if (agent) {
+      return agent;
+    }
+
+    // Extract configuration from assistant
+    const intelligenceConfig = assistant.reactConfig?.intelligence ||
+      assistant.graphConfig?.nodes?.[0]?.llm || {
+        provider: 'openai',
+        model: 'gpt-4',
+        tokenLimit: 4096,
+      };
+
+    // Create agent config from assistant configuration
+    const agentConfig = AgentConfig.create({
+      model: intelligenceConfig.model || 'gpt-4',
+      provider: intelligenceConfig.provider || 'openai',
+      temperature: assistant.reactConfig?.cot?.temperature || 0.7,
+      maxTokens: intelligenceConfig.tokenLimit || 4096,
+      systemPrompt: this.buildSystemPromptFromAssistant(assistant),
+      enableTools: (assistant.tools?.length || 0) > 0,
+      toolNames: assistant.tools
+        ?.filter((t) => t.isEnabled !== false)
+        .map((t) => t.toolName) || [],
+      streamingEnabled: true,
+      timeout: 30000,
+    });
+
+    // Map assistant agentType to agent type
+    const agentType = this.mapAssistantTypeToAgentType(assistant.agentType);
+
+    // Create capability based on agent type
+    let capability: AgentCapability;
+    switch (agentType) {
+      case 'react':
+        capability = AgentCapability.forReAct();
+        break;
+      case 'graph':
+        capability = AgentCapability.forGraph();
+        break;
+      case 'expert':
+        capability = AgentCapability.forExpert();
+        break;
+      case 'genius':
+        capability = AgentCapability.forGenius();
+        break;
+      case 'collective':
+        capability = AgentCapability.forCollective();
+        break;
+      case 'manager':
+        capability = AgentCapability.forManager();
+        break;
+      default:
+        capability = AgentCapability.forReAct();
+    }
+
+    // Create agent entity
+    agent = Agent.create(
+      assistant.name,
+      agentType,
+      agentConfig,
+      capability,
+    );
+
+    // Save to repository
+    await this.agentRepository.save(agent);
+
+    this.logger.info('Converted assistant to agent', {
+      assistantId: assistant.id,
+      assistantName: assistant.name,
+      agentId: agent.id,
+      agentType,
+    });
+
+    return agent;
+  }
+
+  /**
+   * Map assistant agentType to agent type
+   */
+  private mapAssistantTypeToAgentType(
+    assistantType: string,
+  ): 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager' {
+    const typeMap: Record<string, 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager'> = {
+      react: 'react',
+      react_agent: 'react',
+      graph: 'graph',
+      graph_agent: 'graph',
+      expert: 'expert',
+      genius: 'genius',
+      collective: 'collective',
+      manager: 'manager',
+      custom: 'react', // Default custom to react
+    };
+
+    return typeMap[assistantType.toLowerCase()] || 'react';
+  }
+
+  /**
+   * Build system prompt from assistant configuration
+   */
+  private buildSystemPromptFromAssistant(assistant: Assistant): string {
+    const parts: string[] = [];
+
+    // Add description
+    if (assistant.description) {
+      parts.push(assistant.description);
+    }
+
+    // Add custom prompts
+    if (assistant.customPrompts && assistant.customPrompts.length > 0) {
+      const activePrompts = assistant.customPrompts
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+        .map((p) => p.content);
+      parts.push(...activePrompts);
+    }
+
+    // Add context blocks
+    if (assistant.contextBlocks && assistant.contextBlocks.length > 0) {
+      const activeBlocks = assistant.contextBlocks
+        .filter((b) => b.isActive !== false)
+        .map((b) => b.content);
+      parts.push(...activeBlocks);
+    }
+
+    // Add subject expertise
+    if (assistant.subjectExpertise && assistant.subjectExpertise.length > 0) {
+      parts.push(
+        `Subject expertise: ${assistant.subjectExpertise.join(', ')}`,
+      );
+    }
+
+    return parts.join('\n\n') || `You are ${assistant.name}, a helpful AI assistant.`;
   }
 }

@@ -159,8 +159,11 @@ export class GoalController {
   async getGoal(@Param('id') id: string): Promise<Goal> {
     this.logger.log(`Fetching goal ${id}`);
 
-    // Note: This requires a repository method that doesn't exist yet
-    throw new Error('Method not implemented - repository.findById needed');
+    const goal = await this.goalService.getGoal(id);
+    if (!goal) {
+      throw new Error(`Goal ${id} not found`);
+    }
+    return goal;
   }
 
   @Put(':id')
@@ -178,8 +181,19 @@ export class GoalController {
   ): Promise<Goal> {
     this.logger.log(`Updating goal ${id}`);
 
-    // Note: This requires a repository.findById and save
-    throw new Error('Method not implemented - repository.findById needed');
+    return this.goalService.updateGoal(id, {
+      title: dto.title,
+      description: dto.description,
+      targetDate: dto.targetDate,
+      priority: dto.priority,
+      estimatedTimeRequired: dto.estimatedHours,
+      status: dto.status,
+      dependsOn: dto.dependsOn,
+      metadata: {
+        category: dto.category,
+        tags: dto.tags,
+      },
+    });
   }
 
   @Delete(':id')
@@ -191,8 +205,7 @@ export class GoalController {
   async deleteGoal(@Param('id') id: string): Promise<void> {
     this.logger.log(`Deleting goal ${id}`);
 
-    // Note: This requires a repository.delete method
-    throw new Error('Method not implemented - repository.delete needed');
+    await this.goalService.deleteGoal(id);
   }
 
   @Post(':id/progress')
@@ -228,8 +241,15 @@ export class GoalController {
   ): Promise<Goal> {
     this.logger.log(`Adding milestone to goal ${id}: ${dto.title}`);
 
-    // Note: Need to fetch goal, add milestone, save
-    throw new Error('Method not implemented - repository.findById needed');
+    const milestone: Milestone = {
+      id: `milestone_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: dto.title,
+      description: dto.description,
+      targetDate: dto.targetDate,
+      completed: false,
+    };
+
+    return this.goalService.updateMilestone(id, milestone);
   }
 
   @Post(':goalId/milestones/:milestoneId/complete')
@@ -269,8 +289,8 @@ export class GoalController {
   ): Promise<Goal> {
     this.logger.log(`Logging ${dto.hours} hours for goal ${id}`);
 
-    // Note: Need to fetch goal, add time, save
-    throw new Error('Method not implemented - repository.findById needed');
+    const minutes = dto.hours * 60;
+    return this.goalService.logTime(id, minutes, dto.description);
   }
 
   @Get(':id/progress-summary')
@@ -287,8 +307,36 @@ export class GoalController {
   ): Promise<GoalProgressResponse> {
     this.logger.log(`Fetching progress summary for goal ${id}`);
 
-    // Note: Need to fetch goal first
-    throw new Error('Method not implemented - repository.findById needed');
+    const goal = await this.goalService.getGoal(id);
+    if (!goal) {
+      throw new Error(`Goal ${id} not found`);
+    }
+
+    const stats = await this.goalService.getGoalStats(id);
+    const daysUntilDeadline = goal.targetDate
+      ? Math.ceil(
+          (goal.targetDate.getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : undefined;
+
+    return {
+      goalId: goal.id,
+      progress: goal.progressPercentage,
+      status: goal.status,
+      timeSpent: goal.timeSpent,
+      estimatedHours: goal.estimatedTimeRequired
+        ? goal.estimatedTimeRequired / 60
+        : undefined,
+      remainingHours: stats.remainingTimeEstimate
+        ? stats.remainingTimeEstimate / 60
+        : undefined,
+      completedMilestones: goal.milestones.filter((m) => m.completed).length,
+      totalMilestones: goal.milestones.length,
+      daysUntilDeadline,
+      isOverdue: stats.isOverdue,
+      isDueSoon: stats.isDueSoon,
+    };
   }
 
   @Get('user/:userId/overdue')

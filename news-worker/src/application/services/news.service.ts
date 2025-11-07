@@ -124,6 +124,30 @@ export class NewsService {
   }
 
   /**
+   * Get article by ID
+   */
+  async getArticleById(id: string): Promise<NewsArticle | null> {
+    const cacheKey = `article:${id}`;
+
+    // Try cache first
+    const cached = await this.cache.get<NewsArticle>(cacheKey);
+    if (cached) {
+      this.logger.debug('NewsService: Cache hit for article', { id });
+      return cached;
+    }
+
+    // Load from repository
+    const article = await this.newsRepository.findById(id);
+
+    if (article) {
+      // Cache result (30 minutes)
+      await this.cache.set(cacheKey, article, { ttl: 1800 });
+    }
+
+    return article;
+  }
+
+  /**
    * Get trending articles
    */
   async getTrendingArticles(limit: number = 10, category?: string): Promise<NewsArticle[]> {

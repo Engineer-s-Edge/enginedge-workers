@@ -40,6 +40,9 @@ import { GoalController } from './controllers/goal.controller';
 import { SchedulingController } from './controllers/scheduling.controller';
 import { MLController } from './controllers/ml.controller';
 
+// Gateways
+import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
+
 /**
  * Infrastructure module - adapters, controllers, and wiring
  *
@@ -76,6 +79,7 @@ import { MLController } from './controllers/ml.controller';
     },
 
     // Calendar Sync
+    CalendarSyncGateway,
     CalendarSyncService,
     {
       provide: 'ICalendarSyncService',

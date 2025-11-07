@@ -4,31 +4,38 @@
  * Bridges orchestrator with ScheduledLearningManager
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import {
   IScheduledLearningAdapter,
   ScheduleConfig,
   ScheduleInfo,
 } from '../interfaces';
+import { ScheduledLearningManagerService } from '../../../application/services/scheduled-learning-manager.service';
 
 @Injectable()
 export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   private readonly logger = new Logger(ScheduledLearningAdapter.name);
-  private schedules: Map<string, ScheduleInfo> = new Map();
 
-  // TODO: Inject real ScheduledLearningManager when available
-  // constructor(private scheduledLearningManager: ScheduledLearningManager) {}
+  constructor(
+    @Optional()
+    @Inject('ScheduledLearningManagerService')
+    private readonly scheduledLearningManager?: ScheduledLearningManagerService,
+  ) {
+    if (!this.scheduledLearningManager) {
+      this.logger.warn(
+        'ScheduledLearningManagerService not injected, using stub implementation',
+      );
+    }
+  }
 
   async scheduleLearning(config: ScheduleConfig): Promise<ScheduleInfo> {
     try {
-      this.logger.log(
-        `Scheduling learning for topic ${config.topicId} with cron: ${config.cronExpression}`,
-      );
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.scheduleLearning(config);
+      }
 
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.scheduleLearning(config);
-
-      // Stub implementation
+      // Fallback stub implementation
+      this.logger.warn('Using stub implementation for scheduleLearning');
       const schedule: ScheduleInfo = {
         id: `schedule-${Date.now()}`,
         topicId: config.topicId,
@@ -38,7 +45,6 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
         runCount: 0,
         enabled: config.enabled ?? true,
       };
-      this.schedules.set(schedule.id, schedule);
       return schedule;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -52,13 +58,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async cancelScheduled(scheduleId: string): Promise<boolean> {
     try {
-      this.logger.log(`Cancelling schedule ${scheduleId}`);
-
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.cancelScheduled(scheduleId);
-
-      // Stub implementation
-      return this.schedules.delete(scheduleId);
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.cancelScheduled(scheduleId);
+      }
+      return false;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to cancel schedule: ${err.message}`, err.stack);
@@ -68,11 +71,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async getSchedule(scheduleId: string): Promise<ScheduleInfo | null> {
     try {
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.getSchedule(scheduleId);
-
-      // Stub implementation
-      return this.schedules.get(scheduleId) || null;
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.getSchedule(scheduleId);
+      }
+      return null;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to get schedule: ${err.message}`, err.stack);
@@ -82,15 +84,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async getUserSchedules(userId: string): Promise<ScheduleInfo[]> {
     try {
-      this.logger.log(`Getting schedules for user ${userId}`);
-
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.getUserSchedules(userId);
-
-      // Stub implementation
-      return Array.from(this.schedules.values()).filter(
-        (s) => s.userId === userId,
-      );
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.getUserSchedules(userId);
+      }
+      return [];
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -106,21 +103,13 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
     config: Partial<ScheduleConfig>,
   ): Promise<ScheduleInfo> {
     try {
-      this.logger.log(`Updating schedule ${scheduleId}`);
-
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.updateSchedule(scheduleId, config);
-
-      // Stub implementation
-      const existing = this.schedules.get(scheduleId);
-      if (!existing) throw new Error(`Schedule not found: ${scheduleId}`);
-      const updated: ScheduleInfo = {
-        ...existing,
-        cronExpression: config.cronExpression || existing.cronExpression,
-        enabled: config.enabled ?? existing.enabled,
-      };
-      this.schedules.set(scheduleId, updated);
-      return updated;
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.updateSchedule(
+          scheduleId,
+          config,
+        );
+      }
+      throw new Error('ScheduledLearningManager not available');
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to update schedule: ${err.message}`, err.stack);
@@ -130,15 +119,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async getNextScheduledRuns(limit = 10): Promise<ScheduleInfo[]> {
     try {
-      this.logger.log(`Getting next ${limit} scheduled runs`);
-
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.getNextScheduledRuns(limit);
-
-      // Stub implementation
-      return Array.from(this.schedules.values())
-        .sort((a, b) => a.nextRun.getTime() - b.nextRun.getTime())
-        .slice(0, limit);
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.getNextScheduledRuns(limit);
+      }
+      return [];
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -151,17 +135,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async pauseSchedule(scheduleId: string): Promise<boolean> {
     try {
-      this.logger.log(`Pausing schedule ${scheduleId}`);
-
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.pauseSchedule(scheduleId);
-
-      // Stub implementation
-      const schedule = this.schedules.get(scheduleId);
-      if (schedule) {
-        schedule.enabled = false;
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.pauseSchedule(scheduleId);
       }
-      return !!schedule;
+      return false;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to pause schedule: ${err.message}`, err.stack);
@@ -171,17 +148,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async resumeSchedule(scheduleId: string): Promise<boolean> {
     try {
-      this.logger.log(`Resuming schedule ${scheduleId}`);
-
-      // TODO: Delegate to real ScheduledLearningManager
-      // return this.scheduledLearningManager.resumeSchedule(scheduleId);
-
-      // Stub implementation
-      const schedule = this.schedules.get(scheduleId);
-      if (schedule) {
-        schedule.enabled = true;
+      if (this.scheduledLearningManager) {
+        return await this.scheduledLearningManager.resumeSchedule(scheduleId);
       }
-      return !!schedule;
+      return false;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to resume schedule: ${err.message}`, err.stack);

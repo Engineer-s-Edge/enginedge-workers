@@ -8,6 +8,7 @@ import { Module, Global } from '@nestjs/common';
 import { ApplicationModule } from '@application/application.module';
 import { MetricsAdapter } from './adapters/monitoring/metrics.adapter';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
+import { MongoDbModule } from './adapters/memory/mongodb.module';
 import { NewsController } from './controllers/news.controller';
 import { InMemoryNewsRepository } from './adapters/news/in-memory-news.repository';
 import { FileNewsRepository } from './adapters/news/file-news.repository';
@@ -32,6 +33,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
 @Module({
   imports: [
     ApplicationModule,
+    MongoDbModule, // Provides MongoDB client and database connection
     // ThreadingModule moved to AppModule to avoid circular dependency
   ],
   controllers: [

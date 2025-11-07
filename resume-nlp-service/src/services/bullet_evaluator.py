@@ -385,14 +385,15 @@ class BulletEvaluator:
                     }
                 )
 
-        # Fix 2: Add metric placeholder
+        # Fix 2: Add metric placeholder with context-aware suggestions
         if not kpis["quantifiable"]["pass"]:
+            metric_suggestion = self._suggest_metric(bullet)
             fixes.append(
                 {
-                    "description": "Add quantifiable metric (e.g., percentage, time, volume)",
+                    "description": f"Add quantifiable metric: {metric_suggestion['suggestion']}",
                     "confidence": 0.7,
-                    "latexPatch": bullet
-                    + " [ADD METRIC: X% improvement / Y users / Z ms]",
+                    "latexPatch": metric_suggestion["fixed_text"],
+                    "metricType": metric_suggestion["type"],
                 }
             )
 
@@ -542,13 +543,142 @@ class BulletEvaluator:
         ]
 
     def _find_similar_verbs(self, word: str) -> List[str]:
-        """Find similar action verbs."""
-        # Simple similarity: return verbs starting with same letter
-        first_letter = word[0].upper()
-        similar = [v for v in self.action_verbs if v[0] == first_letter]
-        return similar[:3] if similar else self.action_verbs[:3]
+        """Find similar action verbs using semantic similarity."""
+        word_lower = word.lower()
+
+        # Try to find the word in spaCy vocabulary
+        try:
+            word_token = self.nlp(word_lower)[0]
+
+            # Calculate similarity with all action verbs
+            similarities = []
+            for verb in self.action_verbs:
+                verb_token = self.nlp(verb.lower())[0]
+                similarity = word_token.similarity(verb_token)
+                similarities.append((verb, similarity))
+
+            # Sort by similarity and return top 3
+            similarities.sort(key=lambda x: x[1], reverse=True)
+            return [v[0] for v in similarities[:3]]
+        except Exception:
+            # Fallback: return verbs starting with same letter
+            first_letter = word[0].upper()
+            similar = [v for v in self.action_verbs if v[0] == first_letter]
+            return similar[:3] if similar else self.action_verbs[:3]
 
     def _convert_to_xyz(self, bullet: str) -> str:
-        """Convert bullet to XYZ format (simple template)."""
-        # This is a placeholder - real implementation would be more sophisticated
-        return f"Accomplished [X] as measured by [Y] by {bullet.lower()}"
+        """Convert bullet to XYZ format: Accomplished X by Y, resulting in Z."""
+        doc = self.nlp(bullet)
+
+        # Extract key components
+        action_verb = None
+        object_noun = None
+        method_phrase = None
+        result_phrase = None
+
+        # Find action verb (first verb)
+        for token in doc:
+            if token.pos_ == "VERB" and not action_verb:
+                action_verb = token.text
+                # Get direct object
+                for child in token.children:
+                    if child.dep_ == "dobj":
+                        object_noun = child.text
+                        break
+                break
+
+        # Find method (prepositional phrase with "by")
+        for token in doc:
+            if token.text.lower() == "by" and token.dep_ == "prep":
+                method_phrase = " ".join([t.text for t in token.subtree])
+                break
+
+        # Find result (if "resulting in" or similar)
+        bullet_lower = bullet.lower()
+        if "resulting in" in bullet_lower:
+            idx = bullet_lower.find("resulting in")
+            result_phrase = bullet[idx + len("resulting in") :].strip()
+        elif "leading to" in bullet_lower:
+            idx = bullet_lower.find("leading to")
+            result_phrase = bullet[idx + len("leading to") :].strip()
+
+        # Build XYZ format
+        if action_verb and object_noun:
+            x_part = f"{action_verb.capitalize()} {object_noun}"
+        else:
+            # Fallback: use first few words
+            words = bullet.split()[:4]
+            x_part = " ".join(words).capitalize()
+
+        y_part = method_phrase if method_phrase else "[method/approach]"
+        z_part = result_phrase if result_phrase else "[result/impact]"
+
+        # Construct XYZ format
+        if result_phrase:
+            return f"{x_part} by {y_part}, resulting in {z_part}"
+        else:
+            return f"{x_part} by {y_part}, resulting in [quantifiable result]"
+
+    def _suggest_metric(self, bullet: str) -> Dict[str, Any]:
+        """Suggest appropriate metric based on bullet content."""
+        bullet_lower = bullet.lower()
+
+        # Detect context to suggest appropriate metric type
+        metric_type = "percentage"  # default
+        suggestion = "X%"
+        fixed_text = bullet
+
+        # Check for performance/optimization keywords
+        perf_keywords = [
+            "improved",
+            "increased",
+            "reduced",
+            "optimized",
+            "faster",
+            "slower",
+        ]
+        if any(kw in bullet_lower for kw in perf_keywords):
+            metric_type = "percentage"
+            suggestion = "X% improvement"
+            # Try to insert metric after action verb
+            words = bullet.split()
+            if len(words) > 1:
+                fixed_text = f"{words[0]} {words[1]} by X%"
+                if len(words) > 2:
+                    fixed_text += " " + " ".join(words[2:])
+
+        # Check for time-related keywords
+        time_keywords = ["time", "duration", "latency", "response", "speed"]
+        if any(kw in bullet_lower for kw in time_keywords):
+            metric_type = "time"
+            suggestion = "X ms/seconds/minutes reduction"
+            fixed_text = bullet.replace("time", "time by X ms", 1).replace(
+                "duration", "duration by X ms", 1
+            )
+
+        # Check for scale/volume keywords
+        volume_keywords = ["users", "requests", "transactions", "queries", "searches"]
+        if any(kw in bullet_lower for kw in volume_keywords):
+            metric_type = "volume"
+            suggestion = "X users/requests/transactions"
+            # Insert metric near the keyword
+            for kw in volume_keywords:
+                if kw in bullet_lower:
+                    idx = bullet_lower.find(kw)
+                    fixed_text = bullet[:idx] + f"X {kw}, " + bullet[idx:]
+                    break
+
+        # Check for cost/money keywords
+        cost_keywords = ["cost", "revenue", "budget", "savings", "profit"]
+        if any(kw in bullet_lower for kw in cost_keywords):
+            metric_type = "currency"
+            suggestion = "$X savings/revenue"
+            fixed_text = bullet.replace("cost", "$X cost", 1).replace(
+                "revenue", "$X revenue", 1
+            )
+
+        return {
+            "type": metric_type,
+            "suggestion": suggestion,
+            "fixed_text": fixed_text,
+        }

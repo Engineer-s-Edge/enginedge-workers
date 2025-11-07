@@ -16,6 +16,7 @@ import { ToolValidator } from './adapters/tool-validator.adapter';
 import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
 import { CacheModule } from './adapters/cache/cache.module';
+import { MongoDbModule } from './adapters/memory/mongodb.module';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
@@ -40,6 +41,7 @@ import { LoggingInterceptor } from './interceptors/logging.interceptor';
     CommandInfrastructureModule, // Provides command processing controller and services
     HealthModule, // Provides health check controller and service
     CacheModule, // Provides RedisCacheAdapter for caching
+    MongoDbModule, // Provides MongoDB client and database connection
   ],
   controllers: [],
   providers: [

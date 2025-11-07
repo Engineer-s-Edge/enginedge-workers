@@ -18,6 +18,7 @@ import {
 } from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
+import { UserId } from '../decorators/user-id.decorator';
 // Logger interface for infrastructure use (matches ILogger from application ports)
 interface Logger {
   debug(message: string, meta?: Record<string, unknown>): void;
@@ -103,7 +104,7 @@ export class GeniusAgentController {
   @Get(':id/experts')
   async getExpertPool(
     @Param('id') agentId: string,
-    @Query('userId') userId: string,
+    @UserId() userId: string,
   ) {
     this.logger.info('Getting expert pool', { agentId });
 
@@ -145,7 +146,7 @@ export class GeniusAgentController {
   @Get(':id/learning-progress')
   async getLearningProgress(
     @Param('id') agentId: string,
-    @Query('userId') userId: string,
+    @UserId() userId: string,
   ) {
     this.logger.info('Getting learning progress', { agentId });
 

@@ -139,9 +139,11 @@ export class HabitController {
   async getHabit(@Param('id') id: string): Promise<Habit> {
     this.logger.log(`Fetching habit ${id}`);
 
-    // Note: This requires a repository method that doesn't exist yet
-    // For now, we'll throw an error
-    throw new Error('Method not implemented - repository.findById needed');
+    const habit = await this.habitService.getHabit(id);
+    if (!habit) {
+      throw new Error(`Habit ${id} not found`);
+    }
+    return habit;
   }
 
   @Put(':id')
@@ -159,9 +161,28 @@ export class HabitController {
   ): Promise<Habit> {
     this.logger.log(`Updating habit ${id}`);
 
-    // Fetch existing habit
-    // For now, this is a placeholder - needs repository.findById
-    throw new Error('Method not implemented - repository.findById needed');
+    return this.habitService.updateHabit(id, {
+      name: dto.title,
+      description: dto.description,
+      frequency: dto.frequency,
+      priority: dto.priority,
+      estimatedDurationMinutes: dto.durationMinutes,
+      preferredTimeOfDay: dto.targetTime
+        ? (dto.targetTime.includes('morning')
+            ? 'morning'
+            : dto.targetTime.includes('evening')
+              ? 'evening'
+              : 'afternoon')
+        : undefined,
+      isActive: dto.isActive,
+      metadata: {
+        targetDays: dto.targetDays,
+        targetTime: dto.targetTime,
+        reminderMinutes: dto.reminderMinutes,
+        color: dto.color,
+        tags: dto.tags,
+      },
+    });
   }
 
   @Delete(':id')
@@ -173,8 +194,7 @@ export class HabitController {
   async deleteHabit(@Param('id') id: string): Promise<void> {
     this.logger.log(`Deleting habit ${id}`);
 
-    // Note: This requires a repository.delete method
-    throw new Error('Method not implemented - repository.delete needed');
+    await this.habitService.deleteHabit(id);
   }
 
   @Post(':id/complete')

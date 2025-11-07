@@ -1,17 +1,100 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JobPosting } from '../../domain/entities/job-posting.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { MessageBrokerPort } from '../ports/message-broker.port';
 
 @Injectable()
-export class JobPostingService {
+export class JobPostingService implements OnModuleInit {
   private readonly logger = new Logger(JobPostingService.name);
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (value: JobPosting) => void;
+      reject: (error: Error) => void;
+      timeout: NodeJS.Timeout;
+    }
+  >();
 
   constructor(
     @InjectModel('JobPosting')
     private readonly jobPostingModel: Model<JobPosting>,
+    @Inject('MessageBrokerPort')
+    private readonly messageBroker: MessageBrokerPort,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    // Subscribe to response topic
+    if (this.messageBroker.isConnected()) {
+      await this.messageBroker.subscribe(
+        'resume.posting.extract.response',
+        this.handleResponse.bind(this),
+      );
+    } else {
+      // Wait for connection
+      await this.messageBroker.connect();
+      await this.messageBroker.subscribe(
+        'resume.posting.extract.response',
+        this.handleResponse.bind(this),
+      );
+    }
+  }
+
+  private async handleResponse(message: unknown): Promise<void> {
+    try {
+      const response = message as {
+        correlationId: string;
+        result?: any; // Parsed job posting data
+        error?: string;
+      };
+
+      const pending = this.pendingRequests.get(response.correlationId);
+      if (!pending) {
+        this.logger.warn(
+          `Received response for unknown correlation ID: ${response.correlationId}`,
+        );
+        return;
+      }
+
+      clearTimeout(pending.timeout);
+      this.pendingRequests.delete(response.correlationId);
+
+      if (response.error) {
+        pending.reject(new Error(response.error));
+      } else if (response.result) {
+        // Create JobPosting from parsed data
+        const jobPosting = new this.jobPostingModel({
+          userId: response.result.userId,
+          url: response.result.url,
+          rawText: response.result.rawText,
+          rawHtml: response.result.rawHtml,
+          parsed: response.result.parsed,
+          extractionMethod: 'nlp',
+          confidence: response.result.confidence || 0.75,
+          createdAt: new Date(),
+        });
+        const saved = await jobPosting.save();
+        pending.resolve(saved);
+      } else {
+        pending.reject(new Error('Invalid response format'));
+      }
+    } catch (error) {
+      this.logger.error('Error handling response:', error);
+      const response = message as { correlationId: string };
+      const pending = this.pendingRequests.get(response.correlationId);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        this.pendingRequests.delete(response.correlationId);
+        pending.reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    }
+  }
 
   /**
    * Extract structured data from job posting text.
@@ -24,107 +107,47 @@ export class JobPostingService {
   ): Promise<JobPosting> {
     this.logger.log(`Extracting job posting for user ${userId}`);
 
-    // Send to NLP service via Kafka
     const correlationId = uuidv4();
 
-    // TODO: Implement Kafka producer/consumer pattern
-    // Send to 'resume.posting.extract' topic
-    // Wait for response on 'resume.posting.extract.response'
+    // Ensure Kafka is connected
+    if (!this.messageBroker.isConnected()) {
+      await this.messageBroker.connect();
+    }
 
-    // For now, create with placeholder data
-    const jobPosting = new this.jobPostingModel({
-      userId,
-      url,
-      rawText: text,
-      rawHtml: html,
-      parsed: {
-        metadata: {
-          language: 'en',
-          dateScraped: new Date(),
-          textRaw: text,
-          htmlRaw: html,
-          checksumSha256: 'placeholder',
-          sectionSpans: [],
-        },
-        role: {
-          titleRaw: 'Software Engineer',
-          roleFamily: 'Software Engineer',
-          seniorityInferred: 'Mid',
-          relevantOccupation: null,
-        },
-        employment: {
-          employmentType: ['FULL_TIME'],
-          workHours: null,
-          jobStartDate: null,
-        },
-        location: {
-          jobLocationType: null,
-          applicantLocationRequirements: null,
-          jobLocation: null,
-          onsiteDaysPerWeek: 5,
-          travelPercent: null,
-          relocationOffered: false,
-        },
-        compensation: {
-          baseSalary: null,
-          bonus: null,
-          equity: null,
-          benefits: [],
-        },
-        authorization: {
-          workAuthRequired: null,
-          visaSponsorship: null,
-          securityClearance: false,
-        },
-        education: {
-          educationRequirements: null,
-          experienceInPlaceOfEducation: false,
-        },
-        experience: {
-          experienceRequirementsText: null,
-          monthsMin: null,
-          monthsPref: null,
-        },
-        skills: {
-          skillsExplicit: [],
-          skillsNormalized: [],
-          softSkills: [],
-        },
-        responsibilities: [],
-        internship: {
-          isInternRole: false,
-          durationWeeks: null,
-          startWindow: null,
-          expectedGraduationWindow: null,
-          gpaRequired: null,
-          returnOfferLanguage: null,
-        },
-        application: {
-          materials: null,
-          screeningQuestions: null,
-          portal: null,
-        },
-        company: {
-          hiringOrganization: null,
-          department: null,
-          industry: null,
-          employerOverview: null,
-        },
-        quality: {
-          expired: false,
-          duplicateOf: null,
-          incompleteDescription: false,
-          keywordStuffing: false,
-          locationMismatch: false,
-        },
-        provenance: [],
-      },
-      extractionMethod: 'nlp',
-      confidence: 0.75,
-      createdAt: new Date(),
+    // Create promise that will be resolved when response arrives
+    return new Promise<JobPosting>((resolve, reject) => {
+      // Set timeout (60 seconds for job posting extraction)
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(correlationId);
+        reject(new Error('Job posting extraction timeout'));
+      }, 60000);
+
+      // Store pending request
+      this.pendingRequests.set(correlationId, {
+        resolve,
+        reject,
+        timeout,
+      });
+
+      // Send request to Kafka
+      this.messageBroker
+        .sendMessage('resume.posting.extract', {
+          correlationId,
+          userId,
+          text,
+          url,
+          html,
+        })
+        .catch((error) => {
+          clearTimeout(timeout);
+          this.pendingRequests.delete(correlationId);
+          this.logger.error(
+            'Failed to send job posting extraction request:',
+            error,
+          );
+          reject(error);
+        });
     });
-
-    return jobPosting.save();
   }
 
   /**

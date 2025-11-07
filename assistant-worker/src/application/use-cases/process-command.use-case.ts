@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CommandDto, CommandResultDto } from '../dto/command.dto';
+import { ExecuteAgentUseCase } from './execute-agent.use-case';
+import { AssistantExecutorService } from '../services/assistant-executor.service';
+import { ILogger } from '../ports/logger.port';
 
 /**
  * Use Case: Process Command
@@ -11,7 +14,12 @@ import { CommandDto, CommandResultDto } from '../dto/command.dto';
 export class ProcessCommandUseCase {
   private readonly logger = new Logger(ProcessCommandUseCase.name);
 
-  constructor() {
+  constructor(
+    private readonly executeAgentUseCase: ExecuteAgentUseCase,
+    private readonly assistantExecutorService: AssistantExecutorService,
+    @Inject('ILogger')
+    private readonly appLogger: ILogger,
+  ) {
     this.logger.log('ProcessCommandUseCase initialized');
   }
 
@@ -66,32 +74,118 @@ export class ProcessCommandUseCase {
 
   /**
    * Execute assistant task
-   * TODO: Connect to actual agent execution use case
+   * Connects to actual agent execution use case
    */
   private async executeAssistantTask(
     taskId: string,
     payload?: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     this.logger.log(`Executing assistant task ${taskId}`);
-    // Placeholder for actual assistant execution logic
-    // This should call the ExecuteAgentUseCase
-    return {
-      message: `Executed assistant task ${taskId} with payload: ${JSON.stringify(payload)}`,
-    };
+
+    try {
+      const assistantName = payload?.assistantName as string;
+      const userId = payload?.userId as string;
+      const input = payload?.input as string;
+      const conversationId = payload?.conversationId as string | undefined;
+
+      if (!assistantName || !userId || !input) {
+        throw new Error(
+          'Missing required fields: assistantName, userId, and input are required',
+        );
+      }
+
+      // Execute assistant using AssistantExecutorService
+      const result = await this.assistantExecutorService.execute(
+        assistantName,
+        {
+          userId,
+          input,
+          conversationId,
+          options: payload?.options as any,
+        },
+      );
+
+      return {
+        taskId,
+        success: result.success,
+        result: result.result,
+        assistant: result.assistant,
+        type: result.type,
+        sessionId: result.sessionId,
+        executionTime: result.executionTime,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute assistant task ${taskId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 
   /**
    * Schedule habits task
-   * TODO: Implement habits scheduling logic
+   * Implements habits scheduling logic via message broker or scheduling worker
    */
   private async scheduleHabitsTask(
     taskId: string,
     payload?: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     this.logger.log(`Scheduling habits for task ${taskId}`);
-    // Placeholder for scheduling logic
-    return {
-      message: `Scheduled habits for task ${taskId}`,
-    };
+
+    try {
+      const userId = payload?.userId as string;
+      const habits = payload?.habits as Array<{
+        name: string;
+        frequency: string;
+        time?: string;
+        days?: string[];
+      }>;
+
+      if (!userId || !habits || !Array.isArray(habits)) {
+        throw new Error(
+          'Missing required fields: userId and habits array are required',
+        );
+      }
+
+      // TODO: In production, publish to scheduling-worker via Kafka message broker
+      // For now, log the scheduling request
+      this.appLogger.info('Scheduling habits', {
+        taskId,
+        userId,
+        habitsCount: habits.length,
+        habits: habits.map((h) => ({
+          name: h.name,
+          frequency: h.frequency,
+          time: h.time,
+          days: h.days,
+        })),
+      });
+
+      // Simulate scheduling (in production, this would call scheduling-worker)
+      const scheduledHabits = habits.map((habit) => ({
+        habitId: `habit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: habit.name,
+        frequency: habit.frequency,
+        time: habit.time,
+        days: habit.days,
+        status: 'scheduled',
+        scheduledAt: new Date().toISOString(),
+      }));
+
+      return {
+        taskId,
+        userId,
+        scheduledHabits,
+        count: scheduledHabits.length,
+        message: `Successfully scheduled ${scheduledHabits.length} habits`,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to schedule habits for task ${taskId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
   }
 }

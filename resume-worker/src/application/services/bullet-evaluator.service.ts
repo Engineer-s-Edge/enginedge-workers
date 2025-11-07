@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
+import { MessageBrokerPort } from '../ports/message-broker.port';
 
 export interface BulletEvaluationResult {
   overallScore: number;
@@ -24,10 +25,69 @@ export interface BulletEvaluationResult {
 }
 
 @Injectable()
-export class BulletEvaluatorService {
+export class BulletEvaluatorService implements OnModuleInit {
   private readonly logger = new Logger(BulletEvaluatorService.name);
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (value: BulletEvaluationResult) => void;
+      reject: (error: Error) => void;
+      timeout: NodeJS.Timeout;
+    }
+  >();
 
-  constructor() {}
+  constructor(
+    @Inject('MessageBrokerPort')
+    private readonly messageBroker: MessageBrokerPort,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    // Subscribe to response topic
+    if (this.messageBroker.isConnected()) {
+      await this.messageBroker.subscribe(
+        'resume.bullet.evaluate.response',
+        this.handleResponse.bind(this),
+      );
+    } else {
+      // Wait for connection
+      await this.messageBroker.connect();
+      await this.messageBroker.subscribe(
+        'resume.bullet.evaluate.response',
+        this.handleResponse.bind(this),
+      );
+    }
+  }
+
+  private async handleResponse(message: unknown): Promise<void> {
+    try {
+      const response = message as {
+        correlationId: string;
+        result?: BulletEvaluationResult;
+        error?: string;
+      };
+
+      const pending = this.pendingRequests.get(response.correlationId);
+      if (!pending) {
+        this.logger.warn(
+          `Received response for unknown correlation ID: ${response.correlationId}`,
+        );
+        return;
+      }
+
+      clearTimeout(pending.timeout);
+      this.pendingRequests.delete(response.correlationId);
+
+      if (response.error) {
+        pending.reject(new Error(response.error));
+      } else if (response.result) {
+        pending.resolve(response.result);
+      } else {
+        pending.reject(new Error('Invalid response format'));
+      }
+    } catch (error) {
+      this.logger.error('Error handling response:', error);
+    }
+  }
 
   /**
    * Evaluate a single bullet point against quality KPIs.
@@ -43,52 +103,44 @@ export class BulletEvaluatorService {
   ): Promise<BulletEvaluationResult> {
     this.logger.log(`Evaluating bullet: ${bulletText.substring(0, 50)}...`);
 
-    // For now, send to Kafka and wait for response
-    // TODO: Implement Kafka producer/consumer pattern
     const correlationId = uuidv4();
 
-    // Placeholder: In production, this would send to Kafka topic 'resume.bullet.evaluate'
-    // and listen for response on 'resume.bullet.evaluate.response'
+    // Ensure Kafka is connected
+    if (!this.messageBroker.isConnected()) {
+      await this.messageBroker.connect();
+    }
 
-    // For now, return mock data
-    const result: BulletEvaluationResult = {
-      overallScore: 0.85,
-      passed: true,
-      checks: {
-        actionVerb: {
-          passed: true,
-          score: 1.0,
-          feedback: 'Starts with strong action verb',
-        },
-        quantifiable: {
-          passed: true,
-          score: 1.0,
-          feedback: 'Contains quantifiable metrics',
-        },
-        concise: {
-          passed: true,
-          score: 0.9,
-          feedback: 'Length is appropriate',
-        },
-      },
-      feedback: [
-        'Strong action verb used',
-        'Good use of metrics',
-        'Consider adding more context',
-      ],
-      suggestedFixes: generateFixes
-        ? [
-            {
-              description: 'Add percentage improvement',
-              fixedText: bulletText + ' by 25%',
-              confidence: 0.8,
-              changesApplied: ['add_metric'],
-            },
-          ]
-        : undefined,
-    };
+    // Create promise that will be resolved when response arrives
+    return new Promise<BulletEvaluationResult>((resolve, reject) => {
+      // Set timeout (30 seconds)
+      const timeout = setTimeout(() => {
+        this.pendingRequests.delete(correlationId);
+        reject(new Error('Bullet evaluation timeout'));
+      }, 30000);
 
-    return result;
+      // Store pending request
+      this.pendingRequests.set(correlationId, {
+        resolve,
+        reject,
+        timeout,
+      });
+
+      // Send request to Kafka
+      this.messageBroker
+        .sendMessage('resume.bullet.evaluate', {
+          correlationId,
+          bulletText,
+          role,
+          useLlm,
+          generateFixes,
+        })
+        .catch((error) => {
+          clearTimeout(timeout);
+          this.pendingRequests.delete(correlationId);
+          this.logger.error('Failed to send bullet evaluation request:', error);
+          reject(error);
+        });
+    });
   }
 
   /**

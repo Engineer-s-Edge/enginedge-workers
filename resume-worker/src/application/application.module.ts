@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BullModule } from '@nestjs/bull';
+import { InfrastructureModule } from '../infrastructure/infrastructure.module';
 import { ExperienceBankService } from './services/experience-bank.service';
 import { ResumeService } from './services/resume.service';
 import { BulletEvaluatorService } from './services/bullet-evaluator.service';
@@ -45,6 +46,7 @@ import {
     BullModule.registerQueue({
       name: 'resume-tailoring',
     }),
+    forwardRef(() => InfrastructureModule),
   ],
   providers: [
     ExperienceBankService,

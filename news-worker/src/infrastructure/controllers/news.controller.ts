@@ -84,11 +84,13 @@ export class NewsController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getArticle(@Param('id') id: string) {
-    // This would use the repository directly
-    // For now, return not implemented
-    return {
-      message: 'Get article by ID not yet implemented',
-      id,
-    };
+    const article = await this.newsService.getArticleById(id);
+    if (!article) {
+      return {
+        message: 'Article not found',
+        id,
+      };
+    }
+    return article;
   }
 }

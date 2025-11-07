@@ -394,12 +394,23 @@ export class RecommendationService {
         `accepted=${feedback.userAccepted}, rating=${feedback.userRating}`,
     );
 
-    // TODO: Send feedback to ML service for model retraining
-    // This would be an additional endpoint on the ML service
-    // For now, just log it
-    this.logger.debug(
-      'Feedback logged (ML service feedback endpoint not implemented)',
-    );
+    try {
+      // Send feedback to ML service for model retraining
+      await this.mlClient.submitFeedback({
+        taskId: feedback.taskId,
+        scheduledSlot: feedback.scheduledSlot,
+        mlScore: feedback.mlScore,
+        userAccepted: feedback.userAccepted,
+        userRating: feedback.userRating,
+        completedOnTime: feedback.completedOnTime,
+        actualDuration: feedback.actualDuration,
+        feedback: feedback.feedback,
+      });
+      this.logger.debug('Feedback sent to ML service successfully');
+    } catch (error) {
+      this.logger.error('Failed to send feedback to ML service:', error);
+      // Don't throw - feedback submission failure shouldn't break the flow
+    }
   }
 
   /**
@@ -411,10 +422,19 @@ export class RecommendationService {
   async analyzeUserPatterns(userId: string): Promise<UserPatterns> {
     this.logger.log(`Analyzing patterns for user ${userId}`);
 
-    // This would integrate with the ML service to get learned patterns
-    // For now, return placeholder data
-    // TODO: Call ML service /analyze endpoint when available
+    try {
+      // Call ML service /analyze endpoint
+      const patterns = await this.mlClient.analyzeUserPatterns(userId);
+      if (patterns) {
+        return patterns;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to get patterns from ML service, using fallback: ${error}`,
+      );
+    }
 
+    // Fallback to placeholder data if ML service unavailable
     return {
       preferredHours: [9, 10, 14, 15],
       mostProductiveHours: [9, 10],

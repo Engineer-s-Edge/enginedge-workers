@@ -1,4 +1,5 @@
 import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LoaderRegistryService } from './loader-registry.service';
 import { Document } from '../../domain/entities/document.entity';
 import {
@@ -31,6 +32,7 @@ export class DocumentProcessingService {
     @Optional()
     @Inject('VectorStorePort')
     private readonly vectorStore?: VectorStorePort,
+    private readonly configService?: ConfigService,
   ) {
     this.logger.log('Document Processing Service initialized');
   }
@@ -360,11 +362,22 @@ export class DocumentProcessingService {
     }
 
     if (options?.summarize) {
-      // TODO: Implement LLM-based summarization
-      // For now, use intelligent truncation
-      this.logger.warn(
-        'LLM summarization not yet implemented, using truncation',
-      );
+      // Implement LLM-based summarization via assistant-worker
+      try {
+        const summary = await this.summarizeWithLLM(content, maxLength);
+        if (summary) {
+          return summary;
+        }
+        // Fall through to truncation if LLM summarization fails
+        this.logger.warn(
+          'LLM summarization failed, falling back to truncation',
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(
+          `LLM summarization error: ${message}, using truncation`,
+        );
+      }
     }
 
     if (options?.preserveStructure) {
@@ -387,5 +400,69 @@ export class DocumentProcessingService {
 
     // Simple truncation with ellipsis
     return content.substring(0, maxLength - 20) + '\n\n[Content truncated...]';
+  }
+
+  /**
+   * Summarize content using LLM via assistant-worker
+   */
+  private async summarizeWithLLM(
+    content: string,
+    maxLength: number,
+  ): Promise<string | null> {
+    try {
+      const assistantWorkerUrl =
+        this.configService?.get<string>('ASSISTANT_WORKER_URL') ||
+        'http://localhost:3001';
+
+      // Truncate content if too long for LLM (most models have token limits)
+      const contentForSummary = content.length > 10000
+        ? content.substring(0, 10000) + '\n\n[Content truncated for summarization...]'
+        : content;
+
+      const response = await fetch(`${assistantWorkerUrl}/llm/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a helpful assistant that summarizes text content. Provide concise, accurate summaries that preserve key information.',
+            },
+            {
+              role: 'user',
+              content: `Please summarize the following content in approximately ${maxLength} characters or less, preserving the most important information:\n\n${contentForSummary}`,
+            },
+          ],
+          temperature: 0.3, // Lower temperature for more consistent summaries
+          maxTokens: Math.floor(maxLength / 4), // Rough estimate: 4 chars per token
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`LLM service returned ${response.status}`);
+      }
+
+      const result = await response.json();
+      const summary = result.content || result.text || null;
+
+      if (summary && summary.length <= maxLength) {
+        return summary;
+      }
+
+      // If summary is too long, truncate it
+      if (summary && summary.length > maxLength) {
+        return summary.substring(0, maxLength - 20) + '\n\n[Summary truncated...]';
+      }
+
+      return null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to summarize with LLM: ${message}`);
+      return null;
+    }
   }
 }

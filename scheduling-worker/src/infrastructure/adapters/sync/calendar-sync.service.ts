@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import {
   ICalendarSyncService,
   SyncState,
@@ -6,6 +6,7 @@ import {
 import { IGoogleCalendarApiService } from '../../../application/ports/google-calendar.port';
 import { ICalendarEventRepository } from '../../../application/ports/repositories.port';
 import { CalendarEvent } from '../../../domain/entities/calendar-event.entity';
+import { CalendarSyncGateway } from '../../gateways/calendar-sync.gateway';
 
 export enum ConflictResolutionStrategy {
   LAST_WRITE_WINS = 'last_write_wins',
@@ -26,6 +27,8 @@ export class CalendarSyncService implements ICalendarSyncService {
     private readonly calendarApiService: IGoogleCalendarApiService,
     @Inject('ICalendarEventRepository')
     private readonly eventRepository: ICalendarEventRepository,
+    @Optional()
+    private readonly syncGateway?: CalendarSyncGateway,
   ) {}
 
   /**
@@ -41,10 +44,36 @@ export class CalendarSyncService implements ICalendarSyncService {
     const startTime = Date.now();
 
     try {
+      // Emit sync start status
+      if (this.syncGateway) {
+        this.syncGateway.emitSyncStatus(userId, {
+          calendarId,
+          status: 'syncing',
+          progress: 0,
+          message: 'Starting full sync...',
+        });
+      }
+
       // Step 1: Pull remote changes
+      if (this.syncGateway) {
+        this.syncGateway.emitSyncStatus(userId, {
+          calendarId,
+          status: 'syncing',
+          progress: 25,
+          message: 'Pulling remote changes...',
+        });
+      }
       await this.pullRemoteChanges(userId, calendarId);
 
       // Step 2: Push local changes
+      if (this.syncGateway) {
+        this.syncGateway.emitSyncStatus(userId, {
+          calendarId,
+          status: 'syncing',
+          progress: 75,
+          message: 'Pushing local changes...',
+        });
+      }
       await this.pushLocalChanges(userId, calendarId);
 
       // Step 3: Update sync state
@@ -61,7 +90,26 @@ export class CalendarSyncService implements ICalendarSyncService {
       this.logger.log(
         `Full sync completed in ${duration}ms for user ${userId}`,
       );
+
+      // Emit sync complete
+      if (this.syncGateway) {
+        this.syncGateway.emitSyncStatus(userId, {
+          calendarId,
+          status: 'idle',
+          progress: 100,
+          message: 'Sync completed',
+        });
+      }
     } catch (error) {
+      // Emit error status
+      if (this.syncGateway) {
+        this.syncGateway.emitSyncStatus(userId, {
+          calendarId,
+          status: 'error',
+          message:
+            error instanceof Error ? error.message : 'Sync failed',
+        });
+      }
       this.logger.error(
         `Full sync failed for user ${userId}:`,
         error instanceof Error ? error.message : String(error),
@@ -177,13 +225,87 @@ export class CalendarSyncService implements ICalendarSyncService {
         return remoteEvent;
 
       case ConflictResolutionStrategy.USER_PROMPT:
-        // TODO: Emit event via WebSocket for user resolution
-        this.logger.warn(
-          'USER_PROMPT strategy not implemented, using LAST_WRITE_WINS',
-        );
-        return localEvent.updatedAt > remoteEvent.updatedAt
-          ? localEvent
-          : remoteEvent;
+        // Emit event via WebSocket for user resolution
+        if (this.syncGateway) {
+          try {
+            const conflictId = `conflict_${localEvent.id}_${Date.now()}`;
+            const userId =
+              (localEvent.metadata?.userId as string) ||
+              (remoteEvent.metadata?.userId as string) ||
+              'unknown';
+            const calendarId = localEvent.calendarId || 'primary';
+
+            this.logger.log(
+              `Requesting user resolution for conflict ${conflictId}`,
+            );
+
+            const response = await this.syncGateway.requestConflictResolution({
+              conflictId,
+              eventId: localEvent.id,
+              localEvent,
+              remoteEvent,
+              userId,
+              calendarId,
+            });
+
+            // Apply user's choice
+            switch (response.choice) {
+              case 'local':
+                return localEvent;
+              case 'remote':
+                return remoteEvent;
+              case 'merge':
+                // Merge both events (user provided merged version)
+                if (response.mergedEvent) {
+                  return {
+                    ...localEvent,
+                    ...response.mergedEvent,
+                    updatedAt: new Date(),
+                  } as CalendarEvent;
+                }
+                // Fallback: merge common fields
+                return {
+                  ...localEvent,
+                  ...remoteEvent,
+                  title: localEvent.title || remoteEvent.title,
+                  description:
+                    localEvent.description || remoteEvent.description,
+                  startTime:
+                    localEvent.startTime > remoteEvent.startTime
+                      ? remoteEvent.startTime
+                      : localEvent.startTime,
+                  endTime:
+                    localEvent.endTime < remoteEvent.endTime
+                      ? remoteEvent.endTime
+                      : localEvent.endTime,
+                  updatedAt: new Date(),
+                } as CalendarEvent;
+              default:
+                this.logger.warn(
+                  `Unknown choice ${response.choice}, using LAST_WRITE_WINS`,
+                );
+                return localEvent.updatedAt > remoteEvent.updatedAt
+                  ? localEvent
+                  : remoteEvent;
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to get user resolution, falling back to LAST_WRITE_WINS:`,
+              error instanceof Error ? error.message : String(error),
+            );
+            // Fallback to LAST_WRITE_WINS
+            return localEvent.updatedAt > remoteEvent.updatedAt
+              ? localEvent
+              : remoteEvent;
+          }
+        } else {
+          this.logger.warn(
+            'USER_PROMPT strategy requires CalendarSyncGateway, using LAST_WRITE_WINS',
+          );
+          return localEvent.updatedAt > remoteEvent.updatedAt
+            ? localEvent
+            : remoteEvent;
+        }
 
       default:
         this.logger.warn(`Unknown strategy ${strategy}, using LAST_WRITE_WINS`);

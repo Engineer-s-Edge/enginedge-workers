@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ExperienceBankService } from '../../application/services/experience-bank.service';
 
 interface ReviewSession {
@@ -33,7 +34,10 @@ export class BulletReviewGateway
   private readonly logger = new Logger(BulletReviewGateway.name);
   private sessions = new Map<string, ReviewSession>();
 
-  constructor(private readonly experienceBankService: ExperienceBankService) {}
+  constructor(
+    private readonly experienceBankService: ExperienceBankService,
+    private readonly configService: ConfigService,
+  ) {}
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -94,15 +98,60 @@ export class BulletReviewGateway
 
     this.logger.log(`User response: ${data.response}`);
 
-    // TODO: Send to assistant-worker agent for analysis
-    // Agent will "grill" the user to verify the bullet is authentic
+    try {
+      // Send to assistant-worker for verification
+      const assistantWorkerUrl =
+        this.configService.get<string>('ASSISTANT_WORKER_URL') ||
+        'http://localhost:3001';
 
-    // For now, simulate agent response
-    client.emit('agent-question', {
-      question:
-        'Can you provide more details about the specific metrics you achieved?',
-      thinking: false,
-    });
+      const bullet = session.currentBulletId
+        ? await this.experienceBankService.getById(session.currentBulletId)
+        : null;
+      const bulletText = bullet?.bulletText || 'the bullet point';
+
+      const response = await fetch(`${assistantWorkerUrl}/llm/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a resume verification assistant. Your job is to "grill" users to verify their resume bullet points are authentic and accurate. Ask probing questions to verify metrics, technologies, and achievements. Be thorough but respectful.',
+            },
+            {
+              role: 'user',
+              content: `Bullet point to verify: "${bulletText}"\n\nUser's explanation: ${data.response}\n\nAsk a follow-up question to verify the authenticity and get more specific details.`,
+            },
+          ],
+          temperature: 0.7,
+          maxTokens: 150,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        client.emit('agent-feedback', {
+          feedback: result.content || 'Can you provide more details about the specific metrics you achieved?',
+          thinking: false,
+        });
+      } else {
+        // Fallback
+        client.emit('agent-feedback', {
+          feedback: 'Can you provide more details about the specific metrics you achieved?',
+          thinking: false,
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error sending to assistant-worker:', error);
+      client.emit('agent-feedback', {
+        feedback: 'Can you provide more details about that?',
+        thinking: false,
+      });
+    }
   }
 
   @SubscribeMessage('approve-bullet')

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ResumeBuilderService,
   BuilderSession,
@@ -29,7 +30,10 @@ export class ResumeBuilderGateway
   private readonly logger = new Logger(ResumeBuilderGateway.name);
   private clientSessions = new Map<string, string>(); // clientId -> sessionId
 
-  constructor(private readonly builderService: ResumeBuilderService) {}
+  constructor(
+    private readonly builderService: ResumeBuilderService,
+    private readonly configService: ConfigService,
+  ) {}
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -83,14 +87,60 @@ export class ResumeBuilderGateway
 
     this.logger.log(`User response in session ${sessionId}: ${data.response}`);
 
-    // TODO: Send to assistant-worker agent for processing
-    // Agent will analyze response and ask follow-up questions
+    try {
+      // Send to assistant-worker for agent processing
+      const assistantWorkerUrl =
+        this.configService.get<string>('ASSISTANT_WORKER_URL') ||
+        'http://localhost:3001';
 
-    // For now, simulate agent response
-    client.emit('agent-question', {
-      question: 'Can you tell me more about the technologies you used?',
-      thinking: false,
-    });
+      const session = this.builderService.getSession(sessionId);
+      const context = session
+        ? `Building resume in ${session.mode} mode. Collected ${session.collectedData.experiences.length} experiences so far.`
+        : 'Building resume.';
+
+      const response = await fetch(`${assistantWorkerUrl}/llm/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a helpful resume building assistant. Ask follow-up questions to gather detailed information about the user\'s work experience, projects, and skills. Be conversational and friendly.',
+            },
+            {
+              role: 'user',
+              content: `Context: ${context}\n\nUser response: ${data.response}\n\nAsk a relevant follow-up question to gather more information for their resume.`,
+            },
+          ],
+          temperature: 0.8,
+          maxTokens: 150,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        client.emit('agent-question', {
+          question: result.content || 'Can you tell me more about that?',
+          thinking: false,
+        });
+      } else {
+        // Fallback
+        client.emit('agent-question', {
+          question: 'Can you tell me more about the technologies you used?',
+          thinking: false,
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error sending to assistant-worker:', error);
+      client.emit('agent-question', {
+        question: 'Can you tell me more about that?',
+        thinking: false,
+      });
+    }
   }
 
   @SubscribeMessage('add-experience')

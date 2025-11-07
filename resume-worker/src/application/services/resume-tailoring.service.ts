@@ -182,15 +182,43 @@ export class ResumeTailoringService {
   ): Promise<void> {
     const maxIterations = request.maxIterations || 10;
 
-    for (let i = 0; i < maxIterations; i++) {
+      for (let i = 0; i < maxIterations; i++) {
       job.currentIteration = i + 1;
       this.logger.log(`[${job.id}] Iteration ${job.currentIteration}`);
 
-      // Apply top swaps
-      // TODO: Implement actual swap application
-      // For now, just simulate progress
+      // Get current evaluation to find swaps
+      const currentReport = await this.evaluatorService.evaluateResume(
+        request.resumeId,
+        {
+          mode: 'jd-match',
+          jobPostingId: job.jobPostingId,
+          useLlm: false,
+          generateAutoFixes: true,
+        },
+      );
 
-      // Re-evaluate
+      // Get suggested swaps from evaluation report
+      const suggestedSwaps = currentReport.suggestedSwaps || [];
+      if (suggestedSwaps.length === 0) {
+        // No more swaps available
+        this.logger.log(`[${job.id}] No more swaps available`);
+        job.status = 'completed';
+        job.progress = 90;
+        return;
+      }
+
+      // Apply top 3 swaps
+      const swapsToApply = suggestedSwaps
+        .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+        .slice(0, 3);
+
+      await this.applySuggestedSwaps(
+        job.id,
+        request.resumeId,
+        swapsToApply,
+      );
+
+      // Re-evaluate after applying swaps
       const report = await this.evaluatorService.evaluateResume(
         request.resumeId,
         {
@@ -273,6 +301,84 @@ export class ResumeTailoringService {
   }
 
   /**
+   * Apply suggested swaps to resume.
+   */
+  private async applySuggestedSwaps(
+    jobId: string,
+    resumeId: string,
+    swaps: any[],
+  ): Promise<void> {
+    this.logger.log(`[${jobId}] Applying ${swaps.length} suggested swaps`);
+
+    try {
+      // Get current resume
+      const resume = await this.resumeModel.findById(resumeId).exec();
+      if (!resume) {
+        throw new Error(`Resume ${resumeId} not found`);
+      }
+
+      let latexContent = resume.latexContent;
+
+      // Apply each swap
+      for (const swap of swaps) {
+        if (swap.bulletIndex !== null && swap.bulletIndex !== undefined) {
+          // Replace specific bullet at index
+          const bulletRegex = new RegExp(
+            `(\\\\item\\s+[^\\n]+)`,
+            'g',
+          );
+          let matchCount = 0;
+          latexContent = latexContent.replace(bulletRegex, (match) => {
+            if (matchCount === swap.bulletIndex) {
+              matchCount++;
+              return `\\item ${swap.suggestedBullet}`;
+            }
+            matchCount++;
+            return match;
+          });
+        } else if (swap.currentBullet) {
+          // Replace specific bullet text
+          const escapedCurrent = swap.currentBullet.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            '\\$&',
+          );
+          const bulletRegex = new RegExp(
+            `\\\\item\\s+${escapedCurrent}`,
+            'g',
+          );
+          latexContent = latexContent.replace(
+            bulletRegex,
+            `\\item ${swap.suggestedBullet}`,
+          );
+        } else {
+          // Add new bullet (if no current bullet specified)
+          // Find the experience section and add bullet
+          const experienceSectionRegex = /(\\begin\{resumeSection\}\{Experience\}[\s\S]*?)(\\end\{resumeSection\})/;
+          const match = latexContent.match(experienceSectionRegex);
+          if (match) {
+            const sectionContent = match[1];
+            const newBullet = `\\item ${swap.suggestedBullet}\n`;
+            latexContent = latexContent.replace(
+              experienceSectionRegex,
+              `${sectionContent}${newBullet}$2`,
+            );
+          }
+        }
+      }
+
+      // Update resume with new content
+      resume.latexContent = latexContent;
+      resume.updatedAt = new Date();
+      await resume.save();
+
+      this.logger.log(`[${jobId}] Successfully applied ${swaps.length} swaps`);
+    } catch (error) {
+      this.logger.error(`[${jobId}] Error applying swaps:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get job status.
    */
   getJobStatus(jobId: string): TailorResumeJob | null {
@@ -298,9 +404,27 @@ export class ResumeTailoringService {
     }
 
     if (job.status === 'processing') {
-      // TODO: Implement graceful cancellation
-      job.status = 'failed';
+      // Gracefully cancel the BullMQ job
+      try {
+        const jobs = await this.tailoringQueue.getJobs(['active', 'waiting']);
+        const activeJob = jobs.find((j) => j.data.jobId === jobId);
+        if (activeJob) {
+          await activeJob.remove();
+          this.logger.log(`[${jobId}] Removed BullMQ job`);
+        }
+      } catch (error) {
+        this.logger.error(`[${jobId}] Error removing BullMQ job:`, error);
+      }
+
+      job.status = 'cancelled';
       job.updatedAt = new Date();
+      this.activeJobs.set(jobId, job);
+      this.logger.log(`[${jobId}] Job cancelled gracefully`);
+    } else if (job.status === 'queued') {
+      // Job hasn't started yet, just mark as cancelled
+      job.status = 'cancelled';
+      job.updatedAt = new Date();
+      this.activeJobs.set(jobId, job);
     }
 
     return true;

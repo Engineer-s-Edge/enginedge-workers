@@ -168,4 +168,21 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
       throw error;
     }
   }
+
+  async deleteTopic(topic: string): Promise<boolean> {
+    try {
+      this.logger.log(`Deleting topic: ${topic}`);
+
+      // TODO: Delegate to real TopicCatalogService
+      // return this.topicCatalogService.deleteTopic(topic);
+
+      // Stub implementation
+      const deleted = this.topics.delete(topic);
+      return deleted;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(`Failed to delete topic: ${err.message}`, err.stack);
+      throw error;
+    }
+  }
 }

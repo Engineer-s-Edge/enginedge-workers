@@ -8,7 +8,8 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ResumeEvaluatorService } from '../../application/services/resume-evaluator.service';
 import { ResumeVersioningService } from '../../application/services/resume-versioning.service';
 
@@ -39,6 +40,7 @@ export class ResumeIteratorGateway
   constructor(
     private readonly evaluatorService: ResumeEvaluatorService,
     private readonly versioningService: ResumeVersioningService,
+    private readonly configService: ConfigService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -111,12 +113,55 @@ export class ResumeIteratorGateway
 
     this.logger.log(`User message: ${data.message}`);
 
-    // TODO: Send message to assistant-worker agent
-    // For now, echo back
-    client.emit('agent-message', {
-      message: `Received: ${data.message}`,
-      thinking: false,
-    });
+    try {
+      // Send to assistant-worker for agent processing
+      const assistantWorkerUrl =
+        this.configService.get<string>('ASSISTANT_WORKER_URL') ||
+        'http://localhost:3001';
+
+      const response = await fetch(`${assistantWorkerUrl}/llm/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a helpful resume improvement assistant. Help users improve their resume by asking clarifying questions and providing constructive feedback.',
+            },
+            {
+              role: 'user',
+              content: `User message: ${data.message}\n\nContext: We are iterating on resume ${session.resumeId} to improve the score. Current score: ${session.currentScore}/100. Target: ${session.targetScore}/100.`,
+            },
+          ],
+          temperature: 0.7,
+          maxTokens: 200,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        client.emit('agent-message', {
+          message: result.content || 'I understand. Let me help you improve your resume.',
+          thinking: false,
+        });
+      } else {
+        // Fallback
+        client.emit('agent-message', {
+          message: `I received your message: "${data.message}". Let me help you improve your resume.`,
+          thinking: false,
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error sending message to assistant-worker:', error);
+      client.emit('agent-message', {
+        message: `I received your message: "${data.message}". Let me help you improve your resume.`,
+        thinking: false,
+      });
+    }
   }
 
   @SubscribeMessage('apply-fix')

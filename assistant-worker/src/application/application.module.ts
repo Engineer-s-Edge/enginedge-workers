@@ -28,6 +28,8 @@ import { CheckpointService } from './services/checkpoint.service';
 import { HITLService } from './services/hitl.service';
 import { ExecuteAgentUseCase } from './use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from './use-cases/stream-agent-execution.use-case';
+import { ProcessCommandUseCase } from './use-cases/process-command.use-case';
+import { CreateAgentUseCase } from './use-cases/create-agent.use-case';
 import { CollectiveModule } from './services/collective/collective.module';
 import { AgentExecutionService } from './services/agent-execution.service';
 import { MessageQueueService } from './services/collective/message-queue.service';
@@ -135,6 +137,8 @@ import { ConversationsService } from './services/conversations.service';
     // Use Cases
     ExecuteAgentUseCase,
     StreamAgentExecutionUseCase,
+    ProcessCommandUseCase,
+    CreateAgentUseCase,
 
     // Assistant services
     AssistantsCrudService,
@@ -165,6 +169,8 @@ import { ConversationsService } from './services/conversations.service';
     // Export use cases for controllers
     ExecuteAgentUseCase,
     StreamAgentExecutionUseCase,
+    ProcessCommandUseCase,
+    CreateAgentUseCase,
 
     // Export assistant services
     AssistantsCrudService,

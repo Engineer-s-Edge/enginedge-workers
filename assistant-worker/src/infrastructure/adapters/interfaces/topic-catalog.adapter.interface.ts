@@ -66,4 +66,9 @@ export interface ITopicCatalogAdapter {
     topic: string,
     researchData: Record<string, unknown>,
   ): Promise<boolean>;
+
+  /**
+   * Delete topic from catalog
+   */
+  deleteTopic(topic: string): Promise<boolean>;
 }

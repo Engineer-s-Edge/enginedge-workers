@@ -26,15 +26,19 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
     @Inject('IFileSystem') private readonly fs: IFileSystem,
   ) {}
 
+  private runningProcesses: Map<string, ReturnType<typeof spawn>> = new Map();
+
   /**
    * Compile a single LaTeX document
    */
   async compile(
     document: LaTeXDocument,
     workingDir: string,
+    jobId?: string,
   ): Promise<CompilationResult> {
     const startTime = Date.now();
     const texFile = path.join(workingDir, 'main.tex');
+    const currentJobId = jobId || `job-${Date.now()}`;
 
     try {
       // Write document content to file
@@ -58,11 +62,16 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
           'XeLaTeXCompilerAdapter',
         );
 
-        lastResult = await this.runXeLaTeX(workingDir, 'main.tex', {
-          shell: document.settings.shell,
-          draft: document.settings.draft && pass < passes,
-          interaction: 'nonstopmode',
-        });
+        lastResult = await this.runXeLaTeX(
+          workingDir,
+          'main.tex',
+          {
+            shell: document.settings.shell,
+            draft: document.settings.draft && pass < passes,
+            interaction: 'nonstopmode',
+          },
+          `${currentJobId}-pass-${pass}`,
+        );
 
         // If compilation failed, stop
         if (lastResult.exitCode !== 0) {
@@ -236,14 +245,42 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
   }
 
   /**
-   * Abort a running compilation (stub for now)
+   * Abort a running compilation
    */
   async abort(jobId: string): Promise<void> {
-    this.logger.warn(
-      `Abort requested for job ${jobId} - not yet implemented`,
+    this.logger.log(
+      `Abort requested for job ${jobId}`,
       'XeLaTeXCompilerAdapter',
     );
-    // TODO: Track running processes and kill them
+
+    const process = this.runningProcesses.get(jobId);
+    if (process) {
+      try {
+        process.kill('SIGTERM');
+        // Wait a bit, then force kill if still running
+        setTimeout(() => {
+          if (!process.killed) {
+            process.kill('SIGKILL');
+          }
+        }, 5000);
+        this.runningProcesses.delete(jobId);
+        this.logger.log(
+          `Successfully aborted compilation job ${jobId}`,
+          'XeLaTeXCompilerAdapter',
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to abort job ${jobId}: ${error instanceof Error ? error.message : String(error)}`,
+          'XeLaTeXCompilerAdapter',
+        );
+        throw error;
+      }
+    } else {
+      this.logger.warn(
+        `No running process found for job ${jobId}`,
+        'XeLaTeXCompilerAdapter',
+      );
+    }
   }
 
   /**
@@ -282,6 +319,7 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       draft: boolean;
       interaction: string;
     },
+    jobId?: string,
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     const args = [
       `-interaction=${options.interaction}`,
@@ -299,7 +337,12 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
 
     args.push(texFile);
 
-    return await this.executeCommand(this.compilerPath, args, workingDir);
+    return await this.executeCommand(
+      this.compilerPath,
+      args,
+      workingDir,
+      jobId,
+    );
   }
 
   /**
@@ -329,12 +372,18 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
     command: string,
     args: string[],
     cwd?: string,
+    jobId?: string,
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return new Promise((resolve, reject) => {
       const process = spawn(command, args, {
         cwd,
         shell: true,
       });
+
+      // Track process if jobId is provided
+      if (jobId) {
+        this.runningProcesses.set(jobId, process);
+      }
 
       let stdout = '';
       let stderr = '';
@@ -348,6 +397,10 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       });
 
       process.on('close', (code) => {
+        // Clean up process tracking
+        if (jobId) {
+          this.runningProcesses.delete(jobId);
+        }
         resolve({
           stdout,
           stderr,
@@ -356,6 +409,10 @@ export class XeLaTeXCompilerAdapter implements ILaTeXCompiler {
       });
 
       process.on('error', (error) => {
+        // Clean up process tracking on error
+        if (jobId) {
+          this.runningProcesses.delete(jobId);
+        }
         reject(error);
       });
     });

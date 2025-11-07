@@ -11,6 +11,7 @@ export interface ScheduleConfig {
   cronExpression: string;
   maxRunsPerDay?: number;
   enabled?: boolean;
+  timezone?: string; // IANA timezone (e.g., 'America/New_York', 'Europe/London')
 }
 
 export interface ScheduleInfo {

@@ -3,6 +3,8 @@ import {
   Logger,
   OnModuleInit,
   OnModuleDestroy,
+  Inject,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -13,6 +15,10 @@ import {
   Partitioners,
 } from 'kafkajs';
 import { DocumentProcessingService } from '../../../application/services/document-processing.service';
+import {
+  EmbedderPort,
+  VectorStorePort,
+} from '../../../domain/ports/processing.port';
 
 /**
  * Kafka Message Broker Adapter for Data Processing Worker
@@ -32,6 +38,12 @@ export class KafkaDataProcessingAdapter
   constructor(
     private readonly configService: ConfigService,
     private readonly documentProcessingService: DocumentProcessingService,
+    @Optional()
+    @Inject('EmbedderPort')
+    private readonly embedder?: EmbedderPort,
+    @Optional()
+    @Inject('VectorStorePort')
+    private readonly vectorStore?: VectorStorePort,
   ) {
     this.initializeKafka();
   }
@@ -334,11 +346,27 @@ export class KafkaDataProcessingAdapter
     this.logger.log(`Generating embeddings task: ${data.taskId}`);
 
     try {
-      // This is a placeholder - would need to inject EmbedderService
+      if (!this.embedder) {
+        throw new Error('Embedder not configured');
+      }
+
+      let embeddings: number[][];
+      if (data.texts && data.texts.length > 0) {
+        // Batch embedding generation
+        embeddings = await this.embedder.embedBatch(data.texts);
+      } else if (data.text) {
+        // Single text embedding
+        const embedding = await this.embedder.embedText(data.text);
+        embeddings = [embedding];
+      } else {
+        throw new Error('Either text or texts must be provided');
+      }
+
       await this.publishResult('embedding.generated', {
         taskId: data.taskId,
         status: 'SUCCESS',
-        message: 'Embedding generation not yet fully implemented via Kafka',
+        embeddings,
+        count: embeddings.length,
       });
     } catch (error) {
       await this.publishResult('embedding.generated', {
@@ -358,11 +386,30 @@ export class KafkaDataProcessingAdapter
     this.logger.log(`Vector search task: ${data.taskId}`);
 
     try {
-      // This is a placeholder - would need to inject VectorStoreService
+      if (!this.vectorStore) {
+        throw new Error('VectorStore not configured');
+      }
+
+      if (!data.queryEmbedding || data.queryEmbedding.length === 0) {
+        throw new Error('queryEmbedding must be provided');
+      }
+
+      const results = await this.vectorStore.similaritySearch(
+        data.queryEmbedding,
+        data.limit || 5,
+        data.filter,
+      );
+
       await this.publishResult('vector.search.result', {
         taskId: data.taskId,
         status: 'SUCCESS',
-        message: 'Vector search not yet fully implemented via Kafka',
+        results: results.map((r) => ({
+          documentId: r.document.id,
+          content: r.document.content,
+          metadata: r.document.metadata,
+          score: r.score,
+        })),
+        count: results.length,
       });
     } catch (error) {
       await this.publishResult('vector.search.result', {
