@@ -80,8 +80,8 @@ The **Resume NLP Service** is a specialized Python microservice that provides:
 ### Installation
 
 ```bash
-# Navigate to resume-nlp-service
-cd enginedge-workers/resume-nlp-service
+# Navigate to spacy-service
+cd enginedge-workers/spacy-service
 
 # Install dependencies
 pip install -r requirements.txt
@@ -125,7 +125,7 @@ Expected response:
 ```json
 {
   "status": "healthy",
-  "service": "resume-nlp-service",
+  "service": "spacy-service",
   "version": "1.0.0"
 }
 ```
@@ -272,20 +272,20 @@ The service consumes and produces messages on the following topics:
 ```bash
 # From platform directory
 cd enginedge-core/platform
-docker-compose up resume-nlp-service
+docker-compose up spacy-service
 ```
 
 ### Standalone Docker
 
 ```bash
 # Build image
-docker build -t resume-nlp-service:latest .
+docker build -t spacy-service:latest .
 
 # Run container
 docker run -p 8001:8001 \
   -e PORT=8001 \
   -e KAFKA_BROKERS=host.docker.internal:9094 \
-  resume-nlp-service:latest
+  spacy-service:latest
 ```
 
 ### Production with Multiple Workers
@@ -362,8 +362,8 @@ For issues, questions, or contributions:
 
 <div align="center">
 
-**Status:** ✅ Production Ready (100% complete)  
-**Version:** 1.0.0  
+**Status:** ✅ Production Ready (100% complete)
+**Version:** 1.0.0
 **Last Updated:** November 3, 2025
 
 ---

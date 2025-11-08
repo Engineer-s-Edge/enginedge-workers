@@ -58,6 +58,18 @@ import { ConversationsController } from './controllers/conversations.controller'
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapter';
+import {
+  TopicCatalog,
+  TopicCatalogSchema,
+} from './adapters/storage/topic-catalog/topic-catalog.schema';
+import {
+  CategoryModel,
+  CategorySchema,
+} from './adapters/storage/category/category.schema';
+import { MongoDBTopicCatalogRepository } from './adapters/storage/topic-catalog/mongodb-topic-catalog.repository';
+import { MongoDBCategoryRepository } from './adapters/storage/category/mongodb-category.repository';
+import { EmbedderAdapter } from './adapters/external/embedder.adapter';
+import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -85,6 +97,8 @@ import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapte
       { name: Conversation.name, schema: ConversationSchema },
       { name: ConversationEvent.name, schema: ConversationEventSchema },
       { name: MessageVersion.name, schema: MessageVersionSchema },
+      { name: TopicCatalog.name, schema: TopicCatalogSchema },
+      { name: CategoryModel.name, schema: CategorySchema },
     ]),
   ],
   controllers: [
@@ -177,6 +191,30 @@ import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapte
       useExisting: KnowledgeGraphService,
     } as any,
 
+    // Topic Catalog and Category repositories
+    MongoDBTopicCatalogRepository,
+    {
+      provide: 'ITopicCatalogRepository',
+      useClass: MongoDBTopicCatalogRepository,
+    },
+    MongoDBCategoryRepository,
+    {
+      provide: 'ICategoryRepository',
+      useClass: MongoDBCategoryRepository,
+    },
+
+    // External service adapters
+    EmbedderAdapter,
+    {
+      provide: 'IEmbedder',
+      useClass: EmbedderAdapter,
+    },
+    SpacyServiceAdapter,
+    {
+      provide: 'ISpacyService',
+      useClass: SpacyServiceAdapter,
+    },
+
     // Global filter/interceptor providers for DI resolution in main.ts
     GlobalExceptionFilter,
     LoggingInterceptor,
@@ -192,6 +230,12 @@ import { RAGServiceAdapter } from './adapters/implementations/rag-service.adapte
     'KnowledgeGraphPort',
     // Domain port binding for RAG service
     'IRAGServicePort',
+    // Topic Catalog and Category repositories
+    'ITopicCatalogRepository',
+    'ICategoryRepository',
+    // External service adapters
+    'IEmbedder',
+    'ISpacyService',
     // Memory adapter tokens
     'MemoryAdapter.buffer',
     'MemoryAdapter.window',

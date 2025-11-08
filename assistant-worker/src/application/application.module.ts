@@ -45,6 +45,10 @@ import { AssistantsCrudService } from './services/assistants-crud.service';
 import { AssistantExecutorService } from './services/assistant-executor.service';
 import { AssistantsModule } from '@infrastructure/assistants/assistants.module';
 import { ConversationsService } from './services/conversations.service';
+import { TopicCatalogService } from './services/topic-catalog.service';
+import { CategoryService } from './services/category.service';
+import { GetTopicsForResearchUseCase } from './use-cases/get-topics-for-research.use-case';
+import { AddTopicUseCase } from './use-cases/add-topic.use-case';
 
 /**
  * Application module - use cases and application services
@@ -146,6 +150,14 @@ import { ConversationsService } from './services/conversations.service';
 
     // Conversations service
     ConversationsService,
+
+    // Topic Catalog and Category services
+    TopicCatalogService,
+    CategoryService,
+
+    // Topic use cases
+    GetTopicsForResearchUseCase,
+    AddTopicUseCase,
   ],
   exports: [
     // Export services for other modules
@@ -178,6 +190,14 @@ import { ConversationsService } from './services/conversations.service';
 
     // Export conversations service
     ConversationsService,
+
+    // Export topic catalog and category services
+    TopicCatalogService,
+    CategoryService,
+
+    // Export topic use cases
+    GetTopicsForResearchUseCase,
+    AddTopicUseCase,
 
     // Export collective module
     CollectiveModule,

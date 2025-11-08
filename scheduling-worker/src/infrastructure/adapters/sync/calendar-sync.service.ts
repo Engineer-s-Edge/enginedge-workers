@@ -106,8 +106,7 @@ export class CalendarSyncService implements ICalendarSyncService {
         this.syncGateway.emitSyncStatus(userId, {
           calendarId,
           status: 'error',
-          message:
-            error instanceof Error ? error.message : 'Sync failed',
+          message: error instanceof Error ? error.message : 'Sync failed',
         });
       }
       this.logger.error(

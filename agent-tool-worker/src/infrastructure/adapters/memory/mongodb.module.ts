@@ -25,8 +25,7 @@ import { MongoClient, Db } from 'mongodb';
           configService.get<string>('MONGODB_URI') ||
           'mongodb://localhost:27017/agent_tool_worker';
         const dbName =
-          configService.get<string>('MONGODB_DATABASE') ||
-          'agent_tool_worker';
+          configService.get<string>('MONGODB_DATABASE') || 'agent_tool_worker';
 
         const client = new MongoClient(mongoUri, {
           maxPoolSize: 50,
@@ -45,8 +44,7 @@ import { MongoClient, Db } from 'mongodb';
       provide: 'MONGODB_DB',
       useFactory: async (client: MongoClient, configService: ConfigService) => {
         const dbName =
-          configService.get<string>('MONGODB_DATABASE') ||
-          'agent_tool_worker';
+          configService.get<string>('MONGODB_DATABASE') || 'agent_tool_worker';
         return client.db(dbName);
       },
       inject: ['MONGODB_CLIENT', ConfigService],

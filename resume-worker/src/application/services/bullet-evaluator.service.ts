@@ -92,7 +92,7 @@ export class BulletEvaluatorService implements OnModuleInit {
   /**
    * Evaluate a single bullet point against quality KPIs.
    *
-   * This proxies to the resume-nlp-service via Kafka for NLP-based checks,
+   * This proxies to the spacy-service via Kafka for NLP-based checks,
    * but also performs some local checks.
    */
   async evaluateBullet(

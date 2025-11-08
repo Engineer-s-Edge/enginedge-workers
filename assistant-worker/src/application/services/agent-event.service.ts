@@ -17,7 +17,8 @@ export type AgentEventType =
   | 'agent.state_changed'
   | 'agent.message'
   | 'agent.tool_call'
-  | 'agent.tool_result';
+  | 'agent.tool_result'
+  | 'component.merged';
 
 export interface AgentEvent {
   type: AgentEventType;
@@ -25,6 +26,19 @@ export interface AgentEvent {
   userId: string;
   timestamp: Date;
   data: Record<string, unknown>;
+}
+
+export interface ComponentMergeEvent {
+  type: 'component.merged';
+  componentId1: string;
+  componentId2: string;
+  mergedInto: string;
+  timestamp: Date;
+  data: {
+    nodeCount: number;
+    edgeCount: number;
+    categories: string[];
+  };
 }
 
 export interface EventFilter {

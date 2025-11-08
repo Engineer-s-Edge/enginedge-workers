@@ -182,7 +182,7 @@ export class ResumeTailoringService {
   ): Promise<void> {
     const maxIterations = request.maxIterations || 10;
 
-      for (let i = 0; i < maxIterations; i++) {
+    for (let i = 0; i < maxIterations; i++) {
       job.currentIteration = i + 1;
       this.logger.log(`[${job.id}] Iteration ${job.currentIteration}`);
 
@@ -212,11 +212,7 @@ export class ResumeTailoringService {
         .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
         .slice(0, 3);
 
-      await this.applySuggestedSwaps(
-        job.id,
-        request.resumeId,
-        swapsToApply,
-      );
+      await this.applySuggestedSwaps(job.id, request.resumeId, swapsToApply);
 
       // Re-evaluate after applying swaps
       const report = await this.evaluatorService.evaluateResume(
@@ -323,10 +319,7 @@ export class ResumeTailoringService {
       for (const swap of swaps) {
         if (swap.bulletIndex !== null && swap.bulletIndex !== undefined) {
           // Replace specific bullet at index
-          const bulletRegex = new RegExp(
-            `(\\\\item\\s+[^\\n]+)`,
-            'g',
-          );
+          const bulletRegex = new RegExp(`(\\\\item\\s+[^\\n]+)`, 'g');
           let matchCount = 0;
           latexContent = latexContent.replace(bulletRegex, (match) => {
             if (matchCount === swap.bulletIndex) {
@@ -342,10 +335,7 @@ export class ResumeTailoringService {
             /[.*+?^${}()|[\]\\]/g,
             '\\$&',
           );
-          const bulletRegex = new RegExp(
-            `\\\\item\\s+${escapedCurrent}`,
-            'g',
-          );
+          const bulletRegex = new RegExp(`\\\\item\\s+${escapedCurrent}`, 'g');
           latexContent = latexContent.replace(
             bulletRegex,
             `\\item ${swap.suggestedBullet}`,
@@ -353,7 +343,8 @@ export class ResumeTailoringService {
         } else {
           // Add new bullet (if no current bullet specified)
           // Find the experience section and add bullet
-          const experienceSectionRegex = /(\\begin\{resumeSection\}\{Experience\}[\s\S]*?)(\\end\{resumeSection\})/;
+          const experienceSectionRegex =
+            /(\\begin\{resumeSection\}\{Experience\}[\s\S]*?)(\\end\{resumeSection\})/;
           const match = latexContent.match(experienceSectionRegex);
           if (match) {
             const sectionContent = match[1];

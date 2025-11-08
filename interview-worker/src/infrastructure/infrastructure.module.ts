@@ -20,6 +20,7 @@ import { ReportController } from './controllers/report.controller';
 import { InterviewWebSocketGateway } from './gateways/interview-websocket.gateway';
 import { GoogleSpeechAdapter } from './adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from './adapters/voice/azure-speech.adapter';
+import { FillerWordDetectorAdapter } from './adapters/voice/filler-word-detector.adapter';
 import { StructuredLogger } from './adapters/logging/structured-logger';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import {
@@ -82,6 +83,7 @@ import {
     // Speech Adapters
     GoogleSpeechAdapter,
     AzureSpeechAdapter,
+    FillerWordDetectorAdapter,
     // Repository implementations
     {
       provide: 'IInterviewRepository',

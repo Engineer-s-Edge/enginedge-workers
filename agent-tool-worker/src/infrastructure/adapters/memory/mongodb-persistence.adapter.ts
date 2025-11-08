@@ -53,13 +53,15 @@ export class MongoDBPersistenceAdapter {
     this.collection = this.db.collection<ConversationDocument>('conversations');
 
     // Create indexes for better query performance
-    this.collection.createIndexes([
-      { key: { conversationId: 1 }, unique: true },
-      { key: { userId: 1 } },
-      { key: { 'metadata.updatedAt': -1 } },
-    ]).catch(() => {
-      // Indexes may already exist, ignore errors
-    });
+    this.collection
+      .createIndexes([
+        { key: { conversationId: 1 }, unique: true },
+        { key: { userId: 1 } },
+        { key: { 'metadata.updatedAt': -1 } },
+      ])
+      .catch(() => {
+        // Indexes may already exist, ignore errors
+      });
   }
 
   /**

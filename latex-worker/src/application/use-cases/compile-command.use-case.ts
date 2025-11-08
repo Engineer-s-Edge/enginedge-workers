@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { LaTeXCompilerService } from '../services/latex-compiler.service';
 import { LaTeXDocument } from '../../domain/entities/latex-document.entity';
+import { IPDFStorage } from '../../domain/ports';
+import { IFileSystem } from '../../domain/ports';
 
 export interface CompileCommand {
   jobId: string;
@@ -17,7 +19,8 @@ export interface CompileCommand {
 
 export interface CompileResult {
   success: boolean;
-  pdfPath?: string;
+  pdfPath?: string; // File path (for backward compatibility)
+  pdfId?: string; // GridFS ID
   errors?: string[];
   warnings?: string[];
   compilationTime?: number;
@@ -34,7 +37,15 @@ export interface CompileResult {
 export class CompileCommandUseCase {
   private readonly logger = new Logger(CompileCommandUseCase.name);
 
-  constructor(private readonly compilerService: LaTeXCompilerService) {}
+  constructor(
+    private readonly compilerService: LaTeXCompilerService,
+    @Optional()
+    @Inject('IPDFStorage')
+    private readonly pdfStorage?: IPDFStorage,
+    @Optional()
+    @Inject('IFileSystem')
+    private readonly fileSystem?: IFileSystem,
+  ) {}
 
   async execute(command: CompileCommand): Promise<CompileResult> {
     const startTime = Date.now();
@@ -94,13 +105,37 @@ export class CompileCommandUseCase {
         };
       }
 
+      // Store PDF in GridFS if available
+      let pdfId: string | undefined;
+      if (this.pdfStorage && this.fileSystem) {
+        try {
+          const pdfBuffer = await this.fileSystem.readFile(pdfPath);
+          const filename = `latex-${command.jobId}-${Date.now()}.pdf`;
+          pdfId = await this.pdfStorage.store(filename, pdfBuffer, {
+            jobId: command.jobId,
+            userId: command.userId,
+            compiledAt: new Date(),
+            ...command.metadata,
+          });
+          this.logger.log(
+            `PDF stored in GridFS with ID ${pdfId} for job ${command.jobId}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to store PDF in GridFS: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          // Continue without GridFS storage - pdfPath is still available
+        }
+      }
+
       this.logger.log(
         `Compilation succeeded for job ${command.jobId} in ${compilationTime}ms`,
       );
 
       return {
         success: true,
-        pdfPath,
+        pdfPath, // Keep for backward compatibility
+        pdfId, // GridFS ID if stored
         errors: [],
         warnings: result.warnings.map((w) => w.message),
         compilationTime,

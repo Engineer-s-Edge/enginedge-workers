@@ -330,7 +330,9 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     const { table, fields } = args.schema;
 
     // Check if collection already exists
-    const collections = await this.db.listCollections({ name: table }).toArray();
+    const collections = await this.db
+      .listCollections({ name: table })
+      .toArray();
     if (collections.length > 0) {
       throw Object.assign(new Error(`Table '${table}' already exists`), {
         name: 'TableExists',
@@ -354,7 +356,11 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     const indexSpecs: any[] = [];
     for (const [fieldName, fieldDef] of Object.entries(fields)) {
       if (fieldDef.unique) {
-        indexSpecs.push({ key: { [`data.${fieldName}`]: 1 }, unique: true, name: `${table}_${fieldName}_unique` });
+        indexSpecs.push({
+          key: { [`data.${fieldName}`]: 1 },
+          unique: true,
+          name: `${table}_${fieldName}_unique`,
+        });
       }
     }
     if (indexSpecs.length > 0) {
@@ -477,10 +483,10 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       {
         $set: {
           data: mergedData,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       },
-      { returnDocument: 'after' }
+      { returnDocument: 'after' },
     );
 
     if (!updateResult) {
@@ -564,7 +570,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       projection.table = 1;
       projection.createdAt = 1;
       projection.updatedAt = 1;
-      select.forEach(field => {
+      select.forEach((field) => {
         projection[`data.${field}`] = 1;
       });
     }
@@ -580,7 +586,10 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
 
     const [records, total] = await Promise.all([
       collection
-        .find(mongoQuery, { projection: Object.keys(projection).length > 0 ? projection : undefined })
+        .find(mongoQuery, {
+          projection:
+            Object.keys(projection).length > 0 ? projection : undefined,
+        })
         .sort(sort)
         .skip(queryOffset)
         .limit(queryLimit)
@@ -589,7 +598,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     ]);
 
     // Transform records to match expected format
-    const transformedRecords = records.map(record => ({
+    const transformedRecords = records.map((record) => ({
       id: record.id,
       table: record.table,
       data: record.data,
@@ -607,7 +616,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
 
   private async listTables(): Promise<DatabaseOutput> {
     const collections = await this.db.listCollections().toArray();
-    const tables = collections.map(col => col.name);
+    const tables = collections.map((col) => col.name);
 
     return {
       success: true,

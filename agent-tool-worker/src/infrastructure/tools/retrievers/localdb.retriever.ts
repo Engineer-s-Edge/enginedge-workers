@@ -252,8 +252,15 @@ export class LocalDBRetriever extends BaseRetriever<
       let result: { data: any[]; columns: string[] };
 
       // Try PostgreSQL first
-      if (defaultConnectionString.startsWith('postgresql://') || defaultConnectionString.startsWith('postgres://')) {
-        result = await this.queryPostgreSQL(defaultConnectionString, query, limit);
+      if (
+        defaultConnectionString.startsWith('postgresql://') ||
+        defaultConnectionString.startsWith('postgres://')
+      ) {
+        result = await this.queryPostgreSQL(
+          defaultConnectionString,
+          query,
+          limit,
+        );
       }
       // Try SQLite
       else if (defaultConnectionString.startsWith('sqlite://')) {

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  Inject,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JobPosting } from '../../domain/entities/job-posting.entity';
@@ -91,7 +86,9 @@ export class JobPostingService implements OnModuleInit {
       if (pending) {
         clearTimeout(pending.timeout);
         this.pendingRequests.delete(response.correlationId);
-        pending.reject(error instanceof Error ? error : new Error(String(error)));
+        pending.reject(
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
     }
   }

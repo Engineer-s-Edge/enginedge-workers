@@ -9,7 +9,7 @@ This guide covers common issues, error messages, and solutions for the Resume Wo
 ## Table of Contents
 
 - [Service Startup Issues](#service-startup-issues)
-- [Resume NLP Service Issues](#resume-nlp-service-issues)
+- [Resume NLP Service Issues](#spacy-service-issues)
 - [Kafka Connectivity](#kafka-connectivity)
 - [MongoDB Issues](#mongodb-issues)
 - [PDF Parsing Errors](#pdf-parsing-errors)
@@ -127,8 +127,8 @@ python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print('OK')"
 
 3. **Rebuild Docker image:**
 ```bash
-cd enginedge-workers/resume-nlp-service
-docker build -t resume-nlp-service .
+cd enginedge-workers/spacy-service
+docker build -t spacy-service .
 ```
 
 ---
@@ -149,26 +149,26 @@ curl http://localhost:8001/health
 
 2. **Check logs:**
 ```bash
-docker logs resume-nlp-service
+docker logs spacy-service
 ```
 
 3. **Check Kafka connectivity:**
 ```bash
 # From NLP service container
-docker exec -it resume-nlp-service python -c "from kafka import KafkaProducer; print('OK')"
+docker exec -it spacy-service python -c "from kafka import KafkaProducer; print('OK')"
 ```
 
 **Solutions:**
 
 1. **Restart service:**
 ```bash
-docker-compose restart resume-nlp-service
+docker-compose restart spacy-service
 ```
 
 2. **Check Kafka brokers:**
 ```bash
 # Verify KAFKA_BROKERS environment variable
-docker exec resume-nlp-service env | grep KAFKA
+docker exec spacy-service env | grep KAFKA
 ```
 
 3. **Increase timeout:**
@@ -236,7 +236,7 @@ kafka_consumer_lag{topic="resume.bullet.evaluate.request"}
 1. **Scale consumers:**
 ```bash
 # Increase NLP service replicas
-docker-compose up -d --scale resume-nlp-service=3
+docker-compose up -d --scale spacy-service=3
 ```
 
 2. **Increase partition count:**
@@ -708,23 +708,23 @@ proxy_read_timeout 86400;
 ## Common Error Messages
 
 ### `ECONNREFUSED`
-**Meaning:** Service not running or wrong port  
+**Meaning:** Service not running or wrong port
 **Solution:** Check service status and port configuration
 
 ### `ETIMEDOUT`
-**Meaning:** Request timeout  
+**Meaning:** Request timeout
 **Solution:** Increase timeout or check network connectivity
 
 ### `ValidationError`
-**Meaning:** Invalid input data  
+**Meaning:** Invalid input data
 **Solution:** Check request body against schema
 
 ### `MongoServerError: E11000 duplicate key`
-**Meaning:** Duplicate entry  
+**Meaning:** Duplicate entry
 **Solution:** Check for existing record or update instead of insert
 
 ### `KafkaJSError: The group coordinator is not available`
-**Meaning:** Kafka consumer group issue  
+**Meaning:** Kafka consumer group issue
 **Solution:** Restart Kafka or wait for rebalancing
 
 ---
@@ -751,7 +751,7 @@ export DEBUG=mongoose:*
 1. **Check logs:**
 ```bash
 docker logs resume-worker
-docker logs resume-nlp-service
+docker logs spacy-service
 ```
 
 2. **Check metrics:**
@@ -769,5 +769,5 @@ curl http://localhost:8001/health
 
 ---
 
-**Last Updated:** November 3, 2025  
+**Last Updated:** November 3, 2025
 **Version:** 1.0.0

@@ -66,7 +66,7 @@ REDIS_MAX_RETRIES=3
 LATEX_WORKER_URL=http://latex-worker:3005
 ASSISTANT_WORKER_URL=http://assistant-worker:3001
 DATA_PROCESSING_WORKER_URL=http://data-processing-worker:3003
-RESUME_NLP_SERVICE_URL=http://resume-nlp-service:8001
+SPACY_SERVICE_URL=http://spacy-service:8001
 
 # LLM (Optional)
 OPENAI_API_KEY=your_key_here
@@ -132,7 +132,7 @@ npm run start
 
 ```bash
 # Navigate to directory
-cd enginedge-workers/resume-nlp-service
+cd enginedge-workers/spacy-service
 
 # Create virtual environment
 python -m venv venv
@@ -164,14 +164,14 @@ cd enginedge-core/platform
 docker-compose up -d mongodb kafka redis
 
 # Start resume services
-docker-compose up -d resume-worker resume-nlp-service
+docker-compose up -d resume-worker spacy-service
 
 # Check status
 docker-compose ps
 
 # View logs
 docker-compose logs -f resume-worker
-docker-compose logs -f resume-nlp-service
+docker-compose logs -f spacy-service
 
 # Stop services
 docker-compose down
@@ -210,21 +210,21 @@ docker rm resume-worker
 
 ```bash
 # Build image
-cd enginedge-workers/resume-nlp-service
-docker build -t resume-nlp-service:latest .
+cd enginedge-workers/spacy-service
+docker build -t spacy-service:latest .
 
 # Run container
 docker run -d \
-  --name resume-nlp-service \
+  --name spacy-service \
   -p 8001:8001 \
   -e PORT=8001 \
   -e KAFKA_BROKERS=host.docker.internal:9094 \
   -e WORKERS=4 \
   --add-host=host.docker.internal:host-gateway \
-  resume-nlp-service:latest
+  spacy-service:latest
 
 # Check logs
-docker logs -f resume-nlp-service
+docker logs -f spacy-service
 ```
 
 ---
@@ -332,21 +332,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: resume-nlp-service
+  name: spacy-service
   namespace: resume-worker
 spec:
   replicas: 4
   selector:
     matchLabels:
-      app: resume-nlp-service
+      app: spacy-service
   template:
     metadata:
       labels:
-        app: resume-nlp-service
+        app: spacy-service
     spec:
       containers:
-      - name: resume-nlp-service
-        image: resume-nlp-service:latest
+      - name: spacy-service
+        image: spacy-service:latest
         ports:
         - containerPort: 8001
         env:
@@ -398,11 +398,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: resume-nlp-service
+  name: spacy-service
   namespace: resume-worker
 spec:
   selector:
-    app: resume-nlp-service
+    app: spacy-service
   ports:
   - protocol: TCP
     port: 8001
@@ -474,7 +474,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: resume-nlp-service
+    name: spacy-service
   minReplicas: 4
   maxReplicas: 20
   metrics:
@@ -506,7 +506,7 @@ kubectl get hpa -n resume-worker
 
 # View logs
 kubectl logs -f deployment/resume-worker -n resume-worker
-kubectl logs -f deployment/resume-nlp-service -n resume-worker
+kubectl logs -f deployment/spacy-service -n resume-worker
 
 # Scale manually
 kubectl scale deployment resume-worker --replicas=5 -n resume-worker
@@ -654,7 +654,7 @@ redis-cli BGSAVE
 ```bash
 # Kubernetes rollback
 kubectl rollout undo deployment/resume-worker -n resume-worker
-kubectl rollout undo deployment/resume-nlp-service -n resume-worker
+kubectl rollout undo deployment/spacy-service -n resume-worker
 
 # Docker rollback
 docker-compose down
@@ -669,5 +669,5 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed troubleshooting guide.
 
 ---
 
-**Last Updated:** November 3, 2025  
+**Last Updated:** November 3, 2025
 **Version:** 1.0.0

@@ -45,16 +45,19 @@ export class MongoDBPersistenceAdapter {
   private readonly collection;
 
   constructor(@InjectConnection() private readonly connection: Connection) {
-    this.collection = this.connection.db.collection<ConversationDocument>('conversations');
+    this.collection =
+      this.connection.db.collection<ConversationDocument>('conversations');
 
     // Create indexes for better query performance
-    this.collection.createIndexes([
-      { key: { conversationId: 1 }, unique: true },
-      { key: { userId: 1 } },
-      { key: { 'metadata.updatedAt': -1 } },
-    ]).catch(() => {
-      // Indexes may already exist, ignore errors
-    });
+    this.collection
+      .createIndexes([
+        { key: { conversationId: 1 }, unique: true },
+        { key: { userId: 1 } },
+        { key: { 'metadata.updatedAt': -1 } },
+      ])
+      .catch(() => {
+        // Indexes may already exist, ignore errors
+      });
   }
 
   /**

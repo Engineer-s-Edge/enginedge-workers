@@ -373,7 +373,8 @@ export class DocumentProcessingService {
           'LLM summarization failed, falling back to truncation',
         );
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.warn(
           `LLM summarization error: ${message}, using truncation`,
         );
@@ -415,9 +416,11 @@ export class DocumentProcessingService {
         'http://localhost:3001';
 
       // Truncate content if too long for LLM (most models have token limits)
-      const contentForSummary = content.length > 10000
-        ? content.substring(0, 10000) + '\n\n[Content truncated for summarization...]'
-        : content;
+      const contentForSummary =
+        content.length > 10000
+          ? content.substring(0, 10000) +
+            '\n\n[Content truncated for summarization...]'
+          : content;
 
       const response = await fetch(`${assistantWorkerUrl}/llm/complete`, {
         method: 'POST',
@@ -455,7 +458,9 @@ export class DocumentProcessingService {
 
       // If summary is too long, truncate it
       if (summary && summary.length > maxLength) {
-        return summary.substring(0, maxLength - 20) + '\n\n[Summary truncated...]';
+        return (
+          summary.substring(0, maxLength - 20) + '\n\n[Summary truncated...]'
+        );
       }
 
       return null;

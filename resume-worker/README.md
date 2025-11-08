@@ -390,7 +390,7 @@ curl http://localhost:3006/metrics
 ```bash
 # From platform directory
 cd enginedge-core/platform
-docker-compose up resume-worker resume-nlp-service
+docker-compose up resume-worker spacy-service
 ```
 
 ### Standalone Docker
@@ -452,8 +452,8 @@ For issues, questions, or contributions:
 
 ### 🌟 Star this repo if you find it helpful! 🌟
 
-**Status:** ✅ Production Ready (100% complete)  
-**Version:** 1.0.0  
+**Status:** ✅ Production Ready (100% complete)
+**Version:** 1.0.0
 **Last Updated:** November 3, 2025
 
 ---

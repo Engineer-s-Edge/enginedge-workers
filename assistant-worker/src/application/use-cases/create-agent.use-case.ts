@@ -17,7 +17,13 @@ export interface CreateAgentRequest {
   systemPrompt?: string;
   enableTools?: boolean;
   userId?: string;
-  agentType?: 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager';
+  agentType?:
+    | 'react'
+    | 'graph'
+    | 'expert'
+    | 'genius'
+    | 'collective'
+    | 'manager';
 }
 
 /**

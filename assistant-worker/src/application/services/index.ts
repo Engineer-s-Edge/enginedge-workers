@@ -7,3 +7,5 @@ export { MemoryService } from './memory.service';
 export { KnowledgeGraphService } from './knowledge-graph.service';
 export { CheckpointService } from './checkpoint.service';
 export { HITLService } from './hitl.service';
+export { TopicCatalogService } from './topic-catalog.service';
+export { CategoryService } from './category.service';

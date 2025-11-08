@@ -145,7 +145,9 @@ export class ResumeIteratorGateway
       if (response.ok) {
         const result = await response.json();
         client.emit('agent-message', {
-          message: result.content || 'I understand. Let me help you improve your resume.',
+          message:
+            result.content ||
+            'I understand. Let me help you improve your resume.',
           thinking: false,
         });
       } else {

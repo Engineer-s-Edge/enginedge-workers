@@ -115,15 +115,15 @@ groups:
           summary: "High job failure rate"
           description: "Job failure rate is {{ $value | humanizePercentage }} (threshold: 10%)"
 
-  - name: resume_nlp_service
+  - name: SPACY_SERVICE
     interval: 1m
     rules:
       - alert: ResumeNLPServiceDown
-        expr: up{job="resume-nlp-service"} == 0
+        expr: up{job="spacy-service"} == 0
         for: 2m
         labels:
           severity: critical
-          service: resume-nlp-service
+          service: spacy-service
         annotations:
           summary: "Resume NLP Service is down"
           description: "Resume NLP Service has been down for more than 2 minutes"
@@ -133,17 +133,17 @@ groups:
         for: 5m
         labels:
           severity: warning
-          service: resume-nlp-service
+          service: spacy-service
         annotations:
           summary: "High NLP processing time"
           description: "P95 bullet evaluation time is {{ $value }}s (threshold: 5s)"
 
       - alert: NLPServiceHighMemory
-        expr: process_resident_memory_bytes{job="resume-nlp-service"} > 4e9
+        expr: process_resident_memory_bytes{job="spacy-service"} > 4e9
         for: 10m
         labels:
           severity: warning
-          service: resume-nlp-service
+          service: spacy-service
         annotations:
           summary: "NLP Service high memory usage"
           description: "Memory usage is {{ $value | humanize }}B (threshold: 4GB)"

@@ -374,8 +374,7 @@ export class ResumeEvaluatorService {
           .findById(jobPostingId)
           .exec();
         if (jobPosting) {
-          const requiredSkills =
-            jobPosting.parsed.skills.skillsExplicit || [];
+          const requiredSkills = jobPosting.parsed.skills.skillsExplicit || [];
           for (const skill of requiredSkills.slice(0, 5)) {
             const results = await this.experienceBankService.search(userId, {
               query: skill,
@@ -403,16 +402,17 @@ export class ResumeEvaluatorService {
       // For low-scoring bullets, find better alternatives
       for (const { index, evaluation } of lowScoreBullets) {
         // Extract keywords from current bullet
-        const currentBullet = parsedResume.sections.experience
-          .flatMap((exp: any) => exp.bullets || [])
-          [index];
+        const currentBullet = parsedResume.sections.experience.flatMap(
+          (exp: any) => exp.bullets || [],
+        )[index];
 
         if (currentBullet) {
           // Search for better bullets
-          const keywords = currentBullet
-            .toLowerCase()
-            .match(/\b\w{4,}\b/g)
-            ?.slice(0, 3) || [];
+          const keywords =
+            currentBullet
+              .toLowerCase()
+              .match(/\b\w{4,}\b/g)
+              ?.slice(0, 3) || [];
 
           for (const keyword of keywords) {
             const results = await this.experienceBankService.search(userId, {

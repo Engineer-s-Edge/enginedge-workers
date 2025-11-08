@@ -58,7 +58,7 @@ export class ExperienceBankService {
 
   async search(userId: string, params: SearchParams) {
     const cacheKey = `search:${userId}:${JSON.stringify(params)}`;
-    
+
     // Check cache
     const cached = await this.redis.get(cacheKey);
     if (cached) return JSON.parse(cached);
@@ -111,7 +111,7 @@ async search(userId: string, params: SearchParams) {
 async evaluateBullets(bullets: string[], role?: string) {
   // Send single Kafka message with all bullets
   const requestId = uuid();
-  
+
   await this.kafkaClient.emit('resume.bullet.evaluate.batch.request', {
     requestId,
     bullets,
@@ -167,10 +167,10 @@ from multiprocessing import Pool
 def parse_pdf_parallel(pdf_path: str):
     with fitz.open(pdf_path) as doc:
         page_count = len(doc)
-        
+
     with Pool(processes=4) as pool:
         results = pool.map(process_page, range(page_count))
-    
+
     return combine_results(results)
 ```
 
@@ -418,11 +418,11 @@ const COLD_CACHE_TTL = 3600;
 // Invalidate on write
 async add(data: ExperienceBankItemData) {
   const item = await this.model.create(data);
-  
+
   // Invalidate user's cache
   await this.redis.del(`search:${data.userId}:*`);
   await this.redis.del(`list:${data.userId}`);
-  
+
   return item;
 }
 ```
@@ -516,7 +516,7 @@ services:
     deploy:
       replicas: 3
 
-  resume-nlp-service:
+  spacy-service:
     deploy:
       replicas: 4
 ```
@@ -569,5 +569,5 @@ nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes
 
 ---
 
-**Last Updated:** November 3, 2025  
+**Last Updated:** November 3, 2025
 **Version:** 1.0.0

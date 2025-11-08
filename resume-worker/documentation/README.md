@@ -104,7 +104,7 @@ Production deployment guides:
   - [Assistant Worker](../../assistant-worker/documentation/)
   - [Data Processing Worker](../../data-processing-worker/documentation/)
   - [LaTeX Worker](../../latex-worker/documentation/)
-  - [Resume NLP Service](../../resume-nlp-service/)
+  - [Resume NLP Service](../../spacy-service/)
 
 ## 📝 Contributing to Documentation
 
@@ -127,6 +127,6 @@ If you can't find what you're looking for:
 
 ---
 
-**Last Updated**: November 3, 2025  
-**Version**: 1.0.0  
+**Last Updated**: November 3, 2025
+**Version**: 1.0.0
 **Status**: ✅ Production Ready

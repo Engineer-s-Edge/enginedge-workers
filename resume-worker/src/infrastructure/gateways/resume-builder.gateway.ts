@@ -109,7 +109,7 @@ export class ResumeBuilderGateway
             {
               role: 'system',
               content:
-                'You are a helpful resume building assistant. Ask follow-up questions to gather detailed information about the user\'s work experience, projects, and skills. Be conversational and friendly.',
+                "You are a helpful resume building assistant. Ask follow-up questions to gather detailed information about the user's work experience, projects, and skills. Be conversational and friendly.",
             },
             {
               role: 'user',

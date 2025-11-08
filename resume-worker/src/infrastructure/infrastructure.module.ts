@@ -51,10 +51,6 @@ import { MessageBrokerPort } from '../application/ports/message-broker.port';
       useExisting: KafkaMessageBrokerAdapter,
     },
   ],
-  exports: [
-    RedisCacheAdapter,
-    KafkaMessageBrokerAdapter,
-    'MessageBrokerPort',
-  ],
+  exports: [RedisCacheAdapter, KafkaMessageBrokerAdapter, 'MessageBrokerPort'],
 })
 export class InfrastructureModule {}

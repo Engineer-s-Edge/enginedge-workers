@@ -21,6 +21,7 @@ import { CandidateProfileService } from '../../application/services/candidate-pr
 import { ITranscriptRepository } from '../../application/ports/repositories.port';
 import { GoogleSpeechAdapter } from '../adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from '../adapters/voice/azure-speech.adapter';
+import { FillerWordDetectorAdapter } from '../adapters/voice/filler-word-detector.adapter';
 
 interface InterviewSocket extends WebSocket {
   sessionId?: string;
@@ -43,6 +44,7 @@ export class InterviewWebSocketGateway
   private readonly logger = new Logger(InterviewWebSocketGateway.name);
   private readonly speechAdapter: GoogleSpeechAdapter | AzureSpeechAdapter;
   private readonly audioBuffers = new Map<string, Buffer[]>();
+  private readonly sessionStartTimes = new Map<string, Date>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -50,6 +52,7 @@ export class InterviewWebSocketGateway
     private readonly profileService: CandidateProfileService,
     @Inject('ITranscriptRepository')
     private readonly transcriptRepository: ITranscriptRepository,
+    private readonly fillerWordDetector: FillerWordDetectorAdapter,
   ) {
     // Select speech adapter based on config
     const speechProvider =
@@ -73,6 +76,11 @@ export class InterviewWebSocketGateway
     if (client.sessionId && this.audioBuffers.has(client.sessionId)) {
       this.finalizeTranscription(client.sessionId);
       this.audioBuffers.delete(client.sessionId);
+    }
+
+    // Clean up session start time
+    if (client.sessionId) {
+      this.sessionStartTimes.delete(client.sessionId);
     }
   }
 
@@ -112,6 +120,9 @@ export class InterviewWebSocketGateway
           communicationMode: session.communicationMode,
         }),
       );
+
+      // Track session start time for filler word frequency calculation
+      this.sessionStartTimes.set(data.sessionId, new Date());
 
       this.logger.log('Session initialized', { sessionId: data.sessionId });
     } catch (error) {
@@ -232,8 +243,17 @@ export class InterviewWebSocketGateway
         'en-US',
       );
 
-      // Detect filler words (simple regex for now)
-      const fillerWords = this.detectFillerWords(transcription);
+      // Calculate duration for frequency analysis
+      const sessionStart = this.sessionStartTimes.get(sessionId);
+      const durationSeconds = sessionStart
+        ? (Date.now() - sessionStart.getTime()) / 1000
+        : 60.0;
+
+      // Detect filler words using ML service with fallback
+      const fillerAnalysis = await this.fillerWordDetector.detectFillerWords(
+        transcription,
+        durationSeconds,
+      );
 
       // Add to transcript
       await this.transcriptRepository.appendMessage(sessionId, {
@@ -243,16 +263,24 @@ export class InterviewWebSocketGateway
         type: 'voice-transcription',
       });
 
-      // If fillers detected, add observation
-      if (fillerWords.length > 0 && session.communicationMode === 'voice') {
+      // If fillers detected, add observation with frequency info
+      if (
+        fillerAnalysis.fillers.length > 0 &&
+        session.communicationMode === 'voice'
+      ) {
+        const observationMessage =
+          fillerAnalysis.frequency > 5
+            ? `High frequency of filler words (${fillerAnalysis.frequency.toFixed(1)}/min): ${fillerAnalysis.fillers.join(', ')}`
+            : `Used filler words: ${fillerAnalysis.fillers.join(', ')}`;
+
         await this.profileService.appendObservation(
           sessionId,
           'concerns',
-          `Used filler words during speech: ${fillerWords.join(', ')}`,
+          observationMessage,
         );
       }
 
-      // Broadcast transcription to client
+      // Broadcast transcription to client with enhanced filler analysis
       this.server.clients.forEach((client) => {
         const ws = client as InterviewSocket;
         if (ws.sessionId === sessionId) {
@@ -260,7 +288,12 @@ export class InterviewWebSocketGateway
             JSON.stringify({
               type: 'transcription',
               text: transcription,
-              fillerWords,
+              fillerWords: fillerAnalysis.fillers,
+              fillerAnalysis: {
+                frequency: fillerAnalysis.frequency,
+                confidence: fillerAnalysis.confidence,
+                patterns: fillerAnalysis.patterns,
+              },
             }),
           );
         }
@@ -278,25 +311,6 @@ export class InterviewWebSocketGateway
     if (buffer && buffer.length > 0) {
       await this.transcribeAudioChunk(sessionId, Buffer.concat(buffer));
     }
-  }
-
-  /**
-   * Detect filler words in transcription
-   */
-  private detectFillerWords(text: string): string[] {
-    const fillers = ['um', 'uh', 'ah', 'like', 'you know', 'so', 'well', 'er'];
-    const detected: string[] = [];
-    const lowerText = text.toLowerCase();
-
-    fillers.forEach((filler) => {
-      const regex = new RegExp(`\\b${filler}\\b`, 'gi');
-      const matches = lowerText.match(regex);
-      if (matches) {
-        detected.push(...matches);
-      }
-    });
-
-    return [...new Set(detected)]; // Remove duplicates
   }
 
   /**

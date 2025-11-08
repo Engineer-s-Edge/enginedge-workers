@@ -100,9 +100,7 @@ export class PuppeteerWebLoaderAdapter extends WebLoaderPort {
         throw error;
       }
     } catch (error: any) {
-      this.logger.error(
-        `Failed to load URL with Puppeteer: ${error.message}`,
-      );
+      this.logger.error(`Failed to load URL with Puppeteer: ${error.message}`);
       // Fallback to HTTP
       try {
         return this.loadViaHttp(url, options);
@@ -139,17 +137,13 @@ export class PuppeteerWebLoaderAdapter extends WebLoaderPort {
     const content = await response.text();
 
     return [
-      new Document(
-        `http-${url}`.replace(/[^a-zA-Z0-9-]/g, '-'),
-        content,
-        {
-          source: url,
-          loader: this.name,
-          contentType: response.headers.get('content-type') || undefined,
-          timestamp: new Date().toISOString(),
-          note: 'Loaded via HTTP fallback (Puppeteer not available)',
-        },
-      ),
+      new Document(`http-${url}`.replace(/[^a-zA-Z0-9-]/g, '-'), content, {
+        source: url,
+        loader: this.name,
+        contentType: response.headers.get('content-type') || undefined,
+        timestamp: new Date().toISOString(),
+        note: 'Loaded via HTTP fallback (Puppeteer not available)',
+      }),
     ];
   }
 

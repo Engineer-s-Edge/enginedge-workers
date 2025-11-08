@@ -38,28 +38,35 @@ export class MongoDBPersistenceAdapter {
   private readonly collection;
 
   constructor(@InjectConnection() private readonly connection: Connection) {
-    this.collection = this.connection.db.collection<ConversationDocument>('conversations');
+    this.collection =
+      this.connection.db.collection<ConversationDocument>('conversations');
 
     // Create indexes for better query performance
-    this.collection.createIndexes([
-      { key: { conversationId: 1 }, unique: true },
-      { key: { userId: 1 } },
-      { key: { 'metadata.updatedAt': -1 } },
-    ]).catch(() => {
-      // Indexes may already exist, ignore errors
-    });
+    this.collection
+      .createIndexes([
+        { key: { conversationId: 1 }, unique: true },
+        { key: { userId: 1 } },
+        { key: { 'metadata.updatedAt': -1 } },
+      ])
+      .catch(() => {
+        // Indexes may already exist, ignore errors
+      });
   }
 
   async saveDocument(documentId: string, data: any): Promise<void> {
-    await this.connection.db.collection('documents').updateOne(
-      { documentId },
-      { $set: { ...data, updatedAt: new Date() } },
-      { upsert: true },
-    );
+    await this.connection.db
+      .collection('documents')
+      .updateOne(
+        { documentId },
+        { $set: { ...data, updatedAt: new Date() } },
+        { upsert: true },
+      );
   }
 
   async loadDocument(documentId: string): Promise<any> {
-    return await this.connection.db.collection('documents').findOne({ documentId });
+    return await this.connection.db
+      .collection('documents')
+      .findOne({ documentId });
   }
 
   async deleteDocument(documentId: string): Promise<void> {

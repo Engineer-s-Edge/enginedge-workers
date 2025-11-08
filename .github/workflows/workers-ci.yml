@@ -40,8 +40,8 @@ jobs:
               - 'enginedge-workers/identity-worker/**'
             scheduling-worker:
               - 'enginedge-workers/scheduling-worker/**'
-            resume-nlp-service:
-              - 'enginedge-workers/resume-nlp-service/**'
+            spacy-service:
+              - 'enginedge-workers/spacy-service/**'
       - name: Build matrix JSON
         id: set-matrix
         run: |
@@ -65,7 +65,7 @@ jobs:
           done
           matrix_json="{\"include\":[${list[*]}]}"
           echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
-          python_changed=$(jq -r '."resume-nlp-service"' <<<'${{ toJson(steps.filter.outputs) }}')
+          python_changed=$(jq -r '."spacy-service"' <<<'${{ toJson(steps.filter.outputs) }}')
           echo "python_changed=$python_changed" >> $GITHUB_OUTPUT
 
   node-workers:
@@ -128,7 +128,7 @@ jobs:
     if: ${{ needs.changes.outputs.python-changed == 'true' }}
     strategy:
       matrix:
-        service: [resume-nlp-service]
+        service: [spacy-service]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -23,7 +23,7 @@ from src.services.text_analyzer import TextAnalyzer
 logger = logging.getLogger(__name__)
 
 
-class ResumeNLPConsumer:
+class SpacyServiceConsumer:
     def __init__(self, kafka_brokers: str):
         self.kafka_brokers = kafka_brokers
 
@@ -41,7 +41,7 @@ class ResumeNLPConsumer:
             "resume.text.analyze",
             bootstrap_servers=kafka_brokers,
             value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-            group_id="resume-nlp-service",
+            group_id="spacy-service",
         )
 
         # Initialize Kafka producer for responses
@@ -179,7 +179,7 @@ def main():
     kafka_brokers = os.getenv("KAFKA_BROKERS", "localhost:9092")
 
     # Start consumer
-    consumer = ResumeNLPConsumer(kafka_brokers)
+    consumer = SpacyServiceConsumer(kafka_brokers)
     consumer.start()
 
 

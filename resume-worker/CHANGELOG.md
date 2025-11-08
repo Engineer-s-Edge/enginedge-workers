@@ -126,7 +126,7 @@ All notable changes to the Resume Worker project will be documented in this file
 
 ### Deployment
 - Dockerfile for resume-worker
-- Dockerfile for resume-nlp-service
+- Dockerfile for spacy-service
 - Integration with platform docker-compose
 - Environment configuration
 - Health check endpoints
@@ -137,7 +137,7 @@ All notable changes to the Resume Worker project will be documented in this file
 - Updated package.json with proper scripts and jest configuration
 - Moved docker-compose configuration to platform
 - Restructured documentation folder to match assistant-worker pattern
-- Updated resume-nlp-service README to match worker style
+- Updated spacy-service README to match worker style
 
 ### Removed
 - Standalone docker-compose.resume.yml (moved to platform)
@@ -149,7 +149,7 @@ All notable changes to the Resume Worker project will be documented in this file
 
 ### Infrastructure
 - Added resume-worker to platform docker-compose.yml
-- Added resume-nlp-service to platform docker-compose.yml
+- Added spacy-service to platform docker-compose.yml
 - Configured proper service dependencies
 - Set up environment variables for inter-service communication
 
@@ -165,4 +165,3 @@ All notable changes to the Resume Worker project will be documented in this file
 **Note**: This project follows [Semantic Versioning](https://semver.org/).
 
 **Status**: ✅ Production Ready (100% complete)
-

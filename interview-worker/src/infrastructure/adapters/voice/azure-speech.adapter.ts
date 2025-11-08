@@ -153,7 +153,9 @@ export class AzureSpeechAdapter {
             text,
             (result: any) => {
               synthesizer.close();
-              if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+              if (
+                result.reason === sdk.ResultReason.SynthesizingAudioCompleted
+              ) {
                 resolve(Buffer.from(result.audioData));
               } else {
                 reject(new Error(`Synthesis failed: ${result.reason}`));
@@ -181,10 +183,7 @@ export class AzureSpeechAdapter {
   /**
    * Text-to-Speech using Azure REST API
    */
-  private async textToSpeechRest(
-    text: string,
-    voice: string,
-  ): Promise<Buffer> {
+  private async textToSpeechRest(text: string, voice: string): Promise<Buffer> {
     // Get access token
     const tokenUrl = `https://${this.region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`;
     const tokenResponse = await fetch(tokenUrl, {

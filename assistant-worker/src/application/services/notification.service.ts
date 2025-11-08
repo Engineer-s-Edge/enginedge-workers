@@ -9,7 +9,12 @@ import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ILogger } from '../ports/logger.port';
 
-export type NotificationChannel = 'email' | 'in-app' | 'push' | 'webhook' | 'sms';
+export type NotificationChannel =
+  | 'email'
+  | 'in-app'
+  | 'push'
+  | 'webhook'
+  | 'sms';
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface Notification {
@@ -192,10 +197,9 @@ export class NotificationService {
           }),
         });
       } catch (error) {
-        this.logger.warn(
-          `Email service unavailable, notification queued`,
-          { userId },
-        );
+        this.logger.warn(`Email service unavailable, notification queued`, {
+          userId,
+        });
       }
     } else {
       this.logger.debug(`Email notification (no service configured)`, {
@@ -246,10 +250,9 @@ export class NotificationService {
           }),
         });
       } catch (error) {
-        this.logger.warn(
-          `Push service unavailable, notification queued`,
-          { userId },
-        );
+        this.logger.warn(`Push service unavailable, notification queued`, {
+          userId,
+        });
       }
     } else {
       this.logger.debug(`Push notification (no service configured)`, {

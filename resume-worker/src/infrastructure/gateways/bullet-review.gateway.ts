@@ -135,13 +135,16 @@ export class BulletReviewGateway
       if (response.ok) {
         const result = await response.json();
         client.emit('agent-feedback', {
-          feedback: result.content || 'Can you provide more details about the specific metrics you achieved?',
+          feedback:
+            result.content ||
+            'Can you provide more details about the specific metrics you achieved?',
           thinking: false,
         });
       } else {
         // Fallback
         client.emit('agent-feedback', {
-          feedback: 'Can you provide more details about the specific metrics you achieved?',
+          feedback:
+            'Can you provide more details about the specific metrics you achieved?',
           thinking: false,
         });
       }

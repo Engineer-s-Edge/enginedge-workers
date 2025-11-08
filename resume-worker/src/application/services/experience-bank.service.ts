@@ -57,8 +57,7 @@ export interface ListOptions {
 
 @Injectable()
 export class ExperienceBankService {
-  constructor() // TODO: Inject repository when implemented
-  {}
+  constructor() {} // TODO: Inject repository when implemented
 
   async addBullet(
     userId: string,

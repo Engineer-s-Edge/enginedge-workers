@@ -10,14 +10,17 @@ import {
   TopicMetadata,
   TopicSearchResult,
 } from '../interfaces';
+import { TopicCatalogService } from '@application/services/topic-catalog.service';
+import { GetTopicsForResearchUseCase } from '@application/use-cases/get-topics-for-research.use-case';
 
 @Injectable()
 export class TopicCatalogAdapter implements ITopicCatalogAdapter {
   private readonly logger = new Logger(TopicCatalogAdapter.name);
-  private topics: Map<string, TopicMetadata> = new Map();
 
-  // TODO: Inject real TopicCatalogService when available
-  // constructor(private topicCatalogService: TopicCatalogService) {}
+  constructor(
+    private readonly topicCatalogService: TopicCatalogService,
+    private readonly getTopicsUseCase: GetTopicsForResearchUseCase,
+  ) {}
 
   async addTopic(
     topic: string,
@@ -26,17 +29,29 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Adding topic: ${topic}`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.addTopic(topic, metadata);
-
-      // Stub implementation
-      const topicData: TopicMetadata = {
-        id: `topic-${Date.now()}`,
+      const result = await this.topicCatalogService.addTopic({
         name: topic,
-        ...metadata,
+        description: metadata.description,
+        sourceType: metadata.confidence ? 'curated' : 'organic',
+        estimatedComplexity: metadata.complexity
+          ? (parseInt(metadata.complexity.substring(1)) as any)
+          : undefined,
+        metadata: {
+          description: metadata.description,
+          keywords: metadata.relatedTopics,
+        },
+      });
+
+      return {
+        id: result.topic.id,
+        name: result.topic.name,
+        description: result.topic.description || '',
+        complexity: `L${result.topic.estimatedComplexity}` as any,
+        relatedTopics: result.topic.relatedCategories,
+        lastResearched: result.topic.lastUpdated,
+        researchCount: 0,
+        confidence: result.categorizationConfidence,
       };
-      this.topics.set(topic, topicData);
-      return topicData;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to add topic: ${err.message}`, err.stack);
@@ -46,11 +61,21 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
 
   async getTopic(topic: string): Promise<TopicMetadata | null> {
     try {
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.getTopic(topic);
+      const topicEntry = await this.topicCatalogService.getTopicByName(topic);
+      if (!topicEntry) {
+        return null;
+      }
 
-      // Stub implementation
-      return this.topics.get(topic) || null;
+      return {
+        id: topicEntry.id,
+        name: topicEntry.name,
+        description: topicEntry.description || '',
+        complexity: `L${topicEntry.estimatedComplexity}` as any,
+        relatedTopics: topicEntry.relatedCategories,
+        lastResearched: topicEntry.lastUpdated,
+        researchCount: 0,
+        confidence: topicEntry.categorizationConfidence,
+      };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to get topic: ${err.message}`, err.stack);
@@ -62,17 +87,12 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Searching topics for: ${query}`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.searchTopics(query);
-
-      // Stub implementation
-      return Array.from(this.topics.values())
-        .filter((t) => t.name.includes(query))
-        .map((t) => ({
-          topic: t.name,
-          relevanceScore: 0.8,
-          similarity: 0.8,
-        }));
+      const topics = await this.topicCatalogService.searchTopics(query);
+      return topics.map((t) => ({
+        topic: t.name,
+        relevanceScore: t.categorizationConfidence || 0.5,
+        similarity: t.categorizationConfidence || 0.5,
+      }));
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to search topics: ${err.message}`, err.stack);
@@ -84,13 +104,8 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Getting recommended topics for user ${userId}`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.getRecommendedTopics(userId, limit);
-
-      // Stub implementation
-      return Array.from(this.topics.values())
-        .slice(0, limit)
-        .map((t) => t.name);
+      const topics = await this.getTopicsUseCase.execute({ limit });
+      return topics.map((t) => t.name);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -108,15 +123,27 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Updating topic: ${topic}`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.updateTopic(topic, metadata);
+      const topicEntry = await this.topicCatalogService.getTopicByName(topic);
+      if (!topicEntry) {
+        throw new Error(`Topic not found: ${topic}`);
+      }
 
-      // Stub implementation
-      const existing = this.topics.get(topic);
-      if (!existing) throw new Error(`Topic not found: ${topic}`);
-      const updated = { ...existing, ...metadata };
-      this.topics.set(topic, updated);
-      return updated;
+      // Update the topic
+      const updated = await this.topicCatalogService.updateTopicStatus(
+        topicEntry.id,
+        metadata.confidence ? 'completed' : 'in-progress',
+      );
+
+      return {
+        id: updated.id,
+        name: updated.name,
+        description: updated.description || '',
+        complexity: `L${updated.estimatedComplexity}` as any,
+        relatedTopics: updated.relatedCategories,
+        lastResearched: updated.lastUpdated,
+        researchCount: 0,
+        confidence: updated.categorizationConfidence,
+      };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to update topic: ${err.message}`, err.stack);
@@ -128,13 +155,8 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Getting ${limit} trending topics`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.getTrendingTopics(limit);
-
-      // Stub implementation
-      return Array.from(this.topics.values())
-        .slice(0, limit)
-        .map((t) => t.name);
+      const topics = await this.topicCatalogService.getTopicsByPriority(limit);
+      return topics.map((t) => t.name);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -152,15 +174,27 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Tracking research for topic: ${topic}`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.trackResearch(topic, researchData);
-
-      // Stub implementation
-      const existing = this.topics.get(topic);
-      if (existing) {
-        existing.lastResearched = new Date();
-        existing.researchCount = (existing.researchCount || 0) + 1;
+      const topicEntry = await this.topicCatalogService.getTopicByName(topic);
+      if (!topicEntry) {
+        return false;
       }
+
+      // Update topic status to IN_PROGRESS if not already
+      if (topicEntry.status === 'not-started') {
+        await this.topicCatalogService.updateTopicStatus(
+          topicEntry.id,
+          'in-progress',
+        );
+      }
+
+      // If research data includes knowledgeNodeId, link it
+      if (researchData.knowledgeNodeId) {
+        await this.topicCatalogService.linkToKnowledgeNode(
+          topicEntry.id,
+          researchData.knowledgeNodeId as string,
+        );
+      }
+
       return true;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -173,12 +207,15 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
     try {
       this.logger.log(`Deleting topic: ${topic}`);
 
-      // TODO: Delegate to real TopicCatalogService
-      // return this.topicCatalogService.deleteTopic(topic);
+      const topicEntry = await this.topicCatalogService.getTopicByName(topic);
+      if (!topicEntry) {
+        return false;
+      }
 
-      // Stub implementation
-      const deleted = this.topics.delete(topic);
-      return deleted;
+      // Note: We'd need a delete method in TopicCatalogService
+      // For now, we'll just return false as deletion might not be desired
+      this.logger.warn('Topic deletion not implemented - topics are permanent');
+      return false;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to delete topic: ${err.message}`, err.stack);

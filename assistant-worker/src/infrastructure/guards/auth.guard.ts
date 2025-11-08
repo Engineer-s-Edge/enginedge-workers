@@ -33,17 +33,23 @@ export class AuthGuard implements CanActivate {
     const authHeader = request.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       this.logger.warn('No authorization header found');
-      throw new UnauthorizedException('Missing or invalid authorization header');
+      throw new UnauthorizedException(
+        'Missing or invalid authorization header',
+      );
     }
 
     try {
       const token = authHeader.substring(7);
 
       // Get public key from identity-worker JWKS endpoint
-      const identityWorkerUrl = process.env.IDENTITY_WORKER_URL || 'http://localhost:3000';
-      const jwksResponse = await fetch(`${identityWorkerUrl}/.well-known/jwks.json`, {
-        cache: 'no-store', // Don't cache for now - could be optimized
-      });
+      const identityWorkerUrl =
+        process.env.IDENTITY_WORKER_URL || 'http://localhost:3000';
+      const jwksResponse = await fetch(
+        `${identityWorkerUrl}/.well-known/jwks.json`,
+        {
+          cache: 'no-store', // Don't cache for now - could be optimized
+        },
+      );
 
       if (!jwksResponse.ok) {
         throw new Error('Failed to fetch JWKS');

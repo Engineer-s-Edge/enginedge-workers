@@ -192,7 +192,7 @@ interface EvaluationReport {
 - `evaluateBullets(texts, role)` - Batch evaluation
 
 **Modes**:
-- `nlp-only` - Rule-based via resume-nlp-service
+- `nlp-only` - Rule-based via spacy-service
 - `llm-assisted` - Enhanced with LLM
 
 **Integrations**:
@@ -225,7 +225,7 @@ interface EvaluationReport {
 
 **Workflow**:
 1. Compile LaTeX to PDF (latex-worker)
-2. Parse PDF (resume-nlp-service)
+2. Parse PDF (spacy-service)
 3. Run ATS checks
 4. Aggregate bullet scores
 5. Check role/JD alignment
@@ -617,6 +617,6 @@ Tailored Resume (PDF)
 
 ---
 
-**Last Updated:** November 3, 2025  
-**Version:** 1.0.0  
+**Last Updated:** November 3, 2025
+**Version:** 1.0.0
 **Architecture:** Hexagonal (Clean Architecture)

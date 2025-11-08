@@ -199,7 +199,12 @@ export class AssistantExecutorService {
         const conv = await this.conversations.createConversation({
           userId: executeDto.userId || 'default-user',
           rootAgentId: agentId,
-          type: assistant.agentType === 'react' ? 'react' : assistant.agentType === 'graph' ? 'graph' : 'base' as any,
+          type:
+            assistant.agentType === 'react'
+              ? 'react'
+              : assistant.agentType === 'graph'
+                ? 'graph'
+                : ('base' as any),
           initialMessage: {
             messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             role: 'user',
@@ -291,9 +296,10 @@ export class AssistantExecutorService {
       maxTokens: intelligenceConfig.tokenLimit || 4096,
       systemPrompt: this.buildSystemPromptFromAssistant(assistant),
       enableTools: (assistant.tools?.length || 0) > 0,
-      toolNames: assistant.tools
-        ?.filter((t) => t.isEnabled !== false)
-        .map((t) => t.toolName) || [],
+      toolNames:
+        assistant.tools
+          ?.filter((t) => t.isEnabled !== false)
+          .map((t) => t.toolName) || [],
       streamingEnabled: true,
       timeout: 30000,
     });
@@ -327,12 +333,7 @@ export class AssistantExecutorService {
     }
 
     // Create agent entity
-    agent = Agent.create(
-      assistant.name,
-      agentType,
-      agentConfig,
-      capability,
-    );
+    agent = Agent.create(assistant.name, agentType, agentConfig, capability);
 
     // Save to repository
     await this.agentRepository.save(agent);
@@ -353,7 +354,10 @@ export class AssistantExecutorService {
   private mapAssistantTypeToAgentType(
     assistantType: string,
   ): 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager' {
-    const typeMap: Record<string, 'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager'> = {
+    const typeMap: Record<
+      string,
+      'react' | 'graph' | 'expert' | 'genius' | 'collective' | 'manager'
+    > = {
       react: 'react',
       react_agent: 'react',
       graph: 'graph',
@@ -397,11 +401,11 @@ export class AssistantExecutorService {
 
     // Add subject expertise
     if (assistant.subjectExpertise && assistant.subjectExpertise.length > 0) {
-      parts.push(
-        `Subject expertise: ${assistant.subjectExpertise.join(', ')}`,
-      );
+      parts.push(`Subject expertise: ${assistant.subjectExpertise.join(', ')}`);
     }
 
-    return parts.join('\n\n') || `You are ${assistant.name}, a helpful AI assistant.`;
+    return (
+      parts.join('\n\n') || `You are ${assistant.name}, a helpful AI assistant.`
+    );
   }
 }

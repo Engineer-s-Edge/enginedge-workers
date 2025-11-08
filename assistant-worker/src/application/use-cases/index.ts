@@ -15,3 +15,5 @@ export {
   DeleteAgentResponse,
 } from './delete-agent.use-case';
 export { ProcessCommandUseCase } from './process-command.use-case';
+export { GetTopicsForResearchUseCase } from './get-topics-for-research.use-case';
+export { AddTopicUseCase } from './add-topic.use-case';

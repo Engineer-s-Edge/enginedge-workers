@@ -5,9 +5,10 @@
  * Implements union-find logic to efficiently track and merge disconnected subgraphs.
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
 import { KnowledgeGraphService } from './knowledge-graph.service';
+import { AgentEventService } from './agent-event.service';
 import {
   KGNode,
   KGEdge,
@@ -40,6 +41,8 @@ export class GraphComponentService {
     private readonly kgService: KnowledgeGraphService,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Optional()
+    private readonly eventService?: AgentEventService,
   ) {}
 
   /**
@@ -162,6 +165,30 @@ export class GraphComponentService {
     this.logger.info(
       `Successfully merged component ${smallerCompId} into ${largerCompId}`,
     );
+
+    // Emit component merge event
+    if (this.eventService) {
+      try {
+        this.eventService.emitEvent({
+          type: 'component.merged',
+          agentId: 'graph-component-service',
+          userId: 'system',
+          timestamp: new Date(),
+          data: {
+            componentId1: smallerCompId,
+            componentId2: largerCompId,
+            mergedInto: largerCompId,
+            nodeCount: largerComp.nodeCount,
+            edgeCount: largerComp.edgeCount,
+            categories: largerComp.categories,
+          },
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to emit component merge event: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   /**

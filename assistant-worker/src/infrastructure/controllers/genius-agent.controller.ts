@@ -102,10 +102,7 @@ export class GeniusAgentController {
    * GET /agents/genius/:id/experts - Get expert pool
    */
   @Get(':id/experts')
-  async getExpertPool(
-    @Param('id') agentId: string,
-    @UserId() userId: string,
-  ) {
+  async getExpertPool(@Param('id') agentId: string, @UserId() userId: string) {
     this.logger.info('Getting expert pool', { agentId });
 
     return {

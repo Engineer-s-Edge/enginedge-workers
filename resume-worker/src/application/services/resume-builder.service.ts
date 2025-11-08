@@ -359,9 +359,8 @@ export class ResumeBuilderService {
           : [];
 
         // Generate suggested bullets from contributions
-        const suggestedBullets = this.generateBulletsFromContributions(
-          contributions,
-        );
+        const suggestedBullets =
+          this.generateBulletsFromContributions(contributions);
 
         return {
           commits: commitCount,
@@ -369,9 +368,7 @@ export class ResumeBuilderService {
           suggestedBullets,
         };
       } else {
-        this.logger.warn(
-          `Failed to fetch GitHub data: ${response.statusText}`,
-        );
+        this.logger.warn(`Failed to fetch GitHub data: ${response.statusText}`);
         // Fall back to basic analysis
         return this.getBasicCodebaseAnalysis(githubUrl);
       }
@@ -405,9 +402,7 @@ export class ResumeBuilderService {
   /**
    * Generate bullet points from commit contributions.
    */
-  private generateBulletsFromContributions(
-    contributions: string[],
-  ): string[] {
+  private generateBulletsFromContributions(contributions: string[]): string[] {
     const bullets: string[] = [];
 
     for (const contribution of contributions.slice(0, 5)) {
@@ -424,7 +419,11 @@ export class ResumeBuilderService {
         bullet = `Developed authentication system, ${contribution.toLowerCase()}`;
       } else if (lower.includes('test') || lower.includes('testing')) {
         bullet = `Implemented testing framework, ${contribution.toLowerCase()}`;
-      } else if (lower.includes('ci') || lower.includes('cd') || lower.includes('pipeline')) {
+      } else if (
+        lower.includes('ci') ||
+        lower.includes('cd') ||
+        lower.includes('pipeline')
+      ) {
         bullet = `Set up CI/CD pipeline, ${contribution.toLowerCase()}`;
       } else if (lower.includes('database') || lower.includes('db')) {
         bullet = `Designed and implemented database schema, ${contribution.toLowerCase()}`;
@@ -572,7 +571,9 @@ export class ResumeBuilderService {
       const matches = bulletText.match(pattern);
       if (matches) {
         technologies.push(
-          ...matches.map((m) => m.trim()).filter((m) => !technologies.includes(m)),
+          ...matches
+            .map((m) => m.trim())
+            .filter((m) => !technologies.includes(m)),
         );
       }
     }
@@ -637,7 +638,8 @@ export class ResumeBuilderService {
     // Calculate ATS score (based on keyword density and structure)
     let atsScore = 0.5; // Base score
     if (bulletText.length >= 20 && bulletText.length <= 200) atsScore += 0.2;
-    if (actionVerbs.some((verb) => lowerBullet.startsWith(verb))) atsScore += 0.2;
+    if (actionVerbs.some((verb) => lowerBullet.startsWith(verb)))
+      atsScore += 0.2;
     if (metrics.length > 0) atsScore += 0.1;
     atsScore = Math.min(1.0, atsScore);
 

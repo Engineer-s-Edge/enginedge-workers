@@ -240,7 +240,9 @@ export class MLModelClient {
    * @param userId - User ID
    * @returns Pattern analysis from ML service
    */
-  async analyzeUserPatterns(userId: string): Promise<UserPatternsResponse | null> {
+  async analyzeUserPatterns(
+    userId: string,
+  ): Promise<UserPatternsResponse | null> {
     try {
       this.logger.debug(`Analyzing patterns for user ${userId}`);
 

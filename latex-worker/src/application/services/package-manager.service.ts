@@ -177,9 +177,9 @@ export class PackageManagerService {
       if (result.exitCode === 0 && result.stdout.includes(packageName)) {
         // Parse package info from tlmgr output
         const lines = result.stdout.split('\n');
-        const versionMatch = lines.find((line) =>
-          line.includes('revision'),
-        )?.match(/revision\s+(\d+)/i);
+        const versionMatch = lines
+          .find((line) => line.includes('revision'))
+          ?.match(/revision\s+(\d+)/i);
         const version = versionMatch ? versionMatch[1] : '1.0.0';
 
         const pkg = LaTeXPackage.create(packageName).markInstalled({

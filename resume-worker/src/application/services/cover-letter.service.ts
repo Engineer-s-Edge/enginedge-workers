@@ -152,16 +152,25 @@ export class CoverLetterService {
         const recentNews = this.extractNews(html);
 
         return {
-          description: description || `${companyName} is a leading technology company.`,
+          description:
+            description || `${companyName} is a leading technology company.`,
           mission: mission || 'To innovate and deliver exceptional products.',
-          values: values.length > 0 ? values : ['Innovation', 'Collaboration', 'Excellence'],
-          recentNews: recentNews.length > 0 ? recentNews : [
-            'Recently launched new product line',
-            'Expanded to new markets',
-          ],
+          values:
+            values.length > 0
+              ? values
+              : ['Innovation', 'Collaboration', 'Excellence'],
+          recentNews:
+            recentNews.length > 0
+              ? recentNews
+              : [
+                  'Recently launched new product line',
+                  'Expanded to new markets',
+                ],
         };
       } else {
-        this.logger.warn(`Failed to fetch company website: ${response.statusText}`);
+        this.logger.warn(
+          `Failed to fetch company website: ${response.statusText}`,
+        );
         return this.getDefaultCompanyInfo(companyName);
       }
     } catch (error) {
@@ -175,7 +184,9 @@ export class CoverLetterService {
    */
   private extractDescription(html: string, companyName: string): string {
     // Simple extraction - look for meta description or first paragraph
-    const metaMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
+    const metaMatch = html.match(
+      /<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i,
+    );
     if (metaMatch) {
       return metaMatch[1];
     }
@@ -399,9 +410,7 @@ export class CoverLetterService {
     const tone = options.tone || 'professional';
     const length = options.length || 'medium';
 
-    const experienceBullets = experiences
-      .map((e) => e.bulletText)
-      .join('\n- ');
+    const experienceBullets = experiences.map((e) => e.bulletText).join('\n- ');
 
     return `Write a ${tone} ${length} cover letter for the ${position} position at ${company}.
 
@@ -561,7 +570,8 @@ Please write a compelling cover letter that:
       jobPostingId: existing.jobPostingId,
       tone: options.tone || existing.metadata.tone,
       length: options.length || existing.metadata.length,
-      includeExperiences: options.includeExperiences || existing.metadata.experiencesUsed,
+      includeExperiences:
+        options.includeExperiences || existing.metadata.experiencesUsed,
       customInstructions: options.customInstructions,
     };
 
@@ -577,7 +587,8 @@ Please write a compelling cover letter that:
     existing.content = newContent;
     existing.metadata.tone = mergedOptions.tone || existing.metadata.tone;
     existing.metadata.length = mergedOptions.length || existing.metadata.length;
-    existing.metadata.experiencesUsed = mergedOptions.includeExperiences || existing.metadata.experiencesUsed;
+    existing.metadata.experiencesUsed =
+      mergedOptions.includeExperiences || existing.metadata.experiencesUsed;
     existing.updatedAt = new Date();
 
     this.coverLetters.set(coverLetterId, existing);

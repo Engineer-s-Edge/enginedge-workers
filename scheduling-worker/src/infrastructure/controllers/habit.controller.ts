@@ -168,11 +168,11 @@ export class HabitController {
       priority: dto.priority,
       estimatedDurationMinutes: dto.durationMinutes,
       preferredTimeOfDay: dto.targetTime
-        ? (dto.targetTime.includes('morning')
-            ? 'morning'
-            : dto.targetTime.includes('evening')
-              ? 'evening'
-              : 'afternoon')
+        ? dto.targetTime.includes('morning')
+          ? 'morning'
+          : dto.targetTime.includes('evening')
+            ? 'evening'
+            : 'afternoon'
         : undefined,
       isActive: dto.isActive,
       metadata: {

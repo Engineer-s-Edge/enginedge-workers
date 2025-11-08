@@ -5,7 +5,12 @@
  * Uses node-cron for scheduling and supports configurable timezones.
  */
 
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as cron from 'node-cron';
 import { ILogger } from '../ports/logger.port';
@@ -169,11 +174,7 @@ export class ScheduledLearningManagerService
 
     // Create new cron task if enabled
     if (updated.enabled) {
-      this.createCronTask(
-        scheduleId,
-        updated.cronExpression,
-        timezone,
-      );
+      this.createCronTask(scheduleId, updated.cronExpression, timezone);
     }
 
     this.logger.info(`Schedule updated`, { scheduleId });
@@ -225,10 +226,7 @@ export class ScheduledLearningManagerService
 
     // Recalculate next run
     const timezone = this.defaultTimezone; // Could be stored per schedule
-    schedule.nextRun = this.calculateNextRun(
-      schedule.cronExpression,
-      timezone,
-    );
+    schedule.nextRun = this.calculateNextRun(schedule.cronExpression, timezone);
 
     // Create cron task
     this.createCronTask(scheduleId, schedule.cronExpression, timezone);
@@ -304,10 +302,7 @@ export class ScheduledLearningManagerService
   /**
    * Calculate next run time from cron expression and timezone
    */
-  private calculateNextRun(
-    cronExpression: string,
-    timezone: string,
-  ): Date {
+  private calculateNextRun(cronExpression: string, timezone: string): Date {
     // Use a library like `cron-parser` for accurate next run calculation
     try {
       const parser = require('cron-parser');

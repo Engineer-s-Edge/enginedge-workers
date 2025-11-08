@@ -255,16 +255,18 @@ export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
     this.collection = this.db.collection<TodoItem>('todos');
 
     // Create indexes for better query performance
-    this.collection.createIndexes([
-      { key: { id: 1 }, unique: true },
-      { key: { status: 1 } },
-      { key: { priority: 1 } },
-      { key: { assignee: 1 } },
-      { key: { dueDate: 1 } },
-      { key: { createdAt: -1 } },
-    ]).catch(() => {
-      // Indexes may already exist, ignore errors
-    });
+    this.collection
+      .createIndexes([
+        { key: { id: 1 }, unique: true },
+        { key: { status: 1 } },
+        { key: { priority: 1 } },
+        { key: { assignee: 1 } },
+        { key: { dueDate: 1 } },
+        { key: { createdAt: -1 } },
+      ])
+      .catch(() => {
+        // Indexes may already exist, ignore errors
+      });
   }
 
   get category(): ActorCategory {
