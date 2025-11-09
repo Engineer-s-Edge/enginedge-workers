@@ -17,10 +17,16 @@ import { SessionController } from './controllers/session.controller';
 import { InterviewController } from './controllers/interview.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { ReportController } from './controllers/report.controller';
+import { WebhookController } from './controllers/webhook.controller';
+import { CodeExecutionController } from './controllers/code-execution.controller';
 import { InterviewWebSocketGateway } from './gateways/interview-websocket.gateway';
 import { GoogleSpeechAdapter } from './adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from './adapters/voice/azure-speech.adapter';
 import { FillerWordDetectorAdapter } from './adapters/voice/filler-word-detector.adapter';
+import { AudioFormatAdapter } from './adapters/voice/audio-format.adapter';
+import { WebhookDeliveryAdapter } from './adapters/webhooks/webhook-delivery.adapter';
+import { DockerCodeExecutorAdapter } from './adapters/code-execution/docker-code-executor.adapter';
+import { TestRunnerAdapter } from './adapters/code-execution/test-runner.adapter';
 import { StructuredLogger } from './adapters/logging/structured-logger';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import {
@@ -33,6 +39,8 @@ import {
   MongoTranscriptRepository,
   MongoInterviewReportRepository,
   MongoWebhookRepository,
+  MongoCodeExecutionRepository,
+  MongoTestCaseRepository,
 } from './adapters/database';
 import {
   IInterviewRepository,
@@ -44,6 +52,9 @@ import {
   IInterviewReportRepository,
   IWebhookRepository,
 } from '@application/ports/repositories.port';
+import { ICodeExecutor } from '@application/ports/code-executor.port';
+import { WebhookService } from '@application/services/webhook.service';
+import { CodeExecutionService } from '@application/services/code-execution.service';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -52,7 +63,7 @@ import {
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
- * Phase 5: Advanced features ⏳
+ * Phase 5: Advanced features ✅
  *
  * Made global to ensure DI providers are available across all modules
  */
@@ -71,6 +82,8 @@ import {
     InterviewController,
     ProfileController,
     ReportController,
+    WebhookController,
+    CodeExecutionController,
   ],
   providers: [
     // Logger
@@ -84,6 +97,19 @@ import {
     GoogleSpeechAdapter,
     AzureSpeechAdapter,
     FillerWordDetectorAdapter,
+    AudioFormatAdapter,
+    // Webhook System
+    WebhookService,
+    WebhookDeliveryAdapter,
+    // Code Execution System
+    CodeExecutionService,
+    {
+      provide: 'ICodeExecutor',
+      useClass: DockerCodeExecutorAdapter,
+    },
+    TestRunnerAdapter,
+    MongoCodeExecutionRepository,
+    MongoTestCaseRepository,
     // Repository implementations
     {
       provide: 'IInterviewRepository',
@@ -134,6 +160,13 @@ import {
     'ITranscriptRepository',
     'IInterviewReportRepository',
     'IWebhookRepository',
+    // Export code executor interface
+    'ICodeExecutor',
+    // Export services
+    WebhookService,
+    CodeExecutionService,
+    // Export adapters for use in other modules
+    AudioFormatAdapter,
   ],
 })
 export class InfrastructureModule {}

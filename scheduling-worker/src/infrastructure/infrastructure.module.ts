@@ -22,6 +22,8 @@ import { CalendarSyncService } from './adapters/sync/calendar-sync.service';
 import { MongoCalendarEventRepository } from './adapters/persistence/mongo-calendar-event.repository';
 import { MongoHabitRepository } from './adapters/persistence/mongo-habit.repository';
 import { MongoGoalRepository } from './adapters/persistence/mongo-goal.repository';
+import { MongoActivityPatternRepository } from './adapters/persistence/mongo-activity-pattern.repository';
+import { MongoActivityEventRepository } from './adapters/persistence/mongo-activity-event.repository';
 
 // Logging
 import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter';
@@ -33,12 +35,20 @@ import { KafkaMessageBrokerAdapter } from './adapters/messaging/kafka-message-br
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
+// ML Adapters
+import { ActivityMLAdapter } from './adapters/ml/activity-ml-adapter';
+
+// Monitoring
+import { ErrorMonitoringAdapter } from './adapters/monitoring/error-monitoring.adapter';
+
 // Controllers
 import { CalendarController } from './controllers/calendar.controller';
 import { HabitController } from './controllers/habit.controller';
 import { GoalController } from './controllers/goal.controller';
 import { SchedulingController } from './controllers/scheduling.controller';
 import { MLController } from './controllers/ml.controller';
+import { ActivityController } from './controllers/activity.controller';
+import { MetricsController } from './controllers/metrics.controller';
 
 // Gateways
 import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
@@ -60,9 +70,12 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
     GoalController,
     SchedulingController,
     MLController,
+    ActivityController,
+    MetricsController,
   ],
   providers: [
     MetricsAdapter,
+    ErrorMonitoringAdapter,
 
     // Auth
     GoogleAuthService,
@@ -102,6 +115,19 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
       provide: 'IGoalRepository',
       useClass: MongoGoalRepository,
     },
+    MongoActivityPatternRepository,
+    {
+      provide: 'IActivityPatternRepository',
+      useClass: MongoActivityPatternRepository,
+    },
+    MongoActivityEventRepository,
+    {
+      provide: 'IActivityEventRepository',
+      useClass: MongoActivityEventRepository,
+    },
+
+    // ML Adapters
+    ActivityMLAdapter,
 
     // Logging
     ConsoleLoggerAdapter,
@@ -136,6 +162,8 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
     'ICalendarEventRepository', // Export repository tokens for ApplicationModule
     'IHabitRepository',
     'IGoalRepository',
+    'IActivityPatternRepository',
+    'IActivityEventRepository',
     'IGoogleAuthService', // Export service tokens for ApplicationModule
     'IGoogleCalendarApiService',
     'ICalendarSyncService',
@@ -145,6 +173,11 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
     MongoCalendarEventRepository,
     MongoHabitRepository,
     MongoGoalRepository,
+    MongoActivityPatternRepository,
+    MongoActivityEventRepository,
+    ActivityMLAdapter,
+    MetricsAdapter,
+    ErrorMonitoringAdapter,
     ConsoleLoggerAdapter,
     StructuredLogger,
     KafkaMessageBrokerAdapter,

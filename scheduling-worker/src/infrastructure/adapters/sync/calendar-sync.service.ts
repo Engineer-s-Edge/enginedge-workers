@@ -7,6 +7,7 @@ import { IGoogleCalendarApiService } from '../../../application/ports/google-cal
 import { ICalendarEventRepository } from '../../../application/ports/repositories.port';
 import { CalendarEvent } from '../../../domain/entities/calendar-event.entity';
 import { CalendarSyncGateway } from '../../gateways/calendar-sync.gateway';
+import { MetricsAdapter } from '../monitoring/metrics.adapter';
 
 export enum ConflictResolutionStrategy {
   LAST_WRITE_WINS = 'last_write_wins',
@@ -29,6 +30,8 @@ export class CalendarSyncService implements ICalendarSyncService {
     private readonly eventRepository: ICalendarEventRepository,
     @Optional()
     private readonly syncGateway?: CalendarSyncGateway,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {}
 
   /**
@@ -87,9 +90,19 @@ export class CalendarSyncService implements ICalendarSyncService {
       this.syncStates.set(syncKey, syncState);
 
       const duration = Date.now() - startTime;
+      const durationSeconds = duration / 1000;
       this.logger.log(
         `Full sync completed in ${duration}ms for user ${userId}`,
       );
+
+      // Record metrics
+      if (this.metricsAdapter) {
+        this.metricsAdapter.incrementCalendarSync('success');
+        this.metricsAdapter.recordCalendarSyncDuration(
+          durationSeconds,
+          'success',
+        );
+      }
 
       // Emit sync complete
       if (this.syncGateway) {
@@ -101,6 +114,21 @@ export class CalendarSyncService implements ICalendarSyncService {
         });
       }
     } catch (error) {
+      const duration = Date.now() - startTime;
+      const durationSeconds = duration / 1000;
+      const errorType =
+        error instanceof Error ? error.constructor.name : 'UnknownError';
+
+      // Record error metrics
+      if (this.metricsAdapter) {
+        this.metricsAdapter.incrementCalendarSync('error');
+        this.metricsAdapter.recordCalendarSyncDuration(
+          durationSeconds,
+          'error',
+        );
+        this.metricsAdapter.incrementCalendarSyncErrors(errorType);
+      }
+
       // Emit error status
       if (this.syncGateway) {
         this.syncGateway.emitSyncStatus(userId, {
@@ -346,6 +374,7 @@ export class CalendarSyncService implements ICalendarSyncService {
 
     this.logger.debug(`Found ${remoteEvents.length} remote events`);
 
+    let eventsSaved = 0;
     for (const remoteEvent of remoteEvents) {
       try {
         // Note: Deleted event handling would require Google Calendar API to support it
@@ -357,6 +386,7 @@ export class CalendarSyncService implements ICalendarSyncService {
         if (!localEvent) {
           // New event - save to local
           await this.eventRepository.save(remoteEvent);
+          eventsSaved++;
           this.logger.debug(
             `Saved new event ${remoteEvent.id} to local storage`,
           );
@@ -370,10 +400,12 @@ export class CalendarSyncService implements ICalendarSyncService {
               this.strategy,
             );
             await this.eventRepository.save(resolved);
+            eventsSaved++;
             this.logger.debug(`Resolved and saved event ${remoteEvent.id}`);
           } else if (remoteEvent.updatedAt > localEvent.updatedAt) {
             // Remote is newer, no conflict
             await this.eventRepository.save(remoteEvent);
+            eventsSaved++;
             this.logger.debug(`Updated event ${remoteEvent.id} from remote`);
           }
           // Otherwise local is newer or same - do nothing
@@ -384,6 +416,11 @@ export class CalendarSyncService implements ICalendarSyncService {
           error instanceof Error ? error.message : String(error),
         );
       }
+    }
+
+    // Record metrics
+    if (this.metricsAdapter && eventsSaved > 0) {
+      this.metricsAdapter.incrementCalendarEventsSynced(eventsSaved);
     }
   }
 
@@ -437,6 +474,7 @@ export class CalendarSyncService implements ICalendarSyncService {
 
     this.logger.debug(`Found ${modifiedEvents.length} modified local events`);
 
+    let eventsPushed = 0;
     for (const localEvent of modifiedEvents) {
       try {
         // Try to update remote event
@@ -446,11 +484,13 @@ export class CalendarSyncService implements ICalendarSyncService {
             localEvent.id,
             localEvent,
           );
+          eventsPushed++;
           this.logger.debug(`Updated remote event ${localEvent.id}`);
         } catch (error) {
           // If event doesn't exist remotely (404), create it
           if (error instanceof Error && error.message.includes('404')) {
             await this.calendarApiService.createEvent(calendarId, localEvent);
+            eventsPushed++;
             this.logger.debug(`Created remote event ${localEvent.id}`);
           } else {
             throw error;
@@ -462,6 +502,11 @@ export class CalendarSyncService implements ICalendarSyncService {
           error instanceof Error ? error.message : String(error),
         );
       }
+    }
+
+    // Record metrics
+    if (this.metricsAdapter && eventsPushed > 0) {
+      this.metricsAdapter.incrementCalendarEventsSynced(eventsPushed);
     }
   }
 

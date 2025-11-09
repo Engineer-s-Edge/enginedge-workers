@@ -14,6 +14,7 @@ import {
   InterviewReport,
   QuestionCategory,
   Transcript,
+  Webhook,
 } from '../../domain/entities';
 
 export interface IInterviewRepository {
@@ -99,7 +100,10 @@ export interface IInterviewReportRepository {
 }
 
 export interface IWebhookRepository {
-  save(webhook: any): Promise<any>;
-  findByUserId(userId: string): Promise<any[]>;
-  findByEvent(event: string): Promise<any[]>;
+  save(webhook: Webhook): Promise<Webhook>;
+  findById(id: string): Promise<Webhook | null>;
+  findByUserId(userId: string): Promise<Webhook[]>;
+  findByEvent(event: string): Promise<Webhook[]>;
+  update(id: string, webhook: Partial<Webhook>): Promise<Webhook | null>;
+  delete(id: string): Promise<boolean>;
 }

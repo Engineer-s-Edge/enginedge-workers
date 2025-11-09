@@ -283,6 +283,149 @@ GET /schedule/insights?user=user1@example.com&period=30d
 }
 ```
 
+## Activity Model Service API
+
+### Get User Activity Patterns
+
+```http
+GET /activity/patterns/:userId
+```
+
+**Response:**
+```json
+{
+  "id": "act_pattern_123",
+  "userId": "user_123",
+  "patternType": "daily",
+  "preferredHours": [9, 10, 14, 15],
+  "preferredDays": [1, 2, 3, 4, 5],
+  "productivityScore": 0.85,
+  "completionRate": 0.78,
+  "averageFocusDuration": 60,
+  "peakProductivityHours": [9, 10],
+  "createdAt": "2025-01-01T00:00:00Z",
+  "updatedAt": "2025-01-10T12:00:00Z"
+}
+```
+
+### Track Event Completion
+
+```http
+POST /activity/events/:eventId/complete
+```
+
+**Request Body:**
+```json
+{
+  "userId": "user_123",
+  "scheduledTime": "2025-01-10T09:00:00Z",
+  "actualStartTime": "2025-01-10T09:05:00Z",
+  "actualEndTime": "2025-01-10T11:00:00Z",
+  "userRating": 5,
+  "productivityScore": 0.85,
+  "interruptions": 2
+}
+```
+
+**Response:**
+```json
+{
+  "id": "act_event_123",
+  "userId": "user_123",
+  "eventId": "event_456",
+  "scheduledTime": "2025-01-10T09:00:00Z",
+  "actualStartTime": "2025-01-10T09:05:00Z",
+  "actualEndTime": "2025-01-10T11:00:00Z",
+  "completed": true,
+  "completedOnTime": false,
+  "userRating": 5,
+  "productivityScore": 0.85,
+  "interruptions": 2,
+  "rescheduled": false
+}
+```
+
+### Get Schedule Efficiency Metrics
+
+```http
+GET /activity/efficiency/:userId?startDate=2025-01-01T00:00:00Z&endDate=2025-01-31T23:59:59Z
+```
+
+**Response:**
+```json
+{
+  "scheduleEfficiency": 0.82,
+  "timeUtilization": 0.75,
+  "completionRate": 0.78,
+  "punctualityRate": 0.85,
+  "productivityScore": 0.80,
+  "averageDelay": 5.2,
+  "rescheduleFrequency": 2.5,
+  "overallEfficiency": 0.80
+}
+```
+
+### Get Productivity Insights
+
+```http
+GET /activity/insights/:userId
+```
+
+**Response:**
+```json
+{
+  "overallProductivityScore": 0.85,
+  "bestProductivityHours": [9, 10],
+  "bestProductivityDays": [1, 2, 3, 4, 5],
+  "completionTrend": "improving",
+  "recommendations": [
+    "Consider scheduling tasks during your peak productivity hours for better completion rates.",
+    "Try scheduling important tasks during your most productive hours."
+  ]
+}
+```
+
+### Predict Event Success Probability
+
+```http
+GET /activity/predict/:eventId
+```
+
+**Response:**
+```json
+{
+  "eventId": "event_123",
+  "probability": 0.85
+}
+```
+
+### Analyze Time Usage
+
+```http
+POST /activity/analyze
+```
+
+**Request Body:**
+```json
+{
+  "userId": "user_123",
+  "startDate": "2025-01-01T00:00:00Z",
+  "endDate": "2025-01-31T23:59:59Z"
+}
+```
+
+**Response:**
+```json
+{
+  "totalTimeScheduled": 12000,
+  "totalTimeSpent": 9000,
+  "totalTimeWasted": 3000,
+  "averageSessionDuration": 60,
+  "mostActiveHours": [9, 10, 14],
+  "leastActiveHours": [12, 13, 17]
+}
+```
+
 ## Command Processing API
 
 ### Submit Command

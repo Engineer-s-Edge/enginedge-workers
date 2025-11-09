@@ -2,7 +2,13 @@
  * Repository Ports - Interfaces for data persistence
  */
 
-import { CalendarEvent, Habit, Goal } from '../../domain/entities';
+import {
+  CalendarEvent,
+  Habit,
+  Goal,
+  ActivityPattern,
+  ActivityEvent,
+} from '../../domain/entities';
 
 /**
  * Calendar Event Repository Port
@@ -144,6 +150,91 @@ export interface IGoalRepository {
 
   /**
    * Delete a goal
+   */
+  delete(id: string): Promise<void>;
+}
+
+/**
+ * Activity Pattern Repository Port
+ */
+export interface IActivityPatternRepository {
+  /**
+   * Save an activity pattern
+   */
+  save(pattern: ActivityPattern): Promise<ActivityPattern>;
+
+  /**
+   * Find pattern by ID
+   */
+  findById(id: string): Promise<ActivityPattern | null>;
+
+  /**
+   * Find pattern by user ID
+   */
+  findByUserId(userId: string): Promise<ActivityPattern | null>;
+
+  /**
+   * Find patterns by user ID and pattern type
+   */
+  findByUserIdAndType(
+    userId: string,
+    patternType: ActivityPattern['patternType'],
+  ): Promise<ActivityPattern | null>;
+
+  /**
+   * Update a pattern
+   */
+  update(
+    id: string,
+    pattern: Partial<ActivityPattern>,
+  ): Promise<ActivityPattern>;
+
+  /**
+   * Delete a pattern
+   */
+  delete(id: string): Promise<void>;
+}
+
+/**
+ * Activity Event Repository Port
+ */
+export interface IActivityEventRepository {
+  /**
+   * Save an activity event
+   */
+  save(event: ActivityEvent): Promise<ActivityEvent>;
+
+  /**
+   * Find event by ID
+   */
+  findById(id: string): Promise<ActivityEvent | null>;
+
+  /**
+   * Find events by user ID
+   */
+  findByUserId(userId: string): Promise<ActivityEvent[]>;
+
+  /**
+   * Find events by event ID (calendar event ID)
+   */
+  findByEventId(eventId: string): Promise<ActivityEvent | null>;
+
+  /**
+   * Find events in a date range
+   */
+  findByDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ActivityEvent[]>;
+
+  /**
+   * Find completed events
+   */
+  findCompletedByUserId(userId: string): Promise<ActivityEvent[]>;
+
+  /**
+   * Delete an event
    */
   delete(id: string): Promise<void>;
 }

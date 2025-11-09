@@ -1,9 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { MLModelClient } from './ml-model-client.service';
 import { TimeSlotService } from './time-slot.service';
 import { TaskSchedulerService, Task } from './task-scheduler.service';
 import { TimeSlot } from '../../domain/value-objects/time-slot.value-object';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
+import { ActivityModelService } from './activity-model.service';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 /**
  * ML-Enhanced Recommendation
@@ -70,6 +72,10 @@ export class RecommendationService {
     private readonly mlClient: MLModelClient,
     private readonly timeSlotService: TimeSlotService,
     private readonly taskScheduler: TaskSchedulerService,
+    @Optional()
+    private readonly activityModelService?: ActivityModelService,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {}
 
   /**
@@ -102,6 +108,7 @@ export class RecommendationService {
 
     // Check if ML service is available
     const mlAvailable = await this.mlClient.healthCheck();
+    const predictionStartTime = Date.now();
 
     if (!mlAvailable) {
       this.logger.warn(
@@ -167,14 +174,48 @@ export class RecommendationService {
     startDate: Date,
     endDate: Date,
   ): Promise<MLRecommendation> {
+    // Get user patterns if ActivityModelService is available
+    let userPattern = null;
+    if (this.activityModelService) {
+      try {
+        userPattern = await this.activityModelService.getUserPatterns(userId);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to get user patterns: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+    }
+
     // Get ML predictions
-    const mlPredictions = await this.mlClient.predictOptimalSlots(userId, {
-      title: task.title,
-      description: task.description,
-      duration: task.estimatedDuration,
-      priority: task.priority,
-      deadline: task.deadline?.toISOString(),
-    });
+    const predictionStart = Date.now();
+    let mlPredictions;
+    try {
+      mlPredictions = await this.mlClient.predictOptimalSlots(userId, {
+        title: task.title,
+        description: task.description,
+        duration: task.estimatedDuration,
+        priority: task.priority,
+        deadline: task.deadline?.toISOString(),
+      });
+
+      // Record metrics
+      if (this.metricsAdapter) {
+        const duration = (Date.now() - predictionStart) / 1000;
+        this.metricsAdapter.incrementMLPredictions('optimal_slots');
+        this.metricsAdapter.recordMLPredictionDuration(
+          duration,
+          'optimal_slots',
+        );
+      }
+    } catch (error) {
+      // Record error metrics
+      if (this.metricsAdapter) {
+        const errorType =
+          error instanceof Error ? error.constructor.name : 'UnknownError';
+        this.metricsAdapter.incrementMLPredictionErrors(errorType);
+      }
+      throw error;
+    }
 
     // Get available slots from rule-based system
     const availableSlots = this.timeSlotService.findAvailableSlots(
@@ -251,6 +292,12 @@ export class RecommendationService {
     }
     if (bestConfidence > 0.8) {
       reasons.push('High confidence prediction');
+    }
+    if (
+      userPattern &&
+      userPattern.isPeakProductivityHour(bestSlot.startTime.getHours())
+    ) {
+      reasons.push('Scheduled during your peak productivity hours');
     }
     if (reasons.length === 0) {
       reasons.push('Standard scheduling algorithm');

@@ -18,10 +18,16 @@ import { Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SessionService } from '../../application/services/session.service';
 import { CandidateProfileService } from '../../application/services/candidate-profile.service';
+import { CodeExecutionService } from '../../application/services/code-execution.service';
 import { ITranscriptRepository } from '../../application/ports/repositories.port';
-import { GoogleSpeechAdapter } from '../adapters/voice/google-speech.adapter';
+import {
+  GoogleSpeechAdapter,
+  StreamingRecognizer,
+} from '../adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from '../adapters/voice/azure-speech.adapter';
 import { FillerWordDetectorAdapter } from '../adapters/voice/filler-word-detector.adapter';
+import { AudioFormatAdapter } from '../adapters/voice/audio-format.adapter';
+import { MongoTestCaseRepository } from '../adapters/database/test-case.repository';
 
 interface InterviewSocket extends WebSocket {
   sessionId?: string;
@@ -45,11 +51,18 @@ export class InterviewWebSocketGateway
   private readonly speechAdapter: GoogleSpeechAdapter | AzureSpeechAdapter;
   private readonly audioBuffers = new Map<string, Buffer[]>();
   private readonly sessionStartTimes = new Map<string, Date>();
+  private readonly streamingRecognizers = new Map<
+    string,
+    StreamingRecognizer
+  >();
 
   constructor(
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
     private readonly profileService: CandidateProfileService,
+    private readonly codeExecutionService: CodeExecutionService,
+    private readonly testCaseRepository: MongoTestCaseRepository,
+    private readonly audioFormatAdapter: AudioFormatAdapter,
     @Inject('ITranscriptRepository')
     private readonly transcriptRepository: ITranscriptRepository,
     private readonly fillerWordDetector: FillerWordDetectorAdapter,
@@ -72,14 +85,23 @@ export class InterviewWebSocketGateway
   handleDisconnect(client: InterviewSocket) {
     this.logger.log('Client disconnected', { sessionId: client.sessionId });
 
-    // Finalize transcription if buffer exists
-    if (client.sessionId && this.audioBuffers.has(client.sessionId)) {
-      this.finalizeTranscription(client.sessionId);
-      this.audioBuffers.delete(client.sessionId);
-    }
-
-    // Clean up session start time
     if (client.sessionId) {
+      // Finalize transcription if buffer exists
+      if (this.audioBuffers.has(client.sessionId)) {
+        this.finalizeTranscription(client.sessionId);
+        this.audioBuffers.delete(client.sessionId);
+      }
+
+      // Finalize streaming recognizer
+      const recognizer = this.streamingRecognizers.get(client.sessionId);
+      if (recognizer) {
+        this.speechAdapter.finalizeStream(recognizer.id).catch((error) => {
+          this.logger.error('Failed to finalize stream on disconnect', error);
+        });
+        this.streamingRecognizers.delete(client.sessionId);
+      }
+
+      // Clean up session start time
       this.sessionStartTimes.delete(client.sessionId);
     }
   }
@@ -124,6 +146,55 @@ export class InterviewWebSocketGateway
       // Track session start time for filler word frequency calculation
       this.sessionStartTimes.set(data.sessionId, new Date());
 
+      // Create streaming recognizer for real-time transcription
+      if (session.communicationMode === 'voice') {
+        const recognizer = this.speechAdapter.createStreamingRecognizer(
+          'en-US',
+          {
+            onInterimResult: (text: string) => {
+              // Send interim result to client
+              client.send(
+                JSON.stringify({
+                  type: 'transcription-interim',
+                  sessionId: data.sessionId,
+                  text,
+                }),
+              );
+            },
+            onFinalResult: async (text: string) => {
+              // Add to transcript
+              await this.transcriptRepository.appendMessage(data.sessionId, {
+                timestamp: new Date(),
+                speaker: 'candidate',
+                text,
+                type: 'voice-transcription',
+              });
+
+              // Send final result to client
+              client.send(
+                JSON.stringify({
+                  type: 'transcription-final',
+                  sessionId: data.sessionId,
+                  text,
+                }),
+              );
+            },
+            onError: (error: Error) => {
+              this.logger.error('Streaming recognition error', error);
+              client.send(
+                JSON.stringify({
+                  type: 'transcription-error',
+                  sessionId: data.sessionId,
+                  error: error.message,
+                }),
+              );
+            },
+          },
+        );
+
+        this.streamingRecognizers.set(data.sessionId, recognizer);
+      }
+
       this.logger.log('Session initialized', { sessionId: data.sessionId });
     } catch (error) {
       this.logger.error('Failed to initialize session', error);
@@ -152,20 +223,71 @@ export class InterviewWebSocketGateway
       }
 
       // Decode base64 audio
-      const audioBuffer = Buffer.from(data.audio, 'base64');
+      let audioBuffer = Buffer.from(data.audio, 'base64');
 
-      // Accumulate audio buffer
-      if (!this.audioBuffers.has(sessionId)) {
-        this.audioBuffers.set(sessionId, []);
+      // Normalize audio format using audio format adapter
+      try {
+        const detectedFormat =
+          await this.audioFormatAdapter.detectFormat(audioBuffer);
+
+        // Convert to PCM 16kHz mono if needed (standard for speech recognition)
+        if (
+          detectedFormat.format !== 'pcm' ||
+          detectedFormat.sampleRate !== 16000 ||
+          detectedFormat.channels !== 1
+        ) {
+          // First convert to WAV if not already
+          if (detectedFormat.format !== 'wav') {
+            audioBuffer = await this.audioFormatAdapter.convertFormat(
+              audioBuffer,
+              detectedFormat.format,
+              'wav',
+            );
+          }
+
+          // Convert sample rate if needed
+          if (detectedFormat.sampleRate !== 16000) {
+            audioBuffer = await this.audioFormatAdapter.convertSampleRate(
+              audioBuffer,
+              detectedFormat.sampleRate,
+              16000,
+            );
+          }
+
+          // Convert channels if needed
+          if (detectedFormat.channels !== 1) {
+            audioBuffer = await this.audioFormatAdapter.convertChannels(
+              audioBuffer,
+              detectedFormat.channels,
+              1,
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          'Audio format conversion failed, using original',
+          error,
+        );
       }
-      this.audioBuffers.get(sessionId)!.push(audioBuffer);
 
-      // Every N chunks or after delay, transcribe
-      const buffer = this.audioBuffers.get(sessionId)!;
-      if (buffer.length >= 10) {
-        // Transcribe every 10 chunks (configurable)
-        await this.transcribeAudioChunk(sessionId, Buffer.concat(buffer));
-        this.audioBuffers.set(sessionId, []); // Clear buffer
+      // Use streaming recognition if available
+      const recognizer = this.streamingRecognizers.get(sessionId);
+      if (recognizer) {
+        await this.speechAdapter.streamAudioChunk(recognizer.id, audioBuffer);
+      } else {
+        // Fallback to buffered mode
+        if (!this.audioBuffers.has(sessionId)) {
+          this.audioBuffers.set(sessionId, []);
+        }
+        this.audioBuffers.get(sessionId)!.push(audioBuffer);
+
+        // Every N chunks or after delay, transcribe
+        const buffer = this.audioBuffers.get(sessionId)!;
+        if (buffer.length >= 10) {
+          // Transcribe every 10 chunks (configurable)
+          await this.transcribeAudioChunk(sessionId, Buffer.concat(buffer));
+          this.audioBuffers.set(sessionId, []); // Clear buffer
+        }
       }
 
       client.send(
@@ -345,6 +467,87 @@ export class InterviewWebSocketGateway
     } catch (error) {
       this.logger.error('Failed to send agent audio', error);
       throw error;
+    }
+  }
+
+  /**
+   * Handle code execution request
+   */
+  @SubscribeMessage('execute-code')
+  async handleCodeExecution(
+    @MessageBody()
+    data: {
+      sessionId: string;
+      questionId: string;
+      code: string;
+      language: string;
+      responseId?: string;
+    },
+    @ConnectedSocket() client: InterviewSocket,
+  ) {
+    try {
+      const sessionId = data.sessionId || client.sessionId;
+      if (!sessionId) {
+        throw new Error('Session ID required');
+      }
+
+      // Notify execution started
+      client.send(
+        JSON.stringify({
+          type: 'code-execution-started',
+          sessionId,
+          questionId: data.questionId,
+        }),
+      );
+
+      // Get test cases
+      const testCases = await this.testCaseRepository.findByQuestionId(
+        data.questionId,
+      );
+
+      // Execute code
+      const execution = await this.codeExecutionService.executeCode({
+        code: data.code,
+        language: data.language,
+        testCases,
+        responseId: data.responseId || '',
+        sessionId,
+        questionId: data.questionId,
+      });
+
+      // Send results
+      if (execution.status === 'completed') {
+        client.send(
+          JSON.stringify({
+            type: 'code-execution-completed',
+            sessionId,
+            executionId: execution.id,
+            passedTests: execution.passedTests,
+            totalTests: execution.totalTests,
+            testResults: execution.testResults,
+            executionTime: execution.executionTime,
+          }),
+        );
+      } else {
+        client.send(
+          JSON.stringify({
+            type: 'code-execution-failed',
+            sessionId,
+            executionId: execution.id,
+            error: execution.error,
+          }),
+        );
+      }
+    } catch (error) {
+      this.logger.error('Code execution failed', error);
+      client.send(
+        JSON.stringify({
+          type: 'code-execution-failed',
+          sessionId: data.sessionId,
+          error:
+            error instanceof Error ? error.message : 'Code execution failed',
+        }),
+      );
     }
   }
 }

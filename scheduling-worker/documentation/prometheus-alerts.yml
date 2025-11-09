@@ -200,7 +200,7 @@ groups:
           runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#calendar-sync-failures"
 
       - alert: SchedulingWorkerMLServiceTimeouts
-        expr: rate(ml_service_timeout_errors_total{job="scheduling-worker"}[5m]) > 0
+        expr: rate(scheduling_ml_prediction_errors_total{error_type="TimeoutError"}[5m]) > 0
         for: 2m
         labels:
           severity: warning
@@ -210,6 +210,78 @@ groups:
           summary: "ML service timeouts detected"
           description: "ML scheduling service is timing out"
           runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#ml-service-timeouts"
+
+      - alert: HighCalendarSyncErrors
+        expr: rate(scheduling_calendar_sync_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: calendar_sync
+        annotations:
+          summary: "High calendar sync error rate"
+          description: "Calendar sync error rate is {{ $value | printf \"%.2f\" }}/sec (threshold: 0.1/sec)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#calendar-sync-errors"
+
+      - alert: HighSchedulingConflicts
+        expr: rate(scheduling_conflicts_total[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: scheduling
+        annotations:
+          summary: "High scheduling conflict rate"
+          description: "Scheduling conflicts are occurring at {{ $value | printf \"%.1f\" }}/min (threshold: 5/min)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#scheduling-conflicts"
+
+      - alert: LowScheduleEfficiency
+        expr: scheduling_schedule_efficiency < 0.6
+        for: 1h
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: scheduling
+        annotations:
+          summary: "Low schedule efficiency"
+          description: "Schedule efficiency is {{ $value | printf \"%.2f\" }} (threshold: 0.6)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#schedule-efficiency"
+
+      - alert: HighMLPredictionErrors
+        expr: rate(scheduling_ml_prediction_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: ml
+        annotations:
+          summary: "High ML prediction error rate"
+          description: "ML prediction error rate is {{ $value | printf \"%.2f\" }}/sec (threshold: 0.05/sec)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#ml-prediction-errors"
+
+      - alert: LowMLModelAccuracy
+        expr: scheduling_ml_model_accuracy < 0.7
+        for: 1h
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: ml
+        annotations:
+          summary: "Low ML model accuracy"
+          description: "ML model accuracy is {{ $value | printf \"%.2f\" }} (threshold: 0.7)"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#ml-model-accuracy"
+
+      - alert: HighActivityTrackingErrors
+        expr: rate(scheduling_activity_events_tracked_total[5m]) == 0 and rate(scheduling_tasks_completed_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: scheduling-worker
+          alert_type: activity_model
+        annotations:
+          summary: "Activity tracking not working"
+          description: "Tasks are being completed but activity events are not being tracked"
+          runbook_url: "https://docs.company.com/scheduling-worker/troubleshooting#activity-tracking-errors"
 
       - alert: SchedulingWorkerHabitCompletionLow
         expr: rate(habit_completion_total{job="scheduling-worker"}[1h]) < 10

@@ -67,6 +67,7 @@ The **Scheduling Worker** provides comprehensive calendar and task management wi
 - **Progress Monitoring** - Visual progress tracking and analytics
 - **Streak Tracking** - Maintain motivation with streak counters
 - **Reminder System** - Customizable notifications and alerts
+- **Activity Model Service** - Track user activity patterns, predict event success, calculate efficiency metrics
 
 ### ML-Powered Scheduling
 
@@ -75,6 +76,8 @@ The **Scheduling Worker** provides comprehensive calendar and task management wi
 - **Conflict Prediction** - Prevent scheduling conflicts
 - **Priority Optimization** - Schedule high-priority tasks first
 - **Energy-Based Scheduling** - Schedule tasks based on energy levels
+- **Activity Tracking** - Track completion patterns and productivity metrics
+- **Efficiency Metrics** - Calculate schedule efficiency, time utilization, and completion rates
 
 ## 🚀 Quick Start
 
@@ -167,7 +170,9 @@ Comprehensive documentation is available in the `documentation/` folder:
 |------------|---------------|---------|
 | **ARCHITECTURE** | System architecture and design | [View](documentation/ARCHITECTURE.md) |
 | **API** | Complete API reference | [View](documentation/API.md) |
-| **CALENDAR_INTEGRATION** | Google Calendar setup guide | [View](documentation/CALENDAR_INTEGRATION.md) |
+| **CALENDAR_SETUP** | Google Calendar setup guide | [View](documentation/CALENDAR_SETUP.md) |
+| **ML_INTEGRATION** | ML service integration documentation | [View](documentation/ML_INTEGRATION.md) |
+| **CALENDAR_INTEGRATION** | Google Calendar integration details | [View](documentation/CALENDAR_INTEGRATION.md) |
 | **GOAL_MANAGEMENT** | Goal and habit tracking guide | [View](documentation/GOAL_MANAGEMENT.md) |
 | **ML_SCHEDULING** | AI-powered scheduling features | [View](documentation/ML_SCHEDULING.md) |
 | **DEPLOYMENT** | Docker & Kubernetes deployment | [View](documentation/DEPLOYMENT.md) |
@@ -418,8 +423,8 @@ For issues, questions, or contributions:
 
 ### 🌟 Star this repo if you find it helpful! 🌟
 
-**Status:** ✅ Production Ready  
-**Version:** 1.0.0  
+**Status:** ✅ Production Ready
+**Version:** 1.0.0
 **Last Updated:** October 27, 2025
 
 ---

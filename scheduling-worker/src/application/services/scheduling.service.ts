@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { TimeSlotService, WorkingHours } from './time-slot.service';
 import {
   TaskSchedulerService,
@@ -11,6 +11,7 @@ import { ICalendarEventRepository } from '../ports/repositories.port';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
 import { IGoogleCalendarApiService } from '../ports/google-calendar.port';
 import { TimeSlot } from '../../domain/value-objects/time-slot.value-object';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 export interface ScheduleOptions {
   userId: string;
@@ -46,6 +47,8 @@ export class SchedulingService {
     private readonly eventRepository: ICalendarEventRepository,
     @Inject('IGoogleCalendarApiService')
     private readonly calendarApi: IGoogleCalendarApiService,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {}
 
   /**
@@ -133,6 +136,16 @@ export class SchedulingService {
       `Scheduling complete: ${result.scheduled.length}/${processedTasks.length} tasks scheduled (${utilizationRate.toFixed(1)}% utilization)`,
     );
 
+    // Record metrics
+    if (this.metricsAdapter) {
+      result.scheduled.forEach((task) => {
+        this.metricsAdapter!.incrementTasksScheduled(task.type);
+      });
+      if (result.conflicts.length > 0) {
+        this.metricsAdapter.incrementSchedulingConflicts();
+      }
+    }
+
     return {
       date,
       scheduledTasks: result.scheduled,
@@ -184,6 +197,11 @@ export class SchedulingService {
     this.logger.log(
       `Successfully committed ${createdEvents.length} events to calendar`,
     );
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      // Tasks are already counted in scheduleForDate, but we can track commits here if needed
+    }
 
     return createdEvents;
   }

@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import {
   Goal,
   GoalPriority,
@@ -6,6 +6,7 @@ import {
   Milestone,
 } from '../../domain/entities';
 import { IGoalRepository } from '../ports/repositories.port';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 /**
  * Goal Application Service
@@ -21,6 +22,8 @@ export class GoalService {
   constructor(
     @Inject('IGoalRepository')
     private readonly goalRepository: IGoalRepository,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {
     this.logger.log('GoalService initialized');
   }
@@ -62,6 +65,12 @@ export class GoalService {
 
     const saved = await this.goalRepository.save(goal);
     this.logger.log(`Created goal: ${saved.id}`);
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      this.metricsAdapter.incrementGoalsCreated();
+    }
+
     return saved;
   }
 
@@ -108,6 +117,11 @@ export class GoalService {
       progressHistory: updated.progressHistory,
       updatedAt: updated.updatedAt,
     });
+
+    // Record metrics if goal is completed
+    if (this.metricsAdapter && updated.status === 'completed') {
+      this.metricsAdapter.incrementGoalsCompleted();
+    }
 
     this.logger.log(`Updated goal progress: ${id}`);
     return updated;

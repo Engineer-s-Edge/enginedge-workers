@@ -23,6 +23,9 @@ import { SchedulingService } from './services/scheduling.service';
 import { TaskCompletionService } from './services/task-completion.service';
 import { MLModelClient } from './services/ml-model-client.service';
 import { RecommendationService } from './services/recommendation.service';
+import { ActivityModelService } from './services/activity-model.service';
+import { PatternAnalyzerService } from './services/pattern-analyzer.service';
+import { PredictionService } from './services/prediction.service';
 
 /**
  * Application module - use cases and application services
@@ -44,6 +47,9 @@ import { RecommendationService } from './services/recommendation.service';
     TaskCompletionService,
     MLModelClient,
     RecommendationService,
+    ActivityModelService,
+    PatternAnalyzerService,
+    PredictionService,
   ],
   exports: [
     // Export domain module so infrastructure can access it
@@ -58,6 +64,9 @@ import { RecommendationService } from './services/recommendation.service';
     TaskCompletionService,
     MLModelClient,
     RecommendationService,
+    ActivityModelService,
+    PatternAnalyzerService,
+    PredictionService,
   ],
 })
 export class ApplicationModule {}

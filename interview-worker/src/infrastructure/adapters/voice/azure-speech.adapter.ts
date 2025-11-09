@@ -9,11 +9,24 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 // Note: In production, would use microsoft-cognitiveservices-speech-sdk package
 
+import { StreamingRecognizer } from './google-speech.adapter';
+
 @Injectable()
 export class AzureSpeechAdapter {
   private readonly logger = new Logger(AzureSpeechAdapter.name);
   private readonly subscriptionKey?: string;
   private readonly region?: string;
+  private readonly streamingRecognizers = new Map<
+    string,
+    {
+      recognizer: any;
+      buffer: Buffer[];
+      language: string;
+      onInterimResult?: (text: string) => void;
+      onFinalResult?: (text: string) => void;
+      onError?: (error: Error) => void;
+    }
+  >();
 
   constructor(private readonly configService: ConfigService) {
     this.subscriptionKey = this.configService.get<string>('AZURE_SPEECH_KEY');
@@ -224,5 +237,189 @@ export class AzureSpeechAdapter {
 
     const audioArrayBuffer = await synthesisResponse.arrayBuffer();
     return Buffer.from(audioArrayBuffer);
+  }
+
+  /**
+   * Create a streaming recognizer for real-time transcription
+   */
+  createStreamingRecognizer(
+    language: string = 'en-US',
+    config?: {
+      onInterimResult?: (text: string) => void;
+      onFinalResult?: (text: string) => void;
+      onError?: (error: Error) => void;
+    },
+  ): StreamingRecognizer {
+    const id = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      // Try to use SDK if available
+      try {
+        const sdk = require('microsoft-cognitiveservices-speech-sdk');
+        const speechConfig = sdk.SpeechConfig.fromSubscription(
+          this.subscriptionKey!,
+          this.region!,
+        );
+        speechConfig.speechRecognitionLanguage = language;
+
+        const audioConfig = sdk.AudioConfig.fromStreamInput(
+          sdk.AudioInputStream.createPushStream(),
+        );
+
+        const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+
+        recognizer.recognizing = (s: any, e: any) => {
+          if (e.result.reason === sdk.ResultReason.RecognizingSpeech) {
+            config?.onInterimResult?.(e.result.text);
+          }
+        };
+
+        recognizer.recognized = (s: any, e: any) => {
+          if (e.result.reason === sdk.ResultReason.RecognizedSpeech) {
+            config?.onFinalResult?.(e.result.text);
+          }
+        };
+
+        recognizer.canceled = (s: any, e: any) => {
+          const error = new Error(`Recognition canceled: ${e.errorDetails}`);
+          this.logger.error('Streaming recognition canceled', error);
+          config?.onError?.(error);
+        };
+
+        recognizer.sessionStopped = () => {
+          recognizer.stopContinuousRecognitionAsync();
+        };
+
+        recognizer.startContinuousRecognitionAsync();
+
+        this.streamingRecognizers.set(id, {
+          recognizer,
+          buffer: [],
+          language,
+          onInterimResult: config?.onInterimResult,
+          onFinalResult: config?.onFinalResult,
+          onError: config?.onError,
+        });
+
+        return { id, language };
+      } catch (sdkError) {
+        // SDK not available, create a mock recognizer that buffers
+        this.logger.debug(
+          'Azure Speech SDK not available, using buffered mode',
+        );
+        this.streamingRecognizers.set(id, {
+          recognizer: null,
+          buffer: [],
+          language,
+          onInterimResult: config?.onInterimResult,
+          onFinalResult: config?.onFinalResult,
+          onError: config?.onError,
+        });
+
+        return { id, language };
+      }
+    } catch (error) {
+      this.logger.error('Failed to create streaming recognizer', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stream an audio chunk to the recognizer
+   */
+  async streamAudioChunk(
+    recognizerId: string,
+    audioChunk: Buffer,
+  ): Promise<void> {
+    const recognizerData = this.streamingRecognizers.get(recognizerId);
+    if (!recognizerData) {
+      throw new Error(`Streaming recognizer not found: ${recognizerId}`);
+    }
+
+    if (recognizerData.recognizer) {
+      // SDK mode - write to push stream
+      try {
+        const sdk = require('microsoft-cognitiveservices-speech-sdk');
+        const pushStream = recognizerData.recognizer.audioInputStream;
+        if (pushStream) {
+          pushStream.write(audioChunk);
+        }
+      } catch (error) {
+        this.logger.error('Failed to write to Azure stream', error);
+      }
+    } else {
+      // Buffered mode - accumulate chunks
+      recognizerData.buffer.push(audioChunk);
+
+      // Process buffer periodically (every 10 chunks)
+      if (recognizerData.buffer.length >= 10) {
+        await this.processBufferedAudio(recognizerId);
+      }
+    }
+  }
+
+  /**
+   * Finalize streaming and get final result
+   */
+  async finalizeStream(recognizerId: string): Promise<string> {
+    const recognizerData = this.streamingRecognizers.get(recognizerId);
+    if (!recognizerData) {
+      throw new Error(`Streaming recognizer not found: ${recognizerId}`);
+    }
+
+    try {
+      if (recognizerData.recognizer) {
+        // SDK mode - stop recognition
+        const sdk = require('microsoft-cognitiveservices-speech-sdk');
+        recognizerData.recognizer.stopContinuousRecognitionAsync(() => {
+          recognizerData.recognizer.close();
+        });
+        // Wait a bit for final results
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } else {
+        // Buffered mode - process remaining buffer
+        if (recognizerData.buffer.length > 0) {
+          await this.processBufferedAudio(recognizerId);
+        }
+      }
+
+      // Clean up
+      this.streamingRecognizers.delete(recognizerId);
+
+      return '';
+    } catch (error) {
+      this.logger.error('Failed to finalize stream', error);
+      this.streamingRecognizers.delete(recognizerId);
+      throw error;
+    }
+  }
+
+  /**
+   * Process buffered audio (fallback when SDK not available)
+   */
+  private async processBufferedAudio(recognizerId: string): Promise<void> {
+    const recognizerData = this.streamingRecognizers.get(recognizerId);
+    if (!recognizerData || recognizerData.buffer.length === 0) {
+      return;
+    }
+
+    try {
+      const audioBuffer = Buffer.concat(recognizerData.buffer);
+      recognizerData.buffer = [];
+
+      // Use REST API for transcription
+      const transcript = await this.speechToTextRest(
+        audioBuffer,
+        recognizerData.language,
+      );
+
+      // Call interim result callback
+      recognizerData.onInterimResult?.(transcript);
+    } catch (error) {
+      this.logger.error('Failed to process buffered audio', error);
+      recognizerData.onError?.(
+        error instanceof Error ? error : new Error(String(error)),
+      );
+    }
   }
 }

@@ -25,6 +25,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { WebhookService } from './webhook.service';
 import { NotificationService } from './notification.service';
+import { WebhookEvent } from '../../domain/value-objects/webhook-event.value-object';
 
 @Injectable()
 export class EvaluatorService {
@@ -123,9 +124,15 @@ export class EvaluatorService {
 
     // Save report
     await this.reportRepository.save(report);
-    await this.webhookService.triggerWebhooks('report_generated', {
+
+    // Trigger webhook
+    await this.webhookService.triggerWebhook(WebhookEvent.REPORT_GENERATED, {
       sessionId,
       reportId: report.reportId,
+      interviewId: session.interviewId,
+      candidateId: session.candidateId,
+      score: report.score,
+      generatedAt: report.generatedAt,
     });
     // Optional: send a notification (recipient resolution handled by service integration)
     await this.notificationService.sendEmailNotification(
