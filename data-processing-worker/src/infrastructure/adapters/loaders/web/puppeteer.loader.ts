@@ -86,6 +86,7 @@ export class PuppeteerWebLoaderAdapter extends WebLoaderPort {
           content,
           {
             source: url,
+            sourceType: 'url',
             loader: this.name,
             title,
             screenshot,
@@ -139,6 +140,7 @@ export class PuppeteerWebLoaderAdapter extends WebLoaderPort {
     return [
       new Document(`http-${url}`.replace(/[^a-zA-Z0-9-]/g, '-'), content, {
         source: url,
+        sourceType: 'url',
         loader: this.name,
         contentType: response.headers.get('content-type') || undefined,
         timestamp: new Date().toISOString(),

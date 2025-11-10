@@ -146,6 +146,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
         content,
         {
           source: url,
+          sourceType: 'url',
           loader: this.name,
           bucket,
           key,
@@ -190,6 +191,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
         content,
         {
           source: `s3://${bucket}/${key}`,
+          sourceType: 'url',
           loader: this.name,
           bucket,
           key,

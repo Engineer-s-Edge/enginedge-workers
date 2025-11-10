@@ -214,6 +214,33 @@ export class AgentCapability {
   }
 
   /**
+   * Predefined capabilities for Manager agent
+   */
+  static forManager(): AgentCapability {
+    return AgentCapability.create({
+      executionModel: 'dag',
+      canUseTools: true,
+      canStreamResults: true,
+      canPauseResume: true,
+      canCoordinate: false,
+      supportsParallelExecution: true,
+      maxInputTokens: 16000,
+      maxOutputTokens: 8000,
+      supportedMemoryTypes: [
+        'buffer',
+        'buffer_window',
+        'token_buffer',
+        'summary',
+        'summary_buffer',
+        'entity',
+        'knowledge_graph',
+        'vector_store',
+      ],
+      timeoutMs: 1200000, // 20 minutes
+    });
+  }
+
+  /**
    * Collective DOES NOT have a capability
    *
    * Collective is an ORCHESTRATOR that coordinates member agents.

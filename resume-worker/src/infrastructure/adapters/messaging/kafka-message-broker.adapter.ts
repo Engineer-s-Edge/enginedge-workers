@@ -23,6 +23,11 @@ export class KafkaMessageBrokerAdapter
   private consumer!: Consumer;
   private producer!: Producer;
   private connected = false;
+  private reconnectTimer?: NodeJS.Timeout;
+  private reconnectAttempts = 0;
+  private readonly maxReconnectAttempts = 10;
+  private readonly reconnectInterval = 5000; // 5 seconds
+  private connectionErrorLogged = false;
 
   constructor(private readonly configService: ConfigService) {
     this.initializeKafka();
@@ -83,47 +88,131 @@ export class KafkaMessageBrokerAdapter
       `Initializing Kafka with brokers: ${brokers}, security: ${securityProtocol}`,
     );
 
-    this.kafka = new Kafka(kafkaConfig);
+    // Suppress KafkaJS verbose logging to reduce spam when Kafka is unavailable
+    const kafkaLogLevel =
+      this.configService.get<string>('KAFKA_LOG_LEVEL') || 'NOTHING';
+    const logCreator = () => {
+      return () => {
+        // No-op: suppress all KafkaJS logs by default
+      };
+    };
+
+    const logLevelMap: Record<string, number> = {
+      NOTHING: 0,
+      ERROR: 4,
+      WARN: 5,
+      INFO: 6,
+      DEBUG: 7,
+    };
+
+    const finalKafkaConfig: KafkaConfig = {
+      ...kafkaConfig,
+      retry: { initialRetryTime: 300, retries: 3 },
+      logLevel: logLevelMap[kafkaLogLevel] ?? 0,
+      logCreator: kafkaLogLevel === 'NOTHING' ? logCreator : undefined,
+    };
+
+    this.kafka = new Kafka(finalKafkaConfig);
     this.consumer = this.kafka.consumer({ groupId: 'worker-group' });
     this.producer = this.kafka.producer();
   }
 
   /**
    * Connect to Kafka on module initialization
+   * Does not throw errors - allows app to start even if Kafka is unavailable
    */
   async onModuleInit(): Promise<void> {
-    await this.connect();
+    // Try to connect, but don't fail if Kafka is unavailable
+    await this.connect().catch(() => {
+      // Connection failed, will retry in background
+      // Don't throw - allow app to start without Kafka
+    });
   }
 
   /**
    * Disconnect from Kafka on module destruction
    */
   async onModuleDestroy(): Promise<void> {
-    await this.disconnect();
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+    }
+    await this.disconnect().catch(() => {
+      // Ignore disconnect errors during shutdown
+    });
   }
 
   /**
    * Connect to Kafka broker
+   * Handles connection failures gracefully with retry logic
    */
   async connect(): Promise<void> {
     try {
-      this.logger.log('Connecting to Kafka...');
+      if (!this.connectionErrorLogged) {
+        this.logger.log('Connecting to Kafka...');
+      }
 
       await this.consumer.connect();
-      this.logger.log('Kafka consumer connected');
-
       await this.producer.connect();
-      this.logger.log('Kafka producer connected');
 
       this.connected = true;
-      this.logger.log('Successfully connected to Kafka');
+      this.reconnectAttempts = 0;
+
+      // Reset error logged flag and log success if we were previously disconnected
+      if (this.connectionErrorLogged) {
+        this.logger.log('Successfully reconnected to Kafka');
+      } else {
+        this.logger.log('Successfully connected to Kafka');
+      }
+      this.connectionErrorLogged = false;
     } catch (error) {
-      this.logger.error(
-        'Failed to connect to Kafka:',
-        error as Record<string, unknown>,
-      );
-      throw error;
+      this.connected = false;
+
+      // Silently handle connection errors - don't log to prevent spam
+      // Only log once to indicate Kafka is unavailable
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        !this.connectionErrorLogged &&
+        !errorMessage.includes('ECONNREFUSED') &&
+        !errorMessage.includes('Connection')
+      ) {
+        // Log non-connection errors (but only once)
+        this.logger.warn(
+          'Failed to connect to Kafka (will retry in background):',
+          errorMessage,
+        );
+        this.connectionErrorLogged = true;
+      } else if (!this.connectionErrorLogged) {
+        // Log connection refused once
+        this.logger.warn(
+          'Kafka is not available (will retry in background). Application will continue without Kafka messaging.',
+        );
+        this.connectionErrorLogged = true;
+      }
+
+      // Schedule reconnection attempt
+      this.scheduleReconnect();
+
+      // Don't throw - allow app to continue without Kafka
     }
+  }
+
+  /**
+   * Schedule a reconnection attempt
+   */
+  private scheduleReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      return; // Stop trying after max attempts
+    }
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+    }
+
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectAttempts++;
+      await this.connect();
+    }, this.reconnectInterval);
   }
 
   /**
@@ -131,19 +220,19 @@ export class KafkaMessageBrokerAdapter
    */
   async disconnect(): Promise<void> {
     try {
-      this.logger.log('Disconnecting from Kafka...');
-
-      await this.consumer.disconnect();
-      await this.producer.disconnect();
+      if (this.connected) {
+        await this.consumer.disconnect().catch(() => {
+          // Ignore disconnect errors
+        });
+        await this.producer.disconnect().catch(() => {
+          // Ignore disconnect errors
+        });
+      }
 
       this.connected = false;
-      this.logger.log('Successfully disconnected from Kafka');
     } catch (error) {
-      this.logger.error(
-        'Failed to disconnect from Kafka:',
-        error as Record<string, unknown>,
-      );
-      throw error;
+      // Ignore disconnect errors during shutdown
+      this.connected = false;
     }
   }
 
@@ -156,8 +245,22 @@ export class KafkaMessageBrokerAdapter
 
   /**
    * Send a message to a topic
+   * Handles disconnections gracefully - attempts to reconnect if needed
    */
   async sendMessage(topic: string, message: unknown): Promise<void> {
+    // Try to reconnect if not connected
+    if (!this.connected) {
+      await this.connect().catch(() => {
+        // Connection failed, will throw error below
+      });
+    }
+
+    if (!this.connected) {
+      throw new Error(
+        'Kafka is not available. Message could not be sent.',
+      );
+    }
+
     try {
       await this.producer.send({
         topic,
@@ -165,9 +268,14 @@ export class KafkaMessageBrokerAdapter
       });
       this.logger.debug(`Message sent to topic ${topic}`);
     } catch (error) {
-      this.logger.error(
-        `Failed to send message to topic ${topic}:`,
-        error as Record<string, unknown>,
+      // Mark as disconnected and try to reconnect
+      this.connected = false;
+      this.scheduleReconnect();
+
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Failed to send message to topic ${topic}: ${errorMessage}`,
       );
       throw error;
     }
@@ -175,11 +283,41 @@ export class KafkaMessageBrokerAdapter
 
   /**
    * Subscribe to a topic and handle messages
+   * Handles disconnections gracefully - attempts to reconnect if needed
    */
   async subscribe(
     topic: string,
     handler: (message: unknown) => Promise<void>,
   ): Promise<void> {
+    // Try to reconnect if not connected
+    if (!this.connected) {
+      await this.connect().catch(() => {
+        // Connection failed, will log warning below
+      });
+    }
+
+    if (!this.connected) {
+      this.logger.warn(
+        `Cannot subscribe to topic ${topic}: Kafka is not available. Will retry when connection is established.`,
+      );
+      // Schedule a retry when connection is established
+      const originalHandler = handler;
+      const checkAndSubscribe = async () => {
+        if (this.connected) {
+          try {
+            await this.subscribe(topic, originalHandler);
+          } catch (error) {
+            // Already logged in recursive call
+          }
+        } else {
+          // Check again later
+          setTimeout(checkAndSubscribe, 5000);
+        }
+      };
+      setTimeout(checkAndSubscribe, 5000);
+      return;
+    }
+
     try {
       await this.consumer.subscribe({ topic, fromBeginning: false });
       this.logger.log(`Subscribed to topic: ${topic}`);
@@ -210,11 +348,16 @@ export class KafkaMessageBrokerAdapter
         },
       });
     } catch (error) {
-      this.logger.error(
-        `Failed to subscribe to topic ${topic}:`,
-        error as Record<string, unknown>,
+      // Mark as disconnected and try to reconnect
+      this.connected = false;
+      this.scheduleReconnect();
+
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Failed to subscribe to topic ${topic}: ${errorMessage}. Will retry when connection is established.`,
       );
-      throw error;
+      // Don't throw - allow app to continue
     }
   }
 }

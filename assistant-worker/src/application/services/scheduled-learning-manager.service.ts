@@ -249,7 +249,6 @@ export class ScheduledLearningManagerService
         await this.executeScheduledLearning(scheduleId);
       },
       {
-        scheduled: true,
         timezone,
       },
     );

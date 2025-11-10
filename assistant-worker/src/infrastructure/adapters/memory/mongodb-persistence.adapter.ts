@@ -45,6 +45,9 @@ export class MongoDBPersistenceAdapter {
   private readonly collection;
 
   constructor(@InjectConnection() private readonly connection: Connection) {
+    if (!this.connection.db) {
+      throw new Error('MongoDB connection database is not available');
+    }
     this.collection =
       this.connection.db.collection<ConversationDocument>('conversations');
 

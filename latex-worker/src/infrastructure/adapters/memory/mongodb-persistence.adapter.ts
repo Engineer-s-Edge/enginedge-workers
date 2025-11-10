@@ -38,6 +38,9 @@ export class MongoDBPersistenceAdapter {
   private readonly collection;
 
   constructor(@InjectConnection() private readonly connection: Connection) {
+    if (!this.connection.db) {
+      throw new Error('MongoDB connection database is not available');
+    }
     this.collection =
       this.connection.db.collection<ConversationDocument>('conversations');
 
@@ -54,6 +57,9 @@ export class MongoDBPersistenceAdapter {
   }
 
   async saveDocument(documentId: string, data: any): Promise<void> {
+    if (!this.connection.db) {
+      throw new Error('MongoDB connection database is not available');
+    }
     await this.connection.db
       .collection('documents')
       .updateOne(
@@ -64,16 +70,25 @@ export class MongoDBPersistenceAdapter {
   }
 
   async loadDocument(documentId: string): Promise<any> {
+    if (!this.connection.db) {
+      throw new Error('MongoDB connection database is not available');
+    }
     return await this.connection.db
       .collection('documents')
       .findOne({ documentId });
   }
 
   async deleteDocument(documentId: string): Promise<void> {
+    if (!this.connection.db) {
+      throw new Error('MongoDB connection database is not available');
+    }
     await this.connection.db.collection('documents').deleteOne({ documentId });
   }
 
   async listDocuments(userId?: string, limit = 50): Promise<any[]> {
+    if (!this.connection.db) {
+      throw new Error('MongoDB connection database is not available');
+    }
     const query = userId ? { userId } : {};
     return await this.connection.db
       .collection('documents')

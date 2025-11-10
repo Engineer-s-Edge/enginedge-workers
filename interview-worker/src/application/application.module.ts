@@ -27,7 +27,6 @@ import { SkipQuestionUseCase } from './use-cases/skip-question.use-case';
 import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
 import { WebhookService } from './services/webhook.service';
 import { NotificationService } from './services/notification.service';
-import { CodeExecutionService } from './services/code-execution.service';
 
 /**
  * Application module - use cases and application services
@@ -56,7 +55,6 @@ import { CodeExecutionService } from './services/code-execution.service';
     EvaluatorService,
     WebhookService,
     NotificationService,
-    CodeExecutionService,
   ],
   exports: [
     // Export domain module so infrastructure can access it
@@ -69,7 +67,6 @@ import { CodeExecutionService } from './services/code-execution.service';
     EvaluatorService,
     WebhookService,
     NotificationService,
-    CodeExecutionService,
   ],
 })
 export class ApplicationModule {}

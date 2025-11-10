@@ -174,7 +174,6 @@ export class AssistantExecutorService {
 
       // TODO: Implement proper streaming execution
       // For now, return a simple async generator
-      const agentId = `assistant-${assistant.id}`;
       const context: Partial<ExecutionContext> = {
         userId: executeDto.userId || 'default-user',
         conversationId: executeDto.conversationId || `conv-${Date.now()}`,
@@ -288,12 +287,16 @@ export class AssistantExecutorService {
         tokenLimit: 4096,
       };
 
+    // Normalize intelligence config - handle both IntelligenceConfig and plain object
+    const llmConfig =
+      'llm' in intelligenceConfig ? intelligenceConfig.llm : intelligenceConfig;
+
     // Create agent config from assistant configuration
     const agentConfig = AgentConfig.create({
-      model: intelligenceConfig.model || 'gpt-4',
-      provider: intelligenceConfig.provider || 'openai',
+      model: llmConfig.model || 'gpt-4',
+      provider: llmConfig.provider || 'openai',
       temperature: assistant.reactConfig?.cot?.temperature || 0.7,
-      maxTokens: intelligenceConfig.tokenLimit || 4096,
+      maxTokens: llmConfig.tokenLimit || 4096,
       systemPrompt: this.buildSystemPromptFromAssistant(assistant),
       enableTools: (assistant.tools?.length || 0) > 0,
       toolNames:

@@ -6,7 +6,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Docker from 'dockerode';
+import Docker = require('dockerode');
 import { TestCase } from '../../../domain/entities';
 import { TestResult } from '../../../domain/value-objects/test-result.value-object';
 import {

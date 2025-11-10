@@ -12,6 +12,10 @@ import {
 } from '../interfaces';
 import { TopicCatalogService } from '@application/services/topic-catalog.service';
 import { GetTopicsForResearchUseCase } from '@application/use-cases/get-topics-for-research.use-case';
+import {
+  TopicSourceType,
+  TopicStatus,
+} from '@domain/entities/topic-catalog.entity';
 
 @Injectable()
 export class TopicCatalogAdapter implements ITopicCatalogAdapter {
@@ -32,7 +36,9 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
       const result = await this.topicCatalogService.addTopic({
         name: topic,
         description: metadata.description,
-        sourceType: metadata.confidence ? 'curated' : 'organic',
+        sourceType: metadata.confidence
+          ? TopicSourceType.CURATED
+          : TopicSourceType.ORGANIC,
         estimatedComplexity: metadata.complexity
           ? (parseInt(metadata.complexity.substring(1)) as any)
           : undefined,
@@ -131,7 +137,7 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
       // Update the topic
       const updated = await this.topicCatalogService.updateTopicStatus(
         topicEntry.id,
-        metadata.confidence ? 'completed' : 'in-progress',
+        metadata.confidence ? TopicStatus.COMPLETED : TopicStatus.IN_PROGRESS,
       );
 
       return {
@@ -180,10 +186,10 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
       }
 
       // Update topic status to IN_PROGRESS if not already
-      if (topicEntry.status === 'not-started') {
+      if (topicEntry.status === TopicStatus.NOT_STARTED) {
         await this.topicCatalogService.updateTopicStatus(
           topicEntry.id,
-          'in-progress',
+          TopicStatus.IN_PROGRESS,
         );
       }
 

@@ -53,10 +53,10 @@ import { KafkaMessageBrokerAdapter } from './adapters/kafka-message-broker.adapt
     // Cache adapter
     RedisCacheAdapter,
 
-    // Package cache repository (MongoDB for persistence)
+    // Package cache repository (MongoDB for persistence) - provided by DatabaseModule
     {
       provide: 'IPackageCacheRepository',
-      useClass: MongoDBPackageCacheRepository,
+      useExisting: MongoDBPackageCacheRepository,
     },
 
     // Global filter/interceptor providers for DI resolution
@@ -87,6 +87,8 @@ import { KafkaMessageBrokerAdapter } from './adapters/kafka-message-broker.adapt
     GridFSService,
     'MessageBrokerPort',
     KafkaMessageBrokerAdapter,
+    // Export DatabaseModule so Mongoose models are available
+    DatabaseModule,
   ],
 })
 export class InfrastructureModule {}

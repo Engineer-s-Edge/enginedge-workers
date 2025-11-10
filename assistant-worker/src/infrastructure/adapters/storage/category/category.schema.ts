@@ -11,31 +11,31 @@ export type CategoryDocument = Category & Document;
 @Schema({ collection: 'categories', timestamps: true })
 export class CategoryModel {
   @Prop({ required: true, unique: true, index: true })
-  name: string;
+  name!: string;
 
   @Prop()
   description?: string;
 
   @Prop({ type: [Number], required: true })
-  embedding: number[];
+  embedding!: number[];
 
   @Prop({ type: [String], default: [] })
-  topicIds: string[];
+  topicIds!: string[];
 
   @Prop()
   parentCategoryId?: string;
 
   @Prop({ type: [String], default: [] })
-  childCategoryIds: string[];
+  childCategoryIds!: string[];
 
   @Prop({ type: [String], default: [] })
-  keywords: string[];
+  keywords!: string[];
 
   @Prop({ type: [String], default: [] })
-  entityTypes: string[];
+  entityTypes!: string[];
 
   @Prop({ type: Number, default: 0 })
-  topicCount: number;
+  topicCount!: number;
 
   @Prop()
   lastTopicAddedAt?: Date;

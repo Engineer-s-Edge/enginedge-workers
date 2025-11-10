@@ -25,7 +25,7 @@ export interface TailorResumeJob {
   userId: string;
   resumeId: string;
   jobPostingId: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   currentIteration: number;
   currentScore: number;
@@ -207,9 +207,13 @@ export class ResumeTailoringService {
         return;
       }
 
-      // Apply top 3 swaps
+      // Apply top 3 swaps (sort by highest score in alternatives)
       const swapsToApply = suggestedSwaps
-        .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+        .sort((a, b) => {
+          const aScore = a.alternatives[0]?.score || 0;
+          const bScore = b.alternatives[0]?.score || 0;
+          return bScore - aScore;
+        })
         .slice(0, 3);
 
       await this.applySuggestedSwaps(job.id, request.resumeId, swapsToApply);

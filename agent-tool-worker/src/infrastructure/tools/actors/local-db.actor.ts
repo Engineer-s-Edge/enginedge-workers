@@ -92,7 +92,6 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
   private tableSchemas: Map<string, DatabaseArgs['schema']> = new Map();
 
   constructor(@Inject('MONGODB_DB') db: Db) {
-    this.db = db;
     const errorEvents = [
       new ErrorEvent(
         'TableNotFound',
@@ -284,6 +283,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     super(metadata, errorEvents);
     this.metadata = metadata;
     this.errorEvents = errorEvents;
+    this.db = db;
   }
 
   get category(): ActorCategory {
@@ -439,7 +439,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     return {
       success: true,
       operation: 'read',
-      record: record as DatabaseRecord,
+      record: record as unknown as DatabaseRecord,
     };
   }
 
@@ -503,7 +503,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     return {
       success: true,
       operation: 'update',
-      record: updateResult as DatabaseRecord,
+      record: updateResult as unknown as DatabaseRecord,
     };
   }
 
@@ -534,7 +534,7 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     return {
       success: true,
       operation: 'delete',
-      record: record as DatabaseRecord,
+      record: record as unknown as DatabaseRecord,
     };
   }
 

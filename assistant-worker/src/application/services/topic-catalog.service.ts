@@ -33,11 +33,11 @@ export class TopicCatalogService {
     private readonly categoryService: CategoryService,
     @Inject('IEmbedder')
     private readonly embedder: IEmbedder,
+    @Inject('ILogger')
+    private readonly logger: ILogger,
     @Optional()
     @Inject('ISpacyService')
     private readonly spacyService?: ISpacyService,
-    @Inject('ILogger')
-    private readonly logger: ILogger,
   ) {}
 
   /**
@@ -70,15 +70,19 @@ export class TopicCatalogService {
       embedding,
     );
 
-    // Step 4: Create topic entry
+    // Step 4: Create topic entry (repository will set status and default priority)
     const topicEntry = await this.repository.create({
       ...input,
       category: categoryResult.categoryName,
-      embedding, // Cache embedding for future similarity calculations
-      categorizationConfidence: categoryResult.confidence,
-      status: TopicStatus.NOT_STARTED,
-      researchPriority: this.calculateInitialPriority(input),
       estimatedComplexity: input.estimatedComplexity || ICSLayer.L3_TOPIC,
+    });
+
+    // Update priority, categorization confidence, and embedding after creation
+    const calculatedPriority = this.calculateInitialPriority(input);
+    await this.repository.update(topicEntry.id, {
+      researchPriority: calculatedPriority,
+      categorizationConfidence: categoryResult.confidence,
+      embedding: embedding,
     });
 
     // Step 5: Add topic to category

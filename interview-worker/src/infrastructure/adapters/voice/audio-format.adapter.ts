@@ -25,11 +25,23 @@ export interface AudioFormat {
 export class AudioFormatAdapter {
   private readonly logger = new Logger(AudioFormatAdapter.name);
   private readonly ffmpegPath?: string;
-  private readonly useFfmpeg: boolean;
+  private useFfmpeg: boolean = false;
+  private ffmpegCheckPromise: Promise<boolean> | null = null;
 
   constructor(private readonly configService: ConfigService) {
     this.ffmpegPath = this.configService.get<string>('FFMPEG_PATH') || 'ffmpeg';
-    this.useFfmpeg = this.checkFfmpegAvailable();
+    // Initialize asynchronously
+    this.ffmpegCheckPromise = this.checkFfmpegAvailable().then((available) => {
+      this.useFfmpeg = available;
+      return available;
+    });
+  }
+
+  private async ensureFfmpegChecked(): Promise<boolean> {
+    if (this.ffmpegCheckPromise) {
+      await this.ffmpegCheckPromise;
+    }
+    return this.useFfmpeg;
   }
 
   /**
@@ -44,7 +56,8 @@ export class AudioFormatAdapter {
       return audioBuffer;
     }
 
-    if (this.useFfmpeg) {
+    const useFfmpeg = await this.ensureFfmpegChecked();
+    if (useFfmpeg) {
       return await this.convertWithFfmpeg(audioBuffer, fromFormat, toFormat);
     } else {
       // Fallback to basic conversion (limited support)
@@ -64,7 +77,8 @@ export class AudioFormatAdapter {
       return audioBuffer;
     }
 
-    if (this.useFfmpeg) {
+    const useFfmpeg = await this.ensureFfmpegChecked();
+    if (useFfmpeg) {
       return await this.convertSampleRateWithFfmpeg(
         audioBuffer,
         fromRate,
@@ -91,7 +105,8 @@ export class AudioFormatAdapter {
       return audioBuffer;
     }
 
-    if (this.useFfmpeg) {
+    const useFfmpeg = await this.ensureFfmpegChecked();
+    if (useFfmpeg) {
       return await this.convertChannelsWithFfmpeg(
         audioBuffer,
         fromChannels,

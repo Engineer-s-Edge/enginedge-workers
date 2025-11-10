@@ -4,7 +4,7 @@
  * Configures adapters, controllers, and external integrations.
  */
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { ApplicationModule } from '@application/application.module';
@@ -70,7 +70,7 @@ import { CodeExecutionService } from '@application/services/code-execution.servi
 @Global()
 @Module({
   imports: [
-    ApplicationModule,
+    forwardRef(() => ApplicationModule),
     HealthModule, // Provides HealthController and HealthService
     ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
     MongoDbModule, // MongoDB connection and database instance
@@ -165,8 +165,13 @@ import { CodeExecutionService } from '@application/services/code-execution.servi
     // Export services
     WebhookService,
     CodeExecutionService,
+    // Export repositories for use in application layer
+    MongoTestCaseRepository,
+    MongoCodeExecutionRepository,
     // Export adapters for use in other modules
     AudioFormatAdapter,
+    WebhookDeliveryAdapter,
+    TestRunnerAdapter,
   ],
 })
 export class InfrastructureModule {}

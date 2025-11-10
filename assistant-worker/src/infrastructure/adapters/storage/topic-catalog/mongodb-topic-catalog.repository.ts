@@ -24,7 +24,7 @@ export class MongoDBTopicCatalogRepository implements ITopicCatalogRepository {
 
   private toEntity(doc: TopicCatalogDocument): TopicCatalogEntry {
     return {
-      id: doc._id.toString(),
+      id: (doc._id as any).toString(),
       name: doc.name,
       description: doc.description,
       category: doc.category,

@@ -16,26 +16,26 @@ export type TopicCatalogDocument = TopicCatalogEntry & Document;
 @Schema({ collection: 'topic_catalog', timestamps: true })
 export class TopicCatalog {
   @Prop({ required: true, index: true })
-  name: string;
+  name!: string;
 
   @Prop()
   description?: string;
 
   @Prop({ required: true, index: true })
-  category: string;
+  category!: string;
 
   @Prop({ type: [String], default: [] })
-  subcategories: string[];
+  subcategories!: string[];
 
   @Prop({
     type: Number,
     enum: Object.values(ICSLayer),
     default: ICSLayer.L3_TOPIC,
   })
-  estimatedComplexity: ICSLayer;
+  estimatedComplexity!: ICSLayer;
 
   @Prop({ type: [String], default: [] })
-  prerequisiteTopics: string[];
+  prerequisiteTopics!: string[];
 
   @Prop({
     type: String,
@@ -43,7 +43,7 @@ export class TopicCatalog {
     default: TopicStatus.NOT_STARTED,
     index: true,
   })
-  status: TopicStatus;
+  status!: TopicStatus;
 
   @Prop({ index: true })
   knowledgeNodeId?: string;
@@ -57,7 +57,7 @@ export class TopicCatalog {
     required: true,
     index: true,
   })
-  sourceType: TopicSourceType;
+  sourceType!: TopicSourceType;
 
   @Prop({
     type: {
@@ -74,10 +74,10 @@ export class TopicCatalog {
   };
 
   @Prop({ type: [String], default: [] })
-  relatedCategories: string[];
+  relatedCategories!: string[];
 
   @Prop({ type: Number, default: 50, min: 0, max: 100, index: true })
-  researchPriority: number;
+  researchPriority!: number;
 
   @Prop()
   discoveredBy?: string;

@@ -32,11 +32,11 @@ export class CategoryService {
     private readonly categoryRepository: ICategoryRepository,
     @Inject('IEmbedder')
     private readonly embedder: IEmbedder,
+    @Inject('ILogger')
+    private readonly logger: ILogger,
     @Optional()
     @Inject('ISpacyService')
     private readonly spacyService?: ISpacyService,
-    @Inject('ILogger')
-    private readonly logger: ILogger,
   ) {}
 
   /**

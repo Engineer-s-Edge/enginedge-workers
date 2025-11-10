@@ -23,7 +23,7 @@ export class MongoDBCategoryRepository implements ICategoryRepository {
 
   private toEntity(doc: CategoryDocument): Category {
     return {
-      id: doc._id.toString(),
+      id: (doc._id as any).toString(),
       name: doc.name,
       description: doc.description,
       embedding: doc.embedding,

@@ -17,6 +17,7 @@ export interface GetTopicsForResearchInput {
   category?: string;
   status?: TopicStatus;
   minPriority?: number;
+  [key: string]: unknown;
 }
 
 @Injectable()

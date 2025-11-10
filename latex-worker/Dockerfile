@@ -29,8 +29,6 @@ RUN apk add --no-cache \
     texlive \
     texlive-xetex \
     texlive-luatex \
-    texlive-bibtex \
-    texlive-bin-extra \
     texmf-dist-fontsextra \
     texmf-dist-langeuropean \
     texmf-dist-latexextra \
@@ -45,6 +43,9 @@ RUN apk add --no-cache \
 # Create app directory
 WORKDIR /usr/src/app
 
+# Create logs directory with proper permissions BEFORE switching to node user
+RUN mkdir -p /usr/src/app/logs && chown -R node:node /usr/src/app
+
 # Copy production node_modules from build stage
 COPY --from=development --chown=node:node /usr/src/app/node_modules ./node_modules
 
@@ -53,6 +54,9 @@ COPY --from=development --chown=node:node /usr/src/app/dist ./dist
 
 # Update font cache
 RUN fc-cache -fv
+
+# Ensure logs directory exists and is writable
+RUN chown -R node:node /usr/src/app/logs
 
 # Switch to the non-root user
 USER node
@@ -75,4 +79,4 @@ ENV XELATEX_PATH=/usr/bin/xelatex \
     LOG_LEVEL=info
 
 # Start the application
-CMD ["node", "dist/main"] 
+CMD ["node", "dist/main"]
