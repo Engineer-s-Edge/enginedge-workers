@@ -252,7 +252,7 @@ export class CalendarSyncService implements ICalendarSyncService {
         return remoteEvent;
 
       case ConflictResolutionStrategy.USER_PROMPT:
-        // Emit event via WebSocket for user resolution
+        // Emit event via WebSocket for user resolution (but return default for now)
         if (this.syncGateway) {
           try {
             const conflictId = `conflict_${localEvent.id}_${Date.now()}`;
@@ -263,61 +263,32 @@ export class CalendarSyncService implements ICalendarSyncService {
             const calendarId = localEvent.calendarId || 'primary';
 
             this.logger.log(
-              `Requesting user resolution for conflict ${conflictId}`,
+              `Emitting conflict for user resolution ${conflictId}`,
             );
 
-            const response = await this.syncGateway.requestConflictResolution({
-              conflictId,
-              eventId: localEvent.id,
-              localEvent,
-              remoteEvent,
-              userId,
-              calendarId,
-            });
-
-            // Apply user's choice
-            switch (response.choice) {
-              case 'local':
-                return localEvent;
-              case 'remote':
-                return remoteEvent;
-              case 'merge':
-                // Merge both events (user provided merged version)
-                if (response.mergedEvent) {
-                  return {
-                    ...localEvent,
-                    ...response.mergedEvent,
-                    updatedAt: new Date(),
-                  } as CalendarEvent;
-                }
-                // Fallback: merge common fields
-                return {
-                  ...localEvent,
-                  ...remoteEvent,
-                  title: localEvent.title || remoteEvent.title,
-                  description:
-                    localEvent.description || remoteEvent.description,
-                  startTime:
-                    localEvent.startTime > remoteEvent.startTime
-                      ? remoteEvent.startTime
-                      : localEvent.startTime,
-                  endTime:
-                    localEvent.endTime < remoteEvent.endTime
-                      ? remoteEvent.endTime
-                      : localEvent.endTime,
-                  updatedAt: new Date(),
-                } as CalendarEvent;
-              default:
-                this.logger.warn(
-                  `Unknown choice ${response.choice}, using LAST_WRITE_WINS`,
+            // Fire and forget - just emit the conflict
+            this.syncGateway
+              .requestConflictResolution({
+                conflictId,
+                eventId: localEvent.id,
+                localEvent,
+                remoteEvent,
+                userId,
+                calendarId,
+              })
+              .catch((err: Error) => {
+                this.logger.error(
+                  `Failed to emit conflict resolution: ${err.message}`,
                 );
-                return localEvent.updatedAt > remoteEvent.updatedAt
-                  ? localEvent
-                  : remoteEvent;
-            }
+              });
+
+            // Fall back to LAST_WRITE_WINS for immediate resolution
+            return localEvent.updatedAt > remoteEvent.updatedAt
+              ? localEvent
+              : remoteEvent;
           } catch (error) {
             this.logger.error(
-              `Failed to get user resolution, falling back to LAST_WRITE_WINS:`,
+              `Failed to emit conflict, falling back to LAST_WRITE_WINS:`,
               error instanceof Error ? error.message : String(error),
             );
             // Fallback to LAST_WRITE_WINS

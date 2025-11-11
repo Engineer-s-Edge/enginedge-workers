@@ -104,8 +104,8 @@ export class TaskCompletionService {
             userId,
             scheduledTask.scheduledSlot.startTime,
             {
-              actualStartTime,
-              actualEndTime,
+              actualStartTime: actualStart,
+              actualEndTime: actualEnd,
               productivityScore: completionRate / 100, // Convert to 0-1 scale
             },
           );

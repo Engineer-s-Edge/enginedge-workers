@@ -12,7 +12,7 @@ import { ActivityEvent, ActivityPattern } from '../../../domain/entities';
  */
 @Injectable()
 export class ActivityMLAdapter extends MLModelClient {
-  private readonly logger = new Logger(ActivityMLAdapter.name);
+  protected readonly logger = new Logger(ActivityMLAdapter.name);
 
   constructor(configService: ConfigService) {
     super(configService);

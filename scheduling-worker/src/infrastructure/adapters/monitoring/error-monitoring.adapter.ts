@@ -40,7 +40,7 @@ export class ErrorMonitoringAdapter {
         dsn: sentryDsn,
         environment: sentryEnvironment,
         tracesSampleRate: 1.0, // Capture 100% of transactions for performance monitoring
-        beforeSend(event) {
+        beforeSend(event: any) {
           // Filter out sensitive data if needed
           return event;
         },

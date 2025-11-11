@@ -16,8 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Download spaCy model
 RUN python -m spacy download en_core_web_lg
 
-# Download NLTK data
-RUN python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger')"
+# Download NLTK data to /usr/share/nltk_data (system-wide location)
+RUN python -c "import nltk; nltk.download('punkt', download_dir='/usr/share/nltk_data'); nltk.download('averaged_perceptron_tagger', download_dir='/usr/share/nltk_data')"
+
+# Set NLTK data path
+ENV NLTK_DATA=/usr/share/nltk_data
 
 # Copy application code
 COPY . .

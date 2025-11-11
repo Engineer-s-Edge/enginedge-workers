@@ -227,9 +227,7 @@ export class KafkaMessageBrokerAdapter
     }
 
     if (!this.connected) {
-      throw new Error(
-        'Kafka is not available. Message could not be sent.',
-      );
+      throw new Error('Kafka is not available. Message could not be sent.');
     }
 
     try {

@@ -27,6 +27,9 @@ ENV NODE_ENV=docker
 # Create app directory
 WORKDIR /usr/src/app
 
+# Create logs directory with proper ownership
+RUN mkdir -p /usr/src/app/logs && chown -R node:node /usr/src/app/logs
+
 # Copy production node_modules from build stage
 COPY --from=development --chown=node:node /usr/src/app/node_modules ./node_modules
 
@@ -46,4 +49,4 @@ EXPOSE 3001
 ENV NODE_OPTIONS="--unhandled-rejections=strict"
 
 # Start the application
-CMD ["node", "dist/main"] 
+CMD ["node", "dist/main"]

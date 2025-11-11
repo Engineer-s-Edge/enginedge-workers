@@ -84,15 +84,15 @@ export class ActivityModelService {
         userId,
         eventId,
         scheduledTime,
+        true, // completed
+        false, // completedOnTime - Will be calculated
         completionData.actualStartTime,
         completionData.actualEndTime,
-        true,
-        false, // Will be calculated
         completionData.userRating,
         completionData.productivityScore,
         completionData.interruptions || 0,
-        false,
-        new Date(),
+        false, // rescheduled
+        new Date(), // createdAt
       );
     } else {
       // Update existing event

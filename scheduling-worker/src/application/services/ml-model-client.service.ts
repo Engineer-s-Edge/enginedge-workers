@@ -60,7 +60,7 @@ export interface UserPatternsResponse {
  */
 @Injectable()
 export class MLModelClient {
-  private readonly logger = new Logger(MLModelClient.name);
+  protected readonly logger = new Logger(MLModelClient.name);
   private readonly httpClient: AxiosInstance;
   private readonly mlServiceUrl: string;
   private readonly timeout: number = 10000; // 10 second timeout

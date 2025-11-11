@@ -12,15 +12,15 @@ export class ActivityEvent {
     public readonly userId: string,
     public readonly eventId: string, // calendar event ID
     public scheduledTime: Date,
-    public actualStartTime?: Date,
-    public actualEndTime?: Date,
     public completed: boolean,
     public completedOnTime: boolean,
+    public actualStartTime?: Date,
+    public actualEndTime?: Date,
     public userRating?: number, // 1-5
     public productivityScore?: number, // 0-1
-    public interruptions: number,
-    public rescheduled: boolean,
-    public readonly createdAt: Date,
+    public interruptions?: number,
+    public rescheduled?: boolean,
+    public readonly createdAt?: Date,
     public metadata?: Record<string, any>,
   ) {
     this.validate();
@@ -48,7 +48,7 @@ export class ActivityEvent {
     ) {
       throw new Error('Productivity score must be between 0 and 1');
     }
-    if (this.interruptions < 0) {
+    if (this.interruptions !== undefined && this.interruptions < 0) {
       throw new Error('Interruptions must be non-negative');
     }
     if (this.actualStartTime && this.actualEndTime) {
@@ -86,10 +86,10 @@ export class ActivityEvent {
       this.userId,
       this.eventId,
       this.scheduledTime,
+      true, // completed
+      wasOnTime, // completedOnTime
       actualStartTime ?? this.actualStartTime,
       actualEndTime ?? this.actualEndTime,
-      true,
-      wasOnTime,
       userRating ?? this.userRating,
       productivityScore ?? this.productivityScore,
       interruptions ?? this.interruptions,
@@ -108,14 +108,14 @@ export class ActivityEvent {
       this.userId,
       this.eventId,
       newScheduledTime,
-      this.actualStartTime,
-      this.actualEndTime,
       this.completed,
       this.completedOnTime,
+      this.actualStartTime,
+      this.actualEndTime,
       this.userRating,
       this.productivityScore,
       this.interruptions,
-      true,
+      true, // rescheduled
       this.createdAt,
       this.metadata,
     );
@@ -161,7 +161,7 @@ export class ActivityEvent {
       productivityScore: this.productivityScore,
       interruptions: this.interruptions,
       rescheduled: this.rescheduled,
-      createdAt: this.createdAt.toISOString(),
+      createdAt: this.createdAt?.toISOString(),
       metadata: this.metadata,
     };
   }
@@ -175,10 +175,10 @@ export class ActivityEvent {
       obj.userId,
       obj.eventId,
       new Date(obj.scheduledTime),
-      obj.actualStartTime ? new Date(obj.actualStartTime) : undefined,
-      obj.actualEndTime ? new Date(obj.actualEndTime) : undefined,
       obj.completed || false,
       obj.completedOnTime || false,
+      obj.actualStartTime ? new Date(obj.actualStartTime) : undefined,
+      obj.actualEndTime ? new Date(obj.actualEndTime) : undefined,
       obj.userRating,
       obj.productivityScore,
       obj.interruptions || 0,

@@ -290,7 +290,9 @@ export class GoalController {
     this.logger.log(`Logging ${dto.hours} hours for goal ${id}`);
 
     const minutes = dto.hours * 60;
-    return this.goalService.logTime(id, minutes, dto.description);
+    // TODO: Implement logTime method in GoalService
+    throw new Error('logTime not implemented');
+    // return this.goalService.logTime(id, minutes, dto.description);
   }
 
   @Get(':id/progress-summary')
