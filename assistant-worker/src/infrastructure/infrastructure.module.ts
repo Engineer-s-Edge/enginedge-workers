@@ -68,6 +68,11 @@ import {
 } from './adapters/storage/category/category.schema';
 import { MongoDBTopicCatalogRepository } from './adapters/storage/topic-catalog/mongodb-topic-catalog.repository';
 import { MongoDBCategoryRepository } from './adapters/storage/category/mongodb-category.repository';
+import {
+  ResearchSessionModel,
+  ResearchSessionSchema,
+} from './adapters/storage/research-session/research-session.schema';
+import { MongoDBResearchSessionRepository } from './adapters/storage/research-session/mongodb-research-session.repository';
 import { EmbedderAdapter } from './adapters/external/embedder.adapter';
 import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
 
@@ -99,6 +104,7 @@ import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
       { name: MessageVersion.name, schema: MessageVersionSchema },
       { name: TopicCatalog.name, schema: TopicCatalogSchema },
       { name: CategoryModel.name, schema: CategorySchema },
+      { name: ResearchSessionModel.name, schema: ResearchSessionSchema },
     ]),
   ],
   controllers: [
@@ -202,6 +208,12 @@ import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
       provide: 'ICategoryRepository',
       useClass: MongoDBCategoryRepository,
     },
+    // Research Session repository
+    MongoDBResearchSessionRepository,
+    {
+      provide: 'IResearchSessionRepository',
+      useClass: MongoDBResearchSessionRepository,
+    },
 
     // External service adapters
     EmbedderAdapter,
@@ -233,6 +245,8 @@ import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
     // Topic Catalog and Category repositories
     'ITopicCatalogRepository',
     'ICategoryRepository',
+    // Research Session repository
+    'IResearchSessionRepository',
     // External service adapters
     'IEmbedder',
     'ISpacyService',

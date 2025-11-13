@@ -28,3 +28,8 @@ export {
   CategoryHierarchy,
   CreateCategoryInput,
 } from './category.entity';
+export {
+  ResearchSession,
+  ResearchSessionStatus,
+  CreateResearchSessionInput,
+} from './research-session.entity';

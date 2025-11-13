@@ -305,6 +305,20 @@ export class TopicCatalogService {
   }
 
   /**
+   * Delete a topic from the catalog
+   */
+  async deleteTopic(topicId: string): Promise<boolean> {
+    this.logger.info(`Deleting topic: ${topicId}`);
+    const result = await this.repository.delete(topicId);
+    if (result) {
+      this.logger.info(`Topic deleted successfully: ${topicId}`);
+    } else {
+      this.logger.warn(`Topic not found or already deleted: ${topicId}`);
+    }
+    return result;
+  }
+
+  /**
    * Batch import topics (e.g., from Wikipedia)
    */
   async batchImportTopics(

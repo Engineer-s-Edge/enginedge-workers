@@ -2,24 +2,33 @@
  * Learning Mode Adapter Implementation
  *
  * Bridges orchestrator with LearningModeService
+ * Tracks component merges via GraphComponentService integration
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import {
   ILearningModeAdapter,
   LearningMode,
   LearningModeConfig,
   LearningModeResult,
 } from '../interfaces';
+import { GraphComponentService } from '@application/services/graph-component.service';
 
 @Injectable()
 export class LearningModeAdapter implements ILearningModeAdapter {
   private readonly logger = new Logger(LearningModeAdapter.name);
   private userModes: Map<string, LearningMode> = new Map();
   private activeSessions: Map<string, LearningModeConfig> = new Map();
+  private sessionComponentCounts: Map<string, number> = new Map(); // Track component counts per session
 
-  // TODO: Inject real LearningModeService when available
-  // constructor(private learningModeService: LearningModeService) {}
+  constructor(
+    @Optional()
+    private readonly graphComponentService?: GraphComponentService,
+  ) {
+    if (this.graphComponentService) {
+      this.logger.log('GraphComponentService integrated for component merge tracking');
+    }
+  }
 
   async executeLearningMode(
     config: LearningModeConfig,
@@ -33,18 +42,64 @@ export class LearningModeAdapter implements ILearningModeAdapter {
       // return this.learningModeService.executeLearningMode(config);
 
       // Track session
+      const sessionId = `session_${config.userId}_${Date.now()}`;
       this.activeSessions.set(config.userId, config);
       this.userModes.set(config.userId, config.mode);
 
+      // Get initial component count for merge tracking
+      let initialComponentCount = 0;
+      let finalComponentCount = 0;
+      if (this.graphComponentService) {
+        try {
+          initialComponentCount = await this.graphComponentService.getComponentCount();
+          this.sessionComponentCounts.set(sessionId, initialComponentCount);
+          this.logger.debug(
+            `Initial component count: ${initialComponentCount}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to get initial component count: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
       // Stub implementation
       const startTime = Date.now();
-      return {
+
+      // Simulate learning execution (in real implementation, this would trigger actual research)
+      // For now, we'll just wait a bit to simulate processing
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Get final component count to calculate merges
+      let componentsMerged = 0;
+      if (this.graphComponentService) {
+        try {
+          finalComponentCount = await this.graphComponentService.getComponentCount();
+          // Components merged = initial - final (when components merge, count decreases)
+          componentsMerged = Math.max(0, initialComponentCount - finalComponentCount);
+          this.logger.debug(
+            `Component merge tracking: initial=${initialComponentCount}, final=${finalComponentCount}, merged=${componentsMerged}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to get final component count: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
+      const result: LearningModeResult = {
         success: true,
         mode: config.mode,
         topicsProcessed: config.topics || [],
         duration: Date.now() - startTime,
         timestamp: new Date(),
+        componentsMerged,
       };
+
+      // Clean up session tracking
+      this.sessionComponentCounts.delete(sessionId);
+
+      return result;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(

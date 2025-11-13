@@ -21,6 +21,7 @@ export interface LearningModeResult {
   topicsProcessed: string[];
   duration: number;
   timestamp: Date;
+  componentsMerged?: number; // Track component merges from GraphComponentService
 }
 
 export interface ILearningModeAdapter {

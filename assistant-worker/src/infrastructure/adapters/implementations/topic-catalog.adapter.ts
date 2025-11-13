@@ -215,13 +215,16 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
 
       const topicEntry = await this.topicCatalogService.getTopicByName(topic);
       if (!topicEntry) {
+        this.logger.warn(`Topic not found: ${topic}`);
         return false;
       }
 
-      // Note: We'd need a delete method in TopicCatalogService
-      // For now, we'll just return false as deletion might not be desired
-      this.logger.warn('Topic deletion not implemented - topics are permanent');
-      return false;
+      // Delete the topic using the service
+      const deleted = await this.topicCatalogService.deleteTopic(topicEntry.id);
+      if (deleted) {
+        this.logger.info(`Successfully deleted topic: ${topic} (id: ${topicEntry.id})`);
+      }
+      return deleted;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to delete topic: ${err.message}`, err.stack);
