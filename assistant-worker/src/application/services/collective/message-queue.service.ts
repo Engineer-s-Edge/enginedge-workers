@@ -6,6 +6,8 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
+import { Subject, Observable } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { ILogger } from '@application/ports/logger.port';
 import {
   CollectiveMessage,
@@ -27,7 +29,6 @@ const MESSAGE_TIMEOUTS: Record<MessagePriority, number> = {
 };
 
 const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAYS_MS = [1000, 5000, 15000]; // Exponential backoff
 
 @Injectable()
 export class MessageQueueService {
@@ -35,6 +36,7 @@ export class MessageQueueService {
   private messages: Map<string, CollectiveMessage> = new Map();
   private messageQueues: Map<string, CollectiveMessage[]> = new Map(); // Key: targetAgentId
   private timeoutHandles: Map<string, NodeJS.Timeout> = new Map();
+  private readonly messageSubject = new Subject<CollectiveMessage>();
 
   constructor(
     @Inject('ILogger')
@@ -58,7 +60,7 @@ export class MessageQueueService {
       conversationId?: string;
       taskId?: string;
       replyToMessageId?: string;
-      metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
     } = {},
   ): Promise<CollectiveMessage> {
     const priority = options.priority || MessagePriority.NORMAL;
@@ -83,6 +85,8 @@ export class MessageQueueService {
 
     // Store message
     this.messages.set(message.id, message);
+
+  this.publishMessage(message);
 
     // Add to recipient's queue (priority-sorted)
     const queue = this.messageQueues.get(toAgentId) || [];
@@ -124,7 +128,7 @@ export class MessageQueueService {
       type?: MessageType;
       priority?: MessagePriority;
       excludeAgentIds?: string[];
-      metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
     } = {},
   ): Promise<CollectiveMessage[]> {
     // Get all agent IDs in collective (this would come from collective registry)
@@ -407,6 +411,91 @@ export class MessageQueueService {
         {},
       );
     }
+  }
+
+  /**
+   * Get queue metrics for a specific agent
+   */
+  getAgentQueueMetrics(agentId: string): {
+    total: number;
+    pending: number;
+    inProgress: number;
+    failed: number;
+    expired: number;
+    nextMessage: {
+      id: string;
+      priority: MessagePriority;
+      type: MessageType;
+      taskId?: string;
+      createdAt: Date;
+    } | null;
+    oldestMessageCreatedAt?: Date;
+  } {
+    const queue = this.messageQueues.get(agentId) || [];
+
+    let pending = 0;
+    let inProgress = 0;
+    let failed = 0;
+    let expired = 0;
+    let oldestMessage: CollectiveMessage | undefined;
+
+    for (const message of queue) {
+      if (!oldestMessage || message.createdAt < oldestMessage.createdAt) {
+        oldestMessage = message;
+      }
+
+      switch (message.status) {
+        case MessageStatus.PENDING:
+          pending++;
+          break;
+        case MessageStatus.IN_PROGRESS:
+          inProgress++;
+          break;
+        case MessageStatus.FAILED:
+          failed++;
+          break;
+        case MessageStatus.EXPIRED:
+          expired++;
+          break;
+        default:
+          break;
+      }
+    }
+
+    const nextMessage = queue[0]
+      ? {
+          id: queue[0].id,
+          priority: queue[0].priority,
+          type: queue[0].type,
+          taskId: queue[0].taskId,
+          createdAt: queue[0].createdAt,
+        }
+      : null;
+
+    return {
+      total: queue.length,
+      pending,
+      inProgress,
+      failed,
+      expired,
+      nextMessage,
+      oldestMessageCreatedAt: oldestMessage?.createdAt,
+    };
+  }
+
+  getAgentQueue(agentId: string): CollectiveMessage[] {
+    const queue = this.messageQueues.get(agentId) || [];
+    return [...queue];
+  }
+
+  streamMessages(collectiveId: string): Observable<CollectiveMessage> {
+    return this.messageSubject.asObservable().pipe(
+      filter((message) => message.collectiveId === collectiveId),
+    );
+  }
+
+  private publishMessage(message: CollectiveMessage): void {
+    this.messageSubject.next(message);
   }
 
   /**

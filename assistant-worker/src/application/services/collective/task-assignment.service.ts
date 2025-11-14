@@ -6,10 +6,7 @@
 
 import { Injectable, Inject } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
-import {
-  CollectiveTask,
-  TaskState,
-} from '@domain/entities/collective-task.entity';
+import { CollectiveTask } from '@domain/entities/collective-task.entity';
 
 export interface AgentCapability {
   agentId: string;
@@ -17,6 +14,19 @@ export interface AgentCapability {
   currentLoad: number; // Number of active tasks
   capabilities: string[]; // Capability tags
   availability: boolean;
+}
+
+export interface AssignmentMetrics {
+  totalAgentsTracked: number;
+  totalAssignments: number;
+  averageLoadPerAgent: number;
+  agents: Array<{
+    agentId: string;
+    agentType: string;
+    currentLoad: number;
+    capabilities: string[];
+    availability: boolean;
+  }>;
 }
 
 @Injectable()
@@ -140,5 +150,35 @@ export class TaskAssignmentService {
    */
   getAgentLoad(agentId: string): number {
     return this.agentTaskCounts.get(agentId) || 0;
+  }
+
+  getAssignmentMetrics(agentIds?: string[]): AssignmentMetrics {
+    const entries = Array.from(this.agentCapabilities.entries()).filter(
+      ([agentId]) => !agentIds || agentIds.includes(agentId),
+    );
+
+    const agents = entries.map(([agentId, capability]) => {
+      const currentLoad = this.agentTaskCounts.get(agentId) || 0;
+      return {
+        agentId,
+        agentType: capability.agentType,
+        currentLoad,
+        capabilities: capability.capabilities,
+        availability: capability.availability,
+      };
+    });
+
+    const totalAssignments = agents.reduce(
+      (sum, agent) => sum + agent.currentLoad,
+      0,
+    );
+
+    return {
+      totalAgentsTracked: agents.length,
+      totalAssignments,
+      averageLoadPerAgent:
+        agents.length > 0 ? Number((totalAssignments / agents.length).toFixed(2)) : 0,
+      agents,
+    };
   }
 }

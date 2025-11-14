@@ -24,6 +24,10 @@ export class ArtifactSearchService {
     this.artifacts.set(artifact.id, artifact);
   }
 
+  removeArtifact(artifactId: string): void {
+    this.artifacts.delete(artifactId);
+  }
+
   /**
    * Search artifacts
    */
@@ -111,9 +115,6 @@ export class ArtifactSearchService {
     artifact: CollectiveArtifact,
     query: string,
   ): number {
-    const searchableText =
-      `${artifact.name} ${artifact.description || ''} ${artifact.searchableContent}`.toLowerCase();
-
     let score = 0;
 
     // Name matches get highest score

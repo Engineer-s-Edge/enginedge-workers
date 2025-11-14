@@ -48,8 +48,12 @@ import {
   SubAgentResult,
   AggregatedResult,
   SubAgentStats,
-  SubAgentType,
+  TaskQueueSnapshot,
+  CollectiveStateSnapshot,
+  WaitingDependency,
+  DeadlockSnapshot,
 } from './collective-agent.types';
+import { DeadlockInfo } from '@domain/ports/deadlock-detection.port';
 
 export interface CollectiveAgentConfig {
   collectiveId: string;
@@ -68,9 +72,13 @@ export class CollectiveAgent extends BaseAgent {
   private collectiveState: CollectiveAgentState;
   private tasks: Map<string, CollectiveTask> = new Map();
   private artifacts: Map<string, CollectiveArtifact> = new Map();
+  private paused = false;
+  private pauseReason: string | null = null;
   private pmLoopInterval?: NodeJS.Timeout;
   private deadlockCheckInterval?: NodeJS.Timeout;
   private collectiveId: string;
+  private lastDetectedDeadlocks: DeadlockInfo[] = [];
+  private lastDeadlockDetectedAt?: Date;
 
   constructor(
     llmProvider: ILLMProvider,
@@ -112,6 +120,363 @@ export class CollectiveAgent extends BaseAgent {
    */
   getCollectiveState(): CollectiveAgentState {
     return { ...this.collectiveState };
+  }
+
+  getCollectiveId(): string {
+    return this.collectiveId;
+  }
+
+  pause(reason?: string): void {
+    const effectiveReason = reason ?? 'manual';
+
+    if (!this.paused) {
+      this.paused = true;
+      this.pauseReason = effectiveReason;
+      this.logger.info('Collective execution paused', {
+        collectiveId: this.collectiveId,
+        reason: effectiveReason,
+      });
+    } else if (reason) {
+      this.pauseReason = effectiveReason;
+    }
+  }
+
+  resume(): void {
+    if (this.paused) {
+      const previousReason = this.pauseReason;
+      this.paused = false;
+      this.pauseReason = null;
+      this.lastDetectedDeadlocks = [];
+      this.lastDeadlockDetectedAt = undefined;
+      this.logger.info('Collective execution resumed', {
+        collectiveId: this.collectiveId,
+        previousReason,
+      });
+    }
+  }
+
+  isPaused(): boolean {
+    return this.paused;
+  }
+
+  getTaskQueueSnapshot(): TaskQueueSnapshot {
+    const tasks = Array.from(this.tasks.values());
+    const stateCounts: Record<TaskState, number> = {
+      [TaskState.UNASSIGNED]: 0,
+      [TaskState.ASSIGNED]: 0,
+      [TaskState.IN_PROGRESS]: 0,
+      [TaskState.BLOCKED]: 0,
+      [TaskState.DELEGATED]: 0,
+      [TaskState.COMPLETED]: 0,
+      [TaskState.FAILED]: 0,
+      [TaskState.CANCELLED]: 0,
+      [TaskState.REVIEW]: 0,
+    };
+
+    const levelCounts: Record<TaskLevel, number> = {
+      [TaskLevel.VISION]: 0,
+      [TaskLevel.PORTFOLIO]: 0,
+      [TaskLevel.PROGRAM]: 0,
+      [TaskLevel.EPIC]: 0,
+      [TaskLevel.FEATURE]: 0,
+      [TaskLevel.STORY]: 0,
+      [TaskLevel.TASK]: 0,
+      [TaskLevel.SUBTASK]: 0,
+    };
+
+    let priorityTotal = 0;
+    let lastUpdated = tasks.length > 0 ? tasks[0].updatedAt : new Date(0);
+
+    for (const task of tasks) {
+      stateCounts[task.state] = (stateCounts[task.state] || 0) + 1;
+      levelCounts[task.level] = (levelCounts[task.level] || 0) + 1;
+      priorityTotal += task.priority || 0;
+      if (task.updatedAt > lastUpdated) {
+        lastUpdated = task.updatedAt;
+      }
+    }
+
+    const backlogTasks = tasks.filter((task) =>
+      [TaskState.UNASSIGNED, TaskState.BLOCKED].includes(task.state),
+    );
+    const inProgressTasks = tasks.filter(
+      (task) => task.state === TaskState.IN_PROGRESS,
+    );
+    const completedTasks = tasks.filter(
+      (task) => task.state === TaskState.COMPLETED,
+    );
+
+    const backlog = backlogTasks
+      .sort((a, b) => {
+        if (b.priority === a.priority) {
+          return a.createdAt.getTime() - b.createdAt.getTime();
+        }
+        return b.priority - a.priority;
+      })
+      .slice(0, 25)
+      .map((task) => ({
+        taskId: task.id,
+        title: task.title,
+        priority: task.priority,
+        state: task.state,
+        blockedBy: [...task.blockedBy],
+        assignedAgentId: task.assignedAgentId,
+        level: task.level,
+        createdAt: task.createdAt.toISOString(),
+      }));
+
+    const inProgress = inProgressTasks
+      .sort((a, b) => {
+        const aTime = a.startedAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const bTime = b.startedAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        return aTime - bTime;
+      })
+      .slice(0, 20)
+      .map((task) => ({
+        taskId: task.id,
+        title: task.title,
+        assignedAgentId: task.assignedAgentId,
+        startedAt: task.startedAt?.toISOString(),
+        priority: task.priority,
+      }));
+
+    const recentCompletions = completedTasks
+      .filter((task) => !!task.completedAt)
+      .sort((a, b) =>
+        (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0),
+      )
+      .slice(0, 10)
+      .map((task) => ({
+        taskId: task.id,
+        title: task.title,
+        completedAt: task.completedAt?.toISOString() || new Date().toISOString(),
+        assignedAgentId: task.assignedAgentId,
+      }));
+
+    const totalTasks = tasks.length;
+    const backlogCount = backlogTasks.length;
+    const assignedTasks =
+      (stateCounts[TaskState.ASSIGNED] || 0) +
+      (stateCounts[TaskState.DELEGATED] || 0);
+
+    return {
+      collectiveId: this.collectiveId,
+      totalTasks,
+      backlogTasks: backlogCount,
+      blockedTasks: stateCounts[TaskState.BLOCKED] || 0,
+      assignedTasks,
+      inProgressTasks: stateCounts[TaskState.IN_PROGRESS] || 0,
+      completedTasks: stateCounts[TaskState.COMPLETED] || 0,
+      failedTasks: stateCounts[TaskState.FAILED] || 0,
+      reviewTasks: stateCounts[TaskState.REVIEW] || 0,
+      averagePriority:
+        totalTasks > 0 ? Number((priorityTotal / totalTasks).toFixed(2)) : 0,
+      stateCounts,
+      levelCounts,
+      backlog,
+      inProgress,
+      recentCompletions,
+      lastUpdated: (lastUpdated || new Date()).toISOString(),
+    };
+  }
+
+  getStateSnapshot(): CollectiveStateSnapshot {
+    return {
+      collectiveId: this.collectiveId,
+      subAgents: this.collectiveState.subAgents,
+      activeTasks: this.getActiveCollectiveTasks(),
+      pendingAssignments: this.collectiveState.pendingAssignments,
+      completedAssignments: this.collectiveState.completedAssignments,
+      conflicts: this.collectiveState.conflicts,
+      totalTasksProcessed: this.collectiveState.totalTasksProcessed,
+      waitingDependencies: this.collectWaitingDependencies(),
+      deadlocks: this.formatDeadlocks(this.lastDetectedDeadlocks),
+      isPaused: this.paused,
+      deadlockDetectedAt: this.lastDeadlockDetectedAt
+        ? this.lastDeadlockDetectedAt.toISOString()
+        : null,
+      pauseReason: this.pauseReason,
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  async assignTaskManually(
+    taskId: string,
+    agentId: string,
+  ): Promise<TaskAssignment> {
+    const task = this.tasks.get(taskId);
+
+    if (!task) {
+      throw new Error(`Task ${taskId} not found in collective ${this.collectiveId}`);
+    }
+
+    const subAgentExists = this.collectiveState.subAgents.some(
+      (agent) => agent.agentId === agentId,
+    );
+
+    if (!subAgentExists) {
+      throw new Error(
+        `Agent ${agentId} is not registered in collective ${this.collectiveId}`,
+      );
+    }
+
+    const previousAllowed = [...task.allowedAgentIds];
+    const ensureAllowed = (): void => {
+      if (!task.allowedAgentIds.includes(agentId)) {
+        task.allowedAgentIds = [...task.allowedAgentIds, agentId];
+      }
+    };
+
+    ensureAllowed();
+    let assignedAgentId: string | null = null;
+
+    try {
+      assignedAgentId = await this.taskAssignment.assignTask(task, [agentId]);
+    } finally {
+      task.allowedAgentIds = previousAllowed;
+    }
+
+    if (!assignedAgentId) {
+      throw new Error(
+        `Unable to assign task ${taskId} to agent ${agentId}`,
+      );
+    }
+
+    const now = new Date();
+    task.assignedAgentId = assignedAgentId;
+    task.state = TaskState.ASSIGNED;
+    task.updatedAt = now;
+    this.tasks.set(taskId, task);
+
+    const assignment: TaskAssignment = {
+      assignmentId: `manual_${now.getTime()}_${task.id}`,
+      taskId: task.id,
+      agentId: assignedAgentId,
+      assignedAt: now,
+      status: 'pending',
+    };
+
+    this.recordPendingAssignment(assignment);
+
+    await this.communication.delegateTask(
+      this.collectiveId,
+      'pm_agent',
+      assignedAgentId,
+      task.description,
+      {
+        taskId: task.id,
+        priority: this.getPriorityFromTask(task),
+      },
+    );
+
+    return assignment;
+  }
+
+  completeTaskManually(taskId: string): CollectiveTask {
+    const task = this.tasks.get(taskId);
+
+    if (!task) {
+      throw new Error(`Task ${taskId} not found in collective ${this.collectiveId}`);
+    }
+
+    if (task.state === TaskState.COMPLETED) {
+      return task;
+    }
+
+    if (task.assignedAgentId) {
+      this.taskAssignment.releaseTask(task.assignedAgentId);
+    }
+
+    task.state = TaskState.COMPLETED;
+    task.completedAt = new Date();
+    task.updatedAt = new Date();
+    this.tasks.set(taskId, task);
+
+    this.markAssignmentCompleted(task.id);
+    this.collectiveState = {
+      ...this.collectiveState,
+      totalTasksProcessed: this.collectiveState.totalTasksProcessed + 1,
+    };
+
+    return task;
+  }
+
+  getWaitingDependencies(): WaitingDependency[] {
+    return this.collectWaitingDependencies();
+  }
+
+  private getActiveCollectiveTasks(): CollectiveTask[] {
+    const activeStates = new Set<TaskState>([
+      TaskState.UNASSIGNED,
+      TaskState.ASSIGNED,
+      TaskState.IN_PROGRESS,
+      TaskState.BLOCKED,
+      TaskState.DELEGATED,
+      TaskState.REVIEW,
+    ]);
+
+    return Array.from(this.tasks.values()).filter((task) =>
+      activeStates.has(task.state),
+    );
+  }
+
+  private collectWaitingDependencies(): WaitingDependency[] {
+    const dependencies: WaitingDependency[] = [];
+
+    for (const task of this.tasks.values()) {
+      if (!task.blockedBy?.length) {
+        continue;
+      }
+
+      const waitingAgentId = task.assignedAgentId ?? null;
+
+      for (const dependencyId of task.blockedBy) {
+        const dependencyTask = this.tasks.get(dependencyId);
+        dependencies.push({
+          waitingAgentId,
+          waitingOnAgentId: dependencyTask?.assignedAgentId ?? 'unassigned',
+          taskId: task.id,
+          dependencyReason: dependencyTask
+            ? `Waiting on ${dependencyTask.title} (${dependencyTask.id})`
+            : `Waiting on task ${dependencyId}`,
+        });
+      }
+    }
+
+    return dependencies;
+  }
+
+  private recordPendingAssignment(assignment: TaskAssignment): void {
+    this.collectiveState = {
+      ...this.collectiveState,
+      pendingAssignments: [
+        ...this.collectiveState.pendingAssignments,
+        assignment,
+      ],
+    };
+  }
+
+  private markAssignmentCompleted(taskId: string): void {
+    const pending = this.collectiveState.pendingAssignments;
+    const index = pending.findIndex((assignment) => assignment.taskId === taskId);
+    if (index === -1) {
+      return;
+    }
+
+    const completedAssignment: TaskAssignment = {
+      ...pending[index],
+      status: 'completed',
+      completedAt: new Date(),
+    };
+
+    this.collectiveState = {
+      ...this.collectiveState,
+      pendingAssignments: pending.filter((_, idx) => idx !== index),
+      completedAssignments: [
+        ...this.collectiveState.completedAssignments,
+        completedAssignment,
+      ],
+    };
   }
 
   /**
@@ -159,6 +524,7 @@ export class CollectiveAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<ExecutionResult> {
     try {
+      this.context = context;
       this.logger.info('CollectiveAgent: Starting coordination', {
         input,
         subAgents: this.collectiveState.subAgents.length,
@@ -306,7 +672,10 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     } catch (error) {
       this.logger.warn(
         'Failed to parse task hierarchy, using simple decomposition',
-        {},
+        {
+          error:
+            error instanceof Error ? error.message : JSON.stringify(error),
+        },
       );
       // Fallback to simple decomposition
       const simpleTasks = await this.decomposeTask(input);
@@ -336,6 +705,13 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
   private async distributeTasksIntelligently(
     tasks: CollectiveTask[],
   ): Promise<TaskAssignment[]> {
+    if (this.paused) {
+      this.logger.debug('Skipping task distribution while paused', {
+        collectiveId: this.collectiveId,
+      });
+      return [];
+    }
+
     const assignments: TaskAssignment[] = [];
     const availableAgents = this.collectiveState.subAgents
       .filter((sa) => sa.isActive)
@@ -381,13 +757,16 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
         task.state = TaskState.ASSIGNED;
         this.tasks.set(task.id, task);
 
-        assignments.push({
+        const assignment: TaskAssignment = {
           assignmentId: `assignment_${Date.now()}_${assignments.length}`,
           taskId: task.id,
           agentId: assignedAgentId,
           assignedAt: new Date(),
           status: 'pending',
-        });
+        };
+
+        assignments.push(assignment);
+        this.recordPendingAssignment(assignment);
 
         // Send task assignment message to agent
         await this.communication.delegateTask(
@@ -410,28 +789,41 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
    * Check and resolve deadlocks
    */
   private async checkAndResolveDeadlocks(): Promise<void> {
+    if (this.paused && this.pauseReason !== 'deadlock') {
+      this.logger.debug('Skipping deadlock detection while manually paused', {
+        collectiveId: this.collectiveId,
+        reason: this.pauseReason,
+      });
+      return;
+    }
+
     const tasks = Array.from(this.tasks.values());
     const deadlocks = await this.deadlockDetection.detectDeadlocks(tasks);
 
-    if (deadlocks.length > 0) {
-      this.logger.warn(`Detected ${deadlocks.length} deadlocks`, {});
+    if (deadlocks.length === 0) {
+      this.lastDetectedDeadlocks = [];
+      this.lastDeadlockDetectedAt = undefined;
+      return;
+    }
 
-      for (const deadlock of deadlocks) {
-        // Resolve by escalating to PM or breaking cycle
-        if (deadlock.severity === 'high') {
-          // Escalate to PM agent
-          await this.communication.askPM(
-            this.collectiveId,
-            'pm_agent',
-            `Deadlock detected: ${deadlock.cycle.join(' → ')}. Please resolve.`,
-            {
-              metadata: { deadlock: deadlock.cycle },
-            },
-          );
-        } else {
-          // Auto-resolve by breaking lowest priority task dependency
-          this.breakDeadlockCycle(deadlock.cycle);
-        }
+    this.handleDeadlockDetection(deadlocks);
+    this.logger.warn(`Detected ${deadlocks.length} deadlocks`, {});
+
+    for (const deadlock of deadlocks) {
+      // Resolve by escalating to PM or breaking cycle
+      if (deadlock.severity === 'high') {
+        // Escalate to PM agent
+        await this.communication.askPM(
+          this.collectiveId,
+          'pm_agent',
+          `Deadlock detected: ${deadlock.cycle.join(' → ')}. Please resolve.`,
+          {
+            metadata: { deadlock: deadlock.cycle },
+          },
+        );
+      } else {
+        // Auto-resolve by breaking lowest priority task dependency
+        this.breakDeadlockCycle(deadlock.cycle);
       }
     }
   }
@@ -475,6 +867,22 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     }
   }
 
+  private handleDeadlockDetection(deadlocks: DeadlockInfo[]): void {
+    this.lastDetectedDeadlocks = deadlocks;
+    this.lastDeadlockDetectedAt = new Date();
+    this.pause('deadlock');
+  }
+
+  private formatDeadlocks(deadlocks: DeadlockInfo[]): DeadlockSnapshot[] {
+    return deadlocks.map((info) => ({
+      id: info.id,
+      cycle: [...info.cycle],
+      involvedAgents: [...info.involvedAgents],
+      detectedAt: info.detectedAt.toISOString(),
+      severity: info.severity,
+    }));
+  }
+
   /**
    * Start PM main loop (processes messages, assigns tasks, monitors)
    */
@@ -500,6 +908,13 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
    * PM main loop - processes messages and assigns tasks
    */
   private async runPMMainLoop(): Promise<void> {
+    if (this.paused) {
+      this.logger.debug('PM loop skipped because collective is paused', {
+        collectiveId: this.collectiveId,
+      });
+      return;
+    }
+
     // Process high-priority messages first
     const criticalMessage = await this.messageQueue.getNextMessage('pm_agent');
     if (criticalMessage) {
@@ -622,6 +1037,8 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     // Release agent load
     this.taskAssignment.releaseTask(task.assignedAgentId);
 
+  this.markAssignmentCompleted(task.id);
+
     // Update stats
     const stats = this.collectiveState.subAgentStats.find(
       (s) => s.agentId === task.assignedAgentId,
@@ -704,6 +1121,11 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
         this.collectiveId,
         task.id,
       );
+      this.logger.debug('Task context loaded for execution', {
+        taskId: task.id,
+        relatedArtifacts: context.relatedArtifacts.length,
+        childTasks: context.childTasks.length,
+      });
 
       // Simulate task execution (in real implementation, delegate to agent)
       // For now, we'll use LLM to simulate agent execution

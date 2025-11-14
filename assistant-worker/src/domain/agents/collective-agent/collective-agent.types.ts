@@ -1,3 +1,10 @@
+import {
+  CollectiveTask,
+  TaskLevel,
+  TaskState,
+} from '@domain/entities/collective-task.entity';
+import { DeadlockInfo } from '@domain/ports/deadlock-detection.port';
+
 /**
  * Collective Agent Types - Multi-Agent Orchestration
  *
@@ -190,6 +197,45 @@ export interface CollectiveAgentState {
   readonly totalTasksProcessed: number;
 }
 
+export interface TaskQueueSnapshot {
+  readonly collectiveId: string;
+  readonly totalTasks: number;
+  readonly backlogTasks: number;
+  readonly blockedTasks: number;
+  readonly assignedTasks: number;
+  readonly inProgressTasks: number;
+  readonly completedTasks: number;
+  readonly failedTasks: number;
+  readonly reviewTasks: number;
+  readonly averagePriority: number;
+  readonly stateCounts: Record<TaskState, number>;
+  readonly levelCounts: Record<TaskLevel, number>;
+  readonly backlog: ReadonlyArray<{
+    readonly taskId: string;
+    readonly title: string;
+    readonly priority: number;
+    readonly state: TaskState;
+    readonly blockedBy: readonly string[];
+    readonly assignedAgentId?: string;
+    readonly level: TaskLevel;
+    readonly createdAt: string;
+  }>;
+  readonly inProgress: ReadonlyArray<{
+    readonly taskId: string;
+    readonly title: string;
+    readonly assignedAgentId?: string;
+    readonly startedAt?: string;
+    readonly priority: number;
+  }>;
+  readonly recentCompletions: ReadonlyArray<{
+    readonly taskId: string;
+    readonly title: string;
+    readonly completedAt: string;
+    readonly assignedAgentId?: string;
+  }>;
+  readonly lastUpdated: string;
+}
+
 /**
  * Execution result for collective coordination
  */
@@ -205,6 +251,48 @@ export interface CollectiveExecutionResult {
   readonly timestamp: Date;
 }
 
+export interface WaitingDependency {
+  readonly waitingAgentId: string | null;
+  readonly waitingOnAgentId: string;
+  readonly taskId: string;
+  readonly dependencyReason: string;
+}
+
+export interface CollectiveStateSnapshot {
+  readonly collectiveId: string;
+  readonly subAgents: readonly SubAgentRef[];
+  readonly activeTasks: readonly CollectiveTask[];
+  readonly pendingAssignments: readonly TaskAssignment[];
+  readonly completedAssignments: readonly TaskAssignment[];
+  readonly conflicts: readonly ConflictResolution[];
+  readonly totalTasksProcessed: number;
+  readonly waitingDependencies: readonly WaitingDependency[];
+  readonly deadlocks: readonly DeadlockSnapshot[];
+  readonly isPaused: boolean;
+  readonly deadlockDetectedAt?: string | null;
+  readonly pauseReason?: string | null;
+  readonly lastUpdated: string;
+}
+
+export interface DeadlockSnapshot {
+  readonly id: string;
+  readonly cycle: readonly string[];
+  readonly involvedAgents: readonly string[];
+  readonly detectedAt: string;
+  readonly severity: DeadlockInfo['severity'];
+}
+export interface CollectiveProgressMetrics {
+  readonly collectiveId: string;
+  readonly totalTasks: number;
+  readonly completedTasks: number;
+  readonly inProgressTasks: number;
+  readonly blockedTasks: number;
+  readonly pendingAssignments: number;
+  readonly progressPercent: number;
+  readonly activeAgents: number;
+  readonly averageSuccessRate: number;
+  readonly lastUpdated: string;
+}
 /**
  * State update for collective streaming
  */
