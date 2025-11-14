@@ -7,13 +7,9 @@
 
 import { Injectable, Inject } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
-import {
-  CollectiveArtifact,
-  ArtifactLock,
-  LockType,
-} from '@domain/entities/collective-artifact.entity';
+import { LockType } from '@domain/entities/collective-artifact.entity';
 
-interface LockInfo {
+export interface ArtifactLockInfo {
   artifactId: string;
   agentId: string;
   lockType: LockType;
@@ -29,13 +25,13 @@ interface QueuedLockRequest {
   lockType: LockType;
   requestedAt: Date;
   timeoutMs: number;
-  resolve: (token: string | null) => void;
-  reject: (error: Error) => void;
+  resolve?: (token: string | null) => void;
+  reject?: (error: Error) => void;
 }
 
 @Injectable()
 export class ArtifactLockingService {
-  private readonly activeLocks = new Map<string, LockInfo>();
+  private readonly activeLocks = new Map<string, ArtifactLockInfo>();
   private readonly lockQueues = new Map<string, QueuedLockRequest[]>();
 
   private readonly DEFAULT_LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -82,8 +78,6 @@ export class ArtifactLockingService {
       lockType,
       requestedAt: new Date(),
       timeoutMs,
-      resolve: null as any,
-      reject: null as any,
     };
 
     const promise = new Promise<string | null>((resolve, reject) => {
@@ -147,7 +141,7 @@ export class ArtifactLockingService {
   /**
    * Get lock information
    */
-  getLockInfo(artifactId: string): LockInfo | null {
+  getLockInfo(artifactId: string): ArtifactLockInfo | null {
     return this.activeLocks.get(artifactId) || null;
   }
 
@@ -188,7 +182,7 @@ export class ArtifactLockingService {
     const token = `lock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date();
 
-    const lock: LockInfo = {
+    const lock: ArtifactLockInfo = {
       artifactId,
       agentId,
       lockType,

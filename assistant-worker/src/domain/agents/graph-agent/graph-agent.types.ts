@@ -123,6 +123,34 @@ export interface GraphAgentState {
 }
 
 /**
+ * Serialized snapshot of graph execution state for checkpoints & APIs
+ */
+export interface GraphExecutionSnapshot {
+  graph?: WorkflowGraph;
+  graphId?: string;
+  graphName?: string;
+  startTime?: number;
+  lastUpdated?: number;
+  currentNodeIds?: string[];
+  pendingNodeIds?: string[];
+  executedNodes?: ExecutedNode[];
+  failedNodes?: ExecutedNode[];
+  nodeResults?: Array<{ nodeId: string; output: unknown }>;
+  retryAttempts?: Record<string, number>;
+  executionHistory?: GraphExecutionHistoryEntry[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface GraphExecutionHistoryEntry {
+  nodeId: string;
+  nodeName: string;
+  status: NodeStatus;
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+/**
  * Node execution result
  */
 export interface NodeExecutionResult {

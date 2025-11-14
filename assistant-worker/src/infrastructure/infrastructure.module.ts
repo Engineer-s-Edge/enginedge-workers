@@ -8,14 +8,13 @@ import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '@application/application.module';
 import { ThreadingModule } from './threading/threading.module';
-import { ConsoleLoggerAdapter } from './adapters';
+import { AdaptersModule } from './adapters/adapters.module';
 import {
   BufferMemoryAdapter,
   WindowMemoryAdapter,
   SummaryMemoryAdapter,
   VectorMemoryAdapter,
   EntityMemoryAdapter,
-  MongoDBPersistenceAdapter,
 } from './adapters/memory';
 import { Neo4jAdapter } from './adapters/knowledge-graph';
 import { SSEStreamAdapter, WebSocketAdapter } from './adapters/streaming';
@@ -75,6 +74,7 @@ import {
 import { MongoDBResearchSessionRepository } from './adapters/storage/research-session/mongodb-research-session.repository';
 import { EmbedderAdapter } from './adapters/external/embedder.adapter';
 import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
+import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orchestrator';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -92,7 +92,8 @@ import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
   imports: [
     ApplicationModule,
     ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
-    AssistantsModule, // Assistants CRUD and execution
+  AssistantsModule, // Assistants CRUD and execution
+  AdaptersModule,
     // Real LLM providers (default driven by env LLM_PROVIDER, defaults to openai)
     LLMProviderModule.register({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,13 +190,13 @@ import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
     {
       provide: 'IRAGServicePort',
       useExisting: RAGServiceAdapter,
-    } as any,
+    },
 
     // Domain port binding for knowledge graph
     {
       provide: 'KnowledgeGraphPort',
       useExisting: KnowledgeGraphService,
-    } as any,
+    },
 
     // Topic Catalog and Category repositories
     MongoDBTopicCatalogRepository,
@@ -230,6 +231,7 @@ import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
     // Global filter/interceptor providers for DI resolution in main.ts
     GlobalExceptionFilter,
     LoggingInterceptor,
+    GeniusAgentOrchestrator,
   ],
   exports: [
     // Export ports for application and domain layers

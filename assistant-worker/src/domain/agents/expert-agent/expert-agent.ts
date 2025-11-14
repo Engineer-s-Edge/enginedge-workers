@@ -17,7 +17,6 @@ import {
   ResearchTopic,
   ResearchSource,
   EvidenceEntry,
-  Contradiction,
   SourceCredibility,
   ExpertAgentState,
   ResearchReport,
@@ -66,6 +65,24 @@ export class ExpertAgent extends BaseAgent {
   }
 
   /**
+   * Get latest research report snapshot if available
+   */
+  getResearchReport(): ResearchReport | null {
+    if (!this.researchState.finalReport) {
+      return null;
+    }
+
+    const report = this.researchState.finalReport;
+    return {
+      ...report,
+      topics: [...report.topics],
+      evidence: [...report.evidence],
+      contradictions: [...report.contradictions],
+      generatedAt: new Date(report.generatedAt),
+    };
+  }
+
+  /**
    * Add a research topic
    */
   addTopic(topic: ResearchTopic): void {
@@ -109,7 +126,11 @@ export class ExpertAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<ExecutionResult> {
     try {
-      this.logger.info('ExpertAgent: Starting research', { input });
+      this.logger.info('ExpertAgent: Starting research', {
+        input,
+        userId: context.userId,
+        conversationId: context.conversationId,
+      });
 
       // Initialize research topic from input
       this.addTopic({
@@ -130,6 +151,12 @@ export class ExpertAgent extends BaseAgent {
 
       // Generate final report
       const report = this.generateReport();
+      this.researchState = {
+        ...this.researchState,
+        researchPhase: ResearchPhase.COMPLETE,
+        finalReport: report,
+        synthesisNotes: this.researchState.synthesisNotes || report.abstract,
+      };
 
       return {
         status: 'success',
@@ -139,6 +166,11 @@ export class ExpertAgent extends BaseAgent {
           report,
           sourcesFound: explorationResult.sourcesFound,
           evidenceExtracted: analysisResult.evidenceExtracted,
+          synthesis: {
+            argumentsBuilt: synthesisResult.argumentsBuilt,
+            duration: synthesisResult.duration,
+            conclusions: synthesisResult.conclusionsDrawn,
+          },
         },
       };
     } catch (error) {
@@ -163,6 +195,11 @@ export class ExpertAgent extends BaseAgent {
     input: string,
     context: ExecutionContext,
   ): AsyncGenerator<string> {
+    this.logger.info('ExpertAgent: Streaming research', {
+      input,
+      userId: context.userId,
+      conversationId: context.conversationId,
+    });
     yield `🔬 Expert Agent: Starting research on "${input}"\n\n`;
 
     // Initialize research topic
@@ -186,10 +223,16 @@ export class ExpertAgent extends BaseAgent {
     // Phase 3: Synthesis
     yield `📝 Phase 3: SYNTHESIS (SKIN)\n`;
     const synthesisResult = await this.synthesizePhase();
-    yield `Generated synthesis\n\n`;
+    yield `Generated synthesis (~${synthesisResult.reportLength} tokens)\n\n`;
 
     // Generate report
     const report = this.generateReport();
+    this.researchState = {
+      ...this.researchState,
+      researchPhase: ResearchPhase.COMPLETE,
+      finalReport: report,
+      synthesisNotes: this.researchState.synthesisNotes || report.abstract,
+    };
     yield `\n## Research Report\n\n`;
     yield `${report.abstract}\n\n`;
     yield `### Key Findings\n`;
@@ -422,11 +465,20 @@ export class ExpertAgent extends BaseAgent {
       maxTokens: 1000,
     });
 
+    const synthesisNarrative = response.content;
+    this.researchState = {
+      ...this.researchState,
+      synthesisNotes: synthesisNarrative,
+    };
+
     return {
       argumentsBuilt: 1,
-      conclusionsDrawn: ['Synthesis phase completed'],
+      conclusionsDrawn: [
+        'Synthesis phase completed',
+        synthesisNarrative.substring(0, 280),
+      ],
       reportGenerated: true,
-      reportLength: 500,
+      reportLength: synthesisNarrative.length,
       duration: Date.now() - startTime,
     };
   }

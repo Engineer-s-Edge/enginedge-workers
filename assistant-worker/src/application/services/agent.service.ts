@@ -3,12 +3,12 @@ import {
   Inject,
   NotFoundException,
   ConflictException,
-  BadRequestException,
   forwardRef,
 } from '@nestjs/common';
 import { ILogger } from '../ports/logger.port';
 import { IAgentRepository } from '../ports/agent.repository';
 import { BaseAgent } from '@domain/agents/agent.base';
+import { GraphExecutionSnapshot } from '@domain/agents/graph-agent/graph-agent.types';
 import { Agent, AgentId } from '@domain/entities/agent.entity';
 import { AgentConfig } from '@domain/value-objects/agent-config.vo';
 import { AgentCapability } from '@domain/value-objects/agent-capability.vo';
@@ -362,11 +362,9 @@ export class AgentService {
     try {
       const instance = await this.getAgentInstance(agentId, userId);
       // Attempt to get graph-specific state if available
-      const anyInstance = instance as any;
       const state =
-        typeof anyInstance.getGraphState === 'function'
-          ? anyInstance.getGraphState()
-          : { note: 'no_graph_state' };
+        this.getGraphSnapshotFromInstance(instance) ||
+        ({ note: 'no_graph_state' } as Record<string, unknown>);
 
       // Create checkpoint
       const checkpoint = await this.checkpoints.createCheckpoint(
@@ -402,9 +400,10 @@ export class AgentService {
     userId: string,
     checkpointId?: string,
   ): Promise<{ ok: boolean; message?: string }> {
-    // Currently, resuming uses a new execution; checkpoint restoration can enrich context
+    const instance = await this.getAgentInstance(agentId, userId);
     if (checkpointId) {
       const state = await this.checkpoints.restoreFromCheckpoint(checkpointId);
+      this.restoreGraphSnapshotOnInstance(instance, state, agentId);
       // store in session metadata for next execution
       const sessions = this.sessions.getAgentSessions(agentId);
       if (sessions[0]) {
@@ -501,26 +500,25 @@ export class AgentService {
   async getGraphAgentExecutionState(
     agentId: string,
     userId: string,
-  ): Promise<{
-    isPaused: boolean;
-    currentNodes: string[];
-    pausedBranches: string[];
-    executionHistory: Array<any>;
-  }> {
+  ): Promise<{ isPaused: boolean } & GraphExecutionSnapshot> {
     const isPaused = this.sessions
       .getAgentSessions(agentId)
       .some((s) => s.status === 'paused');
     const instance = await this.getAgentInstance(agentId, userId);
-    const anyInstance = instance as any;
     const graphState =
-      typeof anyInstance.getGraphState === 'function'
-        ? anyInstance.getGraphState()
-        : {};
+      this.getGraphSnapshotFromInstance(instance) ||
+      ({
+        currentNodeIds: [],
+        pendingNodeIds: [],
+        executedNodes: [],
+        failedNodes: [],
+        nodeResults: [],
+        retryAttempts: {},
+        executionHistory: [],
+      } as GraphExecutionSnapshot);
     return {
       isPaused,
-      currentNodes: [],
-      pausedBranches: [],
-      executionHistory: [],
+      ...graphState,
     };
   }
 
@@ -755,6 +753,8 @@ export class AgentService {
       const state = await this.checkpoints.restoreFromCheckpoint(
         options.checkpointId,
       );
+      const instance = await this.getAgentInstance(agentId, userId);
+      this.restoreGraphSnapshotOnInstance(instance, state, agentId);
       const sessions = this.sessions.getAgentSessions(agentId);
       if (sessions[0]) {
         sessions[0].metadata = {
@@ -800,4 +800,55 @@ export class AgentService {
     const pending = this.sessions.getPendingUserInteractions(agentId);
     return pending.length > 0;
   }
+
+  private getGraphSnapshotFromInstance(
+    instance: BaseAgent,
+  ): GraphExecutionSnapshot | null {
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getGraphState === 'function') {
+      return graphCapable.getGraphState();
+    }
+    return null;
+  }
+
+  private restoreGraphSnapshotOnInstance(
+    instance: BaseAgent,
+    snapshot: unknown,
+    agentId: string,
+  ): void {
+    if (!this.isGraphSnapshot(snapshot)) {
+      this.logger.warn('Attempted to restore invalid graph snapshot', {
+        agentId,
+      });
+      return;
+    }
+
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.restoreGraphState === 'function') {
+      graphCapable.restoreGraphState(snapshot);
+    } else {
+      this.logger.warn('Graph agent does not support checkpoint restore', {
+        agentId,
+      });
+    }
+  }
+
+  private isGraphSnapshot(
+    snapshot: unknown,
+  ): snapshot is GraphExecutionSnapshot {
+    if (!snapshot || typeof snapshot !== 'object') {
+      return false;
+    }
+    const candidate = snapshot as Record<string, unknown>;
+    return (
+      'currentNodeIds' in candidate ||
+      'pendingNodeIds' in candidate ||
+      'executionHistory' in candidate
+    );
+  }
+}
+
+interface GraphSnapshotCapable {
+  getGraphState?: () => GraphExecutionSnapshot;
+  restoreGraphState?: (snapshot: GraphExecutionSnapshot) => void;
 }

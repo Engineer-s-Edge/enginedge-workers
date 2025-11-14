@@ -49,6 +49,10 @@ import { TopicCatalogService } from './services/topic-catalog.service';
 import { CategoryService } from './services/category.service';
 import { GetTopicsForResearchUseCase } from './use-cases/get-topics-for-research.use-case';
 import { AddTopicUseCase } from './use-cases/add-topic.use-case';
+import { ManagerRuntimeService } from './services/manager/manager-runtime.service';
+import { GeniusExpertRuntimeService } from './services/genius/genius-expert-runtime.service';
+import { ILogger, ILLMProvider } from '@application/ports';
+import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
 
 /**
  * Application module - use cases and application services
@@ -61,7 +65,15 @@ import { AddTopicUseCase } from './use-cases/add-topic.use-case';
     CollectiveModule, // Collective infrastructure services
     // Import LLMProviderModule to make ILLMProvider available in ApplicationModule
     LLMProviderModule.register({
-      defaultProvider: (process.env.LLM_PROVIDER as any) || 'openai',
+      defaultProvider:
+        (process.env.LLM_PROVIDER as
+          | 'openai'
+          | 'anthropic'
+          | 'google'
+          | 'groq'
+          | 'nvidia'
+          | 'xai'
+          | undefined) || 'openai',
     }),
     // Import AssistantsModule to access IAssistantRepository
     // Use forwardRef to handle circular dependency (AssistantsModule also imports ApplicationModule)
@@ -78,17 +90,17 @@ import { AddTopicUseCase } from './use-cases/add-topic.use-case';
     {
       provide: AgentFactory,
       useFactory: (
-        logger: any,
-        llm: any,
+        logger: ILogger,
+        llm: ILLMProvider,
         memory: MemoryManager,
         parser: ResponseParser,
         prompts: PromptBuilder,
-        messageQueue: any,
-        communication: any,
-        sharedMemory: any,
-        artifactLocking: any,
-        taskAssignment: any,
-        deadlockDetection: any,
+        messageQueue: MessageQueueService,
+        communication: CommunicationService,
+        sharedMemory: SharedMemoryService,
+        artifactLocking: ArtifactLockingService,
+        taskAssignment: TaskAssignmentService,
+        deadlockDetection: DeadlockDetectionService,
         coordinationValidator: CoordinationValidatorService,
       ) =>
         new AgentFactory(
@@ -122,8 +134,12 @@ import { AddTopicUseCase } from './use-cases/add-topic.use-case';
     },
     {
       provide: ExpertPoolManager,
-      useFactory: (llm: any, logger: any, kg: any, metrics?: MetricsAdapter) =>
-        new ExpertPoolManager(llm, logger, kg, metrics),
+      useFactory: (
+        llm: ILLMProvider,
+        logger: ILogger,
+        kg: KnowledgeGraphPort,
+        metrics?: MetricsAdapter,
+      ) => new ExpertPoolManager(llm, logger, kg, metrics),
       inject: ['ILLMProvider', 'ILogger', 'KnowledgeGraphPort', MetricsAdapter],
     },
     AgentService,
@@ -154,6 +170,8 @@ import { AddTopicUseCase } from './use-cases/add-topic.use-case';
     // Topic Catalog and Category services
     TopicCatalogService,
     CategoryService,
+  ManagerRuntimeService,
+  GeniusExpertRuntimeService,
 
     // Topic use cases
     GetTopicsForResearchUseCase,
@@ -194,6 +212,8 @@ import { AddTopicUseCase } from './use-cases/add-topic.use-case';
     // Export topic catalog and category services
     TopicCatalogService,
     CategoryService,
+  ManagerRuntimeService,
+  GeniusExpertRuntimeService,
 
     // Export topic use cases
     GetTopicsForResearchUseCase,

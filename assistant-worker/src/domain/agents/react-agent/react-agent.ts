@@ -23,7 +23,7 @@ interface ReActConfig {
   model?: string;
   systemPrompt?: string;
   tools?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Thought {
@@ -34,13 +34,26 @@ export interface Thought {
 export interface Action {
   type: 'tool' | 'final_answer';
   toolName?: string;
-  input?: any;
+  input?: unknown;
   answer?: string;
 }
 
 export interface Observation {
-  result: any;
+  result: unknown;
   timestamp: Date;
+}
+
+export interface ReasoningTrace {
+  thoughts: Thought[];
+  actions: Action[];
+  observations: Observation[];
+  thinkingSteps: Array<{ step: string; timestamp: Date }>;
+  toolExecutions: Array<{
+    name: string;
+    input: unknown;
+    output: unknown;
+    timestamp: Date;
+  }>;
 }
 
 // Type aliases for backward compatibility
@@ -82,6 +95,7 @@ export class ReActAgent extends BaseAgent {
       temperature: 0.7,
       model: 'gpt-4',
       ...config,
+      tools: [...(config.tools || [])],
     };
   }
 
@@ -145,7 +159,6 @@ export class ReActAgent extends BaseAgent {
           const observation = await this.executeTool(
             action.toolName,
             action.input || {},
-            context,
           );
           this.observations.push(observation);
           this.addThinkingStep(
@@ -230,7 +243,6 @@ export class ReActAgent extends BaseAgent {
           const observation = await this.executeTool(
             action.toolName,
             action.input || {},
-            context,
           );
           yield `Observation: ${JSON.stringify(observation.result)}\n`;
           this.recordToolExecution(
@@ -339,10 +351,19 @@ export class ReActAgent extends BaseAgent {
    */
   private async executeTool(
     toolName: string,
-    input: any,
-    context: ExecutionContext,
+    input: unknown,
   ): Promise<Observation> {
     try {
+      if (
+        this.config.tools?.length &&
+        !this.config.tools.includes(toolName)
+      ) {
+        this.logger.warn('Attempted to execute unregistered tool', {
+          toolName,
+          registeredTools: this.config.tools,
+        });
+      }
+
       this.logger.debug('Executing tool', { toolName, input });
 
       // In production, this would call the Agent Tool Worker via Kafka
@@ -406,5 +427,58 @@ Available tools: ${this.config.tools?.join(', ') || 'None'}`;
       lastThought: this.thoughts[this.thoughts.length - 1],
       lastAction: this.actions[this.actions.length - 1],
     };
+  }
+
+  getReasoningTrace(limit?: number): ReasoningTrace {
+    const slice = <T>(items: readonly T[]): T[] => {
+      if (!limit || limit <= 0) {
+        return [...items];
+      }
+      return items.slice(Math.max(items.length - limit, 0));
+    };
+
+    const metadata = this.getState().getMetadata() || {};
+    const thinkingSteps = Array.isArray(metadata?.thinkingSteps)
+      ? slice(metadata.thinkingSteps as Array<{ step: string; timestamp: Date }>)
+      : [];
+    const executedTools = Array.isArray(metadata?.executedTools)
+      ? slice(
+          metadata.executedTools as Array<{
+            name: string;
+            input: unknown;
+            output: unknown;
+            timestamp: Date;
+          }>,
+        )
+      : [];
+
+    return {
+      thoughts: slice(this.thoughts),
+      actions: slice(this.actions),
+      observations: slice(this.observations),
+      thinkingSteps,
+      toolExecutions: executedTools,
+    };
+  }
+
+  registerTool(toolName: string): string[] {
+    const normalized = toolName.trim();
+    if (!normalized) {
+      return this.config.tools || [];
+    }
+
+    if (!this.config.tools) {
+      this.config.tools = [];
+    }
+
+    if (!this.config.tools.includes(normalized)) {
+      this.config.tools = [...this.config.tools, normalized];
+    }
+
+    return [...this.config.tools];
+  }
+
+  getRegisteredTools(): string[] {
+    return [...(this.config.tools || [])];
   }
 }

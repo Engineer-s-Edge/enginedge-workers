@@ -65,6 +65,29 @@ export interface CollectiveAgentConfig {
   deadlockCheckInterval?: number;
 }
 
+export interface CreateCollectiveTaskOptions {
+  title: string;
+  description?: string;
+  level?: TaskLevel;
+  parentTaskId?: string;
+  dependencies?: string[];
+  priority?: number;
+  metadata?: Record<string, unknown>;
+  assignedAgentId?: string;
+}
+
+export interface UpdateCollectiveTaskOptions {
+  title?: string;
+  description?: string;
+  level?: TaskLevel;
+  parentTaskId?: string | null;
+  dependencies?: string[];
+  priority?: number;
+  metadata?: Record<string, unknown>;
+  assignedAgentId?: string | null;
+  state?: TaskState;
+}
+
 /**
  * Collective Agent - Complete multi-agent orchestration
  */
@@ -300,6 +323,155 @@ export class CollectiveAgent extends BaseAgent {
     };
   }
 
+  getAllTasks(): CollectiveTask[] {
+    return Array.from(this.tasks.values()).map((task) => ({ ...task }));
+  }
+
+  getTask(taskId: string): CollectiveTask | undefined {
+    const task = this.tasks.get(taskId);
+    return task ? { ...task } : undefined;
+  }
+
+  getChildTasks(taskId: string): CollectiveTask[] {
+    const children = Array.from(this.tasks.values()).filter(
+      (task) => task.parentTaskId === taskId,
+    );
+
+    return children.map((task) => ({ ...task }));
+  }
+
+  getParentTask(taskId: string): CollectiveTask | undefined {
+    const task = this.tasks.get(taskId);
+    if (!task || !task.parentTaskId) {
+      return undefined;
+    }
+
+    const parent = this.tasks.get(task.parentTaskId);
+    return parent ? { ...parent } : undefined;
+  }
+
+  createTask(options: CreateCollectiveTaskOptions): CollectiveTask {
+    const level = options.level ?? TaskLevel.TASK;
+    const description = options.description ?? options.title;
+    const dependencies = options.dependencies ?? [];
+    const priority = options.priority ?? 50;
+    const task = createCollectiveTask(
+      this.collectiveId,
+      options.title,
+      description,
+      level,
+      {
+        parentTaskId: options.parentTaskId,
+        dependencies,
+        priority,
+        metadata: options.metadata,
+        assignedAgentId: options.assignedAgentId,
+      },
+    );
+
+    this.tasks.set(task.id, task);
+    this.sharedMemory.storeTask(task);
+
+    if (options.assignedAgentId) {
+      task.state = TaskState.ASSIGNED;
+    }
+
+    this.linkChildToParent(options.parentTaskId, task.id);
+    this.refreshTaskDependencyStatus(task);
+
+    return task;
+  }
+
+  updateTask(taskId: string, updates: UpdateCollectiveTaskOptions): CollectiveTask {
+    const task = this.tasks.get(taskId);
+
+    if (!task) {
+      throw new Error(`Task ${taskId} not found in collective ${this.collectiveId}`);
+    }
+
+    if (typeof updates.title === 'string') {
+      task.title = updates.title;
+    }
+
+    if (typeof updates.description === 'string') {
+      task.description = updates.description;
+    }
+
+    if (typeof updates.level === 'number') {
+      task.level = updates.level;
+    }
+
+    if (typeof updates.priority === 'number') {
+      task.priority = updates.priority;
+    }
+
+    if (updates.metadata) {
+      task.metadata = updates.metadata;
+    }
+
+    if (updates.dependencies) {
+      task.dependencies = Array.from(new Set(updates.dependencies));
+    }
+
+    if (typeof updates.assignedAgentId !== 'undefined') {
+      task.assignedAgentId = updates.assignedAgentId || undefined;
+      if (updates.assignedAgentId) {
+        task.state = TaskState.ASSIGNED;
+      } else if (task.state === TaskState.ASSIGNED) {
+        task.state = TaskState.UNASSIGNED;
+      }
+    }
+
+    if (updates.state) {
+      task.state = updates.state;
+      if (updates.state === TaskState.COMPLETED) {
+        task.completedAt = new Date();
+      } else if (task.state !== TaskState.COMPLETED) {
+        task.completedAt = undefined;
+      }
+    }
+
+    if (updates.parentTaskId !== undefined) {
+      this.unlinkChildFromParent(task.parentTaskId, task.id);
+      task.parentTaskId = updates.parentTaskId || undefined;
+      this.linkChildToParent(task.parentTaskId, task.id);
+    }
+
+    task.updatedAt = new Date();
+    this.refreshTaskDependencyStatus(task);
+
+    this.tasks.set(task.id, task);
+    this.sharedMemory.storeTask(task);
+
+    return task;
+  }
+
+  async resolveDeadlock(deadlockId: string): Promise<DeadlockSnapshot[]> {
+    const deadlock = this.lastDetectedDeadlocks.find((entry) => entry.id === deadlockId);
+
+    if (!deadlock) {
+      throw new Error(`Deadlock '${deadlockId}' not found in collective ${this.collectiveId}`);
+    }
+
+    this.logger.info('Manually resolving deadlock cycle', {
+      collectiveId: this.collectiveId,
+      deadlockId,
+      cycle: deadlock.cycle,
+    });
+
+    this.breakDeadlockCycle(deadlock.cycle);
+
+    const tasksSnapshot = Array.from(this.tasks.values());
+    const remainingDeadlocks = await this.deadlockDetection.detectDeadlocks(tasksSnapshot);
+
+    this.lastDetectedDeadlocks = remainingDeadlocks;
+    this.lastDeadlockDetectedAt = remainingDeadlocks.length
+      ? new Date()
+      : undefined;
+
+    return this.formatDeadlocks(remainingDeadlocks);
+  }
+
   async assignTaskManually(
     taskId: string,
     agentId: string,
@@ -372,6 +544,39 @@ export class CollectiveAgent extends BaseAgent {
     return assignment;
   }
 
+  unassignTask(taskId: string): CollectiveTask {
+    const task = this.tasks.get(taskId);
+
+    if (!task) {
+      throw new Error(
+        `Task ${taskId} not found in collective ${this.collectiveId}`,
+      );
+    }
+
+    if (!task.assignedAgentId) {
+      return task;
+    }
+
+    this.taskAssignment.releaseTask(task.assignedAgentId);
+    this.removePendingAssignment(task.id);
+
+    task.assignedAgentId = undefined;
+
+    if (
+      [TaskState.ASSIGNED, TaskState.DELEGATED, TaskState.IN_PROGRESS].includes(
+        task.state,
+      )
+    ) {
+      task.state = TaskState.UNASSIGNED;
+    }
+
+    task.updatedAt = new Date();
+    this.tasks.set(taskId, task);
+    this.sharedMemory.storeTask(task);
+
+    return task;
+  }
+
   completeTaskManually(taskId: string): CollectiveTask {
     const task = this.tasks.get(taskId);
 
@@ -399,6 +604,100 @@ export class CollectiveAgent extends BaseAgent {
     };
 
     return task;
+  }
+
+  deleteTask(
+    taskId: string,
+    options: { cascade?: boolean } = {},
+  ): CollectiveTask[] {
+    const target = this.tasks.get(taskId);
+
+    if (!target) {
+      throw new Error(
+        `Task ${taskId} not found in collective ${this.collectiveId}`,
+      );
+    }
+
+    const cascade = options.cascade ?? false;
+
+    if (!cascade && target.childTaskIds.length > 0) {
+      throw new Error(
+        `Task ${taskId} has child tasks. Delete children first or enable cascade deletion`,
+      );
+    }
+
+    const removalOrder = this.collectTaskIdsForDeletion(taskId, cascade);
+    const removalSet = new Set(removalOrder);
+    const removedSnapshots: CollectiveTask[] = [];
+
+    for (const id of removalOrder) {
+      const current = this.tasks.get(id);
+      if (!current) {
+        continue;
+      }
+
+      if (current.assignedAgentId) {
+        this.taskAssignment.releaseTask(current.assignedAgentId);
+      }
+
+      this.removePendingAssignment(id);
+      removedSnapshots.push({ ...current });
+    }
+
+    const survivors = Array.from(this.tasks.values()).filter(
+      (task) => !removalSet.has(task.id),
+    );
+
+    for (const survivor of survivors) {
+      const prevDeps = survivor.dependencies.length;
+      const prevBlocked = survivor.blockedBy.length;
+      const prevChildren = survivor.childTaskIds.length;
+      const parentRemoved =
+        survivor.parentTaskId && removalSet.has(survivor.parentTaskId);
+
+      survivor.dependencies = survivor.dependencies.filter(
+        (depId) => !removalSet.has(depId),
+      );
+      survivor.blockedBy = survivor.blockedBy.filter(
+        (depId) => !removalSet.has(depId),
+      );
+      survivor.childTaskIds = survivor.childTaskIds.filter(
+        (childId) => !removalSet.has(childId),
+      );
+
+      if (parentRemoved) {
+        survivor.parentTaskId = undefined;
+      }
+
+      if (
+        survivor.dependencies.length !== prevDeps ||
+        survivor.blockedBy.length !== prevBlocked
+      ) {
+        this.refreshTaskDependencyStatus(survivor);
+      }
+
+      if (
+        survivor.childTaskIds.length !== prevChildren ||
+        parentRemoved
+      ) {
+        survivor.updatedAt = new Date();
+      }
+
+      this.tasks.set(survivor.id, survivor);
+    }
+
+    for (const id of removalOrder) {
+      const current = this.tasks.get(id);
+      if (!current) {
+        continue;
+      }
+
+      this.unlinkChildFromParent(current.parentTaskId, current.id);
+      this.tasks.delete(id);
+      this.sharedMemory.removeTask(current.id);
+    }
+
+    return removedSnapshots;
   }
 
   getWaitingDependencies(): WaitingDependency[] {
@@ -446,6 +745,92 @@ export class CollectiveAgent extends BaseAgent {
     return dependencies;
   }
 
+  private refreshTaskDependencyStatus(task: CollectiveTask): void {
+    const blockedBy = task.dependencies.filter((depId) => {
+      const dependency = this.tasks.get(depId);
+      return !dependency || dependency.state !== TaskState.COMPLETED;
+    });
+
+    task.blockedBy = blockedBy;
+
+    if (blockedBy.length > 0 && task.state !== TaskState.COMPLETED) {
+      task.state = TaskState.BLOCKED;
+    } else if (blockedBy.length === 0 && task.state === TaskState.BLOCKED) {
+      task.state = TaskState.UNASSIGNED;
+    }
+  }
+
+  private linkChildToParent(
+    parentTaskId: string | undefined | null,
+    childTaskId: string,
+  ): void {
+    if (!parentTaskId) {
+      return;
+    }
+
+    const parent = this.tasks.get(parentTaskId);
+    if (!parent) {
+      return;
+    }
+
+    if (!parent.childTaskIds.includes(childTaskId)) {
+      parent.childTaskIds = [...parent.childTaskIds, childTaskId];
+      this.tasks.set(parentTaskId, parent);
+    }
+  }
+
+  private unlinkChildFromParent(
+    parentTaskId: string | undefined | null,
+    childTaskId: string,
+  ): void {
+    if (!parentTaskId) {
+      return;
+    }
+
+    const parent = this.tasks.get(parentTaskId);
+    if (!parent) {
+      return;
+    }
+
+    const filtered = parent.childTaskIds.filter((id) => id !== childTaskId);
+    if (filtered.length !== parent.childTaskIds.length) {
+      parent.childTaskIds = filtered;
+      this.tasks.set(parentTaskId, parent);
+    }
+  }
+
+  private collectTaskIdsForDeletion(
+    rootTaskId: string,
+    cascade: boolean,
+  ): string[] {
+    if (!cascade) {
+      return [rootTaskId];
+    }
+
+    const collected: string[] = [];
+    const visited = new Set<string>();
+
+    const visit = (taskId: string): void => {
+      if (visited.has(taskId)) {
+        return;
+      }
+
+      visited.add(taskId);
+      const task = this.tasks.get(taskId);
+
+      if (task) {
+        for (const childId of task.childTaskIds) {
+          visit(childId);
+        }
+      }
+
+      collected.push(taskId);
+    };
+
+    visit(rootTaskId);
+    return collected;
+  }
+
   private recordPendingAssignment(assignment: TaskAssignment): void {
     this.collectiveState = {
       ...this.collectiveState,
@@ -453,6 +838,20 @@ export class CollectiveAgent extends BaseAgent {
         ...this.collectiveState.pendingAssignments,
         assignment,
       ],
+    };
+  }
+
+  private removePendingAssignment(taskId: string): void {
+    const pending = this.collectiveState.pendingAssignments;
+    const filtered = pending.filter((assignment) => assignment.taskId !== taskId);
+
+    if (filtered.length === pending.length) {
+      return;
+    }
+
+    this.collectiveState = {
+      ...this.collectiveState,
+      pendingAssignments: filtered,
     };
   }
 

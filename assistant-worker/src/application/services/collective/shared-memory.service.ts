@@ -14,7 +14,10 @@ import {
   ArtifactType,
 } from '@domain/entities/collective-artifact.entity';
 import { CollectiveTask } from '@domain/entities/collective-task.entity';
-import { ArtifactLockingService } from './artifact-locking.service';
+import {
+  ArtifactLockingService,
+  ArtifactLockInfo,
+} from './artifact-locking.service';
 import { ArtifactVersioningService } from './artifact-versioning.service';
 import { ArtifactSearchService } from './artifact-search.service';
 
@@ -269,6 +272,77 @@ export class SharedMemoryService {
     return this.artifacts.get(artifactId) || null;
   }
 
+  getArtifactVersions(artifactId: string): CollectiveArtifact[] {
+    return this.versioningService.getVersionHistory(artifactId);
+  }
+
+  getArtifactLockInfo(artifactId: string): ArtifactLockInfo | null {
+    return this.lockingService.getLockInfo(artifactId);
+  }
+
+  async lockArtifact(
+    collectiveId: string,
+    artifactId: string,
+    userId: string,
+    lockType: LockType,
+    timeoutMs?: number,
+  ): Promise<{
+    artifact: CollectiveArtifact;
+    lock: ArtifactLockInfo;
+    lockToken: string;
+  }> {
+    const artifact = this.requireArtifactInCollective(collectiveId, artifactId);
+
+    const lockToken = await this.lockingService.acquireLock(
+      artifactId,
+      userId,
+      lockType,
+      collectiveId,
+      timeoutMs,
+    );
+
+    if (!lockToken) {
+      throw new Error(
+        `Unable to acquire ${lockType} lock on artifact ${artifactId}`,
+      );
+    }
+
+    const lock = this.lockingService.getLockInfo(artifactId);
+    if (!lock) {
+      throw new Error(`Failed to resolve lock info for artifact ${artifactId}`);
+    }
+
+    return {
+      artifact,
+      lock,
+      lockToken,
+    };
+  }
+
+  async unlockArtifact(
+    collectiveId: string,
+    artifactId: string,
+    userId: string,
+    lockToken?: string,
+  ): Promise<boolean> {
+    this.requireArtifactInCollective(collectiveId, artifactId);
+
+    const lock = this.lockingService.getLockInfo(artifactId);
+    if (!lock) {
+      return true;
+    }
+
+    if (lockToken) {
+      if (lock.token !== lockToken) {
+        throw new Error('Invalid lock token provided for artifact unlock');
+      }
+    } else if (lock.agentId !== userId) {
+      throw new Error('Artifact is locked by another user');
+    }
+
+    return this.lockingService.releaseLock(artifactId, lock.token);
+  }
+
   /**
    * Get context for a specific task
    */
@@ -375,8 +449,29 @@ export class SharedMemoryService {
     return this.tasks.get(taskId) || null;
   }
 
+  /**
+   * Remove task from shared memory cache
+   */
+  removeTask(taskId: string): void {
+    this.tasks.delete(taskId);
+  }
+
   private publishArtifactEvent(event: CollectiveArtifactEvent): void {
     this.artifactSubject.next(event);
+  }
+
+  private requireArtifactInCollective(
+    collectiveId: string,
+    artifactId: string,
+  ): CollectiveArtifact {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact || artifact.collectiveId !== collectiveId) {
+      throw new Error(
+        `Artifact ${artifactId} not found in collective ${collectiveId}`,
+      );
+    }
+
+    return artifact;
   }
 }
 

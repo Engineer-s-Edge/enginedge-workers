@@ -20,12 +20,12 @@ import { PromptBuilder } from '../../services/prompt-builder.service';
 import {
   WorkflowGraph,
   WorkflowNode,
-  WorkflowEdge,
   NodeType,
   NodeStatus,
   ExecutedNode,
   GraphExecutionResult,
-  GraphStateUpdate,
+  GraphExecutionSnapshot,
+  GraphExecutionHistoryEntry,
 } from './graph-agent.types';
 
 interface GraphConfig {
@@ -35,16 +35,29 @@ interface GraphConfig {
   model?: string;
   maxRetries?: number;
   nodeTimeoutMs?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
+
+type InternalHistoryEntry = {
+  nodeId: string;
+  nodeName: string;
+  status: NodeStatus;
+  startedAt: Date;
+  completedAt?: Date;
+  error?: string;
+};
 
 interface GraphExecutionState {
   graph?: WorkflowGraph;
   executedNodes: ExecutedNode[];
+  failedNodes: ExecutedNode[];
   pendingNodes: Map<string, WorkflowNode>;
   nodeResults: Map<string, unknown>;
   retryAttempts: Map<string, number>;
-  startTime: number;
+  currentNodeIds: string[];
+  startTime?: number;
+  lastUpdated?: number;
+  history: InternalHistoryEntry[];
 }
 
 /**
@@ -80,13 +93,85 @@ export class GraphAgent extends BaseAgent {
       nodeTimeoutMs: 30000,
       ...config,
     };
-    this.graphState = {
+    this.graphState = this.createEmptyGraphState();
+  }
+
+  private createEmptyGraphState(): GraphExecutionState {
+    return {
+      graph: undefined,
       executedNodes: [],
+      failedNodes: [],
       pendingNodes: new Map(),
       nodeResults: new Map(),
       retryAttempts: new Map(),
-      startTime: 0,
+      currentNodeIds: [],
+      startTime: undefined,
+      lastUpdated: undefined,
+      history: [],
     };
+  }
+
+  private resetGraphState(graph: WorkflowGraph): void {
+    this.graphState = {
+      ...this.createEmptyGraphState(),
+      graph,
+      pendingNodes: new Map(graph.nodes.map((node) => [node.id, node] as const)),
+      currentNodeIds: graph.startNode ? [graph.startNode] : [],
+      startTime: Date.now(),
+      lastUpdated: Date.now(),
+    };
+  }
+
+  private updateLastUpdated(): void {
+    this.graphState.lastUpdated = Date.now();
+  }
+
+  private markNodeStarted(node: WorkflowNode): InternalHistoryEntry {
+    const entry: InternalHistoryEntry = {
+      nodeId: node.id,
+      nodeName: node.name,
+      status: NodeStatus.RUNNING,
+      startedAt: new Date(),
+    };
+    this.graphState.history.push(entry);
+    this.graphState.currentNodeIds = [node.id];
+    this.updateLastUpdated();
+    return entry;
+  }
+
+  private markNodeCompleted(
+    node: WorkflowNode,
+    executedNode: ExecutedNode,
+    historyEntry?: InternalHistoryEntry,
+  ): void {
+    this.graphState.executedNodes.push(executedNode);
+    this.graphState.nodeResults.set(node.id, executedNode.output);
+    this.graphState.pendingNodes.delete(node.id);
+    this.graphState.currentNodeIds = [];
+    if (historyEntry) {
+      historyEntry.status = NodeStatus.COMPLETED;
+      historyEntry.completedAt = executedNode.endTime || new Date();
+      historyEntry.error = undefined;
+    }
+    this.updateLastUpdated();
+  }
+
+  private markNodeFailed(
+    node: WorkflowNode,
+    failedNode: ExecutedNode,
+    historyEntry?: InternalHistoryEntry,
+    errorMessage?: string,
+  ): void {
+    this.graphState.executedNodes.push(failedNode);
+    this.graphState.failedNodes.push(failedNode);
+    this.graphState.pendingNodes.delete(node.id);
+    this.graphState.currentNodeIds = [];
+    if (historyEntry) {
+      historyEntry.status = NodeStatus.FAILED;
+      historyEntry.completedAt = failedNode.endTime || new Date();
+      historyEntry.error = errorMessage;
+    }
+    this.updateLastUpdated();
   }
 
   protected async run(
@@ -98,8 +183,7 @@ export class GraphAgent extends BaseAgent {
 
       // Parse workflow graph from input or context
       const graph = this.parseGraphDefinition(input, context);
-      this.graphState.graph = graph;
-      this.graphState.startTime = Date.now();
+      this.resetGraphState(graph);
 
       this.logger.info('GraphAgent: Executing workflow', {
         graphId: graph.id,
@@ -151,8 +235,7 @@ export class GraphAgent extends BaseAgent {
       yield 'Graph Agent Starting\n';
 
       const graph = this.parseGraphDefinition(input, context);
-      this.graphState.graph = graph;
-      this.graphState.startTime = Date.now();
+  this.resetGraphState(graph);
 
       yield `Executing workflow: ${graph.name}\n`;
       yield `Total nodes: ${graph.nodes.length}\n`;
@@ -198,6 +281,17 @@ export class GraphAgent extends BaseAgent {
       // Not JSON, continue
     }
 
+    // Check execution context overrides
+    const contextWorkflow = (context.config as Record<string, unknown> | undefined)?.workflow;
+    if (
+      contextWorkflow &&
+      typeof contextWorkflow === 'object' &&
+      'nodes' in contextWorkflow &&
+      'edges' in contextWorkflow
+    ) {
+      return contextWorkflow as WorkflowGraph;
+    }
+
     // Create a simple default graph for demonstration
     return {
       id: `graph-${Date.now()}`,
@@ -240,11 +334,22 @@ export class GraphAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<GraphExecutionResult> {
     const startTime = Date.now();
-    const executedNodes: ExecutedNode[] = [];
-    const failedNodes: ExecutedNode[] = [];
+    this.graphState.executedNodes = [];
+    this.graphState.failedNodes = [];
+    this.graphState.nodeResults = new Map();
+    this.graphState.retryAttempts = new Map();
+    this.graphState.history = [];
+    this.graphState.pendingNodes = new Map(
+      graph.nodes.map((node) => [node.id, node] as const),
+    );
+    this.graphState.currentNodeIds = graph.startNode ? [graph.startNode] : [];
+    this.graphState.lastUpdated = startTime;
+
+    const executedNodes = this.graphState.executedNodes;
+    const failedNodes = this.graphState.failedNodes;
+    const nodeResults = this.graphState.nodeResults;
     const errors: Array<{ nodeId: string; message: string; code?: string }> =
       [];
-    const nodeResults = new Map<string, unknown>();
 
     try {
       // Topological sort of nodes
@@ -258,6 +363,7 @@ export class GraphAgent extends BaseAgent {
       for (const nodeId of executionOrder) {
         const node = graph.nodes.find((n) => n.id === nodeId);
         if (!node) continue;
+        const historyEntry = this.markNodeStarted(node);
 
         try {
           const executedNode = await this.executeNode(
@@ -265,8 +371,7 @@ export class GraphAgent extends BaseAgent {
             nodeResults,
             context,
           );
-          executedNodes.push(executedNode);
-          nodeResults.set(nodeId, executedNode.output);
+          this.markNodeCompleted(node, executedNode, historyEntry);
 
           this.addThinkingStep(
             `Node ${node.name} completed with status ${executedNode.status}`,
@@ -284,11 +389,11 @@ export class GraphAgent extends BaseAgent {
               code: 'EXECUTION_ERROR',
             },
             startTime: new Date(),
+            endTime: new Date(),
             retryCount: 0,
           };
 
-          executedNodes.push(failedNode);
-          failedNodes.push(failedNode);
+          this.markNodeFailed(node, failedNode, historyEntry, errorMsg);
           errors.push({
             nodeId: node.id,
             message: errorMsg,
@@ -333,6 +438,8 @@ export class GraphAgent extends BaseAgent {
         failedNodes,
         errors: [{ nodeId: 'workflow', message: errorMsg }],
       };
+    } finally {
+      this.graphState.lastUpdated = Date.now();
     }
   }
 
@@ -350,6 +457,7 @@ export class GraphAgent extends BaseAgent {
       node.retryPolicy?.maxRetries ?? this.config.maxRetries ?? 3;
 
     while (retryCount <= maxRetries) {
+      this.graphState.retryAttempts.set(node.id, retryCount);
       try {
         let output: unknown;
 
@@ -406,6 +514,7 @@ export class GraphAgent extends BaseAgent {
         };
       } catch (error) {
         retryCount++;
+        this.graphState.retryAttempts.set(node.id, retryCount);
 
         if (retryCount > maxRetries) {
           const errorMsg =
@@ -434,6 +543,11 @@ export class GraphAgent extends BaseAgent {
     previousResults: Map<string, unknown>,
     context: ExecutionContext,
   ): Promise<unknown> {
+    this.logger.debug('Executing task node', {
+      nodeId: node.id,
+      previousResultCount: previousResults.size,
+      contextId: context.contextId,
+    });
     // Use LLM to process the task
     const prompt =
       (node.config.prompt as string) || `Execute task: ${node.name}`;
@@ -465,6 +579,11 @@ export class GraphAgent extends BaseAgent {
     previousResults: Map<string, unknown>,
     context: ExecutionContext,
   ): Promise<unknown> {
+    this.logger.debug('Executing decision node', {
+      nodeId: node.id,
+      previousResultCount: previousResults.size,
+      contextId: context.contextId,
+    });
     const condition = (node.config.condition as string) || '';
 
     // Evaluate condition
@@ -529,10 +648,114 @@ export class GraphAgent extends BaseAgent {
   /**
    * Get Graph-specific state
    */
-  getGraphState() {
+  getGraphState(): GraphExecutionSnapshot {
+    const nodeResults = Array.from(this.graphState.nodeResults.entries()).map(
+      ([nodeId, output]) => ({ nodeId, output }),
+    );
+    const retryAttempts: Record<string, number> = {};
+    for (const [nodeId, attempts] of this.graphState.retryAttempts.entries()) {
+      retryAttempts[nodeId] = attempts;
+    }
+    const executionHistory: GraphExecutionHistoryEntry[] =
+      this.graphState.history.map((entry) => ({
+        nodeId: entry.nodeId,
+        nodeName: entry.nodeName,
+        status: entry.status,
+        startedAt: entry.startedAt.toISOString(),
+        completedAt: entry.completedAt
+          ? entry.completedAt.toISOString()
+          : undefined,
+        error: entry.error,
+      }));
+
     return {
-      executedNodes: this.graphState.executedNodes.length,
-      graphDefinition: this.graphState.graph,
+      graph: this.graphState.graph,
+      graphId: this.graphState.graph?.id,
+      graphName: this.graphState.graph?.name,
+      startTime: this.graphState.startTime,
+      lastUpdated: this.graphState.lastUpdated,
+      currentNodeIds: [...this.graphState.currentNodeIds],
+      pendingNodeIds: Array.from(this.graphState.pendingNodes.keys()),
+      executedNodes: [...this.graphState.executedNodes],
+      failedNodes: [...this.graphState.failedNodes],
+      nodeResults,
+      retryAttempts,
+      executionHistory,
+      metadata: {
+        totalNodes: this.graphState.graph?.nodes.length ?? 0,
+      },
+    };
+  }
+
+  restoreGraphState(snapshot: GraphExecutionSnapshot): void {
+    const revivedExecutedNodes = (snapshot.executedNodes || []).map((node) =>
+      this.reviveExecutedNode(node),
+    );
+    const revivedFailedNodes = (snapshot.failedNodes || []).map((node) =>
+      this.reviveExecutedNode(node),
+    );
+    const history: InternalHistoryEntry[] =
+      (snapshot.executionHistory || []).map((entry) => ({
+        nodeId: entry.nodeId,
+        nodeName: entry.nodeName,
+        status: entry.status,
+        startedAt: new Date(entry.startedAt),
+        completedAt: entry.completedAt ? new Date(entry.completedAt) : undefined,
+        error: entry.error,
+      }));
+
+    const graphDefinition = snapshot.graph || this.graphState.graph;
+    const pendingNodes = new Map<string, WorkflowNode>();
+    if (graphDefinition) {
+      const nodesById = new Map(
+        graphDefinition.nodes.map((node) => [node.id, node] as const),
+      );
+      for (const nodeId of snapshot.pendingNodeIds || []) {
+        const node = nodesById.get(nodeId);
+        if (node) {
+          pendingNodes.set(nodeId, node);
+        }
+      }
+    }
+
+    this.graphState = {
+      graph: graphDefinition,
+      executedNodes: revivedExecutedNodes,
+      failedNodes: revivedFailedNodes,
+      pendingNodes,
+      nodeResults: new Map(
+        (snapshot.nodeResults || []).map((entry) =>
+          [entry.nodeId, entry.output] as const,
+        ),
+      ),
+      retryAttempts: new Map(
+        Object.entries(snapshot.retryAttempts || {}),
+      ),
+      currentNodeIds: [...(snapshot.currentNodeIds || [])],
+      startTime:
+        snapshot.startTime ??
+        this.graphState.startTime ??
+        (graphDefinition ? Date.now() : undefined),
+      lastUpdated: snapshot.lastUpdated || Date.now(),
+      history,
+    };
+  }
+
+  private reviveExecutedNode(node: ExecutedNode): ExecutedNode {
+    const startTime =
+      node.startTime instanceof Date
+        ? node.startTime
+        : new Date(node.startTime as unknown as string);
+    const endTime = node.endTime
+      ? node.endTime instanceof Date
+        ? node.endTime
+        : new Date(node.endTime as unknown as string)
+      : undefined;
+
+    return {
+      ...node,
+      startTime,
+      endTime,
     };
   }
 }
