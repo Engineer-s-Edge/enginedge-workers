@@ -6,7 +6,7 @@
 
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, testFixtures } from './test-utils';
-import * as request from 'supertest';
+import request from 'supertest';
 
 describe('Knowledge Graph Integration Tests', () => {
   let app: INestApplication;
@@ -24,7 +24,7 @@ describe('Knowledge Graph Integration Tests', () => {
         await request(app.getHttpServer()).delete(
           `/knowledge-graph/edges/${edgeId}`,
         );
-      } catch (error) {
+      } catch {
         // Ignore cleanup errors
       }
     }
@@ -34,7 +34,7 @@ describe('Knowledge Graph Integration Tests', () => {
         await request(app.getHttpServer()).delete(
           `/knowledge-graph/nodes/${nodeId}`,
         );
-      } catch (error) {
+      } catch {
         // Ignore cleanup errors
       }
     }

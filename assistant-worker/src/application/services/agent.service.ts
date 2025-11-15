@@ -3,12 +3,33 @@ import {
   Inject,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   forwardRef,
 } from '@nestjs/common';
 import { ILogger } from '../ports/logger.port';
 import { IAgentRepository } from '../ports/agent.repository';
 import { BaseAgent } from '@domain/agents/agent.base';
-import { GraphExecutionSnapshot } from '@domain/agents/graph-agent/graph-agent.types';
+import {
+  GraphExecutionSnapshot,
+  GraphNodeExecutionDetail,
+  GraphNodeExecutionSummary,
+  GraphEdgeQueueState,
+  GraphNodeConvergenceConfig,
+  GraphNodeDataOrdering,
+  GraphRuntimeCheckpointSummary,
+  GraphNodeConvergenceState,
+  GraphNodeBulkUpdateFilter,
+  GraphNodeBulkUpdatePayload,
+  GraphEdgeBulkUpdateFilter,
+  GraphEdgeBulkUpdatePayload,
+  GraphBulkUpdateResult,
+  GraphEdgeHistoryEntry,
+  GraphEdgeDecisionEntry,
+  GraphEdgeHistoryQueryOptions,
+  GraphEdgeHistoryQueryResult,
+  GraphMemoryGroupState,
+  WorkflowEdge,
+} from '@domain/agents/graph-agent/graph-agent.types';
 import { Agent, AgentId } from '@domain/entities/agent.entity';
 import { AgentConfig } from '@domain/value-objects/agent-config.vo';
 import { AgentCapability } from '@domain/value-objects/agent-capability.vo';
@@ -18,7 +39,10 @@ import { AgentFactory } from '@domain/services/agent-factory.service';
 import { CreateAgentDTO, UpdateAgentDTO } from '../dto';
 import { AgentExecutionService } from './agent-execution.service';
 import { CheckpointService } from './checkpoint.service';
-import { AgentSessionService } from './agent-session.service';
+import {
+  AgentSessionService,
+  UserInteraction,
+} from './agent-session.service';
 import { AgentEventService } from './agent-event.service';
 
 /**
@@ -522,6 +546,306 @@ export class AgentService {
     };
   }
 
+  async getGraphAgentNodeExecutionSummaries(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    limit = 20,
+  ): Promise<GraphNodeExecutionSummary[]> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const historyCapable = instance as GraphSnapshotCapable;
+    if (typeof historyCapable.getNodeExecutionSummaries === 'function') {
+      return historyCapable.getNodeExecutionSummaries(nodeId, limit) || [];
+    }
+    return [];
+  }
+
+  async getGraphAgentNodeExecutionDetail(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    executionId: string,
+  ): Promise<GraphNodeExecutionDetail | null> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const historyCapable = instance as GraphSnapshotCapable;
+    if (typeof historyCapable.getNodeExecutionDetail === 'function') {
+      return (
+        historyCapable.getNodeExecutionDetail(nodeId, executionId) || null
+      );
+    }
+    return null;
+  }
+
+  async getGraphAgentEdgeQueue(
+    agentId: string,
+    userId: string,
+    edgeId: string,
+  ): Promise<GraphEdgeQueueState | null> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const queueCapable = instance as GraphSnapshotCapable;
+    if (typeof queueCapable.getEdgeQueueState === 'function') {
+      const queueState = queueCapable.getEdgeQueueState(edgeId);
+      if (queueState) {
+        return queueState;
+      }
+    }
+
+    const snapshot = this.getGraphSnapshotFromInstance(instance);
+    return snapshot?.edgeQueues?.[edgeId] ?? null;
+  }
+
+  async getGraphEdgeHistory(
+    agentId: string,
+    userId: string,
+    edgeId: string,
+    options?: GraphEdgeHistoryQueryOptions,
+  ): Promise<GraphEdgeHistoryQueryResult<GraphEdgeHistoryEntry>> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getEdgeHistory === 'function') {
+      return graphCapable.getEdgeHistory(edgeId, options);
+    }
+
+    const snapshot = this.getGraphSnapshotFromInstance(instance);
+    const fallback = snapshot?.edgeHistory?.[edgeId] ?? [];
+    return this.buildEdgeHistoryPage(fallback, options);
+  }
+
+  async getGraphEdgeDecisionHistory(
+    agentId: string,
+    userId: string,
+    edgeId: string,
+    options?: GraphEdgeHistoryQueryOptions,
+  ): Promise<GraphEdgeHistoryQueryResult<GraphEdgeDecisionEntry>> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getEdgeDecisionHistory === 'function') {
+      return graphCapable.getEdgeDecisionHistory(edgeId, options);
+    }
+
+    const snapshot = this.getGraphSnapshotFromInstance(instance);
+    const fallback = snapshot?.edgeDecisions?.[edgeId] ?? [];
+    return this.buildEdgeHistoryPage(fallback, options);
+  }
+
+  async getGraphNodeConvergenceState(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+  ): Promise<GraphNodeConvergenceState | null> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getNodeConvergenceState === 'function') {
+      const state = graphCapable.getNodeConvergenceState(nodeId);
+      if (state) {
+        return state;
+      }
+    }
+
+    const snapshot = this.getGraphSnapshotFromInstance(instance);
+    return snapshot?.convergenceState?.[nodeId] ?? null;
+  }
+
+  async getGraphMemoryGroups(
+    agentId: string,
+    userId: string,
+  ): Promise<GraphMemoryGroupState[]> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getMemoryGroups === 'function') {
+      const groups = graphCapable.getMemoryGroups();
+      if (groups) {
+        return groups;
+      }
+    }
+
+    const snapshot = this.getGraphSnapshotFromInstance(instance);
+    return snapshot?.memoryGroups ?? [];
+  }
+
+  async getGraphMemoryGroup(
+    agentId: string,
+    userId: string,
+    groupId: string,
+  ): Promise<GraphMemoryGroupState | null> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getMemoryGroup === 'function') {
+      const group = graphCapable.getMemoryGroup(groupId);
+      if (group) {
+        return group;
+      }
+    }
+
+    const snapshot = this.getGraphSnapshotFromInstance(instance);
+    return (
+      snapshot?.memoryGroups?.find((candidate) => candidate.id === groupId) ??
+      null
+    );
+  }
+
+  async updateGraphNodeConvergenceConfig(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    config: GraphNodeConvergenceConfig,
+  ): Promise<GraphNodeConvergenceConfig> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.updateConvergenceConfig !== 'function') {
+      throw new NotFoundException('Graph agent does not support convergence config updates');
+    }
+    const updated = graphCapable.updateConvergenceConfig(nodeId, config);
+    if (!updated) {
+      throw new NotFoundException(
+        `Node '${nodeId}' not found or convergence config unavailable`,
+      );
+    }
+    return updated;
+  }
+
+  async updateGraphNodeDataOrdering(
+    agentId: string,
+    userId: string,
+    nodeId: string,
+    ordering: GraphNodeDataOrdering,
+  ): Promise<GraphNodeDataOrdering> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.updateDataOrdering !== 'function') {
+      throw new NotFoundException('Graph agent does not support data ordering updates');
+    }
+    const updated = graphCapable.updateDataOrdering(nodeId, ordering);
+    if (!updated) {
+      throw new NotFoundException(
+        `Node '${nodeId}' not found or data ordering unavailable`,
+      );
+    }
+    return updated;
+  }
+
+  async bulkUpdateGraphNodes(
+    agentId: string,
+    userId: string,
+    filter: GraphNodeBulkUpdateFilter | undefined,
+    updates: GraphNodeBulkUpdatePayload,
+  ): Promise<GraphBulkUpdateResult> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.bulkUpdateNodes !== 'function') {
+      throw new NotFoundException('Graph agent does not support node bulk updates');
+    }
+    try {
+      return graphCapable.bulkUpdateNodes(filter, updates);
+    } catch (error) {
+      this.logger.warn('Graph node bulk update failed', {
+        agentId,
+        error: error instanceof Error ? error.message : error,
+      });
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Unable to process bulk node update request',
+      );
+    }
+  }
+
+  async bulkUpdateGraphEdges(
+    agentId: string,
+    userId: string,
+    filter: GraphEdgeBulkUpdateFilter | undefined,
+    updates: GraphEdgeBulkUpdatePayload,
+  ): Promise<GraphBulkUpdateResult> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.bulkUpdateEdges !== 'function') {
+      throw new NotFoundException('Graph agent does not support edge bulk updates');
+    }
+    try {
+      return graphCapable.bulkUpdateEdges(filter, updates);
+    } catch (error) {
+      this.logger.warn('Graph edge bulk update failed', {
+        agentId,
+        error: error instanceof Error ? error.message : error,
+      });
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Unable to process bulk edge update request',
+      );
+    }
+  }
+
+  async updateGraphEdgeCheckpoint(
+    agentId: string,
+    userId: string,
+    edgeId: string,
+    isCheckpoint: boolean,
+  ): Promise<WorkflowEdge> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.updateEdgeCheckpoint !== 'function') {
+      throw new NotFoundException('Graph agent does not support edge updates');
+    }
+    const updated = graphCapable.updateEdgeCheckpoint(edgeId, isCheckpoint);
+    if (!updated) {
+      throw new NotFoundException(
+        `Edge '${edgeId}' not found or checkpoint flag unavailable`,
+      );
+    }
+    return updated;
+  }
+
+  async listGraphRuntimeCheckpoints(
+    agentId: string,
+    userId: string,
+  ): Promise<GraphRuntimeCheckpointSummary[]> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getRuntimeCheckpointSummaries !== 'function') {
+      return [];
+    }
+    return graphCapable.getRuntimeCheckpointSummaries() || [];
+  }
+
+  async getGraphRuntimeCheckpointSnapshot(
+    agentId: string,
+    userId: string,
+    checkpointId: string,
+  ): Promise<GraphExecutionSnapshot | null> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getRuntimeCheckpointSnapshot !== 'function') {
+      return null;
+    }
+    return graphCapable.getRuntimeCheckpointSnapshot(checkpointId);
+  }
+
+  async restoreGraphRuntimeCheckpoint(
+    agentId: string,
+    userId: string,
+    checkpointId: string,
+  ): Promise<GraphExecutionSnapshot> {
+    const instance = await this.getAgentInstance(agentId, userId);
+    const graphCapable = instance as GraphSnapshotCapable;
+    if (typeof graphCapable.getRuntimeCheckpointSnapshot !== 'function') {
+      throw new NotFoundException('Graph agent does not expose runtime checkpoints');
+    }
+    if (typeof graphCapable.restoreGraphState !== 'function') {
+      throw new NotFoundException('Graph agent does not support checkpoint restore');
+    }
+
+    const snapshot = graphCapable.getRuntimeCheckpointSnapshot(checkpointId);
+    if (!snapshot) {
+      throw new NotFoundException(
+        `Checkpoint '${checkpointId}' not found for agent '${agentId}'`,
+      );
+    }
+
+    graphCapable.restoreGraphState(snapshot);
+    return snapshot;
+  }
+
   /**
    * Get agent state
    */
@@ -801,6 +1125,102 @@ export class AgentService {
     return pending.length > 0;
   }
 
+  async getGraphAgentHitlQueue(
+    agentId: string,
+    userId: string,
+    options?: { hitlType?: HitlSeverity },
+  ): Promise<GraphHitlQueueEntry[]> {
+    const pending = this.sessions.getPendingUserInteractions(agentId);
+    if (pending.length === 0) {
+      return [];
+    }
+
+    const nodeMeta = await this.buildNodeMetadata(agentId, userId);
+
+    return pending
+      .map((interaction) => this.toHitlQueueEntry(interaction, nodeMeta))
+      .filter((entry) =>
+        options?.hitlType ? entry.hitlType === options.hitlType : true,
+      )
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  private async buildNodeMetadata(
+    agentId: string,
+    userId: string,
+  ): Promise<Map<string, GraphHitlNodeMetadata>> {
+    const metadata = new Map<string, GraphHitlNodeMetadata>();
+    try {
+      const instance = await this.getAgentInstance(agentId, userId);
+      const graphState = this.getGraphSnapshotFromInstance(instance);
+      const nodes = graphState?.graph?.nodes || [];
+      for (const node of nodes) {
+        metadata.set(node.id, { nodeId: node.id, nodeName: node.name });
+      }
+    } catch (error) {
+      this.logger.debug('Failed to build node metadata for HITL queue', {
+        agentId,
+        error,
+      });
+    }
+    return metadata;
+  }
+
+  private toHitlQueueEntry(
+    interaction: UserInteraction,
+    nodeMeta: Map<string, GraphHitlNodeMetadata>,
+  ): GraphHitlQueueEntry {
+    const parsed = this.parseInteractionPrompt(interaction.prompt);
+    const nodeData =
+      (parsed.nodeId && nodeMeta.get(parsed.nodeId)) ||
+      (parsed.nodeId ? { nodeId: parsed.nodeId } : {});
+    const createdAt = interaction.createdAt || new Date();
+    return {
+      interactionId: interaction.interactionId,
+      sessionId: interaction.sessionId,
+      hitlType: this.mapHitlType(interaction.type),
+      interactionType: interaction.type,
+      prompt: interaction.prompt,
+      description: parsed.description,
+      createdAt,
+      waitingMs: Date.now() - createdAt.getTime(),
+      ...nodeData,
+    };
+  }
+
+  private parseInteractionPrompt(prompt: string): {
+    nodeId?: string;
+    description?: string;
+  } {
+    if (!prompt?.startsWith('node:')) {
+      return { description: prompt };
+    }
+    const parts = prompt.split(':');
+    const nodeId = parts[1];
+    if (!nodeId) {
+      return { description: prompt };
+    }
+    const remainder = parts.slice(2).join(':');
+    return {
+      nodeId,
+      description: remainder
+        ? `Awaiting ${remainder}`
+        : 'Awaiting user interaction',
+    };
+  }
+
+  private mapHitlType(type: UserInteraction['type']): HitlSeverity {
+    switch (type) {
+      case 'approval':
+        return 'yellow';
+      case 'choice':
+        return 'red';
+      case 'input':
+      default:
+        return 'green';
+    }
+  }
+
   private getGraphSnapshotFromInstance(
     instance: BaseAgent,
   ): GraphExecutionSnapshot | null {
@@ -846,9 +1266,168 @@ export class AgentService {
       'executionHistory' in candidate
     );
   }
+
+  private buildEdgeHistoryPage<T extends { timestamp: string }>(
+    entries: T[],
+    options?: GraphEdgeHistoryQueryOptions,
+  ): GraphEdgeHistoryQueryResult<T> {
+    if (!entries || entries.length === 0) {
+      return {
+        entries: [],
+        pageInfo: {
+          hasPreviousPage: false,
+          hasNextPage: false,
+          totalCount: 0,
+        },
+      };
+    }
+
+    const maxWindow = entries.length;
+    const limit =
+      options?.limit && options.limit > 0
+        ? Math.min(options.limit, maxWindow)
+        : maxWindow;
+    const direction =
+      options?.direction === 'forward' ? 'forward' : 'backward';
+
+    const startBound = this.parseTimestamp(options?.start);
+    const endBound = this.parseTimestamp(options?.end);
+    const cursorTs = this.parseTimestamp(options?.cursor);
+
+    const getTimestamp = (entry: T): number =>
+      this.parseTimestamp(entry.timestamp) ?? 0;
+
+    let filtered = entries;
+    if (startBound !== undefined) {
+      filtered = filtered.filter((entry) => getTimestamp(entry) >= startBound);
+    }
+    if (endBound !== undefined) {
+      filtered = filtered.filter((entry) => getTimestamp(entry) <= endBound);
+    }
+
+    const filteredCount = filtered.length;
+    if (filteredCount === 0) {
+      return {
+        entries: [],
+        pageInfo: {
+          hasPreviousPage: false,
+          hasNextPage: false,
+          totalCount: 0,
+        },
+      };
+    }
+
+    let sliceStart = 0;
+    let sliceEnd = filteredCount;
+
+    if (direction === 'backward') {
+      if (cursorTs !== undefined) {
+        const boundary = filtered.findIndex(
+          (entry) => getTimestamp(entry) >= cursorTs,
+        );
+        sliceEnd = boundary === -1 ? filteredCount : boundary;
+      }
+      sliceStart = Math.max(0, sliceEnd - limit);
+    } else {
+      if (cursorTs !== undefined) {
+        const boundary = filtered.findIndex(
+          (entry) => getTimestamp(entry) > cursorTs,
+        );
+        sliceStart = boundary === -1 ? filteredCount : boundary;
+      }
+      sliceEnd = Math.min(filteredCount, sliceStart + limit);
+    }
+
+    const windowEntries = filtered
+      .slice(sliceStart, sliceEnd)
+      .map((entry) => ({ ...entry }));
+
+    return {
+      entries: windowEntries,
+      pageInfo: {
+        hasPreviousPage: sliceStart > 0,
+        hasNextPage: sliceEnd < filteredCount,
+        startCursor: windowEntries[0]?.timestamp,
+        endCursor: windowEntries[windowEntries.length - 1]?.timestamp,
+        totalCount: filteredCount,
+      },
+    };
+  }
+
+  private parseTimestamp(value?: string): number | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
 }
 
 interface GraphSnapshotCapable {
   getGraphState?: () => GraphExecutionSnapshot;
   restoreGraphState?: (snapshot: GraphExecutionSnapshot) => void;
+  getNodeExecutionSummaries?: (
+    nodeId: string,
+    limit?: number,
+  ) => GraphNodeExecutionSummary[];
+  getNodeExecutionDetail?: (
+    nodeId: string,
+    executionId: string,
+  ) => GraphNodeExecutionDetail | null;
+  getEdgeQueueState?: (edgeId: string) => GraphEdgeQueueState | null;
+  updateConvergenceConfig?: (
+    nodeId: string,
+    config: GraphNodeConvergenceConfig,
+  ) => GraphNodeConvergenceConfig | null;
+  updateDataOrdering?: (
+    nodeId: string,
+    ordering: GraphNodeDataOrdering,
+  ) => GraphNodeDataOrdering | null;
+  updateEdgeCheckpoint?: (
+    edgeId: string,
+    isCheckpoint: boolean,
+  ) => WorkflowEdge | null;
+  getRuntimeCheckpointSummaries?: () => GraphRuntimeCheckpointSummary[];
+  getRuntimeCheckpointSnapshot?: (
+    checkpointId: string,
+  ) => GraphExecutionSnapshot | null;
+  getNodeConvergenceState?: (
+    nodeId: string,
+  ) => GraphNodeConvergenceState | null;
+  getMemoryGroups?: () => GraphMemoryGroupState[];
+  getMemoryGroup?: (groupId: string) => GraphMemoryGroupState | null;
+  bulkUpdateNodes?: (
+    filter: GraphNodeBulkUpdateFilter | undefined,
+    updates: GraphNodeBulkUpdatePayload,
+  ) => GraphBulkUpdateResult;
+  bulkUpdateEdges?: (
+    filter: GraphEdgeBulkUpdateFilter | undefined,
+    updates: GraphEdgeBulkUpdatePayload,
+  ) => GraphBulkUpdateResult;
+  getEdgeHistory?: (
+    edgeId: string,
+    options?: GraphEdgeHistoryQueryOptions,
+  ) => GraphEdgeHistoryQueryResult<GraphEdgeHistoryEntry>;
+  getEdgeDecisionHistory?: (
+    edgeId: string,
+    options?: GraphEdgeHistoryQueryOptions,
+  ) => GraphEdgeHistoryQueryResult<GraphEdgeDecisionEntry>;
+}
+
+type HitlSeverity = 'green' | 'yellow' | 'red';
+
+interface GraphHitlNodeMetadata {
+  nodeId?: string;
+  nodeName?: string;
+}
+
+export interface GraphHitlQueueEntry extends GraphHitlNodeMetadata {
+  interactionId: string;
+  sessionId: string;
+  hitlType: HitlSeverity;
+  interactionType: UserInteraction['type'];
+  prompt: string;
+  description?: string;
+  createdAt: Date;
+  waitingMs: number;
 }

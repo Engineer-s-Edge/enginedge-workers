@@ -372,7 +372,107 @@ describe('Graph Agent', () => {
     it('should track executed nodes', async () => {
       await graphAgent.execute('Test');
       const graphState = graphAgent.getGraphState();
-      expect(graphState.executedNodes).toBeGreaterThanOrEqual(0);
+      expect(graphState.executedNodes?.length ?? 0).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('Memory Groups', () => {
+    const graphDefinition = JSON.stringify({
+      id: 'memory-graph',
+      name: 'Memory Graph',
+      version: '1.0.0',
+      nodes: [
+        { id: 'start', type: 'start', name: 'Start', config: {} },
+        {
+          id: 'research',
+          type: 'task',
+          name: 'Research',
+          config: {
+            memoryGroupId: 'shared_rag',
+            memoryType: 'vector',
+          },
+        },
+        {
+          id: 'analyze',
+          type: 'task',
+          name: 'Analyze',
+          config: {
+            memoryConfig: {
+              groupId: 'shared_rag',
+              memoryType: 'vector',
+              provider: 'pinecone',
+            },
+          },
+        },
+        { id: 'end', type: 'end', name: 'End', config: {} },
+      ],
+      edges: [
+        { id: 'e1', from: 'start', to: 'research' },
+        { id: 'e2', from: 'research', to: 'analyze' },
+        { id: 'e3', from: 'analyze', to: 'end' },
+      ],
+      memoryGroups: [
+        {
+          id: 'shared_rag',
+          name: 'Shared RAG',
+          memoryType: 'vector',
+          provider: 'pinecone',
+          vectorStore: 'pinecone://shared',
+        },
+      ],
+      startNode: 'start',
+      endNodes: ['end'],
+    });
+
+    it('should aggregate memory groups with node membership', async () => {
+      await graphAgent.execute(graphDefinition);
+      const groups = graphAgent.getMemoryGroups();
+      expect(groups).toHaveLength(1);
+      expect(groups[0].nodeIds).toEqual(['research', 'analyze']);
+      expect(groups[0].memoryType).toBe('vector');
+      expect(groups[0].vectorStore).toBe('pinecone://shared');
+    });
+
+    it('should return memory group detail by id', async () => {
+      await graphAgent.execute(graphDefinition);
+      const group = graphAgent.getMemoryGroup('shared_rag');
+      expect(group).not.toBeNull();
+      expect(group?.name).toBe('Shared RAG');
+      expect(group?.nodeCount).toBe(2);
+      expect(group?.provider).toBe('pinecone');
+    });
+
+    it('should share memory context across nodes and persist outputs', async () => {
+      mockLLMProvider.complete = jest
+        .fn()
+        .mockResolvedValueOnce({
+          content: 'Research summary details',
+          role: 'assistant',
+        })
+        .mockResolvedValueOnce({
+          content: 'Analysis summary',
+          role: 'assistant',
+        });
+
+      await graphAgent.execute(graphDefinition);
+
+      const completeMock =
+        mockLLMProvider.complete as jest.MockedFunction<ILLMProvider['complete']>;
+      expect(completeMock).toHaveBeenCalledTimes(2);
+      const secondCall = completeMock.mock.calls[1][0];
+  expect(secondCall.messages.length).toBeGreaterThan(2);
+  const contextMessage = secondCall.messages[1];
+  expect(contextMessage.role).toBe('system');
+  expect(contextMessage.content).toContain('Shared memory');
+
+      const conversation = memoryManager.getConversation(
+        'graph:memory-graph:memory:shared_rag',
+      );
+      expect(conversation).not.toBeNull();
+      const stages = conversation?.messages.map(
+        (message) => message.metadata?.['stage'],
+      );
+      expect(stages).toContain('output');
     });
   });
 

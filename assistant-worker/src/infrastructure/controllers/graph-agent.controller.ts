@@ -15,6 +15,8 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
@@ -26,6 +28,15 @@ interface Logger {
   info(message: string, meta?: Record<string, unknown>): void;
   warn(message: string, meta?: Record<string, unknown>): void;
   error(message: string, meta?: Record<string, unknown>): void;
+}
+
+interface EdgeHistoryQueryParams {
+  userId?: string;
+  limit?: string;
+  cursor?: string;
+  direction?: string;
+  start?: string;
+  end?: string;
 }
 
 /**
@@ -62,6 +73,17 @@ export class GraphAgentController {
           to: string;
           condition?: string;
         }>;
+        memoryGroups?: Array<{
+          id: string;
+          name: string;
+          description?: string;
+          memoryType?: string;
+          vectorStore?: string;
+          knowledgeGraphId?: string;
+          ragPipelineId?: string;
+          tags?: string[];
+          metadata?: Record<string, unknown>;
+        }>;
       };
     },
   ) {
@@ -71,7 +93,7 @@ export class GraphAgentController {
       {
         name: body.name,
         agentType: 'graph',
-        config: { workflow: body.workflow },
+        config: { workflow: body.workflow as Record<string, unknown> },
       },
       body.userId,
     );
@@ -327,6 +349,188 @@ export class GraphAgentController {
   }
 
   /**
+   * GET /agents/graph/:id/memory-groups - List shared memory groups
+   */
+  @Get(':id/memory-groups')
+  async listMemoryGroups(
+    @Param('id') agentId: string,
+    @Query('userId') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    const groups = await this.agentService.getGraphMemoryGroups(
+      agentId,
+      userId,
+    );
+
+    return {
+      agentId,
+      total: groups.length,
+      groups,
+    };
+  }
+
+  /**
+   * GET /agents/graph/:id/memory-groups/:groupId - Get specific memory group
+   */
+  @Get(':id/memory-groups/:groupId')
+  async getMemoryGroup(
+    @Param('id') agentId: string,
+    @Param('groupId') groupId: string,
+    @Query('userId') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    const group = await this.agentService.getGraphMemoryGroup(
+      agentId,
+      userId,
+      groupId,
+    );
+
+    if (!group) {
+      throw new NotFoundException(
+        `Memory group '${groupId}' not found for agent '${agentId}'`,
+      );
+    }
+
+    return {
+      agentId,
+      group,
+    };
+  }
+
+  /**
+   * GET /agents/graph/:id/edges/:edgeId/queue - Inspect edge queue state
+   */
+  @Get(':id/edges/:edgeId/queue')
+  async getEdgeQueue(
+    @Param('id') agentId: string,
+    @Param('edgeId') edgeId: string,
+    @Query('userId') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    const queue = await this.agentService.getGraphAgentEdgeQueue(
+      agentId,
+      userId,
+      edgeId,
+    );
+
+    if (!queue) {
+      throw new NotFoundException(
+        `Edge queue '${edgeId}' not found for agent '${agentId}'`,
+      );
+    }
+
+    return {
+      agentId,
+      edgeId,
+      queue,
+    };
+  }
+
+  /**
+   * GET /agents/graph/:id/edges/:edgeId/history - Edge input history
+   */
+  @Get(':id/edges/:edgeId/history')
+  async getEdgeHistory(
+    @Param('id') agentId: string,
+    @Param('edgeId') edgeId: string,
+    @Query() query: EdgeHistoryQueryParams,
+  ) {
+    const { userId, limit, cursor, direction, start, end } = query;
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    const parsedLimit = this.parsePositiveInteger(limit, 'limit');
+    const parsedDirection = this.parseDirection(direction);
+    const cursorIso = this.parseIsoTimestamp(cursor, 'cursor');
+    const startIso = this.parseIsoTimestamp(start, 'start');
+    const endIso = this.parseIsoTimestamp(end, 'end');
+
+    const history = await this.agentService.getGraphEdgeHistory(
+      agentId,
+      userId,
+      edgeId,
+      {
+        limit: parsedLimit,
+        direction: parsedDirection,
+        cursor: cursorIso,
+        start: startIso,
+        end: endIso,
+      },
+    );
+
+    return {
+      agentId,
+      edgeId,
+      limit: parsedLimit,
+      filters: {
+        cursor: cursorIso,
+        direction: parsedDirection,
+        start: startIso,
+        end: endIso,
+      },
+      entries: history.entries,
+      pageInfo: history.pageInfo,
+    };
+  }
+
+  /**
+   * GET /agents/graph/:id/edges/:edgeId/decisions - Edge decision history
+   */
+  @Get(':id/edges/:edgeId/decisions')
+  async getEdgeDecisions(
+    @Param('id') agentId: string,
+    @Param('edgeId') edgeId: string,
+    @Query() query: EdgeHistoryQueryParams,
+  ) {
+    const { userId, limit, cursor, direction, start, end } = query;
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    const parsedLimit = this.parsePositiveInteger(limit, 'limit');
+    const parsedDirection = this.parseDirection(direction);
+    const cursorIso = this.parseIsoTimestamp(cursor, 'cursor');
+    const startIso = this.parseIsoTimestamp(start, 'start');
+    const endIso = this.parseIsoTimestamp(end, 'end');
+    const decisions = await this.agentService.getGraphEdgeDecisionHistory(
+      agentId,
+      userId,
+      edgeId,
+      {
+        limit: parsedLimit,
+        direction: parsedDirection,
+        cursor: cursorIso,
+        start: startIso,
+        end: endIso,
+      },
+    );
+
+    return {
+      agentId,
+      edgeId,
+      limit: parsedLimit,
+      filters: {
+        cursor: cursorIso,
+        direction: parsedDirection,
+        start: startIso,
+        end: endIso,
+      },
+      entries: decisions.entries,
+      pageInfo: decisions.pageInfo,
+    };
+  }
+
+  /**
    * GET /agents/graph/:id/pending - List pending interactions
    */
   @Get(':id/pending')
@@ -348,10 +552,72 @@ export class GraphAgentController {
   @Get(':id/has-pending')
   async hasPending(
     @Param('id') agentId: string,
-    @Query('userId') _userId: string,
+    @Query('userId') userId?: string,
   ) {
+    if (userId) {
+      const pending =
+        await this.agentService.getGraphAgentPendingUserInteractions(
+          agentId,
+          userId,
+        );
+      return { has: pending.length > 0 };
+    }
+
     const has =
       await this.agentService.hasGraphAgentAwaitingUserInteraction(agentId);
     return { has };
+  }
+
+  private parsePositiveInteger(
+    value: string | undefined,
+    field: string,
+  ): number | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed) || parsed < 1) {
+      throw new BadRequestException(
+        `${field} must be a positive integer when provided`,
+      );
+    }
+
+    return parsed;
+  }
+
+  private parseDirection(
+    value: string | undefined,
+  ): 'forward' | 'backward' | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const normalized = value.toLowerCase();
+    if (normalized !== 'forward' && normalized !== 'backward') {
+      throw new BadRequestException(
+        "direction must be either 'forward' or 'backward' when provided",
+      );
+    }
+
+    return normalized as 'forward' | 'backward';
+  }
+
+  private parseIsoTimestamp(
+    value: string | undefined,
+    field: string,
+  ): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) {
+      throw new BadRequestException(
+        `${field} must be a valid ISO-8601 timestamp when provided`,
+      );
+    }
+
+    return new Date(parsed).toISOString();
   }
 }

@@ -418,6 +418,471 @@ Full ReAct loop execution with tool use.
 }
 ```
 
+#### Global HITL Queue
+`GET /agents/graph/:id/hitl/queue?userId={userId}&type={severity}`
+
+**Query Parameters:**
+- `userId` (required): Owner of the graph agent
+- `type` (optional): Filter by severity `green | yellow | red`
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "filter": "red",
+  "entries": [
+    {
+      "interactionId": "hitl_abc",
+      "sessionId": "session_xyz",
+      "nodeId": "approval_node",
+      "nodeName": "VP Approval",
+      "hitlType": "red",
+      "interactionType": "choice",
+      "prompt": "node:approval_node:approval",
+      "description": "Awaiting approval",
+      "createdAt": "2025-11-14T18:03:22.019Z",
+      "waitingMs": 42000
+    }
+  ]
+}
+```
+
+#### Edge Queue Inspection
+`GET /agents/graph/:id/edges/:edgeId/queue?userId={userId}`
+
+Provides visibility into queued payloads for cyclic edges.
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "edgeId": "edge_loop_1",
+  "queue": {
+    "edgeId": "edge_loop_1",
+    "from": "analysis",
+    "to": "refine",
+    "depth": 2,
+    "maxDepth": 50,
+    "strategy": "fifo",
+    "isCyclic": true,
+    "processedCount": 5,
+    "droppedCount": 0,
+    "lastUpdated": "2025-11-14T18:05:09.311Z",
+    "items": [
+      {
+        "id": "edge_loop_1-max8n9",
+        "payload": { "result": "needs refinement" },
+        "enqueuedAt": "2025-11-14T18:05:09.311Z",
+        "sourceNodeId": "analysis",
+        "sourceNodeName": "Analysis",
+        "sourceExecutionId": "analysis-lm92ga"
+      }
+    ]
+  }
+}
+```
+
+#### Edge Input History
+`GET /agents/graph/:id/edges/:edgeId/history?userId={userId}&limit={n}&cursor={ts}&direction={forward|backward}&start={ts}&end={ts}`
+
+Returns paginated payloads that traversed the selected edge. Results are ordered forward (oldest→newest) by default; provide `direction=backward` to page from newest to oldest. The following query parameters are supported:
+
+- `userId` (**required**) – ensures we hydrate the correct agent instance.
+- `limit` – max rows per page (defaults to 20, max constrained by runtime policy).
+- `cursor` – ISO-8601 timestamp anchor; paging moves forward/backward relative to this point.
+- `direction` – `forward` or `backward` (defaults to `forward`).
+- `start` / `end` – inclusive time window filters (ISO-8601).
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "edgeId": "edge_loop_1",
+  "limit": 5,
+  "filters": {
+    "cursor": "2025-11-14T18:05:09.311Z",
+    "direction": "backward",
+    "start": "2025-11-14T17:00:00.000Z",
+    "end": "2025-11-14T19:00:00.000Z"
+  },
+  "entries": [
+    {
+      "edgeId": "edge_loop_1",
+      "fromNodeId": "analysis",
+      "fromNodeName": "Analysis",
+      "toNodeId": "refine",
+      "toNodeName": "Refine",
+      "payload": { "result": "needs refinement" },
+      "sourceExecutionId": "analysis-lm92ga",
+      "timestamp": "2025-11-14T18:05:09.311Z"
+    }
+  ],
+  "pageInfo": {
+    "hasPreviousPage": false,
+    "hasNextPage": true,
+    "startCursor": "2025-11-14T18:04:11.000Z",
+    "endCursor": "2025-11-14T18:05:09.311Z",
+    "totalCount": 42
+  }
+}
+```
+
+#### Edge Decision History
+`GET /agents/graph/:id/edges/:edgeId/decisions?userId={userId}&limit={n}&cursor={ts}&direction={forward|backward}&start={ts}&end={ts}`
+
+For conditional edges, this endpoint exposes the recorded decision metadata. Pagination and filtering behave the same as the input history endpoint, so clients can inspect specific time windows or scroll through older decisions deterministically.
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "edgeId": "edge_branch_yes",
+  "limit": 10,
+  "filters": {
+    "cursor": null,
+    "direction": "forward",
+    "start": null,
+    "end": null
+  },
+  "entries": [
+    {
+      "edgeId": "edge_branch_yes",
+      "nodeId": "decision_router",
+      "nodeName": "Decision Router",
+      "conditionLabel": "contains_keyword_yes",
+      "matched": true,
+      "decisionResult": { "score": 0.92 },
+      "reason": "input contains keyword 'approve'",
+      "sourceExecutionId": "decision_router-17w1k0",
+      "timestamp": "2025-11-14T18:06:41.512Z"
+    }
+  ],
+  "pageInfo": {
+    "hasPreviousPage": false,
+    "hasNextPage": false,
+    "startCursor": "2025-11-14T18:05:55.002Z",
+    "endCursor": "2025-11-14T18:06:41.512Z",
+    "totalCount": 12
+  }
+}
+```
+
+#### List Memory Groups
+`GET /agents/graph/:id/memory-groups?userId={userId}`
+
+Returns all shared memory/RAG groups defined for the graph, including the nodes attached to each group and usage timestamps derived from node execution history.
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "total": 2,
+  "groups": [
+    {
+      "id": "vector_research",
+      "name": "Vector Research",
+      "memoryType": "vector",
+      "provider": "pinecone",
+      "vectorStore": "pinecone://prod-research",
+      "nodeIds": ["analysis", "synthesis"],
+      "nodeNames": ["Analysis", "Synthesis"],
+      "nodeCount": 2,
+      "firstAccessedAt": "2025-11-14T17:55:11.002Z",
+      "lastAccessedAt": "2025-11-14T18:06:41.512Z",
+      "metadata": {
+        "retentionDays": 30,
+        "vectorDimension": 1536
+      }
+    }
+  ]
+}
+```
+
+#### Memory Group Detail
+`GET /agents/graph/:id/memory-groups/:groupId?userId={userId}`
+
+Fetches a single memory group plus its node membership and configuration metadata.
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "group": {
+    "id": "vector_research",
+    "name": "Vector Research",
+    "description": "Shared embeddings for research nodes",
+    "memoryType": "vector",
+    "provider": "pinecone",
+    "vectorStore": "pinecone://prod-research",
+    "nodeIds": ["analysis", "synthesis"],
+    "nodeNames": ["Analysis", "Synthesis"],
+    "nodeCount": 2,
+    "firstAccessedAt": "2025-11-14T17:55:11.002Z",
+    "lastAccessedAt": "2025-11-14T18:06:41.512Z",
+    "metadata": {
+      "retentionDays": 30,
+      "vectorDimension": 1536
+    }
+  }
+}
+```
+
+#### Inspect Convergence State
+`GET /agents/graph/:id/nodes/:nodeId/convergence?userId={userId}`
+
+Retrieves the most recent convergence resolution snapshot for a join node, including the strategy, ordering, and resolved inputs that fed the last merge.
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "nodeId": "join_reviews",
+  "state": {
+    "nodeId": "join_reviews",
+    "strategy": "count",
+    "requiredCount": 2,
+    "satisfiedCount": 2,
+    "ordering": ["edge:edge_a", "edge:edge_b"],
+    "pendingSources": [],
+    "updatedAt": "2025-11-14T18:32:11.100Z",
+    "inputs": [
+      {
+        "edgeId": "edge_a",
+        "nodeId": "analysis",
+        "nodeName": "Analysis",
+        "output": { "result": "approved" }
+      },
+      {
+        "edgeId": "edge_b",
+        "nodeId": "synthesis",
+        "nodeName": "Synthesis",
+        "output": { "result": "approved" }
+      }
+    ]
+  }
+}
+```
+
+#### Update Convergence Wait Conditions
+`PATCH /agents/graph/:id/nodes/:nodeId/convergence-config`
+
+Configure how a join node decides it has received enough predecessors.
+
+**Request:**
+```json
+{
+  "userId": "user123",
+  "strategy": "count",
+  "count": 2,
+  "edgeIds": ["edge_a", "edge_b"],
+  "nodeIds": ["analysis", "synthesis"]
+}
+```
+
+**Response:**
+```json
+{
+  "agentId": "graph_agent_123",
+  "nodeId": "join_reviews",
+  "config": {
+    "strategy": "count",
+    "count": 2
+  }
+}
+```
+
+#### Update Convergence Data Ordering
+`PATCH /agents/graph/:id/nodes/:nodeId/data-ordering`
+
+Controls the ordering of aggregated data for visualization.
+
+#### Bulk Update Node Runtime Settings
+`PATCH /agents/graph/:id/nodes/bulk-update`
+
+Applies find-and-replace style updates across multiple nodes. Filters support provider/model/type/tag matching, and updates allow overriding provider/model/memory/vector store fields plus arbitrary config keys.
+
+**Request:**
+```json
+{
+  "userId": "user123",
+  "filter": { "provider": "groq", "tags": ["rag"] },
+  "updates": {
+    "provider": "google",
+    "model": "gemini-pro",
+    "memoryType": "vector",
+    "config": { "temperature": 0.4 }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "agentId": "graph_agent_123",
+  "updatedCount": 4,
+  "nodeIds": ["analysis", "synthesis", "merge_a", "merge_b"]
+}
+```
+
+**Request:**
+```json
+{
+  "userId": "user123",
+  "mode": "explicit",
+  "order": ["edge:edge_a", "node:analysis", "edge:edge_b"],
+  "includeDuplicates": false
+}
+```
+
+#### Bulk Update Edge Configuration
+`PATCH /agents/graph/:id/edges/bulk-update`
+
+Updates multiple edges simultaneously (labels, checkpoint flags, and queue strategies).
+
+**Request:**
+```json
+{
+  "userId": "user123",
+  "filter": { "fromNodeId": "analysis" },
+  "updates": {
+    "label": "analysis-output",
+    "isCheckpoint": true,
+    "queue": { "strategy": "fifo", "maxDepth": 100 }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "agentId": "graph_agent_123",
+  "updatedCount": 2,
+  "edgeIds": ["edge_a", "edge_b"]
+}
+```
+
+**Response:**
+```json
+{
+  "agentId": "graph_agent_123",
+  "nodeId": "join_reviews",
+  "ordering": {
+    "mode": "explicit",
+
+#### Update Edge Checkpoint Flag
+`PATCH /agents/graph/:id/edges/:edgeId`
+
+Marks or unmarks a workflow edge as a runtime checkpoint trigger.
+
+**Request:**
+```json
+{
+  "userId": "user123",
+  "isCheckpoint": true
+}
+```
+
+**Response:**
+```json
+{
+  "agentId": "graph_agent_123",
+  "edgeId": "edge_loop_1",
+  "edge": {
+    "id": "edge_loop_1",
+    "from": "analysis",
+    "to": "refine",
+    "isCheckpoint": true
+  }
+}
+```
+
+#### List Runtime Checkpoints
+`GET /agents/graph/:id/checkpoints?userId={userId}`
+
+Returns summaries for every checkpoint captured at runtime (currently edge-based).
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "checkpoints": [
+    {
+      "id": "edge_cp_edge_loop_1_ma81",
+      "type": "edge",
+      "edgeId": "edge_loop_1",
+      "fromNodeId": "analysis",
+      "toNodeId": "refine",
+      "label": "Analysis → Refine",
+      "createdAt": "2025-11-14T18:06:55.112Z"
+    }
+  ]
+}
+```
+
+#### Fetch Runtime Checkpoint Snapshot
+`GET /agents/graph/:id/checkpoints/:checkpointId?userId={userId}`
+
+Retrieves the serialized graph execution snapshot that was captured when the checkpoint fired.
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "checkpointId": "edge_cp_edge_loop_1_ma81",
+  "snapshot": {
+    "graphId": "graph_agent_123",
+    "startTime": 1731607475112,
+    "currentNodeIds": ["refine"],
+    "nodeResults": [
+      {
+        "nodeId": "analysis",
+        "output": { "result": "needs refinement" }
+      }
+    ],
+    "edgeQueues": {
+      "edge_loop_1": {
+        "edgeId": "edge_loop_1",
+        "depth": 2,
+        "items": [
+          {
+            "id": "edge_loop_1-max8n9",
+            "payload": { "result": "needs refinement" },
+            "enqueuedAt": "2025-11-14T18:05:09.311Z"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+    "order": ["edge:edge_a", "node:analysis", "edge:edge_b"],
+    "includeDuplicates": false
+  }
+}
+```
+
+#### Restore Runtime Checkpoint
+`POST /agents/graph/:id/checkpoints/:checkpointId/restore`
+
+Restores the in-memory graph agent state to the selected runtime checkpoint snapshot.
+
+**Request:**
+```json
+{
+  "userId": "user123"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "agentId": "graph_agent_123",
+  "checkpointId": "edge_cp_edge_loop_1_ma81",
+  "restored": true,
+  "snapshot": { "graphId": "graph_agent_123", "currentNodeIds": ["refine"] }
+}
+```
+
 ---
 
 ### Expert Agent
@@ -912,4 +1377,3 @@ For complete OpenAPI 3.0 specification, see [openapi.yaml](openapi.yaml).
 ---
 
 **Last Updated:** October 24, 2025
-

@@ -3,7 +3,7 @@ info:
   title: Assistant Worker API
   description: |
     Comprehensive AI agent platform with support for multiple agent types, memory systems, and knowledge graphs.
-    
+
     **Features:**
     - 6 specialized agent types
     - 5 memory systems
@@ -16,7 +16,7 @@ info:
     email: support@yourdomain.com
   license:
     name: Proprietary
-    
+
 servers:
   - url: http://localhost:3001
     description: Development server
@@ -325,6 +325,565 @@ paths:
                   message:
                     type: string
 
+  /agents/graph/{agentId}/hitl/queue:
+    get:
+      summary: Get global HITL queue
+      description: Aggregate pending HITL interactions for a graph agent
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [green, yellow, red]
+      responses:
+        '200':
+          description: Global HITL queue entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  filter:
+                    type: string
+                    nullable: true
+                    enum: [green, yellow, red]
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GraphHitlQueueEntry'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/edges/{edgeId}/queue:
+    get:
+      summary: Get edge queue state
+      description: Inspect queued payloads for a cyclic graph edge
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/EdgeId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Edge queue snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  edgeId:
+                    type: string
+                  queue:
+                    $ref: '#/components/schemas/GraphEdgeQueueState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/edges/{edgeId}/history:
+    get:
+      summary: Get edge input history
+      description: Retrieve captured payloads that traversed the specified edge
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/EdgeId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: direction
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [forward, backward]
+        - name: start
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Edge history entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  edgeId:
+                    type: string
+                  limit:
+                    type: integer
+                    nullable: true
+                  filters:
+                    $ref: '#/components/schemas/GraphEdgeHistoryFilters'
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GraphEdgeHistoryEntry'
+                  pageInfo:
+                    $ref: '#/components/schemas/GraphEdgeHistoryPageInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/edges/{edgeId}/decisions:
+    get:
+      summary: Get edge decision history
+      description: Retrieve conditional edge evaluation outcomes and metadata
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/EdgeId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: direction
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [forward, backward]
+        - name: start
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Edge decision entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  edgeId:
+                    type: string
+                  limit:
+                    type: integer
+                    nullable: true
+                  filters:
+                    $ref: '#/components/schemas/GraphEdgeHistoryFilters'
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GraphEdgeDecisionEntry'
+                  pageInfo:
+                    $ref: '#/components/schemas/GraphEdgeHistoryPageInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/memory-groups:
+    get:
+      summary: List graph memory groups
+      description: Return shared memory/RAG groups and node membership
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Memory group collection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  total:
+                    type: integer
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GraphMemoryGroupState'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/memory-groups/{groupId}:
+    get:
+      summary: Get memory group detail
+      description: Retrieve a single memory group configuration and usage metadata
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Memory group detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  group:
+                    $ref: '#/components/schemas/GraphMemoryGroupState'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/edges/{edgeId}:
+    patch:
+      summary: Update edge checkpoint flag
+      description: Mark or unmark a workflow edge as a runtime checkpoint trigger
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/EdgeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphEdgeCheckpointRequest'
+      responses:
+        '200':
+          description: Updated edge definition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  edgeId:
+                    type: string
+                  edge:
+                    $ref: '#/components/schemas/WorkflowEdge'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/nodes/{nodeId}/convergence:
+    get:
+      summary: Get convergence state
+      description: Retrieve the latest convergence resolution snapshot for a join node
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/NodeId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Convergence state payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  nodeId:
+                    type: string
+                  state:
+                    $ref: '#/components/schemas/GraphConvergenceState'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/nodes/bulk-update:
+    patch:
+      summary: Bulk update node runtime settings
+      description: Apply runtime configuration updates across multiple graph nodes using filter criteria
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphNodeBulkUpdateRequest'
+      responses:
+        '200':
+          description: Bulk node update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphBulkUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/nodes/{nodeId}/convergence-config:
+    patch:
+      summary: Update convergence wait configuration
+      description: Configure how a join node waits for predecessors
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/NodeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphConvergenceConfigRequest'
+      responses:
+        '200':
+          description: Updated convergence configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  nodeId:
+                    type: string
+                  config:
+                    $ref: '#/components/schemas/GraphConvergenceConfig'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/nodes/{nodeId}/data-ordering:
+    patch:
+      summary: Update convergence data ordering
+      description: Control ordering of incoming edge data for joins
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/NodeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphDataOrderingRequest'
+      responses:
+        '200':
+          description: Updated data ordering
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  nodeId:
+                    type: string
+                  ordering:
+                    $ref: '#/components/schemas/GraphDataOrdering'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/edges/bulk-update:
+    patch:
+      summary: Bulk update edge configuration
+      description: Apply updates to multiple edges (labels, checkpoint flags, queue options)
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphEdgeBulkUpdateRequest'
+      responses:
+        '200':
+          description: Bulk edge update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphBulkUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/checkpoints:
+    get:
+      summary: List runtime checkpoints
+      description: Retrieve summaries for checkpoints captured while the graph executes
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Runtime checkpoint summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  checkpoints:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GraphRuntimeCheckpointSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/checkpoints/{checkpointId}:
+    get:
+      summary: Get runtime checkpoint snapshot
+      description: Fetch the serialized execution snapshot captured at a checkpoint
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/CheckpointId'
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Runtime checkpoint snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  checkpointId:
+                    type: string
+                  snapshot:
+                    $ref: '#/components/schemas/GraphExecutionSnapshot'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /agents/graph/{agentId}/checkpoints/{checkpointId}/restore:
+    post:
+      summary: Restore runtime checkpoint
+      description: Restore the graph agent state using a runtime checkpoint snapshot
+      tags:
+        - Graph
+      parameters:
+        - $ref: '#/components/parameters/AgentId'
+        - $ref: '#/components/parameters/CheckpointId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphCheckpointRestoreRequest'
+      responses:
+        '200':
+          description: Checkpoint restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agentId:
+                    type: string
+                  checkpointId:
+                    type: string
+                  restored:
+                    type: boolean
+                  snapshot:
+                    $ref: '#/components/schemas/GraphExecutionSnapshot'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /memory/{conversationId}/messages:
     post:
       summary: Add message
@@ -506,6 +1065,27 @@ components:
       schema:
         type: string
       description: Agent identifier
+    EdgeId:
+      name: edgeId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Workflow edge identifier
+    NodeId:
+      name: nodeId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Workflow node identifier
+    CheckpointId:
+      name: checkpointId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Runtime checkpoint identifier
 
   schemas:
     AgentSummary:
@@ -519,6 +1099,564 @@ components:
           type: string
         state:
           type: string
+
+    GraphHitlQueueEntry:
+      type: object
+      properties:
+        interactionId:
+          type: string
+        sessionId:
+          type: string
+        nodeId:
+          type: string
+          nullable: true
+        nodeName:
+          type: string
+          nullable: true
+        hitlType:
+          type: string
+          enum: [green, yellow, red]
+        interactionType:
+          type: string
+        prompt:
+          type: string
+        description:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        waitingMs:
+          type: number
+
+    GraphEdgeQueueItem:
+      type: object
+      properties:
+        id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        enqueuedAt:
+          type: string
+          format: date-time
+        sourceNodeId:
+          type: string
+        sourceNodeName:
+          type: string
+          nullable: true
+        sourceExecutionId:
+          type: string
+          nullable: true
+
+    GraphEdgeQueueState:
+      type: object
+      properties:
+        edgeId:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        depth:
+          type: integer
+        maxDepth:
+          type: integer
+        strategy:
+          type: string
+          enum: [fifo, lifo]
+        isCyclic:
+          type: boolean
+        processedCount:
+          type: integer
+        droppedCount:
+          type: integer
+        lastUpdated:
+          type: string
+          format: date-time
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphEdgeQueueItem'
+
+    GraphEdgeHistoryEntry:
+      type: object
+      properties:
+        edgeId:
+          type: string
+        fromNodeId:
+          type: string
+        fromNodeName:
+          type: string
+          nullable: true
+        toNodeId:
+          type: string
+        toNodeName:
+          type: string
+          nullable: true
+        payload:
+          type: object
+          nullable: true
+          additionalProperties: true
+        sourceExecutionId:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    GraphEdgeDecisionEntry:
+      type: object
+      properties:
+        edgeId:
+          type: string
+        nodeId:
+          type: string
+        nodeName:
+          type: string
+          nullable: true
+        decisionResult:
+          type: object
+          nullable: true
+          additionalProperties: true
+        conditionLabel:
+          type: string
+          nullable: true
+        matched:
+          type: boolean
+          nullable: true
+        reason:
+          type: string
+          nullable: true
+        sourceExecutionId:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    GraphMemoryGroup:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        memoryType:
+          type: string
+          nullable: true
+        provider:
+          type: string
+          nullable: true
+        vectorStore:
+          type: string
+          nullable: true
+        knowledgeGraphId:
+          type: string
+          nullable: true
+        ragPipelineId:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    GraphMemoryGroupState:
+      allOf:
+        - $ref: '#/components/schemas/GraphMemoryGroup'
+        - type: object
+          properties:
+            nodeIds:
+              type: array
+              items:
+                type: string
+            nodeNames:
+              type: array
+              items:
+                type: string
+            nodeCount:
+              type: integer
+            firstAccessedAt:
+              type: string
+              format: date-time
+              nullable: true
+            lastAccessedAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    GraphEdgeHistoryFilters:
+      type: object
+      properties:
+        cursor:
+          type: string
+          format: date-time
+          nullable: true
+        direction:
+          type: string
+          enum: [forward, backward]
+          nullable: true
+        start:
+          type: string
+          format: date-time
+          nullable: true
+        end:
+          type: string
+          format: date-time
+          nullable: true
+
+    GraphEdgeHistoryPageInfo:
+      type: object
+      properties:
+        hasPreviousPage:
+          type: boolean
+        hasNextPage:
+          type: boolean
+        startCursor:
+          type: string
+          format: date-time
+          nullable: true
+        endCursor:
+          type: string
+          format: date-time
+          nullable: true
+        totalCount:
+          type: integer
+
+    WorkflowEdge:
+      type: object
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        label:
+          type: string
+          nullable: true
+        conditionScript:
+          type: string
+          nullable: true
+        isCheckpoint:
+          type: boolean
+          nullable: true
+
+    GraphConvergenceConfigRequest:
+      type: object
+      required:
+        - userId
+        - strategy
+      properties:
+        userId:
+          type: string
+        strategy:
+          type: string
+          enum: [all, count, subset]
+        count:
+          type: integer
+          minimum: 1
+        edgeIds:
+          type: array
+          items:
+            type: string
+        nodeIds:
+          type: array
+          items:
+            type: string
+
+    GraphConvergenceConfig:
+      type: object
+      properties:
+        strategy:
+          type: string
+          enum: [all, count, subset]
+        count:
+          type: integer
+          minimum: 1
+        edgeIds:
+          type: array
+          items:
+            type: string
+        nodeIds:
+          type: array
+          items:
+            type: string
+
+    GraphNodeBulkUpdateRequest:
+      type: object
+      required:
+        - userId
+        - updates
+      properties:
+        userId:
+          type: string
+        filter:
+          type: object
+          properties:
+            provider:
+              type: string
+            model:
+              type: string
+            type:
+              type: string
+              enum:
+                - task
+                - decision
+                - parallel_split
+                - parallel_join
+                - error_handler
+                - start
+                - end
+            tags:
+              type: array
+              items:
+                type: string
+        updates:
+          type: object
+          properties:
+            provider:
+              type: string
+            model:
+              type: string
+            memoryType:
+              type: string
+            vectorStore:
+              type: string
+            config:
+              type: object
+              additionalProperties: true
+
+    GraphEdgeBulkUpdateRequest:
+      type: object
+      required:
+        - userId
+        - updates
+      properties:
+        userId:
+          type: string
+        filter:
+          type: object
+          properties:
+            fromNodeId:
+              type: string
+            toNodeId:
+              type: string
+            label:
+              type: string
+            isCheckpoint:
+              type: boolean
+        updates:
+          type: object
+          properties:
+            label:
+              type: string
+            isCheckpoint:
+              type: boolean
+            queue:
+              $ref: '#/components/schemas/EdgeQueueConfig'
+
+    GraphBulkUpdateResponse:
+      type: object
+      properties:
+        agentId:
+          type: string
+        updatedCount:
+          type: integer
+        nodeIds:
+          type: array
+          items:
+            type: string
+        edgeIds:
+          type: array
+          items:
+            type: string
+
+    GraphConvergenceInput:
+      type: object
+      properties:
+        edgeId:
+          type: string
+        nodeId:
+          type: string
+        nodeName:
+          type: string
+          nullable: true
+        output:
+          type: object
+          description: Serialized node output captured when the join resolved
+          nullable: true
+
+    GraphConvergenceState:
+      type: object
+      properties:
+        nodeId:
+          type: string
+        strategy:
+          type: string
+          enum: [all, count, subset]
+        requiredCount:
+          type: integer
+        satisfiedCount:
+          type: integer
+        pendingSources:
+          type: array
+          items:
+            type: string
+        ordering:
+          type: array
+          items:
+            type: string
+        inputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphConvergenceInput'
+        updatedAt:
+          type: string
+          format: date-time
+
+    GraphDataOrderingRequest:
+      type: object
+      required:
+        - userId
+        - mode
+      properties:
+        userId:
+          type: string
+        mode:
+          type: string
+          enum: [arrival, explicit]
+        order:
+          type: array
+          items:
+            type: string
+        includeDuplicates:
+          type: boolean
+
+    GraphDataOrdering:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [arrival, explicit]
+        order:
+          type: array
+          items:
+            type: string
+        includeDuplicates:
+          type: boolean
+
+    GraphEdgeCheckpointRequest:
+      type: object
+      required:
+        - userId
+        - isCheckpoint
+      properties:
+        userId:
+          type: string
+        isCheckpoint:
+          type: boolean
+
+    GraphCheckpointRestoreRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+
+    GraphRuntimeCheckpointSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [edge]
+        edgeId:
+          type: string
+        fromNodeId:
+          type: string
+        toNodeId:
+          type: string
+        label:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    GraphExecutionSnapshot:
+      type: object
+      description: Serialized graph execution state captured at checkpoint time
+      properties:
+        graphId:
+          type: string
+          nullable: true
+        graphName:
+          type: string
+          nullable: true
+        startTime:
+          type: number
+          nullable: true
+        lastUpdated:
+          type: number
+          nullable: true
+        currentNodeIds:
+          type: array
+          items:
+            type: string
+        pendingNodeIds:
+          type: array
+          items:
+            type: string
+        nodeResults:
+          type: array
+          items:
+            type: object
+            properties:
+              nodeId:
+                type: string
+              output:
+                type: object
+                additionalProperties: true
+        retryAttempts:
+          type: object
+          additionalProperties:
+            type: integer
+        edgeQueues:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/GraphEdgeQueueState'
+        edgeHistory:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/GraphEdgeHistoryEntry'
+        edgeDecisions:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/GraphEdgeDecisionEntry'
 
     Agent:
       type: object
@@ -652,4 +1790,3 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-

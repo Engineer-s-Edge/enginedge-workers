@@ -222,7 +222,9 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
       // Delete the topic using the service
       const deleted = await this.topicCatalogService.deleteTopic(topicEntry.id);
       if (deleted) {
-        this.logger.info(`Successfully deleted topic: ${topic} (id: ${topicEntry.id})`);
+        this.logger.log(
+          `Successfully deleted topic: ${topic} (id: ${topicEntry.id})`,
+        );
       }
       return deleted;
     } catch (error) {
