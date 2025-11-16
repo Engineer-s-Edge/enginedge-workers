@@ -26,11 +26,25 @@ class ToolCallPayloadSchema {
 }
 
 @Schema({ _id: false })
+class ConversationStateSnapshotSchema {
+  @Prop({ type: [Object] }) messages?: Array<{
+    messageId: string;
+    role: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+    version: number;
+  }>;
+  @Prop({ type: Object }) agentState?: Record<string, unknown>;
+  @Prop({ type: Object }) settingsOverrides?: Record<string, unknown>;
+}
+
+@Schema({ _id: false })
 class CheckpointPayloadSchema {
   @Prop({ required: true }) checkpointId!: string;
   @Prop() name?: string;
   @Prop() description?: string;
   @Prop() snapshotRefId?: string;
+  @Prop({ type: ConversationStateSnapshotSchema }) conversationState?: ConversationStateSnapshotSchema;
 }
 
 @Schema({ _id: false })

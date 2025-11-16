@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
 import { LoggingInterceptor } from './infrastructure/interceptors/logging.interceptor';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   try {
@@ -22,9 +23,31 @@ async function bootstrap() {
     // Global exception filter and logging interceptor
     app.useGlobalFilters(app.get(GlobalExceptionFilter));
     app.useGlobalInterceptors(app.get(LoggingInterceptor));
-    const port = process.env.PORT || 3001;
+
+    // Swagger/OpenAPI documentation
+    const config = new DocumentBuilder()
+      .setTitle('Data Processing Worker API')
+      .setDescription('Document processing, embedding, and vector store management')
+      .setVersion('1.0.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'jwt',
+      )
+      .addTag('Documents', 'Document processing and management')
+      .addTag('Vector Store', 'Vector store operations')
+      .addTag('Embedders', 'Embedding generation')
+      .addTag('Health', 'Health checks')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      jsonDocumentUrl: 'api/docs-json',
+      customSiteTitle: 'Data Processing Worker API Documentation',
+    });
+
+    const port = process.env.PORT || 3003;
     await app.listen(port);
     Logger.log(`Application running on port ${port}`, 'Bootstrap');
+    Logger.log(`Swagger documentation available at http://localhost:${port}/api/docs`, 'Bootstrap');
 
     // Handle termination signals
     const signals = ['SIGTERM', 'SIGINT'];

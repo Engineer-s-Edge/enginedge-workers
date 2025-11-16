@@ -29,6 +29,9 @@ export interface ConversationRecord {
     messageCount?: number;
   };
   agentState?: Record<string, unknown>;
+  folderId?: string;
+  tags?: string[];
+  isPinned?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -65,6 +68,18 @@ export interface CheckpointRecord {
   name?: string;
   description?: string;
   snapshotRefId?: string;
+  // Full conversation state snapshot for restore
+  conversationState?: {
+    messages?: Array<{
+      messageId: string;
+      role: string;
+      content: string;
+      metadata?: Record<string, unknown>;
+      version: number;
+    }>;
+    agentState?: Record<string, unknown>;
+    settingsOverrides?: ConversationSettingsOverrides;
+  };
 }
 
 export interface IConversationsRepository {
@@ -76,8 +91,12 @@ export interface IConversationsRepository {
     overrides: ConversationSettingsOverrides,
   ): Promise<void>;
   updateStatus(id: string, status: ConversationStatus): Promise<void>;
+  delete(id: string): Promise<void>;
   addChild(parentId: string, childId: string): Promise<void>;
   updateAgentState(id: string, state: Record<string, unknown>): Promise<void>;
+  updatePinned(id: string, isPinned: boolean): Promise<void>;
+  updateFolder(id: string, folderId: string | null): Promise<void>;
+  updateTags(id: string, tags: string[]): Promise<void>;
 
   appendMessage(
     conversationId: string,
@@ -101,6 +120,17 @@ export interface IConversationsRepository {
     sinceTs?: Date,
     limit?: number,
   ): Promise<any[]>;
+
+  // Checkpoint methods
+  getCheckpoints(conversationId: string): Promise<CheckpointRecord[]>;
+  getCheckpointById(
+    conversationId: string,
+    checkpointId: string,
+  ): Promise<CheckpointRecord | null>;
+  restoreCheckpoint(
+    conversationId: string,
+    checkpointId: string,
+  ): Promise<void>;
 
   // Conversation search methods
   getMessagesByUser(

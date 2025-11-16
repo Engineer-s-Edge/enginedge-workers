@@ -50,6 +50,9 @@ export class MongoDBConversationsRepository
       collectiveRefId: doc.collectiveRefId,
       summaries: doc.summaries as any,
       agentState: doc.agentState as any,
+      folderId: (doc as any).folderId,
+      tags: (doc as any).tags || [],
+      isPinned: (doc as any).isPinned || false,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
@@ -91,6 +94,30 @@ export class MongoDBConversationsRepository
 
   async updateStatus(id: string, status: any): Promise<void> {
     await this.convModel.updateOne({ _id: id }, { $set: { status } }).exec();
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.convModel.deleteOne({ _id: id }).exec();
+    // Also delete related events
+    await this.eventModel.deleteMany({ conversationId: id }).exec();
+    // Also delete related message versions
+    await this.verModel.deleteMany({ conversationId: id }).exec();
+  }
+
+  async updatePinned(id: string, isPinned: boolean): Promise<void> {
+    await this.convModel
+      .updateOne({ _id: id }, { $set: { isPinned } })
+      .exec();
+  }
+
+  async updateFolder(id: string, folderId: string | null): Promise<void> {
+    await this.convModel
+      .updateOne({ _id: id }, { $set: { folderId: folderId || null } })
+      .exec();
+  }
+
+  async updateTags(id: string, tags: string[]): Promise<void> {
+    await this.convModel.updateOne({ _id: id }, { $set: { tags } }).exec();
   }
 
   async addChild(parentId: string, childId: string): Promise<void> {
@@ -236,6 +263,127 @@ export class MongoDBConversationsRepository
       type: d.type,
       payload: d.payload,
     }));
+  }
+
+  async getCheckpoints(conversationId: string): Promise<CheckpointRecord[]> {
+    const events = await this.eventModel
+      .find({
+        conversationId,
+        type: 'checkpoint',
+      })
+      .sort({ ts: -1 })
+      .exec();
+
+    return events.map((event) => {
+      const payload = event.payload as any;
+      if (payload.kind === 'checkpoint' && payload.data) {
+        return {
+          checkpointId: payload.data.checkpointId,
+          name: payload.data.name,
+          description: payload.data.description,
+          snapshotRefId: payload.data.snapshotRefId,
+          conversationState: payload.data.conversationState,
+        } as CheckpointRecord;
+      }
+      return null;
+    }).filter((c): c is CheckpointRecord => c !== null);
+  }
+
+  async getCheckpointById(
+    conversationId: string,
+    checkpointId: string,
+  ): Promise<CheckpointRecord | null> {
+    const event = await this.eventModel
+      .findOne({
+        conversationId,
+        type: 'checkpoint',
+        'payload.data.checkpointId': checkpointId,
+      })
+      .exec();
+
+    if (!event) {
+      return null;
+    }
+
+    const payload = event.payload as any;
+    if (payload.kind === 'checkpoint' && payload.data) {
+      return {
+        checkpointId: payload.data.checkpointId,
+        name: payload.data.name,
+        description: payload.data.description,
+        snapshotRefId: payload.data.snapshotRefId,
+        conversationState: payload.data.conversationState,
+      } as CheckpointRecord;
+    }
+
+    return null;
+  }
+
+  async restoreCheckpoint(
+    conversationId: string,
+    checkpointId: string,
+  ): Promise<void> {
+    // Get the checkpoint event with full state
+    const event = await this.eventModel
+      .findOne({
+        conversationId,
+        type: 'checkpoint',
+        'payload.data.checkpointId': checkpointId,
+      })
+      .exec();
+
+    if (!event) {
+      throw new Error(`Checkpoint ${checkpointId} not found`);
+    }
+
+    const payload = event.payload as any;
+    if (payload.kind !== 'checkpoint' || !payload.data) {
+      throw new Error(`Invalid checkpoint data for ${checkpointId}`);
+    }
+
+    const checkpoint = payload.data;
+    const conversationState = checkpoint.conversationState;
+
+    if (!conversationState) {
+      throw new Error(`Checkpoint ${checkpointId} does not contain conversation state`);
+    }
+
+    // Get the checkpoint timestamp to delete events after it
+    const checkpointTs = event.ts;
+
+    // Delete all events after the checkpoint (to restore to exact state)
+    await this.eventModel
+      .deleteMany({
+        conversationId,
+        ts: { $gt: checkpointTs },
+      })
+      .exec();
+
+    // Restore conversation document state
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (conversationState.agentState) {
+      updateData.agentState = conversationState.agentState;
+    }
+
+    if (conversationState.settingsOverrides) {
+      updateData.settingsOverrides = conversationState.settingsOverrides;
+    }
+
+    await this.convModel
+      .updateOne({ _id: conversationId }, { $set: updateData })
+      .exec();
+
+    // Note: Messages are stored as events, so deleting events after checkpoint
+    // effectively restores the message state. The conversation document itself
+    // doesn't store messages directly - they're reconstructed from events.
+    // If messages need to be explicitly restored, we would need to:
+    // 1. Delete all message events after checkpoint
+    // 2. Recreate message events from checkpoint state (if needed)
+    // For now, the event-based approach means deleting post-checkpoint events
+    // is sufficient to restore message state.
   }
 
   async getMessagesByUser(

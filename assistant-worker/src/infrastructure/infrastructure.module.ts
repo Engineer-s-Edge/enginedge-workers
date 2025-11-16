@@ -52,7 +52,13 @@ import {
   MessageVersion,
   MessageVersionSchema,
 } from './adapters/storage/conversations/message-version.schema';
+import {
+  Folder,
+  FolderSchema,
+} from './adapters/storage/conversations/folder.schema';
 import { MongoDBConversationsRepository } from './adapters/storage/mongodb-conversations.repository';
+import { MongoDBFoldersRepository } from './adapters/storage/mongodb-folders.repository';
+import { FoldersService } from '@application/services/folders.service';
 import { ConversationsController } from './controllers/conversations.controller';
 import { GlobalExceptionFilter } from './filters/global-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
@@ -103,6 +109,7 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
       { name: Conversation.name, schema: ConversationSchema },
       { name: ConversationEvent.name, schema: ConversationEventSchema },
       { name: MessageVersion.name, schema: MessageVersionSchema },
+      { name: Folder.name, schema: FolderSchema },
       { name: TopicCatalog.name, schema: TopicCatalogSchema },
       { name: CategoryModel.name, schema: CategorySchema },
       { name: ResearchSessionModel.name, schema: ResearchSessionSchema },
@@ -183,6 +190,17 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
     {
       provide: 'IConversationsRepository',
       useClass: MongoDBConversationsRepository,
+    },
+    // Folders repository and service
+    MongoDBFoldersRepository,
+    {
+      provide: 'IFoldersRepository',
+      useClass: MongoDBFoldersRepository,
+    },
+    FoldersService,
+    {
+      provide: 'FoldersService',
+      useClass: FoldersService,
     },
 
     // RAG Service adapter

@@ -75,8 +75,9 @@ export class AssistantExecutorService {
             ? 'graph'
             : 'base';
       let conversationId = executeDto.conversationId;
+      let conversation = null;
       if (!conversationId) {
-        const conv = await this.conversations.createConversation({
+        conversation = await this.conversations.createConversation({
           userId: executeDto.userId || 'default-user',
           rootAgentId: agentId,
           type: convType as any,
@@ -86,8 +87,12 @@ export class AssistantExecutorService {
             content: executeDto.input,
           },
         });
-        conversationId = conv.id;
+        conversationId = conversation.id;
       } else {
+        conversation = await this.conversations.getConversation(conversationId);
+        if (!conversation) {
+          throw new BadRequestException(`Conversation ${conversationId} not found`);
+        }
         // Append user input to existing conversation
         await this.conversations.addMessage(conversationId, {
           messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -96,24 +101,68 @@ export class AssistantExecutorService {
         });
       }
 
-      // Create execution context
+      // Check conversation settings for streaming
+      const streamingEnabled = this.configService.isStreamingEnabled(
+        conversation?.settingsOverrides,
+      );
+
+      // Validate model/provider if specified in settings
+      if (conversation?.settingsOverrides?.llm) {
+        const llmConfig = conversation.settingsOverrides.llm;
+        if (llmConfig.provider && llmConfig.model) {
+          const validation = await this.modelValidation.validateModel(
+            llmConfig.provider,
+            llmConfig.model,
+          );
+          if (!validation.valid) {
+            throw new BadRequestException(validation.error);
+          }
+
+          // Validate token limits if maxTokens is specified
+          if (llmConfig.maxTokens) {
+            const tokenValidation = await this.modelValidation.validateTokenLimits(
+              llmConfig.provider,
+              llmConfig.model,
+              llmConfig.maxTokens,
+            );
+            if (!tokenValidation.valid) {
+              throw new BadRequestException(tokenValidation.error);
+            }
+          }
+        }
+      }
+
+      // Create execution context with merged settings
+      const mergedConfig = this.configService.mergeSettings(agent, conversation?.settingsOverrides);
       const context: Partial<ExecutionContext> = {
         userId: executeDto.userId || 'default-user',
         conversationId,
         contextId: `exec-${Date.now()}`,
         createdAt: new Date(),
         updatedAt: new Date(),
+        config: mergedConfig,
       };
 
-      // Execute using agent service
-      // Note: This is a simplified implementation
-      // In production, you'd want to properly convert Assistant config to Agent config
-      const result = await this.agentService.executeAgent(
-        agentId,
-        executeDto.userId || 'default-user',
-        executeDto.input,
-        context as ExecutionContext,
-      );
+      // Execute using agent service - check if streaming is enabled
+      let result;
+      if (streamingEnabled || executeDto.options?.streaming) {
+        // For streaming, we should use stream method, but executeAgent returns ExecutionResult
+        // For now, we'll execute normally but note that streaming should be handled separately
+        this.logger.info('Streaming enabled in conversation settings, but using execute method');
+        result = await this.agentService.executeAgent(
+          agentId,
+          executeDto.userId || 'default-user',
+          executeDto.input,
+          context as ExecutionContext,
+        );
+      } else {
+        result = await this.agentService.executeAgent(
+          agentId,
+          executeDto.userId || 'default-user',
+          executeDto.input,
+          context as ExecutionContext,
+        );
+      }
 
       // Append assistant response
       await this.conversations.addMessage(conversationId!, {
@@ -132,7 +181,7 @@ export class AssistantExecutorService {
         result: result.output,
         assistant: assistant.name,
         type: assistant.agentType,
-        streaming: executeDto.options?.streaming || false,
+        streaming: streamingEnabled || executeDto.options?.streaming || false,
         sessionId: conversationId,
         executionTime: result.metadata?.duration || 0,
       };

@@ -4,6 +4,7 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { HttpExceptionFilter } from './infrastructure/filters/http-exception.filter';
 import { LoggingInterceptor } from './infrastructure/interceptors/logging.interceptor';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   try {
@@ -27,6 +28,30 @@ async function bootstrap() {
     const appLogger = app.get<any>('ILogger');
     app.useGlobalInterceptors(new LoggingInterceptor(appLogger));
 
+    // Swagger/OpenAPI documentation
+    const config = new DocumentBuilder()
+      .setTitle('Interview Worker API')
+      .setDescription('AI-powered interview sessions, question management, and candidate profiling')
+      .setVersion('1.0.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'jwt',
+      )
+      .addTag('Interviews', 'Interview session management')
+      .addTag('Sessions', 'Interview session operations')
+      .addTag('Questions', 'Question management')
+      .addTag('Profiles', 'Candidate profile management')
+      .addTag('Reports', 'Interview reports and analytics')
+      .addTag('Code Execution', 'Code execution for technical interviews')
+      .addTag('Webhooks', 'Webhook endpoints')
+      .addTag('Health', 'Health checks')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      jsonDocumentUrl: 'api/docs-json',
+      customSiteTitle: 'Interview Worker API Documentation',
+    });
+
     const port = process.env.PORT || 3004;
     const server = await app.listen(port);
     Logger.log(`Application running on port ${port}`, 'Bootstrap');
@@ -34,6 +59,7 @@ async function bootstrap() {
       `WebSocket available at ws://localhost:${port}/interview`,
       'Bootstrap',
     );
+    Logger.log(`Swagger documentation available at http://localhost:${port}/api/docs`, 'Bootstrap');
 
     // Handle termination signals
     const signals = ['SIGTERM', 'SIGINT'];

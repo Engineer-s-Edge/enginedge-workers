@@ -146,6 +146,7 @@ export class Neo4jAdapter {
       validationCount: 0,
       validatedBy: [],
       sources: [],
+      explorationStatus: 'unexplored',
     };
 
     // Mock storage (replace with actual Neo4j operation)
@@ -303,6 +304,75 @@ export class Neo4jAdapter {
    */
   async getEdge(edgeId: string): Promise<KGEdge | null> {
     return this.edges.get(edgeId) || null;
+  }
+
+  /**
+   * Update an edge
+   */
+  async updateEdge(
+    edgeId: string,
+    updates: Partial<Omit<KGEdge, 'id' | 'createdAt'>>,
+  ): Promise<KGEdge | null> {
+    const edge = this.edges.get(edgeId);
+    if (!edge) {
+      return null;
+    }
+
+    // Apply updates
+    Object.assign(edge, updates);
+
+    this.edges.set(edgeId, edge);
+
+    return edge;
+  }
+
+  /**
+   * Get all nodes with pagination and optional layer filter
+   */
+  async getAllNodes(
+    limit?: number,
+    offset?: number,
+    layers?: ICSLayer[],
+  ): Promise<{ nodes: KGNode[]; total: number }> {
+    let allNodes = Array.from(this.nodes.values());
+
+    // Filter by layers if specified
+    if (layers && layers.length > 0) {
+      allNodes = allNodes.filter((node) => layers.includes(node.layer));
+    }
+
+    const total = allNodes.length;
+
+    // Apply pagination
+    if (offset !== undefined) {
+      allNodes = allNodes.slice(offset);
+    }
+    if (limit !== undefined) {
+      allNodes = allNodes.slice(0, limit);
+    }
+
+    return { nodes: allNodes, total };
+  }
+
+  /**
+   * Get all edges with pagination
+   */
+  async getAllEdges(
+    limit?: number,
+    offset?: number,
+  ): Promise<{ edges: KGEdge[]; total: number }> {
+    let allEdges = Array.from(this.edges.values());
+    const total = allEdges.length;
+
+    // Apply pagination
+    if (offset !== undefined) {
+      allEdges = allEdges.slice(offset);
+    }
+    if (limit !== undefined) {
+      allEdges = allEdges.slice(0, limit);
+    }
+
+    return { edges: allEdges, total };
   }
 
   /**

@@ -101,12 +101,130 @@ export class KnowledgeGraphService {
   }
 
   /**
+   * Get an edge by ID
+   */
+  async getEdge(edgeId: string): Promise<KGEdge | null> {
+    return await this.neo4jAdapter.getEdge(edgeId);
+  }
+
+  /**
+   * Update an edge
+   */
+  async updateEdge(
+    edgeId: string,
+    updates: Partial<Omit<KGEdge, 'id' | 'createdAt'>>,
+  ): Promise<KGEdge | null> {
+    this.logger.info('Updating edge', { edgeId });
+    return await this.neo4jAdapter.updateEdge(edgeId, updates);
+  }
+
+  /**
    * Remove a relationship
    */
   async removeRelationship(edgeId: string): Promise<boolean> {
     this.logger.info('Removing relationship', { edgeId });
 
     return await this.neo4jAdapter.deleteEdge(edgeId);
+  }
+
+  /**
+   * Get all nodes with pagination and optional layer filter
+   */
+  async getAllNodes(
+    limit?: number,
+    offset?: number,
+    layers?: ICSLayer[],
+  ): Promise<{ nodes: KGNode[]; total: number }> {
+    return await this.neo4jAdapter.getAllNodes(limit, offset, layers);
+  }
+
+  /**
+   * Get all edges with pagination
+   */
+  async getAllEdges(
+    limit?: number,
+    offset?: number,
+  ): Promise<{ edges: KGEdge[]; total: number }> {
+    return await this.neo4jAdapter.getAllEdges(limit, offset);
+  }
+
+  /**
+   * Bulk delete nodes
+   */
+  async bulkDeleteNodes(nodeIds: string[]): Promise<{
+    deleted: string[];
+    failed: Array<{ nodeId: string; error: string }>;
+  }> {
+    this.logger.info('Bulk deleting nodes', { count: nodeIds.length });
+
+    const deleted: string[] = [];
+    const failed: Array<{ nodeId: string; error: string }> = [];
+
+    for (const nodeId of nodeIds) {
+      try {
+        const success = await this.removeNode(nodeId);
+        if (success) {
+          deleted.push(nodeId);
+        } else {
+          failed.push({ nodeId, error: 'Node not found' });
+        }
+      } catch (error) {
+        failed.push({
+          nodeId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return { deleted, failed };
+  }
+
+  /**
+   * Bulk update nodes
+   */
+  async bulkUpdateNodes(
+    nodeIds: string[],
+    updates: Record<string, any>,
+  ): Promise<{
+    updated: string[];
+    failed: Array<{ nodeId: string; error: string }>;
+  }> {
+    this.logger.info('Bulk updating nodes', { count: nodeIds.length });
+
+    const updated: string[] = [];
+    const failed: Array<{ nodeId: string; error: string }> = [];
+
+    for (const nodeId of nodeIds) {
+      try {
+        const node = await this.updateNode(nodeId, updates);
+        if (node) {
+          updated.push(nodeId);
+        } else {
+          failed.push({ nodeId, error: 'Node not found' });
+        }
+      } catch (error) {
+        failed.push({
+          nodeId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return { updated, failed };
+  }
+
+  /**
+   * Get nodes grouped by layer
+   */
+  async getNodesByLayers(): Promise<Record<string, KGNode[]>> {
+    const result: Record<string, KGNode[]> = {};
+
+    for (const layer of Object.values(ICSLayer)) {
+      const nodes = await this.getNodesByLayer(layer);
+      result[layer] = nodes;
+    }
+
+    return result;
   }
 
   /**
@@ -152,6 +270,160 @@ export class KnowledgeGraphService {
     this.logger.info('Extracting subgraph', { nodeId, depth });
 
     return await this.neo4jAdapter.getSubgraph(nodeId, depth);
+  }
+
+  /**
+   * Get all L1 domains connected to a node
+   */
+  async getConnectedDomains(nodeId: string): Promise<
+    Array<{
+      domainName: string;
+      color: string;
+      connectionStrength: number;
+      path: string[];
+    }>
+  > {
+    this.logger.info('Getting connected domains', { nodeId });
+
+    const node = await this.getNode(nodeId);
+    if (!node) {
+      throw new Error(`Node ${nodeId} not found`);
+    }
+
+    // If node is L1 and has domain, return itself
+    if (node.layer === ICSLayer.L1_OBSERVATIONS && node.domain) {
+      return [
+        {
+          domainName: node.domain,
+          color: node.domainColor || '#808080',
+          connectionStrength: 1.0,
+          path: [nodeId],
+        },
+      ];
+    }
+
+    // Find all L1 nodes with domains
+    const l1Nodes = await this.getNodesByLayer(ICSLayer.L1_OBSERVATIONS);
+    const domainNodes = l1Nodes.filter(
+      (n) => n.domain && n.domainColor,
+    );
+
+    const connectedDomains: Array<{
+      domainName: string;
+      color: string;
+      connectionStrength: number;
+      path: string[];
+    }> = [];
+
+    // For each domain node, check if there's a path to our node
+    for (const domainNode of domainNodes) {
+      const path = await this.findShortestPath(domainNode.id, nodeId);
+      if (path && path.length > 0) {
+        // Calculate connection strength (inverse of path length)
+        const strength = 1.0 / path.length;
+        connectedDomains.push({
+          domainName: domainNode.domain!,
+          color: domainNode.domainColor!,
+          connectionStrength: strength,
+          path,
+        });
+      }
+    }
+
+    // Sort by connection strength (strongest first)
+    connectedDomains.sort((a, b) => b.connectionStrength - a.connectionStrength);
+
+    return connectedDomains;
+  }
+
+  /**
+   * Calculate node color based on connections to L1 domains
+   */
+  async calculateNodeColor(nodeId: string): Promise<string> {
+    const node = await this.getNode(nodeId);
+    if (!node) {
+      throw new Error(`Node ${nodeId} not found`);
+    }
+
+    // If node is L1 and has domain color, return it
+    if (node.layer === ICSLayer.L1_OBSERVATIONS && node.domainColor) {
+      return node.domainColor;
+    }
+
+    // Get connected domains
+    const connectedDomains = await this.getConnectedDomains(nodeId);
+
+    if (connectedDomains.length === 0) {
+      return '#808080'; // Default gray if no connections
+    }
+
+    // Mix colors proportionally based on connection strength
+    let totalStrength = 0;
+    const colorComponents: Array<{ r: number; g: number; b: number; weight: number }> = [];
+
+    for (const domain of connectedDomains) {
+      const hex = domain.color.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      const weight = domain.connectionStrength;
+
+      colorComponents.push({ r, g, b, weight });
+      totalStrength += weight;
+    }
+
+    // Calculate weighted average
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    for (const comp of colorComponents) {
+      const normalizedWeight = comp.weight / totalStrength;
+      r += comp.r * normalizedWeight;
+      g += comp.g * normalizedWeight;
+      b += comp.b * normalizedWeight;
+    }
+
+    // Convert to hex
+    const toHex = (n: number) => {
+      const hex = Math.round(n).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  /**
+   * Find shortest path between two nodes (BFS)
+   */
+  private async findShortestPath(
+    fromId: string,
+    toId: string,
+  ): Promise<string[]> {
+    if (fromId === toId) {
+      return [fromId];
+    }
+
+    const queue: Array<{ id: string; path: string[] }> = [{ id: fromId, path: [fromId] }];
+    const visited = new Set<string>([fromId]);
+
+    while (queue.length > 0) {
+      const { id, path } = queue.shift()!;
+
+      const neighbors = await this.getNeighbors(id, 'both');
+      for (const neighbor of neighbors) {
+        if (neighbor.id === toId) {
+          return [...path, neighbor.id];
+        }
+
+        if (!visited.has(neighbor.id)) {
+          visited.add(neighbor.id);
+          queue.push({ id: neighbor.id, path: [...path, neighbor.id] });
+        }
+      }
+    }
+
+    return []; // No path found
   }
 
   /**

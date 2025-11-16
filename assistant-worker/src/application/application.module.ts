@@ -22,6 +22,7 @@ import { ExpertPoolManager } from '@domain/services/expert-pool-manager.service'
 import { AgentService } from './services/agent.service';
 import { AgentValidationService } from './services/agent-validation.service';
 import { AgentConfigurationService } from './services/agent-configuration.service';
+import { ModelValidationService } from './services/model-validation.service';
 import { AgentEventService } from './services/agent-event.service';
 import { AgentSessionService } from './services/agent-session.service';
 import { CheckpointService } from './services/checkpoint.service';
@@ -145,6 +146,7 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     AgentService,
     AgentValidationService,
     AgentConfigurationService,
+    ModelValidationService,
     AgentEventService,
     AgentSessionService,
 
