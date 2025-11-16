@@ -20,10 +20,26 @@ import {
 import { GraphComponentService } from './graph-component.service';
 
 /**
+ * Knowledge Graph Event
+ */
+export interface KnowledgeGraphEvent {
+  type: 'node.created' | 'node.updated' | 'node.deleted' | 'edge.created' | 'edge.updated' | 'edge.deleted';
+  timestamp: Date;
+  payload: {
+    node?: KGNode;
+    edge?: KGEdge;
+    nodeId?: string;
+    edgeId?: string;
+  };
+}
+
+/**
  * Knowledge Graph Service
  */
 @Injectable()
 export class KnowledgeGraphService {
+  private eventListeners: Set<(event: KnowledgeGraphEvent) => void> = new Set();
+
   constructor(
     private readonly neo4jAdapter: Neo4jAdapter,
     @Inject('ILogger')
@@ -31,6 +47,31 @@ export class KnowledgeGraphService {
     @Optional()
     private readonly componentService?: GraphComponentService,
   ) {}
+
+  /**
+   * Subscribe to knowledge graph events
+   */
+  subscribeToEvents(
+    callback: (event: KnowledgeGraphEvent) => void,
+  ): () => void {
+    this.eventListeners.add(callback);
+    return () => {
+      this.eventListeners.delete(callback);
+    };
+  }
+
+  /**
+   * Emit a knowledge graph event
+   */
+  private emitEvent(event: KnowledgeGraphEvent): void {
+    this.eventListeners.forEach((listener) => {
+      try {
+        listener(event);
+      } catch (error) {
+        this.logger.error('Error in knowledge graph event listener', { error });
+      }
+    });
+  }
 
   /**
    * Add a node to the knowledge graph
@@ -75,7 +116,18 @@ export class KnowledgeGraphService {
   ): Promise<KGNode | null> {
     this.logger.info('Updating node', { nodeId });
 
-    return await this.neo4jAdapter.updateNode(nodeId, updates);
+    const node = await this.neo4jAdapter.updateNode(nodeId, updates);
+
+    if (node) {
+      // Emit event
+      this.emitEvent({
+        type: 'node.updated',
+        timestamp: new Date(),
+        payload: { node },
+      });
+    }
+
+    return node;
   }
 
   /**
@@ -84,7 +136,18 @@ export class KnowledgeGraphService {
   async removeNode(nodeId: string): Promise<boolean> {
     this.logger.info('Removing node from knowledge graph', { nodeId });
 
-    return await this.neo4jAdapter.deleteNode(nodeId);
+    const deleted = await this.neo4jAdapter.deleteNode(nodeId);
+
+    if (deleted) {
+      // Emit event
+      this.emitEvent({
+        type: 'node.deleted',
+        timestamp: new Date(),
+        payload: { nodeId },
+      });
+    }
+
+    return deleted;
   }
 
   /**
@@ -95,9 +158,29 @@ export class KnowledgeGraphService {
     to: string,
     type: string,
     properties: Record<string, any> = {},
+    bidirectional?: boolean,
   ): Promise<KGEdge> {
-    this.logger.info('Creating relationship', { from, to, type });
-    return this.createRelationshipInternal(from, to, type, properties);
+    this.logger.info('Creating relationship', { from, to, type, bidirectional });
+    const edge = await this.createRelationshipInternal(
+      from,
+      to,
+      type,
+      properties,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      bidirectional,
+    );
+
+    // Emit event
+    this.emitEvent({
+      type: 'edge.created',
+      timestamp: new Date(),
+      payload: { edge },
+    });
+
+    return edge;
   }
 
   /**
@@ -115,7 +198,18 @@ export class KnowledgeGraphService {
     updates: Partial<Omit<KGEdge, 'id' | 'createdAt'>>,
   ): Promise<KGEdge | null> {
     this.logger.info('Updating edge', { edgeId });
-    return await this.neo4jAdapter.updateEdge(edgeId, updates);
+    const edge = await this.neo4jAdapter.updateEdge(edgeId, updates);
+
+    if (edge) {
+      // Emit event
+      this.emitEvent({
+        type: 'edge.updated',
+        timestamp: new Date(),
+        payload: { edge },
+      });
+    }
+
+    return edge;
   }
 
   /**
@@ -124,7 +218,18 @@ export class KnowledgeGraphService {
   async removeRelationship(edgeId: string): Promise<boolean> {
     this.logger.info('Removing relationship', { edgeId });
 
-    return await this.neo4jAdapter.deleteEdge(edgeId);
+    const deleted = await this.neo4jAdapter.deleteEdge(edgeId);
+
+    if (deleted) {
+      // Emit event
+      this.emitEvent({
+        type: 'edge.deleted',
+        timestamp: new Date(),
+        payload: { edgeId },
+      });
+    }
+
+    return deleted;
   }
 
   /**
@@ -773,6 +878,7 @@ export class KnowledgeGraphService {
       confidence?: number;
       equation?: string;
       rationale?: string;
+      bidirectional?: boolean;
     },
   ): Promise<KGEdge> {
     // Check if edge already exists
@@ -784,6 +890,7 @@ export class KnowledgeGraphService {
         confidence: options?.confidence ?? existing.confidence,
         equation: options?.equation ?? existing.equation,
         rationale: options?.rationale ?? existing.rationale,
+        bidirectional: options?.bidirectional ?? existing.bidirectional,
       });
     }
 
@@ -797,6 +904,7 @@ export class KnowledgeGraphService {
       options?.confidence,
       options?.equation,
       options?.rationale,
+      options?.bidirectional,
     );
   }
 
@@ -829,6 +937,7 @@ export class KnowledgeGraphService {
     confidence?: number,
     equation?: string,
     rationale?: string,
+    bidirectional?: boolean,
   ): Promise<KGEdge> {
     const edge = await this.neo4jAdapter.createEdge(
       from,
@@ -839,6 +948,7 @@ export class KnowledgeGraphService {
       confidence,
       equation,
       rationale,
+      bidirectional,
     );
 
     // Handle component merging if component service is available

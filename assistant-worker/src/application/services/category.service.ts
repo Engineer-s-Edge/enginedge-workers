@@ -5,7 +5,7 @@
  * Categories are built from topic similarities, not hardcoded.
  */
 
-import { Injectable, Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject, Optional, forwardRef } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
 import { IEmbedder } from '@application/ports/embedder.port';
 import { ISpacyService } from '@application/ports/spacy-service.port';
@@ -14,6 +14,7 @@ import {
   Category,
   CreateCategoryInput,
 } from '../../domain/entities/category.entity';
+import { TopicCatalogService } from './topic-catalog.service';
 
 export interface CategoryAssignmentResult {
   categoryName: string;
@@ -37,6 +38,9 @@ export class CategoryService {
     @Optional()
     @Inject('ISpacyService')
     private readonly spacyService?: ISpacyService,
+    @Optional()
+    @Inject(forwardRef(() => TopicCatalogService))
+    private readonly topicCatalogService?: TopicCatalogService,
   ) {}
 
   /**
@@ -177,11 +181,76 @@ export class CategoryService {
       throw new Error(`Category not found: ${categoryId}`);
     }
 
-    // TODO: Get all topics in this category and average their embeddings
-    // For now, we'll keep the embedding as-is and update it when topics are added
-    // This would require access to TopicCatalogRepository to get topic embeddings
+    // Get all topics in this category
+    if (!this.topicCatalogService) {
+      this.logger.warn(
+        'TopicCatalogService not available, cannot update category embedding',
+      );
+      return;
+    }
 
-    this.logger.info(`Category embedding updated: ${categoryId}`);
+    try {
+      const topics = await this.topicCatalogService.getTopicsByCategory(
+        category.name,
+      );
+
+      if (topics.length === 0) {
+        this.logger.info(
+          `No topics found for category ${category.name}, keeping existing embedding`,
+        );
+        return;
+      }
+
+      // Get embeddings for all topics
+      const topicEmbeddings: number[][] = [];
+      for (const topic of topics) {
+        if (topic.embedding && topic.embedding.length > 0) {
+          topicEmbeddings.push(topic.embedding);
+        }
+      }
+
+      if (topicEmbeddings.length === 0) {
+        this.logger.warn(
+          `No embeddings found for topics in category ${category.name}`,
+        );
+        return;
+      }
+
+      // Average the embeddings
+      const embeddingDimension = topicEmbeddings[0].length;
+      const averagedEmbedding = new Array(embeddingDimension).fill(0);
+
+      for (const embedding of topicEmbeddings) {
+        if (embedding.length !== embeddingDimension) {
+          this.logger.warn(
+            `Embedding dimension mismatch: expected ${embeddingDimension}, got ${embedding.length}`,
+          );
+          continue;
+        }
+        for (let i = 0; i < embeddingDimension; i++) {
+          averagedEmbedding[i] += embedding[i];
+        }
+      }
+
+      // Divide by count to get average
+      for (let i = 0; i < embeddingDimension; i++) {
+        averagedEmbedding[i] /= topicEmbeddings.length;
+      }
+
+      // Update category with averaged embedding
+      await this.categoryRepository.update(categoryId, {
+        embedding: averagedEmbedding,
+      });
+
+      this.logger.info(
+        `Category embedding updated: ${categoryId} (averaged ${topicEmbeddings.length} topic embeddings)`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to update category embedding: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
   }
 
   /**

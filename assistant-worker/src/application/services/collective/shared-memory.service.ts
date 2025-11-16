@@ -419,14 +419,124 @@ export class SharedMemoryService {
         updatedBy: a.createdBy,
       }));
 
+    // Detect knowledge gaps
+    const knowledgeGaps = this.detectKnowledgeGaps(artifacts, knowledgeAreas);
+
     return {
       totalArtifacts: artifacts.length,
       byType,
       knowledgeAreas,
-      knowledgeGaps: [], // TODO: Implement gap detection
+      knowledgeGaps,
       frequentlyAccessed,
       recentActivity,
     };
+  }
+
+  /**
+   * Detect knowledge gaps in the artifact board
+   * Identifies areas with insufficient coverage or missing artifacts
+   */
+  private detectKnowledgeGaps(
+    artifacts: CollectiveArtifact[],
+    knowledgeAreas: string[],
+  ): string[] {
+    const gaps: string[] = [];
+
+    // Expected artifact types for a complete knowledge base
+    const expectedTypes: ArtifactType[] = [
+      ArtifactType.DOCUMENT,
+      ArtifactType.CODE,
+      ArtifactType.DATA,
+      ArtifactType.ANALYSIS,
+      ArtifactType.DESIGN,
+    ];
+
+    // Check for missing artifact types
+    const existingTypes = new Set(artifacts.map((a) => a.type));
+    for (const expectedType of expectedTypes) {
+      if (!existingTypes.has(expectedType)) {
+        gaps.push(`Missing ${expectedType} artifacts`);
+      }
+    }
+
+    // Check for knowledge areas with very few artifacts
+    const artifactsByArea = new Map<string, number>();
+    for (const artifact of artifacts) {
+      for (const tag of artifact.tags) {
+        artifactsByArea.set(tag, (artifactsByArea.get(tag) || 0) + 1);
+      }
+    }
+
+    // Identify areas with less than 2 artifacts as gaps
+    const MIN_ARTIFACTS_PER_AREA = 2;
+    for (const [area, count] of artifactsByArea.entries()) {
+      if (count < MIN_ARTIFACTS_PER_AREA) {
+        gaps.push(`Insufficient coverage in "${area}" (only ${count} artifact(s))`);
+      }
+    }
+
+    // Check for knowledge areas mentioned in tasks but not covered by artifacts
+    const taskAreas = new Set<string>();
+    for (const task of this.tasks.values()) {
+      // Extract keywords from task description as potential knowledge areas
+      const words = task.description
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 4); // Filter short words
+      words.forEach((word) => taskAreas.add(word));
+    }
+
+    // Find task areas not covered by artifacts
+    const artifactAreasSet = new Set(knowledgeAreas.map((a) => a.toLowerCase()));
+    for (const taskArea of taskAreas) {
+      if (!artifactAreasSet.has(taskArea)) {
+        gaps.push(`Task area "${taskArea}" lacks artifact coverage`);
+      }
+    }
+
+    // Check for artifacts that haven't been updated recently (stale knowledge)
+    const STALE_THRESHOLD_DAYS = 90;
+    const now = new Date();
+    const staleArtifacts = artifacts.filter((a) => {
+      const daysSinceUpdate =
+        (now.getTime() - a.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+      return daysSinceUpdate > STALE_THRESHOLD_DAYS;
+    });
+
+    if (staleArtifacts.length > 0) {
+      const staleAreas = new Set(
+        staleArtifacts.flatMap((a) => a.tags).filter((tag) => tag),
+      );
+      if (staleAreas.size > 0) {
+        gaps.push(
+          `Stale knowledge in: ${Array.from(staleAreas).join(', ')} (${staleArtifacts.length} artifact(s) not updated in ${STALE_THRESHOLD_DAYS}+ days)`,
+        );
+      }
+    }
+
+    // Check for low artifact diversity (all artifacts of same type)
+    if (artifacts.length > 0) {
+      const typeCounts = new Map<ArtifactType, number>();
+      for (const artifact of artifacts) {
+        typeCounts.set(
+          artifact.type,
+          (typeCounts.get(artifact.type) || 0) + 1,
+        );
+      }
+
+      // If one type dominates (>80%), flag as gap
+      const total = artifacts.length;
+      for (const [type, count] of typeCounts.entries()) {
+        if (count / total > 0.8 && total > 3) {
+          gaps.push(
+            `Low artifact diversity: ${Math.round((count / total) * 100)}% are ${type} artifacts`,
+          );
+        }
+      }
+    }
+
+    this.logger.debug(`Detected ${gaps.length} knowledge gaps`, { gaps });
+    return gaps;
   }
 
   streamArtifactEvents(collectiveId: string): Observable<CollectiveArtifactEvent> {

@@ -273,12 +273,23 @@ export class ReActAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<string> {
     try {
+      const messages: LLMRequest['messages'] = [
+        { role: 'system', content: systemPrompt },
+      ];
+
+      // Include combined memory context from all active memory types if available
+      if (context.memoryContext && context.memoryContext.trim().length > 0) {
+        messages.push({
+          role: 'system',
+          content: `Conversation Context:\n${context.memoryContext}`,
+        });
+      }
+
+      messages.push({ role: 'user', content: input });
+
       const llmRequest: LLMRequest = {
         model: this.config.model || 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: input },
-        ],
+        messages,
         temperature: this.config.temperature || 0.7,
         maxTokens: 500,
       };

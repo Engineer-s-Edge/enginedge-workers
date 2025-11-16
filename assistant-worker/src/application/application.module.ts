@@ -48,6 +48,7 @@ import { AssistantsModule } from '@infrastructure/assistants/assistants.module';
 import { ConversationsService } from './services/conversations.service';
 import { TopicCatalogService } from './services/topic-catalog.service';
 import { CategoryService } from './services/category.service';
+import { SharedMemoryGroupService } from './services/shared-memory-group.service';
 import { GetTopicsForResearchUseCase } from './use-cases/get-topics-for-research.use-case';
 import { AddTopicUseCase } from './use-cases/add-topic.use-case';
 import { ManagerRuntimeService } from './services/manager/manager-runtime.service';
@@ -169,9 +170,16 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     // Conversations service
     ConversationsService,
 
+    // Shared Memory Group service
+    SharedMemoryGroupService,
+
     // Topic Catalog and Category services
     TopicCatalogService,
     CategoryService,
+
+    // Models service
+    ModelsService,
+
   ManagerRuntimeService,
   GeniusExpertRuntimeService,
 

@@ -5,6 +5,7 @@ import { AgentSessionService } from './agent-session.service';
 import { ILogger } from '../ports/logger.port';
 import { ExecutionContext, ExecutionResult } from '@domain/entities';
 import { MetricsAdapter } from '@infrastructure/adapters/monitoring/metrics.adapter';
+import { MemoryService } from './memory.service';
 
 interface ExecuteOptions {
   timeoutMs?: number;
@@ -19,6 +20,7 @@ export class AgentExecutionService {
     private readonly sessions: AgentSessionService,
     @Inject('ILogger') private readonly logger: ILogger,
     private readonly metrics?: MetricsAdapter,
+    private readonly memoryService?: MemoryService,
   ) {}
 
   async execute(
@@ -32,20 +34,37 @@ export class AgentExecutionService {
     const timeoutMs = options.timeoutMs ?? 60000;
 
     // Create session
-    const session = this.sessions.createSession(agentId, userId, {
+    const session = await this.sessions.createSession(agentId, userId, {
       mode: 'sync',
     });
+
+    const conversationId = context?.conversationId || `conv_${Date.now()}`;
+
+    // Fetch combined memory context from all active memory types
+    let memoryContext: string | undefined;
+    if (this.memoryService && conversationId) {
+      try {
+        memoryContext = await this.memoryService.getCombinedContext(conversationId, input);
+      } catch (error) {
+        this.logger.warn('Failed to get combined memory context', {
+          conversationId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Continue without memory context if it fails
+      }
+    }
 
     const execContext: ExecutionContext = {
       userId,
       sessionId: session.sessionId,
-      conversationId: context?.conversationId || `conv_${Date.now()}`,
+      conversationId,
       contextId: context?.contextId || `exec_${Date.now()}`,
       input,
       createdAt: context?.createdAt || new Date(),
       updatedAt: new Date(),
       config: context?.config || {},
       memory: context?.memory || { messages: [] },
+      memoryContext, // Include combined memory context
       metadata: context?.metadata || {},
       tools: context?.tools,
     };
@@ -98,7 +117,7 @@ export class AgentExecutionService {
         data: { sessionId: session.sessionId },
       });
 
-      this.sessions.updateSessionStatus(session.sessionId, 'completed');
+      await this.sessions.updateSessionStatus(session.sessionId, 'completed');
 
       const duration = (Date.now() - start) / 1000;
       try {
@@ -125,7 +144,7 @@ export class AgentExecutionService {
         },
       });
 
-      this.sessions.updateSessionStatus(
+      await this.sessions.updateSessionStatus(
         session.sessionId,
         timedOut ? 'failed' : 'failed',
       );
@@ -155,20 +174,37 @@ export class AgentExecutionService {
     const timeoutMs = options.timeoutMs ?? 120000;
 
     // Create session
-    const session = this.sessions.createSession(agentId, userId, {
+    const session = await this.sessions.createSession(agentId, userId, {
       mode: 'stream',
     });
+
+    const conversationId = context?.conversationId || `conv_${Date.now()}`;
+
+    // Fetch combined memory context from all active memory types
+    let memoryContext: string | undefined;
+    if (this.memoryService && conversationId) {
+      try {
+        memoryContext = await this.memoryService.getCombinedContext(conversationId, input);
+      } catch (error) {
+        this.logger.warn('Failed to get combined memory context', {
+          conversationId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Continue without memory context if it fails
+      }
+    }
 
     const execContext: ExecutionContext = {
       userId,
       sessionId: session.sessionId,
-      conversationId: context?.conversationId || `conv_${Date.now()}`,
+      conversationId,
       contextId: context?.contextId || `stream_${Date.now()}`,
       input,
       createdAt: context?.createdAt || new Date(),
       updatedAt: new Date(),
       config: context?.config || {},
       memory: context?.memory || { messages: [] },
+      memoryContext, // Include combined memory context
       metadata: context?.metadata || {},
       tools: context?.tools,
     };
@@ -222,7 +258,7 @@ export class AgentExecutionService {
         data: { sessionId: session.sessionId, mode: 'stream' },
       });
 
-      this.sessions.updateSessionStatus(session.sessionId, 'completed');
+      await this.sessions.updateSessionStatus(session.sessionId, 'completed');
 
       const duration = (Date.now() - start) / 1000;
       try {
@@ -245,7 +281,7 @@ export class AgentExecutionService {
         },
       });
 
-      this.sessions.updateSessionStatus(session.sessionId, 'failed');
+      await this.sessions.updateSessionStatus(session.sessionId, 'failed');
 
       const duration = (Date.now() - start) / 1000;
       try {

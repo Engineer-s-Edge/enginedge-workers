@@ -21,6 +21,7 @@ import { SSEStreamAdapter, WebSocketAdapter } from './adapters/streaming';
 import { MetricsAdapter } from './adapters/monitoring';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { KafkaProducerAdapter } from './adapters/messaging/kafka-producer.adapter';
 import { InMemoryAgentRepository } from './adapters/storage/in-memory-agent.repository';
 import { MemoryService } from '@application/services/memory.service';
 import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
@@ -38,6 +39,7 @@ import {
   KnowledgeGraphController,
   MetricsController,
   ModelsController,
+  HITLController,
 } from './controllers';
 import { AssistantsModule } from './assistants/assistants.module';
 import {
@@ -78,6 +80,11 @@ import {
   ResearchSessionSchema,
 } from './adapters/storage/research-session/research-session.schema';
 import { MongoDBResearchSessionRepository } from './adapters/storage/research-session/mongodb-research-session.repository';
+import {
+  AgentSession,
+  AgentSessionSchema,
+} from './adapters/storage/agent-session.schema';
+import { MongoDBAgentSessionRepository } from './adapters/storage/mongodb-agent-session.repository';
 import { EmbedderAdapter } from './adapters/external/embedder.adapter';
 import { SpacyServiceAdapter } from './adapters/external/spacy-service.adapter';
 import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orchestrator';
@@ -113,6 +120,7 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
       { name: TopicCatalog.name, schema: TopicCatalogSchema },
       { name: CategoryModel.name, schema: CategorySchema },
       { name: ResearchSessionModel.name, schema: ResearchSessionSchema },
+      { name: AgentSession.name, schema: AgentSessionSchema },
     ]),
   ],
   controllers: [
@@ -140,6 +148,9 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
     // Models controller
     ModelsController,
     ConversationsController,
+
+    // HITL controller
+    HITLController,
   ],
   providers: [
     // Core adapters
@@ -185,6 +196,9 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
 
     // Cache adapter
     RedisCacheAdapter,
+
+    // Messaging adapters
+    KafkaProducerAdapter,
 
     // Conversations repository
     {
@@ -232,6 +246,12 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
     {
       provide: 'IResearchSessionRepository',
       useClass: MongoDBResearchSessionRepository,
+    },
+    // Agent Session repository
+    MongoDBAgentSessionRepository,
+    {
+      provide: 'IAgentSessionRepository',
+      useClass: MongoDBAgentSessionRepository,
     },
 
     // External service adapters
@@ -281,6 +301,8 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
     KnowledgeGraphService,
     // Export MetricsAdapter for application layer
     MetricsAdapter,
+    // Export KafkaProducerAdapter for application layer
+    KafkaProducerAdapter,
   ],
 })
 export class InfrastructureModule {}

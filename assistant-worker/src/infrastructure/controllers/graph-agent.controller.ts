@@ -9,6 +9,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   Query,
@@ -566,6 +567,140 @@ export class GraphAgentController {
     const has =
       await this.agentService.hasGraphAgentAwaitingUserInteraction(agentId);
     return { has };
+  }
+
+  /**
+   * GET /agents/graph/:id/checkpoints - List runtime checkpoints
+   */
+  @Get(':id/checkpoints')
+  async listRuntimeCheckpoints(
+    @Param('id') agentId: string,
+    @Query('userId') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    this.logger.info('Listing runtime checkpoints', { agentId });
+
+    const checkpoints = await this.agentService.listGraphRuntimeCheckpoints(
+      agentId,
+      userId,
+    );
+
+    return {
+      agentId,
+      checkpoints: checkpoints.map((cp) => ({
+        id: cp.id,
+        type: cp.type,
+        edgeId: cp.edgeId,
+        fromNodeId: cp.fromNodeId,
+        toNodeId: cp.toNodeId,
+        label: cp.label,
+        createdAt: cp.createdAt,
+      })),
+      total: checkpoints.length,
+    };
+  }
+
+  /**
+   * GET /agents/graph/:id/checkpoints/:checkpointId - Get checkpoint snapshot
+   */
+  @Get(':id/checkpoints/:checkpointId')
+  async getCheckpointSnapshot(
+    @Param('id') agentId: string,
+    @Param('checkpointId') checkpointId: string,
+    @Query('userId') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+
+    this.logger.info('Getting checkpoint snapshot', { agentId, checkpointId });
+
+    const snapshot = await this.agentService.getGraphRuntimeCheckpointSnapshot(
+      agentId,
+      userId,
+      checkpointId,
+    );
+
+    if (!snapshot) {
+      throw new NotFoundException(
+        `Checkpoint '${checkpointId}' not found for agent '${agentId}'`,
+      );
+    }
+
+    return {
+      agentId,
+      checkpointId,
+      snapshot,
+    };
+  }
+
+  /**
+   * POST /agents/graph/:id/checkpoints/:checkpointId/restore - Restore from checkpoint
+   */
+  @Post(':id/checkpoints/:checkpointId/restore')
+  @HttpCode(HttpStatus.OK)
+  async restoreCheckpoint(
+    @Param('id') agentId: string,
+    @Param('checkpointId') checkpointId: string,
+    @Body() body: { userId: string },
+  ) {
+    this.logger.info('Restoring from checkpoint', { agentId, checkpointId });
+
+    const snapshot = await this.agentService.restoreGraphRuntimeCheckpoint(
+      agentId,
+      body.userId,
+      checkpointId,
+    );
+
+    return {
+      success: true,
+      agentId,
+      checkpointId,
+      snapshot,
+      restoredAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * PATCH /agents/graph/:id/edges/:edgeId - Update edge checkpoint flag
+   */
+  @Patch(':id/edges/:edgeId')
+  @HttpCode(HttpStatus.OK)
+  async updateEdgeCheckpoint(
+    @Param('id') agentId: string,
+    @Param('edgeId') edgeId: string,
+    @Body()
+    body: {
+      userId: string;
+      isCheckpoint: boolean;
+    },
+  ) {
+    if (!body.userId) {
+      throw new BadRequestException('userId is required in request body');
+    }
+
+    this.logger.info('Updating edge checkpoint flag', {
+      agentId,
+      edgeId,
+      isCheckpoint: body.isCheckpoint,
+    });
+
+    const updated = await this.agentService.updateGraphEdgeCheckpoint(
+      agentId,
+      body.userId,
+      edgeId,
+      body.isCheckpoint,
+    );
+
+    return {
+      agentId,
+      edgeId,
+      edge: updated,
+      isCheckpoint: body.isCheckpoint,
+    };
   }
 
   private parsePositiveInteger(

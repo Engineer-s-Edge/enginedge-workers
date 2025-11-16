@@ -5,7 +5,7 @@
  * Similar to the old AssistantsService but adapted for hexagonal architecture
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ILogger } from '../ports/logger.port';
 import { AssistantsCrudService } from './assistants-crud.service';
 import { AssistantExecutorService } from './assistant-executor.service';
@@ -16,6 +16,7 @@ import {
 } from '../dto/assistant.dto';
 import { ExecuteAssistantDto } from '../dto/execution.dto';
 import { Assistant } from '@domain/entities/assistant.entity';
+import { ModelsService } from './models.service';
 
 @Injectable()
 export class AssistantsService {
@@ -24,6 +25,8 @@ export class AssistantsService {
     private readonly assistantExecutorService: AssistantExecutorService,
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Optional()
+    private readonly modelsService?: ModelsService,
   ) {
     this.logger.info('AssistantsService initialized');
   }
@@ -65,26 +68,37 @@ export class AssistantsService {
   }
 
   // Model information methods
-  // These delegate to the ModelsController or can be implemented separately
-  // For now, returning empty arrays - can be enhanced later
+  // These delegate to ModelsService to unify data source
   async getAllModels(): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    return this.modelsService.getAllModels();
   }
 
   async getModelsByProvider(provider: string): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    return this.modelsService.getModelsByProvider(provider);
   }
 
   async getModelsByCategory(category: string): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    return this.modelsService.getModelsByCategory(category);
   }
 
   async getModelsByCostRange(minCost: number, maxCost: number): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    return this.modelsService.getModelsByCostRange(minCost, maxCost);
   }
 
   async getModelsWithCapability(
@@ -94,8 +108,11 @@ export class AssistantsService {
       | 'multilingual'
       | 'extendedThinking',
   ): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    return this.modelsService.getModelsWithCapability(capability);
   }
 
   async findModelsByName(name: string): Promise<any[]> {

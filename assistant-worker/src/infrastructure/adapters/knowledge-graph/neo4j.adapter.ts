@@ -80,6 +80,7 @@ export interface KGNode {
   sources?: SourceCitation[];
   researchData?: ResearchData;
   graphComponentId?: string;
+  explorationStatus?: string; // Tracks how explored/researched the node is (e.g., "unexplored", "exploring", "explored", "fully_researched")
 }
 
 /**
@@ -89,12 +90,13 @@ export interface KGEdge {
   id: string;
   from: string; // Source node ID
   to: string; // Target node ID
-  type: string; // Relationship type
+  type: string; // Relationship type (one-word label: "inverse", "equation", "derives", "contains", etc.)
   properties: Record<string, any>;
   weight?: number;
   confidence?: number;
   equation?: string;
   rationale?: string;
+  bidirectional?: boolean; // If true, edge is bidirectional (source ↔ target)
   createdAt: Date;
 }
 
@@ -263,7 +265,15 @@ export class Neo4jAdapter {
     confidence?: number,
     equation?: string,
     rationale?: string,
+    bidirectional?: boolean,
   ): Promise<KGEdge> {
+    // Validate relationship type is one word (for labels like "inverse", "equation", "derives", "contains")
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(type)) {
+      throw new Error(
+        `Relationship type must be a single word (alphanumeric and underscores only): "${type}"`,
+      );
+    }
+
     // Verify nodes exist
     if (!this.nodes.has(from) || !this.nodes.has(to)) {
       throw new Error('Source or target node does not exist');
@@ -279,18 +289,46 @@ export class Neo4jAdapter {
       confidence: confidence ?? 0.7,
       equation,
       rationale,
+      bidirectional: bidirectional ?? false,
       createdAt: new Date(),
     };
 
     this.edges.set(edge.id, edge);
 
+    // If bidirectional, create reverse edge
+    if (bidirectional) {
+      const reverseEdge: KGEdge = {
+        id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        from: to,
+        to: from,
+        type,
+        properties: { ...properties },
+        weight: weight ?? 1.0,
+        confidence: confidence ?? 0.7,
+        equation,
+        rationale,
+        bidirectional: true,
+        createdAt: new Date(),
+      };
+      this.edges.set(reverseEdge.id, reverseEdge);
+    }
+
     // In production:
     // const session = this.driver.session();
     // try {
-    //   const result = await session.run(
-    //     'MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[r:RELATIONSHIP {id: $id, type: $type, properties: $properties, createdAt: $createdAt}]->(b) RETURN r',
-    //     { from, to, id: edge.id, type, properties: JSON.stringify(properties), createdAt: edge.createdAt.toISOString() }
-    //   );
+    //   if (bidirectional) {
+    //     // Create bidirectional relationship in Neo4j
+    //     const result = await session.run(
+    //       'MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[r:RELATIONSHIP {id: $id, type: $type, properties: $properties, bidirectional: true, createdAt: $createdAt}]-(b) RETURN r',
+    //       { from, to, id: edge.id, type, properties: JSON.stringify(properties), createdAt: edge.createdAt.toISOString() }
+    //     );
+    //   } else {
+    //     // Create directed relationship
+    //     const result = await session.run(
+    //       'MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[r:RELATIONSHIP {id: $id, type: $type, properties: $properties, createdAt: $createdAt}]->(b) RETURN r',
+    //       { from, to, id: edge.id, type, properties: JSON.stringify(properties), createdAt: edge.createdAt.toISOString() }
+    //     );
+    //   }
     //   return result.records[0].get('r').properties;
     // } finally {
     //   await session.close();
@@ -316,6 +354,51 @@ export class Neo4jAdapter {
     const edge = this.edges.get(edgeId);
     if (!edge) {
       return null;
+    }
+
+    // Validate relationship type if being updated
+    if (updates.type && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(updates.type)) {
+      throw new Error(
+        `Relationship type must be a single word (alphanumeric and underscores only): "${updates.type}"`,
+      );
+    }
+
+    const wasBidirectional = edge.bidirectional ?? false;
+    const willBeBidirectional = updates.bidirectional ?? wasBidirectional;
+
+    // Handle bidirectional flag changes
+    if (wasBidirectional !== willBeBidirectional) {
+      if (willBeBidirectional) {
+        // Changing from unidirectional to bidirectional: create reverse edge
+        const reverseEdge: KGEdge = {
+          id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          from: edge.to,
+          to: edge.from,
+          type: updates.type ?? edge.type,
+          properties: { ...(updates.properties ?? edge.properties) },
+          weight: updates.weight ?? edge.weight,
+          confidence: updates.confidence ?? edge.confidence,
+          equation: updates.equation ?? edge.equation,
+          rationale: updates.rationale ?? edge.rationale,
+          bidirectional: true,
+          createdAt: edge.createdAt,
+        };
+        this.edges.set(reverseEdge.id, reverseEdge);
+      } else {
+        // Changing from bidirectional to unidirectional: delete reverse edge
+        // Find and delete the reverse edge
+        for (const [id, e] of this.edges.entries()) {
+          if (
+            e.from === edge.to &&
+            e.to === edge.from &&
+            e.type === (updates.type ?? edge.type) &&
+            id !== edgeId
+          ) {
+            this.edges.delete(id);
+            break;
+          }
+        }
+      }
     }
 
     // Apply updates

@@ -1,8 +1,9 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { CommandDto, CommandResultDto } from '../dto/command.dto';
 import { ExecuteAgentUseCase } from './execute-agent.use-case';
 import { AssistantExecutorService } from '../services/assistant-executor.service';
 import { ILogger } from '../ports/logger.port';
+import { KafkaProducerAdapter } from '../../infrastructure/adapters/messaging/kafka-producer.adapter';
 
 /**
  * Use Case: Process Command
@@ -19,6 +20,8 @@ export class ProcessCommandUseCase {
     private readonly assistantExecutorService: AssistantExecutorService,
     @Inject('ILogger')
     private readonly appLogger: ILogger,
+    @Optional()
+    private readonly kafkaProducer?: KafkaProducerAdapter,
   ) {
     this.logger.log('ProcessCommandUseCase initialized');
   }
@@ -148,21 +151,54 @@ export class ProcessCommandUseCase {
         );
       }
 
-      // TODO: In production, publish to scheduling-worker via Kafka message broker
-      // For now, log the scheduling request
-      this.appLogger.info('Scheduling habits', {
-        taskId,
-        userId,
-        habitsCount: habits.length,
-        habits: habits.map((h) => ({
-          name: h.name,
-          frequency: h.frequency,
-          time: h.time,
-          days: h.days,
-        })),
-      });
+      // Publish to scheduling-worker via Kafka
+      if (this.kafkaProducer && this.kafkaProducer.isProducerConnected()) {
+        try {
+          await this.kafkaProducer.publishToSchedulingWorker({
+            taskId,
+            taskType: 'SCHEDULE_HABITS',
+            payload: {
+              userId,
+              habits,
+            },
+            userId,
+          });
 
-      // Simulate scheduling (in production, this would call scheduling-worker)
+          this.appLogger.info('Habits scheduling command published to Kafka', {
+            taskId,
+            userId,
+            habitsCount: habits.length,
+          });
+
+          return {
+            taskId,
+            userId,
+            scheduledHabits: habits.map((habit) => ({
+              habitId: `habit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              name: habit.name,
+              frequency: habit.frequency,
+              time: habit.time,
+              days: habit.days,
+              status: 'pending',
+              scheduledAt: new Date().toISOString(),
+            })),
+            count: habits.length,
+            message: `Successfully dispatched ${habits.length} habits to scheduling-worker`,
+            dispatched: true,
+          };
+        } catch (error) {
+          this.appLogger.error(
+            `Failed to publish habits to Kafka, falling back to local scheduling: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          // Fall through to local scheduling
+        }
+      } else {
+        this.appLogger.warn(
+          'Kafka producer not available, using local scheduling simulation',
+        );
+      }
+
+      // Fallback: Local scheduling simulation (when Kafka is unavailable)
       const scheduledHabits = habits.map((habit) => ({
         habitId: `habit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: habit.name,
@@ -178,7 +214,8 @@ export class ProcessCommandUseCase {
         userId,
         scheduledHabits,
         count: scheduledHabits.length,
-        message: `Successfully scheduled ${scheduledHabits.length} habits`,
+        message: `Successfully scheduled ${scheduledHabits.length} habits (local simulation)`,
+        dispatched: false,
       };
     } catch (error) {
       this.logger.error(

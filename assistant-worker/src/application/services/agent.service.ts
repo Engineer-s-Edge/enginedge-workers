@@ -405,9 +405,9 @@ export class AgentService {
       } catch {}
 
       // Mark session(s) paused
-      const sessions = this.sessions.getAgentSessions(agentId);
+      const sessions = await this.sessions.getAgentSessions(agentId);
       for (const s of sessions)
-        this.sessions.updateSessionStatus(s.sessionId, 'paused');
+        await this.sessions.updateSessionStatus(s.sessionId, 'paused');
 
       return { checkpointId: checkpoint.id };
     } catch (e) {
@@ -429,7 +429,7 @@ export class AgentService {
       const state = await this.checkpoints.restoreFromCheckpoint(checkpointId);
       this.restoreGraphSnapshotOnInstance(instance, state, agentId);
       // store in session metadata for next execution
-      const sessions = this.sessions.getAgentSessions(agentId);
+      const sessions = await this.sessions.getAgentSessions(agentId);
       if (sessions[0]) {
         sessions[0].metadata = {
           ...(sessions[0].metadata || {}),
@@ -437,9 +437,9 @@ export class AgentService {
         };
       }
     }
-    const sessions = this.sessions.getAgentSessions(agentId);
+    const sessions = await this.sessions.getAgentSessions(agentId);
     for (const s of sessions)
-      this.sessions.updateSessionStatus(s.sessionId, 'active');
+      await this.sessions.updateSessionStatus(s.sessionId, 'active');
     return {
       ok: true,
       message: 'Resume triggered; start a new execution to continue.',
@@ -455,11 +455,11 @@ export class AgentService {
     nodeId: string,
     input: unknown,
   ): Promise<void> {
+    const sessions = await this.sessions.getAgentSessions(agentId);
     const interaction = this.sessions.setupUserInteractionHandling(
       agentId,
       // pick the first active session
-      this.sessions.getAgentSessions(agentId)[0]?.sessionId ||
-        `session_${Date.now()}`,
+      sessions[0]?.sessionId || `session_${Date.now()}`,
       'input',
       `node:${nodeId}`,
     );
@@ -475,10 +475,10 @@ export class AgentService {
     nodeId: string,
     approved: boolean,
   ): Promise<void> {
+    const sessions = await this.sessions.getAgentSessions(agentId);
     const interaction = this.sessions.setupUserInteractionHandling(
       agentId,
-      this.sessions.getAgentSessions(agentId)[0]?.sessionId ||
-        `session_${Date.now()}`,
+      sessions[0]?.sessionId || `session_${Date.now()}`,
       'approval',
       `node:${nodeId}`,
     );
@@ -495,10 +495,10 @@ export class AgentService {
     action: 'continue' | 'end',
     input?: string,
   ): Promise<void> {
+    const sessions = await this.sessions.getAgentSessions(agentId);
     const interaction = this.sessions.setupUserInteractionHandling(
       agentId,
-      this.sessions.getAgentSessions(agentId)[0]?.sessionId ||
-        `session_${Date.now()}`,
+      sessions[0]?.sessionId || `session_${Date.now()}`,
       'choice',
       `node:${nodeId}:${action}`,
     );
@@ -525,9 +525,8 @@ export class AgentService {
     agentId: string,
     userId: string,
   ): Promise<{ isPaused: boolean } & GraphExecutionSnapshot> {
-    const isPaused = this.sessions
-      .getAgentSessions(agentId)
-      .some((s) => s.status === 'paused');
+    const sessions = await this.sessions.getAgentSessions(agentId);
+    const isPaused = sessions.some((s) => s.status === 'paused');
     const instance = await this.getAgentInstance(agentId, userId);
     const graphState =
       this.getGraphSnapshotFromInstance(instance) ||
@@ -988,7 +987,7 @@ export class AgentService {
     }
 
     // Store into the first session's metadata for next execution
-    const sessions = this.sessions.getAgentSessions(agentId);
+    const sessions = await this.sessions.getAgentSessions(agentId);
     if (sessions[0] && data) {
       sessions[0].metadata = {
         ...(sessions[0].metadata || {}),
@@ -1031,10 +1030,10 @@ export class AgentService {
     }
 
     // Close sessions for this agent
-    const sessions = this.sessions.getAgentSessions(agentId);
+    const sessions = await this.sessions.getAgentSessions(agentId);
     for (const s of sessions) {
-      this.sessions.updateSessionStatus(s.sessionId, 'completed');
-      this.sessions.deleteSession(s.sessionId);
+      await this.sessions.updateSessionStatus(s.sessionId, 'completed');
+      await this.sessions.deleteSession(s.sessionId);
     }
 
     // Emit aborted/cleanup event
@@ -1079,7 +1078,7 @@ export class AgentService {
       );
       const instance = await this.getAgentInstance(agentId, userId);
       this.restoreGraphSnapshotOnInstance(instance, state, agentId);
-      const sessions = this.sessions.getAgentSessions(agentId);
+      const sessions = await this.sessions.getAgentSessions(agentId);
       if (sessions[0]) {
         sessions[0].metadata = {
           ...(sessions[0].metadata || {}),

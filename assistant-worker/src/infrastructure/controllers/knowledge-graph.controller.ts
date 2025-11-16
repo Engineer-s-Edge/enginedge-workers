@@ -16,7 +16,11 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Sse,
+  BadRequestException,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { MessageEvent } from '@nestjs/common';
 import { KnowledgeGraphService } from '@application/services/knowledge-graph.service';
 // Logger interface for infrastructure use (matches ILogger from application ports)
 interface Logger {
@@ -116,12 +120,21 @@ export class KnowledgeGraphController {
       to: string;
       type: string;
       properties?: Record<string, any>;
+      bidirectional?: boolean;
     },
   ) {
+    // Validate relationship type is one word
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(body.type)) {
+      throw new BadRequestException(
+        `Relationship type must be a single word (alphanumeric and underscores only): "${body.type}"`,
+      );
+    }
+
     this.logger.info('Creating knowledge graph edge', {
       from: body.from,
       to: body.to,
       type: body.type,
+      bidirectional: body.bidirectional,
     });
 
     const edge = await this.knowledgeGraphService.createRelationship(
@@ -129,6 +142,7 @@ export class KnowledgeGraphController {
       body.to,
       body.type,
       body.properties || {},
+      body.bidirectional,
     );
 
     return {
@@ -502,6 +516,13 @@ export class KnowledgeGraphController {
       bidirectional?: boolean;
     },
   ) {
+    // Validate relationship type if being updated
+    if (body.type && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(body.type)) {
+      throw new BadRequestException(
+        `Relationship type must be a single word (alphanumeric and underscores only): "${body.type}"`,
+      );
+    }
+
     this.logger.info('Updating edge', { edgeId });
 
     const updates: any = {};
@@ -516,7 +537,7 @@ export class KnowledgeGraphController {
     const edge = await this.knowledgeGraphService.updateEdge(edgeId, updates);
 
     if (!edge) {
-      throw new Error(`Edge ${edgeId} not found`);
+      throw new NotFoundException(`Edge ${edgeId} not found`);
     }
 
     return {
@@ -713,5 +734,41 @@ export class KnowledgeGraphController {
       success: true,
       colors,
     };
+  }
+
+  /**
+   * GET /knowledge-graph/events/stream - SSE stream for real-time graph updates
+   */
+  @Get('events/stream')
+  @Sse()
+  streamGraphEvents(): Observable<MessageEvent> {
+    this.logger.info('Starting knowledge graph events stream');
+
+    return new Observable<MessageEvent>((subscriber) => {
+      let cancelled = false;
+
+      // Subscribe to knowledge graph events
+      const unsubscribe = this.knowledgeGraphService.subscribeToEvents(
+        (event) => {
+          if (!cancelled) {
+            subscriber.next(
+              new MessageEvent('graph-event', {
+                data: {
+                  type: event.type,
+                  timestamp: event.timestamp.toISOString(),
+                  payload: event.payload,
+                },
+              }),
+            );
+          }
+        },
+      );
+
+      // Cleanup on unsubscribe
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
+    });
   }
 }

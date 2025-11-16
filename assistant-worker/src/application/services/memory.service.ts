@@ -109,6 +109,123 @@ export class MemoryService {
   }
 
   /**
+   * Get combined context from all active memory types for a conversation
+   * This combines outputs from all active memory types when building prompt context
+   */
+  async getCombinedContext(
+    conversationId: string,
+    query?: string,
+  ): Promise<string> {
+    try {
+      // Get conversation to retrieve active memory types
+      const conversation = await this.conversationsService.getConversation(
+        conversationId,
+      );
+
+      if (!conversation) {
+        this.logger.warn('Conversation not found for combined context', {
+          conversationId,
+        });
+        return '';
+      }
+
+      // Get all active memory types from conversation settings
+      const memories = conversation.settingsOverrides?.memories || [];
+
+      // If no memories configured, fall back to default buffer memory
+      if (memories.length === 0) {
+        // Check for legacy memoryType
+        const legacyMemoryType =
+          (conversation.settingsOverrides?.memoryType as MemoryType) ||
+          'buffer';
+        return await this.getContext(conversationId, legacyMemoryType, query);
+      }
+
+      // Collect context from all active memory types
+      const contextParts: string[] = [];
+
+      for (const memoryConfig of memories) {
+        const memoryType = (memoryConfig.type as MemoryType) || 'buffer';
+
+        try {
+          let context: string;
+
+          // Handle different memory types appropriately
+          if (memoryType === 'vector' && query) {
+            // Vector memory with query - use semantic search
+            context = await this.getContext(conversationId, memoryType, query);
+          } else if (memoryType === 'summary') {
+            // Summary memory - get summary if available
+            if (this.summaryMemory.getSummary) {
+              try {
+                const summary = await this.summaryMemory.getSummary(
+                  conversationId,
+                );
+                context = `Summary: ${summary}`;
+              } catch (error) {
+                // Summary not available, fall back to regular context
+                context = await this.getContext(conversationId, memoryType);
+              }
+            } else {
+              context = await this.getContext(conversationId, memoryType);
+            }
+          } else if (memoryType === 'entity') {
+            // Entity memory - get entities if available
+            if (this.entityMemory.getEntities) {
+              try {
+                const entities = await this.entityMemory.getEntities(
+                  conversationId,
+                );
+                if (entities && entities.length > 0) {
+                  context = `Entities: ${JSON.stringify(entities)}`;
+                } else {
+                  context = await this.getContext(conversationId, memoryType);
+                }
+              } catch (error) {
+                // Entities not available, fall back to regular context
+                context = await this.getContext(conversationId, memoryType);
+              }
+            } else {
+              context = await this.getContext(conversationId, memoryType);
+            }
+          } else {
+            // Buffer, window, or other memory types - get regular context
+            context = await this.getContext(conversationId, memoryType);
+          }
+
+          // Only add non-empty context
+          if (context && context.trim().length > 0) {
+            // Add memory type label for clarity
+            const memoryLabel = memoryConfig.metadata?.label || memoryType;
+            contextParts.push(`[${memoryLabel.toUpperCase()} MEMORY]\n${context}`);
+          }
+        } catch (error) {
+          this.logger.warn('Failed to get context from memory type', {
+            conversationId,
+            memoryType,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          // Continue with other memory types even if one fails
+        }
+      }
+
+      // Combine all context parts with clear separators
+      if (contextParts.length === 0) {
+        return '';
+      }
+
+      return contextParts.join('\n\n---\n\n');
+    } catch (error) {
+      this.logger.error('Failed to get combined context', {
+        conversationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Fall back to default buffer memory
+      return await this.getContext(conversationId, 'buffer', query);
+    }
+  }
+
+  /**
    * Clear conversation memory
    */
   async clearMemory(

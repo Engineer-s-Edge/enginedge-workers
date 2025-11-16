@@ -9,8 +9,7 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { ModelsService } from '@application/services/models.service';
 
 // Logger interface for infrastructure use (matches ILogger from application ports)
 interface Logger {
@@ -41,33 +40,13 @@ interface Model {
 
 @Controller('models')
 export class ModelsController {
-  private models: Model[] = [];
   private readonly logger: Logger;
 
-  constructor(@Inject('ILogger') logger: Logger) {
+  constructor(
+    @Inject('ILogger') logger: Logger,
+    private readonly modelsService: ModelsService,
+  ) {
     this.logger = logger;
-    this.loadModels();
-  }
-
-  private loadModels() {
-    try {
-      const modelsPath = path.join(process.cwd(), 'res', 'models.json');
-      if (fs.existsSync(modelsPath)) {
-        const data = fs.readFileSync(modelsPath, 'utf-8');
-        this.models = JSON.parse(data);
-        this.logger.info(
-          `Loaded ${this.models.length} models from models.json`,
-        );
-      } else {
-        this.logger.warn('models.json not found, using empty array');
-        this.models = [];
-      }
-    } catch (error) {
-      this.logger.error(
-        `Failed to load models: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      this.models = [];
-    }
   }
 
   /**
@@ -77,10 +56,11 @@ export class ModelsController {
   @HttpCode(HttpStatus.OK)
   async getAllModels() {
     try {
+      const models = this.modelsService.getAllModels();
       return {
         success: true,
-        models: this.models,
-        count: this.models.length,
+        models,
+        count: models.length,
       };
     } catch (error) {
       return {
@@ -99,7 +79,7 @@ export class ModelsController {
   @HttpCode(HttpStatus.OK)
   async getProviders() {
     try {
-      const providers = [...new Set(this.models.map((m) => m.provider))];
+      const providers = this.modelsService.getProviders();
       return {
         success: true,
         providers,
@@ -122,9 +102,7 @@ export class ModelsController {
   @HttpCode(HttpStatus.OK)
   async getModelsByProvider(@Param('provider') provider: string) {
     try {
-      const models = this.models.filter(
-        (m) => m.provider.toLowerCase() === provider.toLowerCase(),
-      );
+      const models = this.modelsService.getModelsByProvider(provider);
       return {
         success: true,
         models,
@@ -147,9 +125,7 @@ export class ModelsController {
   @HttpCode(HttpStatus.OK)
   async getModelsByCategory(@Param('category') category: string) {
     try {
-      const models = this.models.filter(
-        (m) => m.category?.toLowerCase() === category.toLowerCase(),
-      );
+      const models = this.modelsService.getModelsByCategory(category);
       return {
         success: true,
         models,
@@ -172,22 +148,19 @@ export class ModelsController {
   @HttpCode(HttpStatus.OK)
   async getModelsByCapability(@Param('capability') capability: string) {
     try {
-      const models = this.models.filter((m) => {
-        switch (capability.toLowerCase()) {
-          case 'vision':
-            return m.vision === true;
-          case 'functioncalling':
-          case 'function-calling':
-            return m.functionCalling === true;
-          case 'multilingual':
-            return m.multilingual === true;
-          case 'extendedthinking':
-          case 'extended-thinking':
-            return m.extendedThinking === true;
-          default:
-            return false;
-        }
-      });
+      const normalizedCapability = capability.toLowerCase().replace('-', '');
+      let models: Model[] = [];
+
+      if (normalizedCapability === 'vision') {
+        models = this.modelsService.getModelsWithCapability('vision');
+      } else if (normalizedCapability === 'functioncalling' || normalizedCapability === 'functioncalling') {
+        models = this.modelsService.getModelsWithCapability('functionCalling');
+      } else if (normalizedCapability === 'multilingual') {
+        models = this.modelsService.getModelsWithCapability('multilingual');
+      } else if (normalizedCapability === 'extendedthinking' || normalizedCapability === 'extendedthinking') {
+        models = this.modelsService.getModelsWithCapability('extendedThinking');
+      }
+
       return {
         success: true,
         models,
@@ -220,7 +193,7 @@ export class ModelsController {
 
     try {
       const query = name.toLowerCase();
-      const models = this.models.filter(
+      const models = this.modelsService.getAllModels().filter(
         (m) =>
           m.name.toLowerCase().includes(query) ||
           m.description?.toLowerCase().includes(query) ||
@@ -254,13 +227,7 @@ export class ModelsController {
       const min = minCost ? parseFloat(minCost) : undefined;
       const max = maxCost ? parseFloat(maxCost) : undefined;
 
-      const models = this.models.filter((m) => {
-        if (!m.inputCostPer1M && !m.outputCostPer1M) return false;
-        const avgCost = (m.inputCostPer1M || 0) + (m.outputCostPer1M || 0) / 2;
-        if (min !== undefined && avgCost < min) return false;
-        if (max !== undefined && avgCost > max) return false;
-        return true;
-      });
+      const models = this.modelsService.getModelsByCostRange(min, max);
 
       return {
         success: true,
@@ -287,12 +254,7 @@ export class ModelsController {
     @Param('modelId') modelId: string,
   ) {
     try {
-      const model = this.models.find(
-        (m) =>
-          m.provider.toLowerCase() === provider.toLowerCase() &&
-          (m.name === modelId ||
-            m.name.toLowerCase() === modelId.toLowerCase()),
-      );
+      const model = this.modelsService.getModel(provider, modelId);
 
       if (!model) {
         return {
@@ -325,7 +287,9 @@ export class ModelsController {
     @Body() body: { inputTokens: number; outputTokens: number },
   ) {
     try {
-      const model = this.models.find(
+      // Find model by name across all providers
+      const allModels = this.modelsService.getAllModels();
+      const model = allModels.find(
         (m) =>
           m.name === modelId || m.name.toLowerCase() === modelId.toLowerCase(),
       );

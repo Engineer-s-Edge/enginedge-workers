@@ -10,6 +10,7 @@ import {
   Inject,
   OnModuleInit,
   OnModuleDestroy,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as cron from 'node-cron';
@@ -18,6 +19,7 @@ import {
   ScheduleConfig,
   ScheduleInfo,
 } from '../../infrastructure/adapters/interfaces/scheduled-learning.adapter.interface';
+import { GeniusAgentOrchestrator } from './genius-agent.orchestrator';
 
 @Injectable()
 export class ScheduledLearningManagerService
@@ -30,6 +32,8 @@ export class ScheduledLearningManagerService
   constructor(
     @Inject('ILogger') private readonly logger: ILogger,
     private readonly configService?: ConfigService,
+    @Optional()
+    private readonly geniusOrchestrator?: GeniusAgentOrchestrator,
   ) {
     this.defaultTimezone =
       this.configService?.get<string>('DEFAULT_TIMEZONE') ||
@@ -272,9 +276,38 @@ export class ScheduledLearningManagerService
     });
 
     try {
-      // TODO: Trigger actual learning execution
-      // This would call the learning service or agent orchestrator
-      // await this.learningService.executeLearning(schedule.topicId, schedule.userId);
+      // Trigger actual learning execution via GeniusAgentOrchestrator
+      if (this.geniusOrchestrator) {
+        try {
+          // Execute autonomous learning for the scheduled topic
+          // Note: The orchestrator will detect knowledge gaps and process topics
+          // If topicId is provided, it will be prioritized in the learning cycle
+          await this.geniusOrchestrator.executeAutonomousLearning(
+            schedule.userId,
+            {
+              maxTopics: schedule.topicId ? 1 : 5, // Focus on single topic if specified
+              minPriority: 0,
+            },
+          );
+
+          this.logger.info(`Genius learning session launched for scheduled topic`, {
+            scheduleId,
+            topicId: schedule.topicId,
+            userId: schedule.userId,
+          });
+        } catch (error) {
+          this.logger.error(
+            `Failed to launch Genius learning session: ${error instanceof Error ? error.message : String(error)}`,
+            { scheduleId, topicId: schedule.topicId },
+          );
+          // Continue to update schedule even if learning launch fails
+        }
+      } else {
+        this.logger.warn(
+          `GeniusAgentOrchestrator not available, skipping learning execution`,
+          { scheduleId },
+        );
+      }
 
       schedule.runCount++;
       schedule.lastRun = new Date();
