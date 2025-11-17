@@ -365,37 +365,53 @@ export class GeniusAgentOrchestrator {
     this.logger.log(`Validating ${reports.length} research reports`);
 
     try {
-      // Step 1: Batch validate all reports using validation adapter
-      const validationConfigs = reports.map((r) => ({
-        sources: r.sources || [],
-        findings: r.findings || [],
-        confidence: r.confidence || 0,
-        topic: r.topic || 'unknown',
+      // Step 1: Build expert report payloads for validation pipeline
+      const expertReports = reports.map((report, idx) => ({
+        reportId: report.reportId || `report-${Date.now()}-${idx}`,
+        expertId: report.expertId || report.agentId || `expert-${idx}`,
+        topic: report.topic || `topic-${idx + 1}`,
+        findings: report.findings || [],
+        sources: report.sources || [],
+        confidence: report.confidence ?? 0.7,
+        summary: report.summary,
+        contradictions: report.contradictions,
+        citations: report.citations,
+        categories: report.categories,
+        complexity: report.complexity,
+        relatedNodes: report.relatedNodes,
+        metadata: {
+          ...report.metadata,
+          expectedFindings: report.expectedFindings,
+        },
       }));
 
-      const validationResults =
-        await this.validationAdapter.validateBatch(validationConfigs);
+      const batchResult = await this.validationAdapter.validateBatch({
+        expertReports,
+      });
 
       // Step 2: Compile results with original report data
-      const enrichedResults = validationResults.map((vr, idx) => ({
+      const enrichedResults = batchResult.results.map((vr, idx) => ({
         ...reports[idx],
         validation: vr,
-        isValid: vr.isValid,
+        isValid: vr.status !== 'failed',
         validationScore: vr.score,
       }));
 
-      const passCount = enrichedResults.filter((r) => r.isValid).length;
-      const failCount = enrichedResults.length - passCount;
+      const passCount = batchResult.passed;
+      const failCount = batchResult.failed;
 
       this.logger.log(
         `Validation complete: ${passCount} passed, ${failCount} failed`,
       );
 
       return {
-        totalReports: enrichedResults.length,
+        totalReports: batchResult.total,
         passed: passCount,
         failed: failCount,
-        successRate: (passCount / enrichedResults.length) * 100,
+        successRate:
+          batchResult.total > 0
+            ? (passCount / batchResult.total) * 100
+            : 0,
         results: enrichedResults,
       };
     } catch (error) {

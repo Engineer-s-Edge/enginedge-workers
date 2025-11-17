@@ -343,12 +343,14 @@ export class KnowledgeGraphController {
   async traverseUp(@Param('nodeId') nodeId: string) {
     this.logger.info('Traversing ICS hierarchy upward', { nodeId });
 
-    const path = await this.knowledgeGraphService.traverseUp(nodeId);
+    const traversal = await this.knowledgeGraphService.traverseUp(nodeId);
 
     return {
-      nodeId,
-      path,
-      layers: path.map((node) => node.layer),
+      nodeId: traversal.startNodeId,
+      direction: traversal.direction,
+      nodes: traversal.nodes,
+      path: traversal.nodes,
+      layers: traversal.layers,
     };
   }
 
@@ -359,12 +361,14 @@ export class KnowledgeGraphController {
   async traverseDown(@Param('nodeId') nodeId: string) {
     this.logger.info('Traversing ICS hierarchy downward', { nodeId });
 
-    const path = await this.knowledgeGraphService.traverseDown(nodeId);
+    const traversal = await this.knowledgeGraphService.traverseDown(nodeId);
 
     return {
-      nodeId,
-      path,
-      layers: path.map((node) => node.layer),
+      nodeId: traversal.startNodeId,
+      direction: traversal.direction,
+      nodes: traversal.nodes,
+      path: traversal.nodes,
+      layers: traversal.layers,
     };
   }
 

@@ -19,8 +19,12 @@ import {
   UsePipes,
   ValidationPipe,
   Inject,
+  Req,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { randomUUID } from 'node:crypto';
+import { Request, Response } from 'express';
 import { AssistantsService } from '@application/services/assistants.service';
 import {
   CreateAssistantDto,
@@ -28,6 +32,7 @@ import {
   AssistantFiltersDto,
 } from '@application/dto/assistant.dto';
 import { ExecuteAssistantDto } from '@application/dto/execution.dto';
+import { AuthValidationService } from '@infrastructure/services/auth-validation.service';
 // Logger interface for infrastructure use (matches ILogger from application ports)
 interface Logger {
   debug(message: string, meta?: Record<string, unknown>): void;
@@ -42,6 +47,7 @@ export class AssistantsController {
     private readonly assistantsService: AssistantsService,
     @Inject('ILogger')
     private readonly logger: Logger,
+    private readonly authValidation: AuthValidationService,
   ) {
     this.logger.info('AssistantsController initialized');
   }
@@ -238,10 +244,28 @@ export class AssistantsController {
   async executeStream(
     @Param('name') name: string,
     @Body() executeDto: ExecuteAssistantDto,
+    @Req() request: Request,
     @Res() response: Response,
   ): Promise<void> {
+    const auth = await this.authValidation.authenticateRequest(request, {
+      allowQueryUser: true,
+    });
+
+    const effectiveUserId = executeDto.userId || auth.userId;
+    if (!effectiveUserId) {
+      throw new BadRequestException('userId is required for streaming');
+    }
+
+    if (auth.userId && executeDto.userId && auth.userId !== executeDto.userId) {
+      throw new ForbiddenException(
+        'Authenticated user does not match request payload userId',
+      );
+    }
+
+    executeDto.userId = effectiveUserId;
+
     this.logger.info(
-      `Streaming execution for assistant: ${name}, user: ${executeDto.userId}`,
+      `Streaming execution for assistant: ${name}, user: ${effectiveUserId}`,
     );
 
     // Set SSE headers
@@ -249,6 +273,50 @@ export class AssistantsController {
     response.setHeader('Cache-Control', 'no-cache');
     response.setHeader('Connection', 'keep-alive');
     response.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+    const streamId = `assistant-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+    const reconnectToken =
+      (executeDto as ExecuteAssistantDto & { reconnectToken?: string })
+        .reconnectToken || randomUUID();
+    const heartbeatMs = Number(process.env.SSE_HEARTBEAT_MS ?? 25000);
+
+    const sendEvent = (event: string, data: Record<string, unknown>) => {
+      response.write(`event: ${event}\n`);
+      response.write(`data: ${JSON.stringify(data)}\n\n`);
+      if (typeof (response as any).flush === 'function') {
+        (response as any).flush();
+      }
+    };
+
+    sendEvent('start', {
+      streamId,
+      reconnectToken,
+      assistant: name,
+      userId: effectiveUserId,
+    });
+
+    const heartbeat = heartbeatMs
+      ? setInterval(() => {
+          if (response.writableEnded) {
+            return;
+          }
+          sendEvent('heartbeat', {
+            streamId,
+            timestamp: new Date().toISOString(),
+          });
+        }, heartbeatMs)
+      : null;
+
+    const cleanup = () => {
+      if (heartbeat) {
+        clearInterval(heartbeat);
+      }
+      response.off('close', cleanup);
+    };
+
+    response.on('close', cleanup);
 
     try {
       const stream = await this.assistantsService.executeStream(
@@ -264,20 +332,23 @@ export class AssistantsController {
         const _elapsedMs = Date.now() - _startTime;
 
         // Send SSE formatted message
-        const sseMessage = `data: ${JSON.stringify({ chunk, type: 'chunk' })}\n\n`;
-        response.write(sseMessage);
-
-        // Force flush
-        if (typeof (response as any).flush === 'function') {
-          (response as any).flush();
-        }
+        sendEvent('chunk', {
+          chunk,
+          type: 'chunk',
+          elapsedMs: _elapsedMs,
+          sequence: _chunkCount,
+        });
       }
 
       const _totalTime = Date.now() - _startTime;
 
       // Send completion message
-      response.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      sendEvent('complete', {
+        type: 'done',
+        totalTimeMs: _totalTime,
+      });
       response.end();
+      cleanup();
 
       this.logger.info(`Completed streaming for assistant: ${name}`);
     } catch (error: unknown) {
@@ -285,9 +356,8 @@ export class AssistantsController {
       this.logger.error(`Failed to stream assistant: ${name}`, {
         error: e.message,
       });
-      response.write(
-        `data: ${JSON.stringify({ type: 'error', error: e.message })}\n\n`,
-      );
+      sendEvent('error', { error: e.message });
+      cleanup();
       response.end();
     }
   }

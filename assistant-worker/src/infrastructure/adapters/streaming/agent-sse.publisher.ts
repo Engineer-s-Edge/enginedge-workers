@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { SSEStreamAdapter } from './sse-stream.adapter';
 import {
   AgentEventService,
@@ -16,10 +17,17 @@ export class AgentSSEPublisher {
   ) {}
 
   start(res: Response, filter?: EventFilter): string {
-    const streamId = `agents-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    this.sse.initializeStream(streamId, res);
-
+    const streamId = `agents-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     const subscriptionId = `sub-${streamId}`;
+    const reconnectToken = randomUUID();
+
+    this.sse.initializeStream(streamId, res, {
+      reconnectToken,
+      onClose: () => this.events.unsubscribe(subscriptionId),
+    });
+
     this.events.subscribeToAgentEvents(
       subscriptionId,
       filter || {},
@@ -31,13 +39,6 @@ export class AgentSSEPublisher {
         });
       },
     );
-
-    // Send initial heartbeat
-    this.sse.sendToStream(streamId, {
-      type: 'start',
-      data: { streamId, message: 'Agent events stream started' },
-      timestamp: new Date(),
-    });
 
     // Attach cleanup on connection close via SSEStreamAdapter
     return streamId;

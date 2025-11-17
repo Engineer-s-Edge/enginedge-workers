@@ -6,10 +6,14 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  IValidationAdapter,
-  ValidationConfig,
+  BatchValidationRequest,
+  BatchValidationResult,
+  ValidateExpertWorkRequest,
   ValidationResult,
-} from '../interfaces';
+  ValidationConfig,
+  ValidationStatistics,
+} from '@domain/validation/validation.types';
+import { IValidationAdapter } from '../interfaces';
 import { ValidationService } from '../../../application/services/validation.service';
 
 @Injectable()
@@ -18,10 +22,14 @@ export class ValidationAdapter implements IValidationAdapter {
 
   constructor(private readonly validationService: ValidationService) {}
 
-  async validate(config: ValidationConfig): Promise<ValidationResult> {
+  async validate(
+    request: ValidateExpertWorkRequest,
+  ): Promise<ValidationResult> {
     try {
-      this.logger.log(`Validating research for topic: ${config.topic}`);
-      return await this.validationService.validate(config);
+      this.logger.log(
+        `Validating research for topic: ${request.expertReport.topic}`,
+      );
+      return await this.validationService.validateExpertWork(request);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Validation failed: ${err.message}`, err.stack);
@@ -30,11 +38,13 @@ export class ValidationAdapter implements IValidationAdapter {
   }
 
   async validateBatch(
-    configs: ValidationConfig[],
-  ): Promise<ValidationResult[]> {
+    request: BatchValidationRequest,
+  ): Promise<BatchValidationResult> {
     try {
-      this.logger.log(`Validating batch of ${configs.length} reports`);
-      return await this.validationService.validateBatch(configs);
+      this.logger.log(
+        `Validating batch of ${request.expertReports.length} reports`,
+      );
+      return await this.validationService.validateBatch(request);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Batch validation failed: ${err.message}`, err.stack);
@@ -42,31 +52,15 @@ export class ValidationAdapter implements IValidationAdapter {
     }
   }
 
-  async checkSourceCredibility(sources: string[]): Promise<number> {
-    try {
-      this.logger.log(`Checking credibility of ${sources.length} sources`);
-      return await this.validationService.checkSourceCredibility(sources);
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Source credibility check failed: ${err.message}`,
-        err.stack,
-      );
-      throw error;
-    }
+  getConfig(): ValidationConfig {
+    return this.validationService.getConfig();
   }
 
-  async checkFindingConsistency(findings: string[]): Promise<boolean> {
-    try {
-      this.logger.log(`Checking consistency of ${findings.length} findings`);
-      return await this.validationService.checkFindingConsistency(findings);
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Finding consistency check failed: ${err.message}`,
-        err.stack,
-      );
-      throw error;
-    }
+  updateConfig(config: Partial<ValidationConfig>): ValidationConfig {
+    return this.validationService.updateConfig(config);
+  }
+
+  getStatistics(): ValidationStatistics {
+    return this.validationService.getStatistics();
   }
 }

@@ -7,6 +7,7 @@
 
 import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'node:crypto';
 import { ILogger } from '../ports/logger.port';
 
 export type NotificationChannel =
@@ -41,6 +42,13 @@ export interface NotificationOptions {
 export class NotificationService {
   private notifications: Map<string, Notification> = new Map();
   private readonly enabledChannels: Set<NotificationChannel>;
+  private readonly emailApiKey?: string;
+  private readonly emailFrom?: string;
+  private readonly pushServerKey?: string;
+  private readonly smsAccountSid?: string;
+  private readonly smsAuthToken?: string;
+  private readonly smsFromNumber?: string;
+  private readonly webhookUrl?: string;
 
   constructor(
     @Inject('ILogger') private readonly logger: ILogger,
@@ -54,6 +62,28 @@ export class NotificationService {
     this.enabledChannels = new Set(
       channelsConfig.split(',').map((c) => c.trim()) as NotificationChannel[],
     );
+
+    this.emailApiKey =
+      this.configService?.get<string>('SENDGRID_API_KEY') ||
+      process.env.SENDGRID_API_KEY;
+    this.emailFrom =
+      this.configService?.get<string>('NOTIFICATION_EMAIL_FROM') ||
+      process.env.NOTIFICATION_EMAIL_FROM;
+    this.pushServerKey =
+      this.configService?.get<string>('FCM_SERVER_KEY') ||
+      process.env.FCM_SERVER_KEY;
+    this.smsAccountSid =
+      this.configService?.get<string>('TWILIO_ACCOUNT_SID') ||
+      process.env.TWILIO_ACCOUNT_SID;
+    this.smsAuthToken =
+      this.configService?.get<string>('TWILIO_AUTH_TOKEN') ||
+      process.env.TWILIO_AUTH_TOKEN;
+    this.smsFromNumber =
+      this.configService?.get<string>('TWILIO_FROM_NUMBER') ||
+      process.env.TWILIO_FROM_NUMBER;
+    this.webhookUrl =
+      this.configService?.get<string>('NOTIFICATION_WEBHOOK_URL') ||
+      process.env.NOTIFICATION_WEBHOOK_URL;
   }
 
   /**
@@ -83,6 +113,7 @@ export class NotificationService {
           message,
           priority,
           options.metadata,
+          options,
         );
         sentNotifications.push(notification);
       } catch (error) {
@@ -128,9 +159,10 @@ export class NotificationService {
     message: string,
     priority: NotificationPriority,
     metadata?: Record<string, unknown>,
+    options?: NotificationOptions,
   ): Promise<Notification> {
     const notification: Notification = {
-      id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: randomUUID(),
       userId,
       channel,
       title,
@@ -142,19 +174,19 @@ export class NotificationService {
 
     switch (channel) {
       case 'email':
-        await this.sendEmail(userId, title, message, metadata);
+        await this.sendEmail(userId, title, message, metadata, options);
         break;
       case 'in-app':
         await this.sendInApp(userId, title, message, metadata);
         break;
       case 'push':
-        await this.sendPush(userId, title, message, metadata);
+        await this.sendPush(userId, title, message, metadata, options);
         break;
       case 'webhook':
-        await this.sendWebhook(userId, title, message, metadata);
+        await this.sendWebhook(userId, title, message, metadata, options);
         break;
       case 'sms':
-        await this.sendSMS(userId, title, message, metadata);
+        await this.sendSMS(userId, title, message, metadata, options);
         break;
     }
 
@@ -178,35 +210,52 @@ export class NotificationService {
     title: string,
     message: string,
     metadata?: Record<string, unknown>,
+    options?: NotificationOptions,
   ): Promise<void> {
-    // TODO: Integrate with email service (SendGrid, SES, etc.)
-    const emailServiceUrl =
-      this.configService?.get<string>('EMAIL_SERVICE_URL') ||
-      process.env.EMAIL_SERVICE_URL;
+    if (!this.emailApiKey || !this.emailFrom) {
+      this.logger.warn('Email provider not configured, skipping', { userId });
+      return;
+    }
 
-    if (emailServiceUrl) {
-      try {
-        await fetch(`${emailServiceUrl}/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            subject: title,
-            body: message,
-            metadata,
-          }),
-        });
-      } catch (error) {
-        this.logger.warn(`Email service unavailable, notification queued`, {
-          userId,
-        });
-      }
-    } else {
-      this.logger.debug(`Email notification (no service configured)`, {
+    const toAddress =
+      (metadata?.email as string | undefined) ||
+      this.configService?.get<string>('NOTIFICATION_EMAIL_DEFAULT');
+
+    if (!toAddress) {
+      this.logger.warn('No recipient email provided for notification', {
         userId,
         title,
       });
+      return;
     }
+
+    await this.dispatchWithRetry(async () => {
+      const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.emailApiKey}`,
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: toAddress }] }],
+          from: { email: this.emailFrom },
+          subject: title,
+          content: [
+            {
+              type: 'text/plain',
+              value: `${message}${metadata?.details ? `\n\n${metadata.details}` : ''}`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `SendGrid request failed (${response.status}): ${errorText}`,
+        );
+      }
+    }, options?.retryCount ?? 1);
   }
 
   /**
@@ -231,35 +280,45 @@ export class NotificationService {
     title: string,
     message: string,
     metadata?: Record<string, unknown>,
+    options?: NotificationOptions,
   ): Promise<void> {
-    // TODO: Integrate with push notification service (FCM, APNS, etc.)
-    const pushServiceUrl =
-      this.configService?.get<string>('PUSH_SERVICE_URL') ||
-      process.env.PUSH_SERVICE_URL;
+    if (!this.pushServerKey) {
+      this.logger.warn('Push provider not configured, skipping', { userId });
+      return;
+    }
 
-    if (pushServiceUrl) {
-      try {
-        await fetch(`${pushServiceUrl}/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
+    const deviceToken = metadata?.deviceToken as string | undefined;
+    if (!deviceToken) {
+      this.logger.warn('Missing device token for push notification', {
+        userId,
+      });
+      return;
+    }
+
+    await this.dispatchWithRetry(async () => {
+      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `key=${this.pushServerKey}`,
+        },
+        body: JSON.stringify({
+          to: deviceToken,
+          notification: {
             title,
             body: message,
-            metadata,
-          }),
-        });
-      } catch (error) {
-        this.logger.warn(`Push service unavailable, notification queued`, {
-          userId,
-        });
-      }
-    } else {
-      this.logger.debug(`Push notification (no service configured)`, {
-        userId,
-        title,
+          },
+          data: metadata,
+        }),
       });
-    }
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `FCM push failed (${response.status}): ${errorBody}`,
+        );
+      }
+    }, options?.retryCount ?? 1);
   }
 
   /**
@@ -270,28 +329,37 @@ export class NotificationService {
     title: string,
     message: string,
     metadata?: Record<string, unknown>,
+    options?: NotificationOptions,
   ): Promise<void> {
-    const webhookUrl =
-      this.configService?.get<string>('NOTIFICATION_WEBHOOK_URL') ||
-      process.env.NOTIFICATION_WEBHOOK_URL;
+    const targetUrl =
+      (metadata?.webhookUrl as string | undefined) || this.webhookUrl;
 
-    if (webhookUrl) {
-      try {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            title,
-            message,
-            metadata,
-            timestamp: new Date().toISOString(),
-          }),
-        });
-      } catch (error) {
-        this.logger.warn(`Webhook notification failed`, { userId, webhookUrl });
-      }
+    if (!targetUrl) {
+      this.logger.warn('Webhook notification skipped - no URL configured', {
+        userId,
+      });
+      return;
     }
+
+    await this.dispatchWithRetry(async () => {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          title,
+          message,
+          metadata,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Webhook request failed (${response.status}): ${await response.text()}`,
+        );
+      }
+    }, options?.retryCount ?? 1);
   }
 
   /**
@@ -302,32 +370,49 @@ export class NotificationService {
     title: string,
     message: string,
     metadata?: Record<string, unknown>,
+    options?: NotificationOptions,
   ): Promise<void> {
-    // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.)
-    const smsServiceUrl =
-      this.configService?.get<string>('SMS_SERVICE_URL') ||
-      process.env.SMS_SERVICE_URL;
-
-    if (smsServiceUrl) {
-      try {
-        await fetch(`${smsServiceUrl}/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            message: `${title}: ${message}`,
-            metadata,
-          }),
-        });
-      } catch (error) {
-        this.logger.warn(`SMS service unavailable`, { userId });
-      }
-    } else {
-      this.logger.debug(`SMS notification (no service configured)`, {
-        userId,
-        title,
-      });
+    if (
+      !this.smsAccountSid ||
+      !this.smsAuthToken ||
+      !this.smsFromNumber
+    ) {
+      this.logger.warn('SMS provider not configured, skipping', { userId });
+      return;
     }
+
+    const toNumber = metadata?.phone as string | undefined;
+    if (!toNumber) {
+      this.logger.warn('Missing phone number for SMS notification', { userId });
+      return;
+    }
+
+    const body = `${title}: ${message}`;
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${this.smsAccountSid}/Messages.json`;
+
+    await this.dispatchWithRetry(async () => {
+      const response = await fetch(twilioUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${this.smsAccountSid}:${this.smsAuthToken}`,
+          ).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          From: this.smsFromNumber!,
+          To: toNumber,
+          Body: body,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Twilio request failed (${response.status}): ${errorText}`,
+        );
+      }
+    }, options?.retryCount ?? 1);
   }
 
   /**
@@ -368,5 +453,37 @@ export class NotificationService {
 
     notification.readAt = new Date();
     return true;
+  }
+
+  private async dispatchWithRetry(
+    operation: () => Promise<void>,
+    retryCount: number,
+  ): Promise<void> {
+    let attempt = 0;
+    let lastError: unknown;
+
+    while (attempt <= retryCount) {
+      try {
+        await operation();
+        return;
+      } catch (error) {
+        lastError = error;
+        attempt += 1;
+        const delayMs = Math.min(2000 * attempt, 8000);
+        this.logger.warn('Notification dispatch failed, retrying', {
+          attempt,
+          retryCount,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        if (attempt > retryCount) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('Notification dispatch failed');
   }
 }

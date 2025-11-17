@@ -18,6 +18,7 @@ import {
 } from './adapters/memory';
 import { Neo4jAdapter } from './adapters/knowledge-graph';
 import { SSEStreamAdapter, WebSocketAdapter } from './adapters/streaming';
+import { AuthValidationService } from './services/auth-validation.service';
 import { MetricsAdapter } from './adapters/monitoring';
 import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
@@ -190,6 +191,7 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
     // Streaming adapters (Phase 5)
     SSEStreamAdapter,
     WebSocketAdapter,
+    AuthValidationService,
 
     // Monitoring adapters (Phase 6)
     MetricsAdapter,

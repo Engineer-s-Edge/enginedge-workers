@@ -10,8 +10,11 @@ import {
   HttpStatus,
   Inject,
   Res,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { StreamAgentExecutionUseCase } from '@application/use-cases/stream-agent-execution.use-case';
 import { AgentService } from '@application/services/agent.service';
@@ -26,6 +29,7 @@ interface Logger {
 }
 import { SSEStreamAdapter } from '@infrastructure/adapters/streaming/sse-stream.adapter';
 import { AgentSessionService } from '@application/services/agent-session.service';
+import { AuthValidationService } from '@infrastructure/services/auth-validation.service';
 
 /**
  * Agent Controller - HTTP API for agent operations (Phase 1 Complete)
@@ -50,6 +54,7 @@ export class AgentController {
     private readonly events: AgentEventService,
     private readonly sse: SSEStreamAdapter,
     private readonly sessions: AgentSessionService,
+    private readonly authValidation: AuthValidationService,
   ) {}
 
   /**
@@ -232,25 +237,40 @@ export class AgentController {
   @Get('events/stream')
   async streamAgentEvents(
     @Res() res: Response,
+    @Req() req: Request,
     @Query('userId') userId?: string,
     @Query('agentId') agentId?: string,
     @Query('types') types?: string,
   ) {
+    const auth = await this.authValidation.authenticateRequest(req, {
+      allowQueryUser: true,
+    });
+
     const filter = {
-      userId,
+      userId: userId || auth.userId,
       agentId,
       types: types ? (types.split(',') as any) : undefined,
     } as any;
 
+    if (!filter.userId) {
+      throw new UnauthorizedException(
+        'userId is required for event subscriptions',
+      );
+    }
+
     const streamId = `events-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 9)}`;
+    const subscriptionId = `sub-${streamId}`;
+    const reconnectToken = randomUUID();
 
     // Initialize SSE stream
-    this.sse.initializeStream(streamId, res);
+    this.sse.initializeStream(streamId, res, {
+      reconnectToken,
+      onClose: () => this.events.unsubscribe(subscriptionId),
+    });
 
     // Subscribe to events and forward to SSE
-    const subscriptionId = `sub-${streamId}`;
     this.events.subscribeToAgentEvents(subscriptionId, filter, (event) => {
       this.sse.sendToStream(streamId, {
         type: 'progress',

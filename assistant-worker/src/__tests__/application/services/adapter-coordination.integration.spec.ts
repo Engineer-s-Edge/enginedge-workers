@@ -28,6 +28,17 @@ describe('Adapter Coordination Tests', () => {
   let scheduledLearningAdapter: ScheduledLearningAdapter;
   let newsIntegrationAdapter: NewsIntegrationAdapter;
 
+  const toBatchRequest = (items: any[]) => ({
+    expertReports: (items || []).map((item, index) => ({
+      reportId: item.reportId || `report-${index}`,
+      expertId: item.expertId || `expert-${index}`,
+      topic: item.topic || `topic-${index}`,
+      findings: item.findings || [],
+      sources: item.sources || [],
+      confidence: item.confidence ?? 0.7,
+    })),
+  });
+
   beforeEach(async () => {
     // Mock providers for testing
     const mockLLMProvider = {
@@ -104,10 +115,11 @@ describe('Adapter Coordination Tests', () => {
       expect(knowledgeGraphAdapter.getRecentResearchReports).toHaveBeenCalled();
 
       // Validate retrieved research
-      if (research && research.length > 0) {
-        const validation = await validationAdapter.validateBatch(research);
+      if (Array.isArray(research) && research.length > 0) {
+        const request = toBatchRequest(research);
+        const validation = await validationAdapter.validateBatch(request);
 
-        expect(validationAdapter.validateBatch).toHaveBeenCalledWith(research);
+        expect(validationAdapter.validateBatch).toHaveBeenCalledWith(request);
         expect(validation).toBeDefined();
       }
     });
@@ -237,15 +249,17 @@ describe('Adapter Coordination Tests', () => {
           source?: string;
           relevance?: number;
         }>;
-        const validated = await validationAdapter.validateBatch(
-          newsItems.map((item) => ({
+        const request = {
+          expertReports: newsItems.map((item, index) => ({
+            reportId: `news-${index}`,
+            expertId: `news-${index}`,
             topic,
             findings: [String(item.title || '')],
             sources: [String(item.source || '')],
             confidence: Number(item.relevance || 0.5),
-            timestamp: new Date(),
           })),
-        );
+        };
+        const validated = await validationAdapter.validateBatch(request);
 
         expect(validated).toBeDefined();
 
@@ -396,8 +410,8 @@ describe('Adapter Coordination Tests', () => {
       );
 
       // 2. Validate
-      if (existing && existing.length > 0) {
-        await validationAdapter.validateBatch(existing);
+      if (Array.isArray(existing) && existing.length > 0) {
+        await validationAdapter.validateBatch(toBatchRequest(existing));
       }
 
       // 3. Allocate experts

@@ -49,6 +49,7 @@ import { ConversationsService } from './services/conversations.service';
 import { TopicCatalogService } from './services/topic-catalog.service';
 import { CategoryService } from './services/category.service';
 import { ValidationService } from './services/validation.service';
+import { ValidationWorkflowService } from './services/validation-workflow.service';
 import { LearningModeService } from './services/learning-mode.service';
 import { ScheduledLearningManagerService } from './services/scheduled-learning-manager.service';
 import { ResearchService } from './services/research.service';
@@ -184,8 +185,9 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     // Models service
     ModelsService,
 
-    // Validation service
+    // Validation services
     ValidationService,
+    ValidationWorkflowService,
 
     // Learning Mode service
     LearningModeService,
@@ -239,8 +241,9 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     TopicCatalogService,
     CategoryService,
 
-    // Export validation service
+    // Export validation services
     ValidationService,
+    ValidationWorkflowService,
 
     // Export learning mode service
     LearningModeService,

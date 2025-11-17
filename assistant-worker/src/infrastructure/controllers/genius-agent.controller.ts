@@ -16,7 +16,12 @@ import {
   Inject,
   BadRequestException,
   NotFoundException,
+  Sse,
+  MessageEvent,
+  Patch,
+  Query,
 } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
 import { GeniusAgent } from '@domain/agents/genius-agent/genius-agent';
@@ -40,6 +45,16 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
 import { LearningModeAdapter } from '@infrastructure/adapters/implementations/learning-mode.adapter';
 import { ValidationAdapter } from '@infrastructure/adapters/implementations/validation.adapter';
 import { TopicCatalogAdapter } from '@infrastructure/adapters/implementations/topic-catalog.adapter';
+import { ValidationWorkflowService } from '@application/services/validation-workflow.service';
+import {
+  ValidationCheckType,
+  ValidationConfig,
+  ValidationQueueItem,
+  ValidationStatusSnapshot,
+  ValidationResult,
+  ExpertReport,
+} from '@domain/validation/validation.types';
+import { randomUUID } from 'node:crypto';
 import { UserId } from '../decorators/user-id.decorator';
 
 // Logger interface for infrastructure use (matches ILogger from application ports)
@@ -97,6 +112,32 @@ interface ValidationResultEntry {
   [key: string]: unknown;
 }
 
+interface ValidationQueueRequestBody {
+  userId: string;
+  expertId: string;
+  topic: string;
+  findings: string[];
+  sources: string[];
+  summary?: string;
+  confidence?: number;
+  priority?: number;
+  categories?: string[];
+  contradictions?: string[];
+  citations?: Array<{ text: string; sourceId?: string; url?: string }>;
+}
+
+interface ValidatorAgentRequestBody {
+  userId: string;
+  name: string;
+  mode: 'reactive' | 'skin-phase' | 'safety';
+  capabilities: ValidationCheckType[];
+}
+
+interface ReviewActionBody {
+  userId: string;
+  notes?: string;
+}
+
 interface LearningProgressResponse {
   agentId: string;
   userId: string;
@@ -134,6 +175,7 @@ export class GeniusAgentController {
     private readonly geniusOrchestrator: GeniusAgentOrchestrator,
     private readonly learningModeAdapter: LearningModeAdapter,
     private readonly validationAdapter: ValidationAdapter,
+    private readonly validationWorkflow: ValidationWorkflowService,
     private readonly topicCatalogAdapter: TopicCatalogAdapter,
     @Inject('ILogger')
     private readonly logger: Logger,
@@ -503,6 +545,342 @@ export class GeniusAgentController {
   }
 
   /**
+   * POST /agents/genius/:id/validation-queue - enqueue manual validation request
+   */
+  @Post(':id/validation-queue')
+  async enqueueValidation(
+    @Param('id') agentId: string,
+    @Body() body: ValidationQueueRequestBody,
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const report = this.buildExpertReport(agentId, body);
+    const item = this.validationWorkflow.enqueue(
+      agentId,
+      report,
+      body.priority ?? 5,
+    );
+    return {
+      agentId,
+      queue: this.serializeQueueItem(item),
+    };
+  }
+
+  /**
+   * GET /agents/genius/:id/validation-queue - list queue items
+   */
+  @Get(':id/validation-queue')
+  async listValidationQueue(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const queue = this.validationWorkflow
+      .listQueue(agentId)
+      .map((item) => this.serializeQueueItem(item));
+    return { agentId, queue };
+  }
+
+  /**
+   * POST /agents/genius/:id/validation-queue/:queueId/process - execute queued validation
+   */
+  @Post(':id/validation-queue/:queueId/process')
+  async processValidationQueueItem(
+    @Param('id') agentId: string,
+    @Param('queueId') queueId: string,
+    @Body() body: { userId: string; applyFixes?: boolean },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const item = await this.validationWorkflow.processQueueItem(
+      agentId,
+      queueId,
+      { applyFixes: body.applyFixes },
+    );
+    return this.serializeQueueItem(item);
+  }
+
+  /**
+   * GET /agents/genius/:id/experts/:expertId/validation-status - status snapshot
+   */
+  @Get(':id/experts/:expertId/validation-status')
+  async getValidationStatus(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @UserId() userId: string,
+    @Query('reportId') reportId?: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    if (!reportId) {
+      throw new BadRequestException('reportId is required');
+    }
+    const snapshot = this.validationWorkflow.getStatus(expertId, reportId);
+    if (!snapshot) {
+      throw new NotFoundException(
+        `Validation status for expert '${expertId}' not found`,
+      );
+    }
+    return snapshot;
+  }
+
+  /**
+   * GET /agents/genius/:id/validation/events - SSE stream for validation updates
+   */
+  @Sse(':id/validation/events')
+  validationEvents(
+    @Param('id') agentId: string,
+    @Query('userId') userId: string,
+  ): Observable<MessageEvent> {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return new Observable<MessageEvent>((subscriber) => {
+      let subscription: (() => void) | undefined;
+      this.agentService
+        .getAgent(agentId, userId)
+        .then(() => {
+          subscription = this.validationWorkflow.subscribe(
+            agentId,
+            (event) => {
+              subscriber.next(
+                new MessageEvent(event.type, {
+                  data: event.payload,
+                }),
+              );
+            },
+          );
+        })
+        .catch((error) => {
+          subscriber.error(error);
+        });
+
+      return () => {
+        if (subscription) {
+          subscription();
+        }
+      };
+    });
+  }
+
+  /**
+   * GET /agents/genius/:id/validators - list validator agents
+   */
+  @Get(':id/validators')
+  async listValidators(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return {
+      agentId,
+      validators: this.validationWorkflow.listValidatorAgents(agentId),
+    };
+  }
+
+  /**
+   * POST /agents/genius/:id/validators/add - register validator agent
+   */
+  @Post(':id/validators/add')
+  async addValidator(
+    @Param('id') agentId: string,
+    @Body() body: ValidatorAgentRequestBody,
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const validator = this.validationWorkflow.addValidatorAgent(agentId, {
+      name: body.name,
+      mode: body.mode,
+      capabilities: body.capabilities,
+    });
+    return { agentId, validator };
+  }
+
+  /**
+   * POST /agents/genius/:id/validators/:validatorId/validate - run validator
+   */
+  @Post(':id/validators/:validatorId/validate')
+  async runValidator(
+    @Param('id') agentId: string,
+    @Param('validatorId') validatorId: string,
+    @Body() body: ValidationQueueRequestBody,
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const report = this.buildExpertReport(agentId, body);
+    const result = await this.validationWorkflow.runValidator(
+      agentId,
+      validatorId,
+      report,
+    );
+    return this.serializeValidationResult(result);
+  }
+
+  /**
+   * GET /agents/genius/:id/validators/:validatorId/errors - validator errors
+   */
+  @Get(':id/validators/:validatorId/errors')
+  async getValidatorErrors(
+    @Param('id') agentId: string,
+    @Param('validatorId') validatorId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return {
+      agentId,
+      validatorId,
+      errors: this.validationWorkflow.listValidatorErrors(agentId, validatorId),
+    };
+  }
+
+  /**
+   * GET /agents/genius/:id/reviews/pending - manual reviews
+   */
+  @Get(':id/reviews/pending')
+  async listPendingReviews(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return {
+      agentId,
+      reviews: this.validationWorkflow.listManualReviews(agentId),
+    };
+  }
+
+  @Post(':id/reviews/:reviewId/approve')
+  async approveReview(
+    @Param('id') agentId: string,
+    @Param('reviewId') reviewId: string,
+    @Body() body: ReviewActionBody,
+  ) {
+    return this.updateReview(agentId, reviewId, 'approve', body);
+  }
+
+  @Post(':id/reviews/:reviewId/reject')
+  async rejectReview(
+    @Param('id') agentId: string,
+    @Param('reviewId') reviewId: string,
+    @Body() body: ReviewActionBody,
+  ) {
+    return this.updateReview(agentId, reviewId, 'reject', body);
+  }
+
+  @Post(':id/reviews/:reviewId/request-changes')
+  async requestReviewChanges(
+    @Param('id') agentId: string,
+    @Param('reviewId') reviewId: string,
+    @Body() body: ReviewActionBody,
+  ) {
+    return this.updateReview(agentId, reviewId, 'request-changes', body);
+  }
+
+  /**
+   * GET /agents/genius/:id/validations - list validations for agent
+   */
+  @Get(':id/validations')
+  async listValidations(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const validations = this.validationWorkflow
+      .listValidations(agentId)
+      .map((result) => this.serializeValidationResult(result));
+    return { agentId, validations };
+  }
+
+  /**
+   * GET /agents/genius/:id/validations/:validationId - get validation detail
+   */
+  @Get(':id/validations/:validationId')
+  async getValidation(
+    @Param('id') agentId: string,
+    @Param('validationId') validationId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const result = this.validationWorkflow.getValidation(validationId);
+    if (!result) {
+      throw new NotFoundException(`Validation '${validationId}' not found`);
+    }
+    return this.serializeValidationResult(result);
+  }
+
+  /**
+   * GET /agents/genius/:id/experts/:expertId/validations - validations per expert
+   */
+  @Get(':id/experts/:expertId/validations')
+  async getExpertValidations(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const results = this.validationWorkflow
+      .getValidationsForExpert(expertId)
+      .map((result) => this.serializeValidationResult(result));
+    return { agentId, expertId, validations: results };
+  }
+
+  /**
+   * POST /agents/genius/:id/validations/:validationId/apply-fixes
+   */
+  @Post(':id/validations/:validationId/apply-fixes')
+  async applyValidationFixes(
+    @Param('id') agentId: string,
+    @Param('validationId') validationId: string,
+    @Body() body: { userId: string },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const result = await this.validationWorkflow.applyFixes(validationId);
+    return this.serializeValidationResult(result);
+  }
+
+  /**
+   * GET /agents/genius/:id/validation-config
+   */
+  @Get(':id/validation-config')
+  async getValidationConfig(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return this.validationAdapter.getConfig();
+  }
+
+  /**
+   * PATCH /agents/genius/:id/validation-config
+   */
+  @Patch(':id/validation-config')
+  async updateValidationConfig(
+    @Param('id') agentId: string,
+    @Body()
+    body: {
+      userId: string;
+      config: Partial<ValidationConfig>;
+    },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    return this.validationAdapter.updateConfig(body.config);
+  }
+
+  /**
+   * GET /agents/genius/:id/validation-stats
+   */
+  @Get(':id/validation-stats')
+  async getValidationStats(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const stats = this.validationAdapter.getStatistics();
+    const queueSize = this.validationWorkflow.listQueue(agentId).length;
+    const reviews = this.validationWorkflow.listManualReviews(agentId).length;
+    return {
+      agentId,
+      queueSize,
+      pendingReviews: reviews,
+      stats,
+    };
+  }
+
+  /**
    * POST /agents/genius/:id/experts/:expertId/reassign-topics - Reassign expert topics
    */
   @Post(':id/experts/:expertId/reassign-topics')
@@ -616,6 +994,99 @@ export class GeniusAgentController {
       expertId,
       paused: false,
       assignments: this.serializeAssignments(snapshot.assignedTopics),
+    };
+  }
+
+  private async updateReview(
+    agentId: string,
+    reviewId: string,
+    action: 'approve' | 'reject' | 'request-changes',
+    body: ReviewActionBody,
+  ) {
+    if (!body.userId) {
+      throw new BadRequestException('userId is required');
+    }
+    await this.agentService.getAgent(agentId, body.userId);
+    const review = this.validationWorkflow.updateManualReview(
+      agentId,
+      reviewId,
+      action,
+      body.userId,
+      body.notes,
+    );
+    return review;
+  }
+
+  private serializeQueueItem(item: ValidationQueueItem) {
+    return {
+      id: item.id,
+      topic: item.topic,
+      expertId: item.expertId,
+      priority: item.priority,
+      status: item.status,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      history: item.history.map((entry) => ({
+        status: entry.status,
+        timestamp: entry.timestamp.toISOString(),
+        notes: entry.notes,
+      })),
+      result: item.result ? this.serializeValidationResult(item.result) : null,
+      lastError: item.lastError,
+    };
+  }
+
+  private serializeValidationResult(result: ValidationResult) {
+    return {
+      id: result.id,
+      expertId: result.expertId,
+      topic: result.topic,
+      status: result.status,
+      score: result.score,
+      coverageScore: result.coverageScore,
+      completenessScore: result.completenessScore,
+      requiresManualReview: result.requiresManualReview,
+      reviewReason: result.reviewReason,
+      validatedAt: result.validatedAt.toISOString(),
+      durationMs: result.validationDurationMs,
+      issues: result.issues,
+      checks: result.checks,
+    };
+  }
+
+  private buildExpertReport(
+    agentId: string,
+    body: ValidationQueueRequestBody,
+  ): ExpertReport {
+    if (!body.expertId) {
+      throw new BadRequestException('expertId is required');
+    }
+    if (!body.findings?.length) {
+      throw new BadRequestException('findings are required');
+    }
+    if (!body.sources?.length) {
+      throw new BadRequestException('sources are required');
+    }
+
+    return {
+      reportId: `${agentId}:${randomUUID()}`,
+      expertId: body.expertId,
+      topic: body.topic,
+      summary: body.summary,
+      findings: body.findings,
+      sources: body.sources,
+      confidence: body.confidence ?? 0.75,
+      categories: body.categories,
+      contradictions: body.contradictions,
+      citations: body.citations?.map((citation) => ({
+        ...citation,
+        verified: false,
+      })),
+      metadata: {
+        agentId,
+        priority: body.priority ?? 5,
+        source: 'manual',
+      },
     };
   }
 

@@ -33,12 +33,43 @@ export interface KnowledgeGraphEvent {
   };
 }
 
+export interface ICSTraversalNode {
+  id: string;
+  label: string;
+  type: string;
+  layer: ICSLayer;
+  layerIndex: number;
+  summary?: string;
+  confidence?: number;
+  researchStatus?: ResearchStatus;
+  parentId?: string;
+  childIds?: string[];
+  depth: number;
+  order: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ICSTraversalResult {
+  startNodeId: string;
+  direction: 'up' | 'down';
+  nodes: ICSTraversalNode[];
+  layers: ICSLayer[];
+}
+
 /**
  * Knowledge Graph Service
  */
 @Injectable()
 export class KnowledgeGraphService {
   private eventListeners: Set<(event: KnowledgeGraphEvent) => void> = new Set();
+  private readonly layerSequence: ICSLayer[] = [
+    ICSLayer.L1_OBSERVATIONS,
+    ICSLayer.L2_PATTERNS,
+    ICSLayer.L3_MODELS,
+    ICSLayer.L4_THEORIES,
+    ICSLayer.L5_PRINCIPLES,
+    ICSLayer.L6_SYNTHESIS,
+  ];
 
   constructor(
     private readonly neo4jAdapter: Neo4jAdapter,
@@ -668,65 +699,110 @@ export class KnowledgeGraphService {
   /**
    * Traverse ICS hierarchy upward (from observations to synthesis)
    */
-  async traverseUp(startNodeId: string): Promise<KGNode[]> {
-    const path: KGNode[] = [];
+  async traverseUp(startNodeId: string): Promise<ICSTraversalResult> {
+    const nodes: ICSTraversalNode[] = [];
     let currentNodeId: string | null = startNodeId;
+    let depth = 0;
 
     while (currentNodeId) {
       const node = await this.getNode(currentNodeId);
-      if (!node) break;
+      if (!node) {
+        break;
+      }
 
-      path.push(node);
-
-      // Get parent (node that this node supports)
       const neighbors = await this.getNeighbors(currentNodeId, 'out');
+      const nextNode = this.findHigherLayerNeighbor(node, neighbors);
 
-      // Find next higher layer
-      const nextNode = neighbors.find((n) => {
-        const layerOrder = Object.values(ICSLayer);
-        return layerOrder.indexOf(n.layer) > layerOrder.indexOf(node.layer);
-      });
+      nodes.push(
+        this.buildTraversalNode(node, {
+          parentId: nextNode?.id,
+          depth,
+          order: depth,
+        }),
+      );
 
       currentNodeId = nextNode?.id || null;
+      depth += 1;
     }
 
-    return path;
+    const layers = this.buildLayerList(nodes, 'ascending');
+
+    return {
+      startNodeId,
+      direction: 'up',
+      nodes,
+      layers,
+    };
   }
 
   /**
    * Traverse ICS hierarchy downward (from synthesis to observations)
    */
-  async traverseDown(startNodeId: string): Promise<KGNode[]> {
-    const path: KGNode[] = [];
-    const queue: string[] = [startNodeId];
+  async traverseDown(startNodeId: string): Promise<ICSTraversalResult> {
+    const nodes: ICSTraversalNode[] = [];
+    const queue: Array<{ nodeId: string; depth: number }> = [
+      { nodeId: startNodeId, depth: 0 },
+    ];
     const visited = new Set<string>();
+    const parentMap = new Map<string, string>();
+    const childMap = new Map<string, Set<string>>();
 
     while (queue.length > 0) {
-      const nodeId = queue.shift()!;
+      const { nodeId, depth } = queue.shift()!;
 
-      if (visited.has(nodeId)) continue;
+      if (visited.has(nodeId)) {
+        continue;
+      }
       visited.add(nodeId);
 
       const node = await this.getNode(nodeId);
-      if (!node) continue;
+      if (!node) {
+        continue;
+      }
 
-      path.push(node);
+      const childIds = childMap.get(nodeId);
+      nodes.push(
+        this.buildTraversalNode(node, {
+          parentId: parentMap.get(nodeId),
+          depth,
+          order: nodes.length,
+          childIds: childIds ? Array.from(childIds) : undefined,
+        }),
+      );
 
       // Get children (nodes that support this node)
       const neighbors = await this.getNeighbors(nodeId, 'in');
+      const childCandidates = neighbors
+        .filter(
+          (neighbor) =>
+            this.getLayerIndex(neighbor.layer) < this.getLayerIndex(node.layer),
+        )
+        .sort(
+          (a, b) =>
+            this.getLayerIndex(b.layer) - this.getLayerIndex(a.layer),
+        );
 
       // Add lower-layer nodes to queue
-      for (const neighbor of neighbors) {
-        const layerOrder = Object.values(ICSLayer);
-        if (
-          layerOrder.indexOf(neighbor.layer) < layerOrder.indexOf(node.layer)
-        ) {
-          queue.push(neighbor.id);
+      for (const neighbor of childCandidates) {
+        if (!parentMap.has(neighbor.id)) {
+          parentMap.set(neighbor.id, node.id);
         }
+        if (!childMap.has(node.id)) {
+          childMap.set(node.id, new Set());
+        }
+        childMap.get(node.id)!.add(neighbor.id);
+        queue.push({ nodeId: neighbor.id, depth: depth + 1 });
       }
     }
 
-    return path;
+    const layers = this.buildLayerList(nodes, 'descending');
+
+    return {
+      startNodeId,
+      direction: 'down',
+      nodes,
+      layers,
+    };
   }
 
   /**
@@ -813,6 +889,72 @@ export class KnowledgeGraphService {
   async validateNode(nodeId: string, agentId: string): Promise<KGNode | null> {
     this.logger.info('Validating node', { nodeId, agentId });
     return await this.neo4jAdapter.validateNode(nodeId, agentId);
+  }
+
+  private getLayerIndex(layer: ICSLayer): number {
+    return this.layerSequence.indexOf(layer);
+  }
+
+  private findHigherLayerNeighbor(
+    node: KGNode,
+    neighbors: KGNode[],
+  ): KGNode | undefined {
+    const currentIndex = this.getLayerIndex(node.layer);
+    return neighbors
+      .filter((candidate) => this.getLayerIndex(candidate.layer) > currentIndex)
+      .sort(
+        (a, b) =>
+          this.getLayerIndex(a.layer) - this.getLayerIndex(b.layer),
+      )[0];
+  }
+
+  private buildLayerList(
+    nodes: ICSTraversalNode[],
+    direction: 'ascending' | 'descending',
+  ): ICSLayer[] {
+    const uniqueLayers = Array.from(new Set(nodes.map((n) => n.layer)));
+    return uniqueLayers.sort((a, b) => {
+      const comparison =
+        this.getLayerIndex(a) - this.getLayerIndex(b);
+      return direction === 'ascending' ? comparison : -comparison;
+    });
+  }
+
+  private buildTraversalNode(
+    node: KGNode,
+    context?: {
+      parentId?: string;
+      depth?: number;
+      order?: number;
+      childIds?: string[];
+    },
+  ): ICSTraversalNode {
+    const summary =
+      node.researchData?.summary ??
+      node.properties?.summary ??
+      node.properties?.description ??
+      node.properties?.details;
+
+    return {
+      id: node.id,
+      label: node.label,
+      type: node.type,
+      layer: node.layer,
+      layerIndex: this.getLayerIndex(node.layer),
+      summary,
+      confidence: node.confidence,
+      researchStatus: node.researchStatus,
+      parentId: context?.parentId,
+      childIds: context?.childIds,
+      depth: context?.depth ?? 0,
+      order: context?.order ?? 0,
+      metadata: {
+        graphComponentId: node.graphComponentId,
+        explorationStatus: node.explorationStatus,
+        domain: node.properties?.domain,
+        domainColor: node.properties?.domainColor,
+      },
+    };
   }
 
   // ============================
