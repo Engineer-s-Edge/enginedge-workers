@@ -48,11 +48,48 @@ export class ReportController {
    * GET /sessions/:sessionId/report/pdf
    * Get generated report as PDF
    */
-  @Get(':sessionId/pdf')
+  @Get('pdf')
   async getReportPdf(
     @Param('sessionId') sessionId: string,
     @Res() res: Response,
-  ) {
-    // Implement PDF generation
+  ): Promise<void> {
+    const report = await this.evaluatorService.getReport(sessionId);
+    if (!report) {
+      res.status(HttpStatus.NOT_FOUND).json({ error: 'Report not found' });
+      return;
+    }
+
+    // Generate PDF from report
+    // For now, return JSON. In production, use a PDF library like pdfkit or puppeteer
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="interview-report-${sessionId}.pdf"`,
+    );
+
+    // Placeholder: In production, generate actual PDF
+    const pdfContent = `Interview Report for Session ${sessionId}\n\n${JSON.stringify(report, null, 2)}`;
+    res.send(Buffer.from(pdfContent));
+  }
+
+  /**
+   * GET /sessions/:sessionId/questions/:questionId/analysis
+   * Get detailed question analysis
+   */
+  @Get('questions/:questionId/analysis')
+  async getQuestionAnalysis(
+    @Param('sessionId') sessionId: string,
+    @Param('questionId') questionId: string,
+  ): Promise<{
+    questionId: string;
+    thoughtProcess?: string;
+    communicationAnalysis?: string;
+    timeSpent?: number;
+    scoreBreakdown?: any;
+  }> {
+    return await this.evaluatorService.getQuestionAnalysis(
+      sessionId,
+      questionId,
+    );
   }
 }

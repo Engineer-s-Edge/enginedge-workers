@@ -26,6 +26,10 @@ import { RecommendationService } from './services/recommendation.service';
 import { ActivityModelService } from './services/activity-model.service';
 import { PatternAnalyzerService } from './services/pattern-analyzer.service';
 import { PredictionService } from './services/prediction.service';
+import { TaskService } from './services/task.service';
+import { DayLockService } from './services/day-lock.service';
+import { MLRecommendationService } from './services/ml-recommendation.service';
+import { LLMTaskAssistService } from './services/llm-task-assist.service';
 
 /**
  * Application module - use cases and application services
@@ -50,6 +54,10 @@ import { PredictionService } from './services/prediction.service';
     ActivityModelService,
     PatternAnalyzerService,
     PredictionService,
+    TaskService,
+    DayLockService,
+    MLRecommendationService,
+    LLMTaskAssistService,
   ],
   exports: [
     // Export domain module so infrastructure can access it
@@ -67,6 +75,10 @@ import { PredictionService } from './services/prediction.service';
     ActivityModelService,
     PatternAnalyzerService,
     PredictionService,
+    TaskService,
+    DayLockService,
+    MLRecommendationService,
+    LLMTaskAssistService,
   ],
 })
 export class ApplicationModule {}

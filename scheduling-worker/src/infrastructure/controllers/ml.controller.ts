@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Param,
+  Query,
   HttpException,
   HttpStatus,
   Logger,
@@ -15,6 +16,8 @@ import {
   UserPatterns,
 } from '../../application/services/recommendation.service';
 import { MongoCalendarEventRepository } from '../adapters/persistence/mongo-calendar-event.repository';
+import { MLRecommendationService } from '../../application/services/ml-recommendation.service';
+import { TaskService } from '../../application/services/task.service';
 
 /**
  * DTOs for ML endpoints
@@ -66,6 +69,8 @@ export class MLController {
   constructor(
     private readonly recommendationService: RecommendationService,
     private readonly calendarRepo: MongoCalendarEventRepository,
+    private readonly mlRecommendationService: MLRecommendationService,
+    private readonly taskService: TaskService,
   ) {}
 
   /**
@@ -276,5 +281,156 @@ export class MLController {
     const available = await mlClient.healthCheck();
 
     return { mlServiceAvailable: available };
+  }
+
+  /**
+   * ML Task Scheduling - Find optimal time slot for task
+   *
+   * NOTE: This endpoint is kept for backward compatibility.
+   * The main endpoint is at POST /scheduling/tasks/schedule
+   */
+  @Post('tasks/schedule')
+  async scheduleTaskML(
+    @Body() body: {
+      title: string;
+      description?: string;
+      estimatedDuration: number;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      category?: string;
+      dueDate?: string;
+      preferences?: {
+        preferredHours?: number[];
+        preferredDays?: number[];
+        avoidConflicts?: boolean;
+      };
+    },
+  ) {
+    this.logger.log(`ML scheduling task: ${body.title}`);
+
+    // This would integrate with ML model to find optimal slots
+    // For now, return mock recommendations
+    const recommendations = [
+      {
+        startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000 + body.estimatedDuration * 60 * 1000).toISOString(),
+        confidence: 0.85,
+        reasoning: 'High availability, optimal productivity time, no conflicts',
+      },
+    ];
+
+    return {
+      recommendations,
+      shouldSplit: false,
+      splitRecommendation: null,
+    };
+  }
+
+  /**
+   * ML Task Split and Schedule - Split task and schedule parts
+   *
+   * NOTE: This endpoint is kept for backward compatibility.
+   * The main endpoint is at POST /scheduling/tasks/split-schedule
+   */
+  @Post('tasks/split-schedule')
+  async splitAndScheduleTaskML(
+    @Body() body: {
+      title: string;
+      description?: string;
+      totalDuration: number;
+      preferredPartDuration: number;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      category?: string;
+      timeRange: {
+        start: string;
+        end: string;
+      };
+    },
+  ) {
+    this.logger.log(`ML splitting and scheduling task: ${body.title}`);
+
+    const numberOfParts = Math.ceil(body.totalDuration / body.preferredPartDuration);
+    const splitTasks = [];
+
+    for (let i = 0; i < numberOfParts; i++) {
+      const startTime = new Date(new Date(body.timeRange.start).getTime() + i * 24 * 60 * 60 * 1000);
+      startTime.setHours(9, 0, 0, 0);
+      const endTime = new Date(startTime.getTime() + body.preferredPartDuration * 60 * 1000);
+
+      splitTasks.push({
+        id: `task_${Date.now()}_${i}`,
+        title: `${body.title} (Part ${i + 1})`,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        confidence: 0.8 - i * 0.02,
+      });
+    }
+
+    return { splitTasks };
+  }
+
+  /**
+   * Get ML recommendations for task reorganization
+   *
+   * NOTE: This endpoint is kept for backward compatibility.
+   * The main endpoint is at GET /scheduling/recommendations
+   */
+  @Get('recommendations')
+  async getRecommendationsML(
+    @Query('userId') userId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    this.logger.log(`Getting ML recommendations for user ${userId}`);
+
+    const result = await this.mlRecommendationService.generateRecommendations(
+      userId,
+      new Date(startDate),
+      new Date(endDate),
+    );
+
+    return result;
+  }
+
+  /**
+   * Accept ML recommendations
+   *
+   * NOTE: This endpoint is kept for backward compatibility.
+   * The main endpoint is at POST /scheduling/recommendations/accept
+   */
+  @Post('recommendations/accept')
+  async acceptRecommendationsML(
+    @Body() body: {
+      userId: string;
+      recommendationIds?: string[];
+      allRecommendations: Array<{
+        taskId: string;
+        originalStartTime: string;
+        recommendedStartTime: string;
+        originalEndTime: string;
+        recommendedEndTime: string;
+        reasoning: string;
+        confidence: number;
+      }>;
+    },
+  ) {
+    this.logger.log(`Accepting recommendations for user ${body.userId}`);
+
+    const recommendations = body.allRecommendations.map((r) => ({
+      taskId: r.taskId,
+      originalStartTime: new Date(r.originalStartTime),
+      recommendedStartTime: new Date(r.recommendedStartTime),
+      originalEndTime: new Date(r.originalEndTime),
+      recommendedEndTime: new Date(r.recommendedEndTime),
+      reasoning: r.reasoning,
+      confidence: r.confidence,
+    }));
+
+    const result = await this.mlRecommendationService.applyRecommendations(
+      body.userId,
+      body.recommendationIds || [],
+      recommendations,
+    );
+
+    return result;
   }
 }

@@ -1,16 +1,19 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { JobPosting } from '../../domain/entities/job-posting.entity';
 import { ExperienceBankService } from './experience-bank.service';
 import { MessageBrokerPort } from '../ports/message-broker.port';
+import { CoverLetterSchema } from '../../infrastructure/database/schemas/cover-letter.schema';
 
 export interface CoverLetter {
   _id?: string;
   userId: string;
-  jobPostingId: string;
-  content: string;
+  resumeId: string;
+  jobPostingId?: string;
+  latexContent: string;
+  pdfUrl?: string;
   metadata: {
     company: string;
     position: string;
@@ -18,11 +21,13 @@ export interface CoverLetter {
     length: 'short' | 'medium' | 'long';
     experiencesUsed: string[]; // IDs from experience bank
   };
+  version: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface GenerateCoverLetterOptions {
+  resumeId: string;
   jobPostingId: string;
   tone?: 'professional' | 'casual' | 'enthusiastic';
   length?: 'short' | 'medium' | 'long';
@@ -34,10 +39,9 @@ export interface GenerateCoverLetterOptions {
 export class CoverLetterService {
   private readonly logger = new Logger(CoverLetterService.name);
 
-  // Store cover letters in memory (in production, use MongoDB)
-  private coverLetters = new Map<string, CoverLetter>();
-
   constructor(
+    @InjectModel('CoverLetter')
+    private readonly coverLetterModel: Model<CoverLetterSchema>,
     @InjectModel('JobPosting')
     private readonly jobPostingModel: Model<JobPosting>,
     private readonly experienceBankService: ExperienceBankService,
@@ -90,27 +94,22 @@ export class CoverLetterService {
     );
 
     // Step 5: Create cover letter document
-    const coverLetterId = `${userId}-${options.jobPostingId}-${Date.now()}`;
-    const coverLetter: CoverLetter = {
-      _id: coverLetterId,
+    const coverLetter = await this.coverLetterModel.create({
       userId,
-      jobPostingId: options.jobPostingId,
-      content,
+      resumeId: new Types.ObjectId(options.resumeId),
+      jobPostingId: options.jobPostingId ? new Types.ObjectId(options.jobPostingId) : undefined,
+      latexContent: `\\documentclass{letter}\n\\begin{document}\n${content}\n\\end{document}`,
       metadata: {
         company: jobPosting.parsed.company.hiringOrganization || 'Company',
         position: jobPosting.parsed.role.titleRaw,
         tone: options.tone || 'professional',
         length: options.length || 'medium',
-        experiencesUsed: relevantExperiences.map((e) => e._id.toString()),
+        experiencesUsed: relevantExperiences.map((e) => e._id),
       },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      version: 1,
+    });
 
-    // Store in memory (in production, save to MongoDB)
-    this.coverLetters.set(coverLetterId, coverLetter);
-
-    return coverLetter;
+    return this.toCoverLetter(coverLetter);
   }
 
   /**
@@ -532,6 +531,140 @@ Please write a compelling cover letter that:
   }
 
   /**
+   * Create cover letter
+   */
+  async create(
+    userId: string,
+    resumeId: string,
+    jobPostingId: string | undefined,
+    latexContent: string,
+  ): Promise<CoverLetter> {
+    const coverLetter = await this.coverLetterModel.create({
+      userId,
+      resumeId: new Types.ObjectId(resumeId),
+      jobPostingId: jobPostingId ? new Types.ObjectId(jobPostingId) : undefined,
+      latexContent,
+      metadata: {
+        company: '',
+        position: '',
+        tone: 'professional',
+        length: 'medium',
+        experiencesUsed: [],
+      },
+      version: 1,
+    });
+
+    return this.toCoverLetter(coverLetter);
+  }
+
+  /**
+   * Get cover letter by ID
+   */
+  async getById(id: string): Promise<CoverLetter | null> {
+    const coverLetter = await this.coverLetterModel.findById(id).exec();
+    return coverLetter ? this.toCoverLetter(coverLetter) : null;
+  }
+
+  /**
+   * Update cover letter
+   */
+  async update(
+    id: string,
+    updates: { latexContent?: string; version?: number },
+  ): Promise<CoverLetter> {
+    const updateData: any = {};
+    if (updates.latexContent) {
+      updateData.latexContent = updates.latexContent;
+    }
+    if (updates.version) {
+      updateData.version = updates.version;
+    }
+
+    const coverLetter = await this.coverLetterModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true },
+    ).exec();
+
+    if (!coverLetter) {
+      throw new Error('Cover letter not found');
+    }
+
+    return this.toCoverLetter(coverLetter);
+  }
+
+  /**
+   * Get cover letters for resume
+   */
+  async getByResumeId(resumeId: string): Promise<CoverLetter[]> {
+    const coverLetters = await this.coverLetterModel
+      .find({ resumeId: new Types.ObjectId(resumeId) })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    return coverLetters.map(cl => this.toCoverLetter(cl));
+  }
+
+  /**
+   * Delete cover letter
+   */
+  async delete(id: string): Promise<{ success: boolean }> {
+    await this.coverLetterModel.deleteOne({ _id: id }).exec();
+    return { success: true };
+  }
+
+  /**
+   * Export cover letter as LaTeX
+   */
+  async exportTex(id: string): Promise<{ content: string; filename: string }> {
+    const coverLetter = await this.coverLetterModel.findById(id).exec();
+    if (!coverLetter) {
+      throw new Error('Cover letter not found');
+    }
+
+    return {
+      content: coverLetter.latexContent,
+      filename: `cover-letter-${id}.tex`,
+    };
+  }
+
+  /**
+   * Export cover letter as PDF
+   */
+  async exportPdf(id: string): Promise<{ pdfUrl: string; filename: string }> {
+    const coverLetter = await this.coverLetterModel.findById(id).exec();
+    if (!coverLetter) {
+      throw new Error('Cover letter not found');
+    }
+
+    // Compile LaTeX to PDF
+    const latexWorkerUrl = this.configService.get<string>('LATEX_WORKER_URL') || 'http://localhost:3005';
+    const response = await fetch(`${latexWorkerUrl}/latex/compile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: coverLetter.latexContent,
+        userId: coverLetter.userId,
+        settings: {
+          engine: 'xelatex',
+          maxPasses: 2,
+          timeout: 60000,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to compile LaTeX to PDF');
+    }
+
+    const result = await response.json();
+    return {
+      pdfUrl: result.pdfUrl || result.pdf,
+      filename: `cover-letter-${id}.pdf`,
+    };
+  }
+
+  /**
    * Regenerate cover letter with different options.
    */
   async regenerateCoverLetter(
@@ -540,17 +673,21 @@ Please write a compelling cover letter that:
   ): Promise<CoverLetter> {
     this.logger.log(`Regenerating cover letter ${coverLetterId}`);
 
-    const existing = this.coverLetters.get(coverLetterId);
+    const existing = await this.coverLetterModel.findById(coverLetterId).exec();
     if (!existing) {
       throw new Error(`Cover letter ${coverLetterId} not found`);
     }
 
     // Get job posting
-    const jobPosting = await this.jobPostingModel
-      .findById(existing.jobPostingId)
-      .exec();
-    if (!jobPosting) {
+    const jobPosting = existing.jobPostingId
+      ? await this.jobPostingModel.findById(existing.jobPostingId).exec()
+      : null;
+    if (!jobPosting && existing.jobPostingId) {
       throw new Error(`Job posting ${existing.jobPostingId} not found`);
+    }
+
+    if (!jobPosting) {
+      throw new Error('Job posting required for regeneration');
     }
 
     // Research company again if needed
@@ -562,16 +699,16 @@ Please write a compelling cover letter that:
     const relevantExperiences = await this.findRelevantExperiences(
       existing.userId,
       jobPosting,
-      options.includeExperiences || existing.metadata.experiencesUsed,
+      options.includeExperiences || existing.metadata.experiencesUsed.map(id => id.toString()),
     );
 
     // Merge options
     const mergedOptions: GenerateCoverLetterOptions = {
-      jobPostingId: existing.jobPostingId,
+      jobPostingId: existing.jobPostingId?.toString() || '',
       tone: options.tone || existing.metadata.tone,
       length: options.length || existing.metadata.length,
       includeExperiences:
-        options.includeExperiences || existing.metadata.experiencesUsed,
+        options.includeExperiences || existing.metadata.experiencesUsed.map(id => id.toString()),
       customInstructions: options.customInstructions,
     };
 
@@ -584,15 +721,15 @@ Please write a compelling cover letter that:
     );
 
     // Update cover letter
-    existing.content = newContent;
+    existing.latexContent = `\\documentclass{letter}\n\\begin{document}\n${newContent}\n\\end{document}`;
     existing.metadata.tone = mergedOptions.tone || existing.metadata.tone;
     existing.metadata.length = mergedOptions.length || existing.metadata.length;
     existing.metadata.experiencesUsed =
-      mergedOptions.includeExperiences || existing.metadata.experiencesUsed;
-    existing.updatedAt = new Date();
+      mergedOptions.includeExperiences?.map(id => new Types.ObjectId(id)) || existing.metadata.experiencesUsed;
+    existing.version = (existing.version || 1) + 1;
 
-    this.coverLetters.set(coverLetterId, existing);
-    return existing;
+    await existing.save();
+    return this.toCoverLetter(existing);
   }
 
   /**
@@ -604,15 +741,39 @@ Please write a compelling cover letter that:
   ): Promise<CoverLetter> {
     this.logger.log(`Editing cover letter ${coverLetterId}`);
 
-    const existing = this.coverLetters.get(coverLetterId);
+    const existing = await this.coverLetterModel.findById(coverLetterId).exec();
     if (!existing) {
       throw new Error(`Cover letter ${coverLetterId} not found`);
     }
 
-    existing.content = newContent;
-    existing.updatedAt = new Date();
+    existing.latexContent = newContent;
+    existing.version = (existing.version || 1) + 1;
 
-    this.coverLetters.set(coverLetterId, existing);
-    return existing;
+    await existing.save();
+    return this.toCoverLetter(existing);
+  }
+
+  /**
+   * Convert Mongoose document to CoverLetter entity
+   */
+  private toCoverLetter(doc: CoverLetterSchema): CoverLetter {
+    return {
+      _id: doc._id.toString(),
+      userId: doc.userId,
+      resumeId: doc.resumeId.toString(),
+      jobPostingId: doc.jobPostingId?.toString(),
+      latexContent: doc.latexContent,
+      pdfUrl: doc.pdfUrl,
+      metadata: {
+        company: doc.metadata.company,
+        position: doc.metadata.position,
+        tone: doc.metadata.tone,
+        length: doc.metadata.length,
+        experiencesUsed: doc.metadata.experiencesUsed.map(id => id.toString()),
+      },
+      version: doc.version,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    };
   }
 }

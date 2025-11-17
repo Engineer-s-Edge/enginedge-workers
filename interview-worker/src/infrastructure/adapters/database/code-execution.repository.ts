@@ -38,7 +38,12 @@ export class MongoCodeExecutionRepository
 
   async save(execution: CodeExecution): Promise<CodeExecution> {
     const doc = this.toDocument(execution);
-    await this.collection.insertOne(doc);
+    // Use upsert to handle retries or updates
+    await this.collection.updateOne(
+      { id: execution.id },
+      { $set: doc },
+      { upsert: true },
+    );
     return this.toEntity(doc);
   }
 

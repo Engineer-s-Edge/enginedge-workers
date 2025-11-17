@@ -27,6 +27,8 @@ import { SkipQuestionUseCase } from './use-cases/skip-question.use-case';
 import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
 import { WebhookService } from './services/webhook.service';
 import { NotificationService } from './services/notification.service';
+import { PhaseTransitionService } from './services/phase-transition.service';
+import { TimeLimitService } from './services/time-limit.service';
 
 /**
  * Application module - use cases and application services
@@ -67,6 +69,8 @@ import { NotificationService } from './services/notification.service';
     EvaluatorService,
     WebhookService,
     NotificationService,
+    PhaseTransitionService,
+    TimeLimitService,
   ],
 })
 export class ApplicationModule {}

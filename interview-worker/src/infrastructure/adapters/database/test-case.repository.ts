@@ -13,6 +13,9 @@ export interface ITestCaseRepository {
   saveMany(testCases: TestCase[]): Promise<TestCase[]>;
   findByQuestionId(questionId: string): Promise<TestCase[]>;
   findById(id: string): Promise<TestCase | null>;
+  update(id: string, updates: Partial<TestCase>): Promise<TestCase>;
+  delete(id: string): Promise<boolean>;
+  deleteByQuestionId(questionId: string): Promise<number>;
 }
 
 @Injectable()
@@ -51,6 +54,33 @@ export class MongoTestCaseRepository
   async findById(id: string): Promise<TestCase | null> {
     const doc = await this.collection.findOne({ id });
     return doc ? this.toEntity(doc) : null;
+  }
+
+  async update(id: string, updates: Partial<TestCase>): Promise<TestCase> {
+    const updateDoc: any = {};
+    if (updates.input !== undefined) updateDoc.input = updates.input;
+    if (updates.expectedOutput !== undefined)
+      updateDoc.expectedOutput = updates.expectedOutput;
+    if (updates.isHidden !== undefined) updateDoc.isHidden = updates.isHidden;
+    if (updates.description !== undefined)
+      updateDoc.description = updates.description;
+
+    await this.collection.updateOne({ id }, { $set: updateDoc });
+    const updated = await this.findById(id);
+    if (!updated) {
+      throw new Error(`Test case ${id} not found after update`);
+    }
+    return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.collection.deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+
+  async deleteByQuestionId(questionId: string): Promise<number> {
+    const result = await this.collection.deleteMany({ questionId });
+    return result.deletedCount;
   }
 
   private toDocument(testCase: TestCase): any {

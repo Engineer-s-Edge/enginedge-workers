@@ -4,7 +4,7 @@
  * Bridges orchestrator with ScheduledLearningManager
  */
 
-import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   IScheduledLearningAdapter,
   ScheduleConfig,
@@ -18,7 +18,6 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   constructor(
     @Optional()
-    @Inject('ScheduledLearningManagerService')
     private readonly scheduledLearningManager?: ScheduledLearningManagerService,
   ) {
     if (!this.scheduledLearningManager) {
@@ -30,22 +29,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async scheduleLearning(config: ScheduleConfig): Promise<ScheduleInfo> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.scheduleLearning(config);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-
-      // Fallback stub implementation
-      this.logger.warn('Using stub implementation for scheduleLearning');
-      const schedule: ScheduleInfo = {
-        id: `schedule-${Date.now()}`,
-        topicId: config.topicId,
-        userId: config.userId,
-        cronExpression: config.cronExpression,
-        nextRun: new Date(Date.now() + 3600000),
-        runCount: 0,
-        enabled: config.enabled ?? true,
-      };
-      return schedule;
+      return await this.scheduledLearningManager.scheduleLearning(config);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -58,10 +45,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async cancelScheduled(scheduleId: string): Promise<boolean> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.cancelScheduled(scheduleId);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      return false;
+      return await this.scheduledLearningManager.cancelScheduled(scheduleId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to cancel schedule: ${err.message}`, err.stack);
@@ -71,10 +58,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async getSchedule(scheduleId: string): Promise<ScheduleInfo | null> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.getSchedule(scheduleId);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      return null;
+      return await this.scheduledLearningManager.getSchedule(scheduleId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to get schedule: ${err.message}`, err.stack);
@@ -84,10 +71,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async getUserSchedules(userId: string): Promise<ScheduleInfo[]> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.getUserSchedules(userId);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      return [];
+      return await this.scheduledLearningManager.getUserSchedules(userId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -103,13 +90,13 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
     config: Partial<ScheduleConfig>,
   ): Promise<ScheduleInfo> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.updateSchedule(
-          scheduleId,
-          config,
-        );
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      throw new Error('ScheduledLearningManager not available');
+      return await this.scheduledLearningManager.updateSchedule(
+        scheduleId,
+        config,
+      );
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to update schedule: ${err.message}`, err.stack);
@@ -119,10 +106,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async getNextScheduledRuns(limit = 10): Promise<ScheduleInfo[]> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.getNextScheduledRuns(limit);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      return [];
+      return await this.scheduledLearningManager.getNextScheduledRuns(limit);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(
@@ -135,10 +122,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async pauseSchedule(scheduleId: string): Promise<boolean> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.pauseSchedule(scheduleId);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      return false;
+      return await this.scheduledLearningManager.pauseSchedule(scheduleId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to pause schedule: ${err.message}`, err.stack);
@@ -148,10 +135,10 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
 
   async resumeSchedule(scheduleId: string): Promise<boolean> {
     try {
-      if (this.scheduledLearningManager) {
-        return await this.scheduledLearningManager.resumeSchedule(scheduleId);
+      if (!this.scheduledLearningManager) {
+        throw new Error('ScheduledLearningManagerService is required but not available');
       }
-      return false;
+      return await this.scheduledLearningManager.resumeSchedule(scheduleId);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Failed to resume schedule: ${err.message}`, err.stack);

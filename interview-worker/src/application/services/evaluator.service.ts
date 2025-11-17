@@ -322,6 +322,92 @@ Output valid JSON only (no markdown, no code blocks):
     return Math.max(0, Math.min(100, Math.round(score)));
   }
 
+  /**
+   * Get detailed question analysis
+   */
+  async getQuestionAnalysis(
+    sessionId: string,
+    questionId: string,
+  ): Promise<{
+    questionId: string;
+    thoughtProcess?: string;
+    communicationAnalysis?: string;
+    timeSpent?: number;
+    scoreBreakdown?: any;
+  }> {
+    const session = await this.sessionRepository.findById(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    const transcript =
+      await this.transcriptRepository.findBySessionId(sessionId);
+    if (!transcript) {
+      throw new Error(`Transcript not found for session: ${sessionId}`);
+    }
+
+    // Extract messages related to this question
+    const questionMessages = transcript.messages.filter((msg) =>
+      msg.text.toLowerCase().includes(questionId.toLowerCase()),
+    );
+
+    // Calculate time spent (simplified - would need more sophisticated tracking)
+    const timeSpent = questionMessages.length > 0
+      ? questionMessages[questionMessages.length - 1].timestamp.getTime() -
+        questionMessages[0].timestamp.getTime()
+      : undefined;
+
+    // Extract thought process indicators
+    const thoughtProcess = this.extractThoughtProcess(questionMessages);
+
+    // Communication analysis
+    const communicationAnalysis = this.analyzeCommunication(questionMessages);
+
+    return {
+      questionId,
+      thoughtProcess,
+      communicationAnalysis,
+      timeSpent: timeSpent ? Math.floor(timeSpent / 1000) : undefined,
+      scoreBreakdown: undefined, // Would need to extract from report
+    };
+  }
+
+  private extractThoughtProcess(messages: any[]): string {
+    const candidateMessages = messages.filter((m) => m.speaker === 'candidate');
+    const indicators: string[] = [];
+
+    candidateMessages.forEach((msg) => {
+      const text = msg.text.toLowerCase();
+      if (text.includes('clarify') || text.includes('question')) {
+        indicators.push('Asked clarifying questions');
+      }
+      if (text.includes('hint') || text.includes('help')) {
+        indicators.push('Requested hints');
+      }
+      if (text.includes('think') || text.includes('approach')) {
+        indicators.push('Explained approach');
+      }
+    });
+
+    return indicators.length > 0
+      ? indicators.join('. ')
+      : 'No clear thought process indicators found';
+  }
+
+  private analyzeCommunication(messages: any[]): string {
+    const candidateMessages = messages.filter((m) => m.speaker === 'candidate');
+    const avgLength =
+      candidateMessages.reduce((sum, m) => sum + m.text.length, 0) /
+      candidateMessages.length;
+
+    if (avgLength < 50) {
+      return 'Brief responses';
+    } else if (avgLength > 200) {
+      return 'Detailed explanations';
+    }
+    return 'Balanced communication';
+  }
+
   private get logger() {
     // Simple logger for now - would inject ILogger in production
     return {

@@ -8,6 +8,7 @@ import {
   Goal,
   ActivityPattern,
   ActivityEvent,
+  Task,
 } from '../../domain/entities';
 
 /**
@@ -237,4 +238,88 @@ export interface IActivityEventRepository {
    * Delete an event
    */
   delete(id: string): Promise<void>;
+}
+
+/**
+ * Task Repository Port
+ */
+export interface ITaskRepository {
+  /**
+   * Save a task
+   */
+  save(task: Task): Promise<Task>;
+
+  /**
+   * Find task by ID
+   */
+  findById(id: string): Promise<Task | null>;
+
+  /**
+   * Find tasks by date range
+   */
+  findByDateRange(startDate: Date, endDate: Date, userId?: string): Promise<Task[]>;
+
+  /**
+   * Find tasks by category
+   */
+  findByCategory(category: string, startDate: Date, endDate: Date, userId?: string): Promise<Task[]>;
+
+  /**
+   * Find locked tasks in date range
+   */
+  findLockedTasks(startDate: Date, endDate: Date, userId?: string): Promise<Task[]>;
+
+  /**
+   * Find unlocked tasks in date range
+   */
+  findUnlockedTasks(startDate: Date, endDate: Date, userId?: string): Promise<Task[]>;
+
+  /**
+   * Find tasks by status
+   */
+  findByStatus(status: Task['completionStatus'], startDate: Date, endDate: Date, userId?: string): Promise<Task[]>;
+
+  /**
+   * Find tasks by priority
+   */
+  findByPriority(priority: Task['priority'], startDate: Date, endDate: Date, userId?: string): Promise<Task[]>;
+
+  /**
+   * Find tasks by user ID
+   */
+  findByUserId(userId: string, startDate?: Date, endDate?: Date): Promise<Task[]>;
+
+  /**
+   * Find tasks by parent task ID (for split tasks)
+   */
+  findByParentTaskId(parentTaskId: string): Promise<Task[]>;
+
+  /**
+   * Find tasks by split from task ID
+   */
+  findBySplitFromTaskId(splitFromTaskId: string): Promise<Task[]>;
+
+  /**
+   * Update a task
+   */
+  update(task: Task): Promise<Task>;
+
+  /**
+   * Delete a task
+   */
+  delete(id: string): Promise<boolean>;
+
+  /**
+   * Find tasks with filters
+   */
+  findWithFilters(filters: {
+    userId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    category?: string;
+    priority?: Task['priority'];
+    status?: Task['completionStatus'];
+    isLocked?: boolean;
+    tags?: string[];
+  }): Promise<Task[]>;
 }

@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { JobPosting } from '../../domain/entities/job-posting.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageBrokerPort } from '../ports/message-broker.port';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class JobPostingService implements OnModuleInit {
@@ -64,14 +65,23 @@ export class JobPostingService implements OnModuleInit {
         pending.reject(new Error(response.error));
       } else if (response.result) {
         // Create JobPosting from parsed data
+        const checksum = crypto.createHash('sha256').update(response.result.rawText).digest('hex');
         const jobPosting = new this.jobPostingModel({
           userId: response.result.userId,
           url: response.result.url,
           rawText: response.result.rawText,
           rawHtml: response.result.rawHtml,
-          parsed: response.result.parsed,
+          parsed: {
+            ...response.result.parsed,
+            metadata: {
+              ...(response.result.parsed?.metadata || {}),
+              checksumSha256: checksum,
+            },
+          },
           extractionMethod: 'nlp',
           confidence: response.result.confidence || 0.75,
+          tags: [],
+          notes: '',
           createdAt: new Date(),
         });
         const saved = await jobPosting.save();
@@ -103,6 +113,18 @@ export class JobPostingService implements OnModuleInit {
     html?: string,
   ): Promise<JobPosting> {
     this.logger.log(`Extracting job posting for user ${userId}`);
+
+    // Check if posting already extracted (by checksum)
+    const checksum = crypto.createHash('sha256').update(text).digest('hex');
+    const existing = await this.jobPostingModel.findOne({
+      userId,
+      'parsed.metadata.checksumSha256': checksum,
+    }).exec();
+
+    if (existing) {
+      this.logger.log(`Job posting already extracted, returning existing`);
+      return existing;
+    }
 
     const correlationId = uuidv4();
 
@@ -167,5 +189,153 @@ export class JobPostingService implements OnModuleInit {
   async delete(id: string): Promise<boolean> {
     const result = await this.jobPostingModel.deleteOne({ _id: id }).exec();
     return result.deletedCount > 0;
+  }
+
+  /**
+   * Update job posting metadata
+   */
+  async update(
+    id: string,
+    updates: { tags?: string[]; notes?: string },
+  ): Promise<JobPosting> {
+    const updateData: any = {};
+    if (updates.tags !== undefined) {
+      updateData.tags = updates.tags;
+    }
+    if (updates.notes !== undefined) {
+      updateData.notes = updates.notes;
+    }
+
+    const posting = await this.jobPostingModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true },
+    ).exec();
+
+    if (!posting) {
+      throw new Error('Job posting not found');
+    }
+
+    return posting;
+  }
+
+  /**
+   * Search and filter job postings
+   */
+  async searchAndFilter(
+    userId: string,
+    options: {
+      search?: string;
+      tags?: string[];
+      company?: string;
+      role?: string;
+      startDate?: string;
+      endDate?: string;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<{
+    results: any[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const query: any = { userId };
+
+    // Text search
+    if (options.search) {
+      query.$or = [
+        { rawText: { $regex: options.search, $options: 'i' } },
+        { 'parsed.role.titleRaw': { $regex: options.search, $options: 'i' } },
+        { 'parsed.company.hiringOrganization': { $regex: options.search, $options: 'i' } },
+      ];
+    }
+
+    // Filter by tags
+    if (options.tags && options.tags.length > 0) {
+      query.tags = { $in: options.tags };
+    }
+
+    // Filter by company
+    if (options.company) {
+      query['parsed.company.hiringOrganization'] = { $regex: options.company, $options: 'i' };
+    }
+
+    // Filter by role
+    if (options.role) {
+      query['parsed.role.titleRaw'] = { $regex: options.role, $options: 'i' };
+    }
+
+    // Filter by date range
+    if (options.startDate || options.endDate) {
+      query.createdAt = {};
+      if (options.startDate) {
+        query.createdAt.$gte = new Date(options.startDate);
+      }
+      if (options.endDate) {
+        query.createdAt.$lte = new Date(options.endDate);
+      }
+    }
+
+    // Count total
+    const total = await this.jobPostingModel.countDocuments(query).exec();
+
+    // Build query
+    let mongoQuery = this.jobPostingModel.find(query);
+
+    // Sort
+    const sortField = options.sortBy || 'createdAt';
+    const sortOrder = options.sortOrder === 'asc' ? 1 : -1;
+    mongoQuery = mongoQuery.sort({ [sortField]: sortOrder });
+
+    // Paginate
+    mongoQuery = mongoQuery.skip(options.offset || 0).limit(options.limit || 50);
+
+    const results = await mongoQuery.exec();
+
+    return {
+      results,
+      total,
+      limit: options.limit || 50,
+      offset: options.offset || 0,
+    };
+  }
+
+  /**
+   * Get summary of job postings
+   */
+  async getSummary(
+    userId: string,
+    query: any,
+  ): Promise<{
+    results: Array<{
+      _id: string;
+      position: string;
+      company: string;
+      dateEntered: Date;
+      tags: string[];
+    }>;
+    total: number;
+  }> {
+    const searchResult = await this.searchAndFilter(userId, {
+      ...query,
+      limit: query.limit || 50,
+      offset: query.offset || 0,
+    });
+
+    const results = searchResult.results.map(posting => ({
+      _id: posting._id.toString(),
+      position: posting.parsed?.role?.titleRaw || '',
+      company: posting.parsed?.company?.hiringOrganization || '',
+      dateEntered: posting.createdAt,
+      tags: posting.tags || [],
+    }));
+
+    return {
+      results,
+      total: searchResult.total,
+    };
   }
 }

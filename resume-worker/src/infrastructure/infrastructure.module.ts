@@ -13,6 +13,11 @@ import { ResumeIteratorGateway } from './gateways/resume-iterator.gateway';
 import { BulletReviewGateway } from './gateways/bullet-review.gateway';
 import { ResumeBuilderGateway } from './gateways/resume-builder.gateway';
 import { CoverLetterController } from './controllers/cover-letter.controller';
+import { SuggestionsController } from './controllers/suggestions.controller';
+import { ToolsController } from './controllers/tools.controller';
+import { BulletsController } from './controllers/bullets.controller';
+import { LatexController, LatexLintController } from './controllers/latex.controller';
+import { UserDataController } from './controllers/user-data.controller';
 import { MessageBrokerPort } from '../application/ports/message-broker.port';
 
 /**
@@ -30,6 +35,12 @@ import { MessageBrokerPort } from '../application/ports/message-broker.port';
     ResumeTailoringController,
     ResumeEditingController,
     CoverLetterController,
+    SuggestionsController,
+    ToolsController,
+    BulletsController,
+    LatexController,
+    LatexLintController,
+    UserDataController,
   ],
   providers: [
     // Logger

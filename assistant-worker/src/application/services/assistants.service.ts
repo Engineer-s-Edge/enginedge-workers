@@ -116,16 +116,26 @@ export class AssistantsService {
   }
 
   async findModelsByName(name: string): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    const allModels = this.modelsService.getAllModels();
+    return allModels.filter(
+      (m) =>
+        m.name === name || m.name.toLowerCase().includes(name.toLowerCase()),
+    );
   }
 
   async getModelDetails(
     providerName: string,
     modelId: string,
   ): Promise<any | null> {
-    // TODO: Integrate with ModelsController
-    return null;
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return null;
+    }
+    return this.modelsService.getModel(providerName, modelId);
   }
 
   async calculateModelCost(
@@ -137,17 +147,51 @@ export class AssistantsService {
     outputCost: number;
     totalCost: number;
   } | null> {
-    // TODO: Integrate with ModelsController
-    return null;
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return null;
+    }
+    // Find model by name across all providers
+    const allModels = this.modelsService.getAllModels();
+    const model = allModels.find(
+      (m) =>
+        m.name === modelId || m.name.toLowerCase() === modelId.toLowerCase(),
+    );
+
+    if (!model || !model.inputCostPer1M || !model.outputCostPer1M) {
+      this.logger.warn(
+        `Model ${modelId} not found or pricing information unavailable`,
+      );
+      return null;
+    }
+
+    const inputCost = (inputTokens / 1_000_000) * model.inputCostPer1M;
+    const outputCost = (outputTokens / 1_000_000) * model.outputCostPer1M;
+    const totalCost = inputCost + outputCost;
+
+    return {
+      inputCost,
+      outputCost,
+      totalCost,
+    };
   }
 
   async getAvailableProviders(): Promise<string[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    return this.modelsService.getProviders();
   }
 
   async getModelsWithDetails(providerName?: string): Promise<any[]> {
-    // TODO: Integrate with ModelsController
-    return [];
+    if (!this.modelsService) {
+      this.logger.warn('ModelsService not available');
+      return [];
+    }
+    if (providerName) {
+      return this.modelsService.getModelsByProvider(providerName);
+    }
+    return this.modelsService.getAllModels();
   }
 }

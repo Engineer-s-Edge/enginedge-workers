@@ -11,6 +11,7 @@ export * from './interview-report.entity';
 export * from './code-execution.entity';
 export * from './test-case.entity';
 export * from './webhook.entity';
+export * from './whiteboard-state.entity';
 
 // Re-export Transcript type
 export type { Transcript } from './interview-report.entity';

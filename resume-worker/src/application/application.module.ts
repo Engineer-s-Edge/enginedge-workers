@@ -12,6 +12,11 @@ import { ResumeEditingService } from './services/resume-editing.service';
 import { ResumeTailoringService } from './services/resume-tailoring.service';
 import { ResumeBuilderService } from './services/resume-builder.service';
 import { CoverLetterService } from './services/cover-letter.service';
+import { SuggestionsService } from './services/suggestions.service';
+import { ToolsService } from './services/tools.service';
+import { BulletsService } from './services/bullets.service';
+import { LatexService } from './services/latex.service';
+import { UserDataService } from './services/user-data.service';
 import {
   ExperienceBankItemSchema,
   ExperienceBankItemSchemaFactory,
@@ -28,6 +33,10 @@ import {
   EvaluationReportSchema,
   EvaluationReportSchemaFactory,
 } from '../infrastructure/database/schemas/evaluation-report.schema';
+import {
+  CoverLetterSchema,
+  CoverLetterSchemaFactory,
+} from '../infrastructure/database/schemas/cover-letter.schema';
 
 @Module({
   imports: [
@@ -41,6 +50,10 @@ import {
       {
         name: 'EvaluationReport',
         schema: EvaluationReportSchemaFactory,
+      },
+      {
+        name: 'CoverLetter',
+        schema: CoverLetterSchemaFactory,
       },
     ]),
     BullModule.registerQueue({
@@ -59,6 +72,11 @@ import {
     ResumeTailoringService,
     ResumeBuilderService,
     CoverLetterService,
+    SuggestionsService,
+    ToolsService,
+    BulletsService,
+    LatexService,
+    UserDataService,
   ],
   exports: [
     ExperienceBankService,
@@ -71,6 +89,11 @@ import {
     ResumeTailoringService,
     ResumeBuilderService,
     CoverLetterService,
+    SuggestionsService,
+    ToolsService,
+    BulletsService,
+    LatexService,
+    UserDataService,
   ],
 })
 export class ApplicationModule {}

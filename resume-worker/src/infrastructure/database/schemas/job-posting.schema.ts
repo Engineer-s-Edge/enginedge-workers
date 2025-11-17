@@ -76,6 +76,12 @@ export class JobPostingSchema extends Document {
   @Prop({ required: true, min: 0, max: 1 })
   confidence!: number;
 
+  @Prop({ type: [String], default: [] })
+  tags!: string[];
+
+  @Prop({ default: '' })
+  notes!: string;
+
   @Prop()
   createdAt!: Date;
 

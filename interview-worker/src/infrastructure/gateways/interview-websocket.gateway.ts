@@ -55,6 +55,14 @@ export class InterviewWebSocketGateway
     string,
     StreamingRecognizer
   >();
+  private readonly pushToTalkActive = new Map<string, boolean>();
+  private readonly mutedSessions = new Set<string>();
+  private readonly agentTTSActive = new Map<string, boolean>();
+  private readonly responseTimeTracking = new Map<string, {
+    questionStartTime?: Date;
+    responseStartTime?: Date;
+    responseEndTime?: Date;
+  }>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -103,6 +111,12 @@ export class InterviewWebSocketGateway
 
       // Clean up session start time
       this.sessionStartTimes.delete(client.sessionId);
+
+      // Clean up voice communication state
+      this.pushToTalkActive.delete(client.sessionId);
+      this.mutedSessions.delete(client.sessionId);
+      this.agentTTSActive.delete(client.sessionId);
+      this.responseTimeTracking.delete(client.sessionId);
     }
   }
 
@@ -151,31 +165,34 @@ export class InterviewWebSocketGateway
         const recognizer = this.speechAdapter.createStreamingRecognizer(
           'en-US',
           {
-            onInterimResult: (text: string) => {
-              // Send interim result to client
+            onInterimResult: (text: string, confidence?: number) => {
+              // Send interim result to client with confidence
               client.send(
                 JSON.stringify({
                   type: 'transcription-interim',
                   sessionId: data.sessionId,
                   text,
+                  confidence,
                 }),
               );
             },
-            onFinalResult: async (text: string) => {
+            onFinalResult: async (text: string, confidence?: number) => {
               // Add to transcript
               await this.transcriptRepository.appendMessage(data.sessionId, {
                 timestamp: new Date(),
                 speaker: 'candidate',
                 text,
                 type: 'voice-transcription',
+                confidence,
               });
 
-              // Send final result to client
+              // Send final result to client with confidence
               client.send(
                 JSON.stringify({
                   type: 'transcription-final',
                   sessionId: data.sessionId,
                   text,
+                  confidence,
                 }),
               );
             },
@@ -270,10 +287,20 @@ export class InterviewWebSocketGateway
         );
       }
 
+      // Check if muted
+      if (this.mutedSessions.has(sessionId)) {
+        return; // Ignore audio if muted
+      }
+
       // Use streaming recognition if available
       const recognizer = this.streamingRecognizers.get(sessionId);
       if (recognizer) {
         await this.speechAdapter.streamAudioChunk(recognizer.id, audioBuffer);
+
+        // Detect interruption (user speaking while agent TTS is active)
+        if (this.agentTTSActive.get(sessionId)) {
+          this.pauseAgentTTS(sessionId);
+        }
       } else {
         // Fallback to buffered mode
         if (!this.audioBuffers.has(sessionId)) {
@@ -442,6 +469,9 @@ export class InterviewWebSocketGateway
     try {
       const audioBuffer = await this.speechAdapter.textToSpeech(text);
 
+      // Mark agent TTS as active
+      this.agentTTSActive.set(sessionId, true);
+
       // Broadcast audio to client
       this.server.clients.forEach((client) => {
         const ws = client as InterviewSocket;
@@ -454,6 +484,11 @@ export class InterviewWebSocketGateway
           );
         }
       });
+
+      // Mark as inactive after audio completes (simplified - would need actual TTS duration)
+      setTimeout(() => {
+        this.agentTTSActive.set(sessionId, false);
+      }, 5000);
 
       // Also add to transcript
       await this.transcriptRepository.appendMessage(sessionId, {
@@ -549,5 +584,185 @@ export class InterviewWebSocketGateway
         }),
       );
     }
+  }
+
+  /**
+   * Push-to-Talk: Start recording
+   */
+  @SubscribeMessage('voice-push-to-talk-start')
+  async handlePushToTalkStart(
+    @MessageBody() data: { sessionId: string },
+    @ConnectedSocket() client: InterviewSocket,
+  ): Promise<void> {
+    const sessionId = data.sessionId || client.sessionId;
+    if (!sessionId) return;
+
+    this.pushToTalkActive.set(sessionId, true);
+
+    // Pause agent TTS if active
+    if (this.agentTTSActive.get(sessionId)) {
+      this.pauseAgentTTS(sessionId);
+    }
+
+    // Track response start time
+    const tracking = this.responseTimeTracking.get(sessionId) || {};
+    tracking.responseStartTime = new Date();
+    this.responseTimeTracking.set(sessionId, tracking);
+
+    client.send(
+      JSON.stringify({
+        type: 'push-to-talk-started',
+        sessionId,
+      }),
+    );
+  }
+
+  /**
+   * Push-to-Talk: Stop recording and send
+   */
+  @SubscribeMessage('voice-push-to-talk-stop')
+  async handlePushToTalkStop(
+    @MessageBody() data: { sessionId: string; audio?: string },
+    @ConnectedSocket() client: InterviewSocket,
+  ): Promise<void> {
+    const sessionId = data.sessionId || client.sessionId;
+    if (!sessionId) return;
+
+    this.pushToTalkActive.set(sessionId, false);
+
+    // Track response end time
+    const tracking = this.responseTimeTracking.get(sessionId) || {};
+    tracking.responseEndTime = new Date();
+    this.responseTimeTracking.set(sessionId, tracking);
+
+    // Calculate response time
+    if (tracking.questionStartTime && tracking.responseStartTime) {
+      const responseTime = tracking.responseStartTime.getTime() - tracking.questionStartTime.getTime();
+      // Store in candidate profile
+      await this.profileService.appendObservation(
+        sessionId,
+        'keyInsights',
+        `Response time: ${Math.floor(responseTime / 1000)}s`,
+      );
+    }
+
+    // Resume agent TTS if it was paused
+    if (this.agentTTSActive.get(sessionId)) {
+      this.resumeAgentTTS(sessionId);
+    }
+
+    // Process audio if provided
+    if (data.audio) {
+      await this.handleAudio({
+        audio: data.audio,
+        sessionId,
+      }, client);
+    }
+
+    client.send(
+      JSON.stringify({
+        type: 'push-to-talk-stopped',
+        sessionId,
+      }),
+    );
+  }
+
+  /**
+   * Mute microphone
+   */
+  @SubscribeMessage('voice-mute')
+  async handleMute(
+    @MessageBody() data: { sessionId: string },
+    @ConnectedSocket() client: InterviewSocket,
+  ): Promise<void> {
+    const sessionId = data.sessionId || client.sessionId;
+    if (!sessionId) return;
+
+    this.mutedSessions.add(sessionId);
+
+    client.send(
+      JSON.stringify({
+        type: 'voice-muted',
+        sessionId,
+      }),
+    );
+  }
+
+  /**
+   * Unmute microphone
+   */
+  @SubscribeMessage('voice-unmute')
+  async handleUnmute(
+    @MessageBody() data: { sessionId: string },
+    @ConnectedSocket() client: InterviewSocket,
+  ): Promise<void> {
+    const sessionId = data.sessionId || client.sessionId;
+    if (!sessionId) return;
+
+    this.mutedSessions.delete(sessionId);
+
+    client.send(
+      JSON.stringify({
+        type: 'voice-unmuted',
+        sessionId,
+      }),
+    );
+  }
+
+  /**
+   * Pause agent TTS when user starts speaking
+   */
+  private pauseAgentTTS(sessionId: string): void {
+    this.agentTTSActive.set(sessionId, false);
+    this.server.clients.forEach((client: any) => {
+      if (client.sessionId === sessionId) {
+        client.send(
+          JSON.stringify({
+            type: 'agent-tts-paused',
+            sessionId,
+            reason: 'user-interruption',
+          }),
+        );
+      }
+    });
+  }
+
+  /**
+   * Resume agent TTS after user finishes
+   */
+  private resumeAgentTTS(sessionId: string): void {
+    this.agentTTSActive.set(sessionId, true);
+    this.server.clients.forEach((client: any) => {
+      if (client.sessionId === sessionId) {
+        client.send(
+          JSON.stringify({
+            type: 'agent-tts-resumed',
+            sessionId,
+          }),
+        );
+      }
+    });
+  }
+
+  /**
+   * Track question start time for response time calculation
+   */
+  trackQuestionStart(sessionId: string): void {
+    const tracking = this.responseTimeTracking.get(sessionId) || {};
+    tracking.questionStartTime = new Date();
+    tracking.responseStartTime = undefined;
+    tracking.responseEndTime = undefined;
+    this.responseTimeTracking.set(sessionId, tracking);
+  }
+
+  /**
+   * Get response time tracking data
+   */
+  getResponseTimeTracking(sessionId: string): {
+    questionStartTime?: Date;
+    responseStartTime?: Date;
+    responseEndTime?: Date;
+  } {
+    return this.responseTimeTracking.get(sessionId) || {};
   }
 }

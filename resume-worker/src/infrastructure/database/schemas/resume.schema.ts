@@ -75,6 +75,12 @@ export class ResumeSchema extends Document {
   @Prop({ type: ResumeMetadataSchemaFactory, required: true })
   metadata!: ResumeMetadataSchema;
 
+  @Prop({ type: Object })
+  layout?: any;
+
+  @Prop({ type: Types.ObjectId })
+  currentJobPostingId?: Types.ObjectId;
+
   @Prop()
   createdAt!: Date;
 

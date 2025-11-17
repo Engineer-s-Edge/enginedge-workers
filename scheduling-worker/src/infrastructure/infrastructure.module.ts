@@ -24,6 +24,8 @@ import { MongoHabitRepository } from './adapters/persistence/mongo-habit.reposit
 import { MongoGoalRepository } from './adapters/persistence/mongo-goal.repository';
 import { MongoActivityPatternRepository } from './adapters/persistence/mongo-activity-pattern.repository';
 import { MongoActivityEventRepository } from './adapters/persistence/mongo-activity-event.repository';
+import { MongoTaskRepository } from './adapters/persistence/mongo-task.repository';
+import { MongoDayLockRepository } from './adapters/persistence/mongo-day-lock.repository';
 
 // Logging
 import { ConsoleLoggerAdapter } from './adapters/logging/console-logger.adapter';
@@ -49,6 +51,12 @@ import { SchedulingController } from './controllers/scheduling.controller';
 import { MLController } from './controllers/ml.controller';
 import { ActivityController } from './controllers/activity.controller';
 import { MetricsController } from './controllers/metrics.controller';
+import { TaskController } from './controllers/task.controller';
+import { DayLockController } from './controllers/day-lock.controller';
+import { CalendarViewController } from './controllers/calendar-view.controller';
+import { ActivityDashboardController } from './controllers/activity-dashboard.controller';
+import { TaskAssistController } from './controllers/task-assist.controller';
+import { SchedulingRecommendationsController } from './controllers/scheduling-recommendations.controller';
 
 // Gateways
 import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
@@ -72,6 +80,12 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
     MLController,
     ActivityController,
     MetricsController,
+    TaskController,
+    DayLockController,
+    CalendarViewController,
+    ActivityDashboardController,
+    TaskAssistController,
+    SchedulingRecommendationsController,
   ],
   providers: [
     MetricsAdapter,
@@ -125,6 +139,12 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
       provide: 'IActivityEventRepository',
       useClass: MongoActivityEventRepository,
     },
+    MongoTaskRepository,
+    {
+      provide: 'ITaskRepository',
+      useClass: MongoTaskRepository,
+    },
+    MongoDayLockRepository,
 
     // ML Adapters
     ActivityMLAdapter,
@@ -164,6 +184,7 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
     'IGoalRepository',
     'IActivityPatternRepository',
     'IActivityEventRepository',
+    'ITaskRepository',
     'IGoogleAuthService', // Export service tokens for ApplicationModule
     'IGoogleCalendarApiService',
     'ICalendarSyncService',
@@ -175,6 +196,8 @@ import { CalendarSyncGateway } from './gateways/calendar-sync.gateway';
     MongoGoalRepository,
     MongoActivityPatternRepository,
     MongoActivityEventRepository,
+    MongoTaskRepository,
+    MongoDayLockRepository,
     ActivityMLAdapter,
     MetricsAdapter,
     ErrorMonitoringAdapter,

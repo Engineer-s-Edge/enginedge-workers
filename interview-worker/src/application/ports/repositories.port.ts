@@ -21,6 +21,15 @@ export interface IInterviewRepository {
   save(interview: Interview): Promise<Interview>;
   findById(id: string): Promise<Interview | null>;
   findAll(): Promise<Interview[]>;
+  findByUserId(userId: string): Promise<Interview[]>;
+  findPublicInterviews(options?: {
+    page?: number;
+    limit?: number;
+    sortBy?: 'popular' | 'recent' | 'usage';
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    search?: string;
+  }): Promise<{ interviews: Interview[]; total: number; page: number; limit: number; totalPages: number }>;
   update(id: string, interview: Partial<Interview>): Promise<Interview | null>;
   delete(id: string): Promise<boolean>;
 }

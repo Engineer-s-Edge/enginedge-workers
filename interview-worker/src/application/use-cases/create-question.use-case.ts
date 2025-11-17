@@ -14,6 +14,8 @@ export interface CreateQuestionInput {
   tags?: string[];
   question: string;
   expectedDuration?: number;
+  starterCode?: string;
+  correctWorkingCode?: string;
 }
 
 @Injectable()
@@ -32,6 +34,11 @@ export class CreateQuestionUseCase {
       tags: input.tags || [],
       question: input.question,
       expectedDuration: input.expectedDuration,
+      starterCode: input.starterCode,
+      correctWorkingCode: input.correctWorkingCode,
+      usageCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     return await this.questionRepository.save(question);

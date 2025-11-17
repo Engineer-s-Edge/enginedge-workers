@@ -221,8 +221,7 @@ export class AssistantExecutorService {
         },
       };
 
-      // TODO: Implement proper streaming execution
-      // For now, return a simple async generator
+      // Streaming execution using agent's stream method
       const context: Partial<ExecutionContext> = {
         userId: executeDto.userId || 'default-user',
         conversationId: executeDto.conversationId || `conv-${Date.now()}`,

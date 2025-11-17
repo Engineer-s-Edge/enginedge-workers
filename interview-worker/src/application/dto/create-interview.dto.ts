@@ -34,6 +34,11 @@ export class InterviewPhaseDto {
   questionCount!: number;
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @IsOptional()
   @IsString()
   promptOverride?: string;
 
@@ -92,6 +97,9 @@ export class ScoringRubricDto {
 
 export class CreateInterviewDto {
   @IsString()
+  userId!: string;
+
+  @IsString()
   title!: string;
 
   @IsOptional()
@@ -110,4 +118,8 @@ export class CreateInterviewDto {
   @ValidateNested()
   @Type(() => ScoringRubricDto)
   rubric!: ScoringRubricDto;
+
+  @IsOptional()
+  @IsEnum(['private', 'public', 'unlisted'])
+  visibility?: 'private' | 'public' | 'unlisted';
 }

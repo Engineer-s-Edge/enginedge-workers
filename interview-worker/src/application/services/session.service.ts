@@ -5,8 +5,8 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
-import { InterviewSession } from '../../domain/entities';
-import { IInterviewSessionRepository } from '../ports/repositories.port';
+import { InterviewSession, Interview } from '../../domain/entities';
+import { IInterviewSessionRepository, IInterviewRepository } from '../ports/repositories.port';
 import { StartInterviewUseCase } from '../use-cases/start-interview.use-case';
 import { PauseInterviewUseCase } from '../use-cases/pause-interview.use-case';
 import { ResumeInterviewUseCase } from '../use-cases/resume-interview.use-case';
@@ -16,12 +16,16 @@ import { WebhookService } from './webhook.service';
 import { WebhookEvent } from '../../domain/value-objects/webhook-event.value-object';
 import { CodeExecutionService } from './code-execution.service';
 import { MongoTestCaseRepository } from '../../infrastructure/adapters/database/test-case.repository';
+import { PhaseTransitionService } from './phase-transition.service';
+import { TimeLimitService } from './time-limit.service';
 
 @Injectable()
 export class SessionService {
   constructor(
     @Inject('IInterviewSessionRepository')
     private readonly sessionRepository: IInterviewSessionRepository,
+    @Inject('IInterviewRepository')
+    private readonly interviewRepository: IInterviewRepository,
     private readonly startInterviewUseCase: StartInterviewUseCase,
     private readonly pauseInterviewUseCase: PauseInterviewUseCase,
     private readonly resumeInterviewUseCase: ResumeInterviewUseCase,
@@ -30,6 +34,8 @@ export class SessionService {
     private readonly webhookService: WebhookService,
     private readonly codeExecutionService: CodeExecutionService,
     private readonly testCaseRepository: MongoTestCaseRepository,
+    private readonly phaseTransitionService: PhaseTransitionService,
+    private readonly timeLimitService: TimeLimitService,
   ) {}
 
   async startSession(input: {
@@ -47,6 +53,14 @@ export class SessionService {
       communicationMode: session.communicationMode,
       startedAt: session.startedAt,
     });
+
+    // Start time limit monitoring
+    await this.timeLimitService.startMonitoring(session.sessionId);
+
+    // Start periodic phase transition checks
+    setInterval(async () => {
+      await this.phaseTransitionService.checkAndTransitionPhase(session.sessionId);
+    }, 10000); // Check every 10 seconds
 
     return session;
   }
@@ -142,5 +156,38 @@ export class SessionService {
     candidateId: string,
   ): Promise<InterviewSession[]> {
     return await this.sessionRepository.findByCandidateId(candidateId);
+  }
+
+  async endSession(sessionId: string): Promise<InterviewSession> {
+    const session = await this.sessionRepository.findById(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+
+    // Stop time limit monitoring
+    this.timeLimitService.stopMonitoring(sessionId);
+
+    const updated = await this.sessionRepository.update(sessionId, {
+      status: 'completed',
+      completedAt: new Date(),
+    });
+
+    if (!updated) {
+      throw new Error(`Failed to end session: ${sessionId}`);
+    }
+
+    // Trigger webhook
+    await this.webhookService.triggerWebhook(WebhookEvent.INTERVIEW_COMPLETED, {
+      sessionId: updated.sessionId,
+      interviewId: updated.interviewId,
+      candidateId: updated.candidateId,
+      completedAt: updated.completedAt,
+    });
+
+    return updated;
+  }
+
+  async getInterview(interviewId: string): Promise<Interview | null> {
+    return await this.interviewRepository.findById(interviewId);
   }
 }

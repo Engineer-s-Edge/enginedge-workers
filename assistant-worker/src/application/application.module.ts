@@ -48,6 +48,10 @@ import { AssistantsModule } from '@infrastructure/assistants/assistants.module';
 import { ConversationsService } from './services/conversations.service';
 import { TopicCatalogService } from './services/topic-catalog.service';
 import { CategoryService } from './services/category.service';
+import { ValidationService } from './services/validation.service';
+import { LearningModeService } from './services/learning-mode.service';
+import { ScheduledLearningManagerService } from './services/scheduled-learning-manager.service';
+import { ResearchService } from './services/research.service';
 import { SharedMemoryGroupService } from './services/shared-memory-group.service';
 import { GetTopicsForResearchUseCase } from './use-cases/get-topics-for-research.use-case';
 import { AddTopicUseCase } from './use-cases/add-topic.use-case';
@@ -180,6 +184,18 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     // Models service
     ModelsService,
 
+    // Validation service
+    ValidationService,
+
+    // Learning Mode service
+    LearningModeService,
+
+    // Scheduled Learning Manager service
+    ScheduledLearningManagerService,
+
+    // Research service
+    ResearchService,
+
   ManagerRuntimeService,
   GeniusExpertRuntimeService,
 
@@ -222,6 +238,19 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     // Export topic catalog and category services
     TopicCatalogService,
     CategoryService,
+
+    // Export validation service
+    ValidationService,
+
+    // Export learning mode service
+    LearningModeService,
+
+    // Export scheduled learning manager service
+    ScheduledLearningManagerService,
+
+    // Export research service
+    ResearchService,
+
   ManagerRuntimeService,
   GeniusExpertRuntimeService,
 

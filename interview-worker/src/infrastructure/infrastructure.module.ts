@@ -19,6 +19,8 @@ import { ProfileController } from './controllers/profile.controller';
 import { ReportController } from './controllers/report.controller';
 import { WebhookController } from './controllers/webhook.controller';
 import { CodeExecutionController } from './controllers/code-execution.controller';
+import { AnalyticsController } from './controllers/analytics.controller';
+import { AgentController } from './controllers/agent.controller';
 import { InterviewWebSocketGateway } from './gateways/interview-websocket.gateway';
 import { GoogleSpeechAdapter } from './adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from './adapters/voice/azure-speech.adapter';
@@ -42,6 +44,9 @@ import {
   MongoCodeExecutionRepository,
   MongoTestCaseRepository,
 } from './adapters/database';
+import { MongoFavoriteRepository } from './adapters/database/favorite.repository';
+import { MongoWhiteboardRepository } from './adapters/database/whiteboard.repository';
+import { MongoUserTestCaseRepository } from './adapters/database/user-test-case.repository';
 import {
   IInterviewRepository,
   IInterviewSessionRepository,
@@ -55,6 +60,8 @@ import {
 import { ICodeExecutor } from '@application/ports/code-executor.port';
 import { WebhookService } from '@application/services/webhook.service';
 import { CodeExecutionService } from '@application/services/code-execution.service';
+import { PhaseTransitionService } from '@application/services/phase-transition.service';
+import { TimeLimitService } from '@application/services/time-limit.service';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
@@ -84,6 +91,8 @@ import { CodeExecutionService } from '@application/services/code-execution.servi
     ReportController,
     WebhookController,
     CodeExecutionController,
+    AnalyticsController,
+    AgentController,
   ],
   providers: [
     // Logger
@@ -108,8 +117,14 @@ import { CodeExecutionService } from '@application/services/code-execution.servi
       useClass: DockerCodeExecutorAdapter,
     },
     TestRunnerAdapter,
+    // Phase Transition and Time Limit Services
+    PhaseTransitionService,
+    TimeLimitService,
     MongoCodeExecutionRepository,
     MongoTestCaseRepository,
+    MongoFavoriteRepository,
+    MongoWhiteboardRepository,
+    MongoUserTestCaseRepository,
     // Repository implementations
     {
       provide: 'IInterviewRepository',
@@ -168,6 +183,9 @@ import { CodeExecutionService } from '@application/services/code-execution.servi
     // Export repositories for use in application layer
     MongoTestCaseRepository,
     MongoCodeExecutionRepository,
+    MongoFavoriteRepository,
+    MongoWhiteboardRepository,
+    MongoUserTestCaseRepository,
     // Export adapters for use in other modules
     AudioFormatAdapter,
     WebhookDeliveryAdapter,

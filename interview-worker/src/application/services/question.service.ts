@@ -28,6 +28,8 @@ export class QuestionService {
       subcategory?: string;
       tags?: string[];
       expectedDuration?: number;
+      starterCode?: string;
+      correctWorkingCode?: string;
     },
   ): Promise<InterviewQuestion> {
     return await this.createQuestionUseCase.execute({
@@ -37,6 +39,17 @@ export class QuestionService {
       question,
       ...options,
     });
+  }
+
+  async trackQuestionUsage(questionId: string): Promise<void> {
+    const question = await this.questionRepository.findById(questionId);
+    if (question) {
+      await this.questionRepository.update(questionId, {
+        usageCount: (question.usageCount || 0) + 1,
+        lastUsedAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
   }
 
   async getQuestion(questionId: string): Promise<InterviewQuestion | null> {
@@ -74,5 +87,37 @@ export class QuestionService {
 
   async deleteQuestion(questionId: string): Promise<boolean> {
     return await this.questionRepository.delete(questionId);
+  }
+
+  async getQuestionStatistics(questionId: string): Promise<{
+    questionId: string;
+    usageCount: number;
+    lastUsedAt?: Date;
+    averageScore?: number;
+    successRate?: number;
+    usageTrend?: Array<{ date: string; count: number }>;
+  }> {
+    const question = await this.questionRepository.findById(questionId);
+    if (!question) {
+      throw new Error(`Question not found: ${questionId}`);
+    }
+
+    // Basic statistics from question entity
+    const stats = {
+      questionId: question.questionId,
+      usageCount: question.usageCount || 0,
+      lastUsedAt: question.lastUsedAt,
+      averageScore: undefined as number | undefined,
+      successRate: undefined as number | undefined,
+      usageTrend: [] as Array<{ date: string; count: number }>,
+    };
+
+    // In a full implementation, you would:
+    // 1. Query interview sessions/reports to calculate averageScore
+    // 2. Query code execution results to calculate successRate
+    // 3. Aggregate usage over time for usageTrend
+    // For now, return basic stats from question entity
+
+    return stats;
   }
 }

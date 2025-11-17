@@ -10,6 +10,7 @@ import { CodeExecution, TestCase } from '../../domain/entities';
 import { TestResult } from '../../domain/value-objects/test-result.value-object';
 import { ICodeExecutor } from '../ports/code-executor.port';
 import { TestRunnerAdapter } from '../../infrastructure/adapters/code-execution/test-runner.adapter';
+import { MongoCodeExecutionRepository } from '../../infrastructure/adapters/database/code-execution.repository';
 
 export interface ExecuteCodeDto {
   code: string;
@@ -18,6 +19,8 @@ export interface ExecuteCodeDto {
   responseId: string;
   sessionId: string;
   questionId: string;
+  correctWorkingCode?: string; // Optional: correct working code for validation
+  customTestCases?: TestCase[]; // Optional: user-created test cases
 }
 
 export interface ValidationResult {
@@ -34,6 +37,7 @@ export class CodeExecutionService {
     @Inject('ICodeExecutor')
     private readonly codeExecutor: ICodeExecutor,
     private readonly testRunner: TestRunnerAdapter,
+    private readonly codeExecutionRepository: MongoCodeExecutionRepository,
   ) {
     // TestRunnerAdapter will use the codeExecutor internally
   }
@@ -44,6 +48,12 @@ export class CodeExecutionService {
   async executeCode(dto: ExecuteCodeDto): Promise<CodeExecution> {
     const executionId = uuidv4();
     const startTime = Date.now();
+
+    // Combine regular test cases and custom test cases
+    const allTestCases = [...dto.testCases];
+    if (dto.customTestCases) {
+      allTestCases.push(...dto.customTestCases);
+    }
 
     // Create execution record
     const execution: CodeExecution = {
@@ -57,19 +67,60 @@ export class CodeExecutionService {
       testResults: [],
       output: '',
       passedTests: 0,
-      totalTests: dto.testCases.length,
+      totalTests: allTestCases.length,
       createdAt: new Date(),
     };
 
     this.executions.set(executionId, execution);
 
     try {
-      // Run test cases
-      const testResults = await this.testRunner.runTests(
+      // Run test cases with user code
+      const userTestResults = await this.testRunner.runTests(
         dto.code,
         dto.language,
-        dto.testCases,
+        allTestCases,
       );
+
+      // If custom test cases and correct working code are provided,
+      // also run correct working code against custom test cases
+      let correctCodeResults: TestResult[] = [];
+      if (dto.customTestCases && dto.customTestCases.length > 0 && dto.correctWorkingCode) {
+        correctCodeResults = await this.testRunner.runTests(
+          dto.correctWorkingCode,
+          dto.language,
+          dto.customTestCases,
+        );
+      }
+
+      // Merge results: for regular test cases, use user code results
+      // For custom test cases, we'll include both user code and correct code results
+      // The frontend can distinguish custom test cases by checking if correctCodeResults exist
+      const testResults: TestResult[] = [];
+
+      // Add results for regular test cases
+      for (let i = 0; i < dto.testCases.length; i++) {
+        testResults.push(userTestResults[i]);
+      }
+
+      // Add results for custom test cases
+      // Note: The correct code results are stored separately and can be accessed
+      // by matching testCaseId. The frontend should call a separate endpoint or
+      // the execution result should include both sets of results.
+      const customStartIndex = dto.testCases.length;
+      for (let i = 0; i < (dto.customTestCases?.length || 0); i++) {
+        testResults.push(userTestResults[customStartIndex + i]);
+      }
+
+      // Store correct code results in execution for later retrieval
+      // This allows frontend to display both "Your code" and "Expected (correct solution)" results
+      if (dto.customTestCases && dto.customTestCases.length > 0 && dto.correctWorkingCode) {
+        // We'll store this information in the execution object
+        // The frontend can query for both results
+        (execution as any).customTestCasesResults = {
+          userCodeResults: userTestResults.slice(customStartIndex),
+          correctCodeResults: correctCodeResults,
+        };
+      }
 
       const executionTime = Date.now() - startTime;
       const passedTests = testResults.filter((r) => r.passed).length;
@@ -85,6 +136,8 @@ export class CodeExecutionService {
       };
 
       this.executions.set(executionId, completed);
+      // Persist to database
+      await this.codeExecutionRepository.save(completed);
       return completed;
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -100,6 +153,8 @@ export class CodeExecutionService {
       };
 
       this.executions.set(executionId, failed);
+      // Persist to database
+      await this.codeExecutionRepository.save(failed);
       this.logger.error(`Code execution failed: ${errorMessage}`, error);
       return failed;
     }
@@ -138,7 +193,19 @@ export class CodeExecutionService {
    * Get execution status
    */
   async getExecutionStatus(executionId: string): Promise<CodeExecution | null> {
-    return this.executions.get(executionId) || null;
+    // Try in-memory first, then database
+    const inMemory = this.executions.get(executionId);
+    if (inMemory) {
+      return inMemory;
+    }
+    return await this.codeExecutionRepository.findById(executionId);
+  }
+
+  /**
+   * Get all code executions for a session
+   */
+  async getSessionExecutions(sessionId: string): Promise<CodeExecution[]> {
+    return await this.codeExecutionRepository.findBySessionId(sessionId);
   }
 
   /**

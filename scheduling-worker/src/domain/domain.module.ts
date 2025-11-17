@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SchedulePolicyService } from './services/schedule-policy.service';
+import { SchedulingRulesService } from './services/scheduling-rules.service';
 
 /**
  * Domain Module - Pure business logic with NO external dependencies
@@ -15,7 +16,7 @@ import { SchedulePolicyService } from './services/schedule-policy.service';
  * - Transformation services for domain logic
  */
 @Module({
-  providers: [SchedulePolicyService],
-  exports: [SchedulePolicyService],
+  providers: [SchedulePolicyService, SchedulingRulesService],
+  exports: [SchedulePolicyService, SchedulingRulesService],
 })
 export class DomainModule {}

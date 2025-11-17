@@ -5,7 +5,7 @@ import {
 } from '../../application/services/resume-evaluator.service';
 import { BulletEvaluatorService } from '../../application/services/bullet-evaluator.service';
 
-@Controller('evaluation')
+@Controller('resume/evaluation')
 export class EvaluationController {
   constructor(
     private readonly resumeEvaluatorService: ResumeEvaluatorService,
@@ -57,5 +57,30 @@ export class EvaluationController {
       body.role,
       body.useLlm,
     );
+  }
+
+  @Get('resume/:resumeId/history')
+  async getScoreHistory(
+    @Param('resumeId') resumeId: string,
+    @Query('limit') limit?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.resumeEvaluatorService.getScoreHistory(
+      resumeId,
+      {
+        limit: limit ? parseInt(limit, 10) : 20,
+        startDate,
+        endDate,
+      },
+    );
+  }
+
+  @Get('compare/:reportId1/:reportId2')
+  async compareEvaluations(
+    @Param('reportId1') reportId1: string,
+    @Param('reportId2') reportId2: string,
+  ) {
+    return this.resumeEvaluatorService.compareEvaluations(reportId1, reportId2);
   }
 }

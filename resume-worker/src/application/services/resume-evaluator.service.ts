@@ -717,4 +717,158 @@ export class ResumeEvaluatorService {
       .sort({ createdAt: -1 })
       .exec();
   }
+
+  /**
+   * Get score history for a resume
+   */
+  async getScoreHistory(
+    resumeId: string,
+    options: {
+      limit?: number;
+      startDate?: string;
+      endDate?: string;
+    },
+  ): Promise<{
+    resumeId: string;
+    history: Array<{
+      reportId: string;
+      createdAt: Date;
+      mode: string;
+      scores: any;
+    }>;
+    trends: any;
+  }> {
+    const query: any = { resumeId };
+
+    if (options.startDate || options.endDate) {
+      query.createdAt = {};
+      if (options.startDate) {
+        query.createdAt.$gte = new Date(options.startDate);
+      }
+      if (options.endDate) {
+        query.createdAt.$lte = new Date(options.endDate);
+      }
+    }
+
+    const reports = await this.evaluationReportModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(options.limit || 20)
+      .exec();
+
+    const history = reports.map(report => ({
+      reportId: report._id.toString(),
+      createdAt: report.createdAt,
+      mode: report.mode,
+      scores: report.scores,
+    }));
+
+    // Calculate trends
+    const trends: any = {};
+    if (history.length >= 2) {
+      const recent = history[0].scores;
+      const older = history[history.length - 1].scores;
+
+      for (const key in recent) {
+        if (typeof recent[key] === 'number' && typeof older[key] === 'number') {
+          if (recent[key] > older[key]) {
+            trends[key] = 'improving';
+          } else if (recent[key] < older[key]) {
+            trends[key] = 'degrading';
+          } else {
+            trends[key] = 'stable';
+          }
+        }
+      }
+    }
+
+    return {
+      resumeId,
+      history,
+      trends,
+    };
+  }
+
+  /**
+   * Compare two evaluation reports
+   */
+  async compareEvaluations(
+    reportId1: string,
+    reportId2: string,
+  ): Promise<{
+    report1: any;
+    report2: any;
+    comparison: {
+      scoreChanges: any;
+      findings: {
+        new: any[];
+        resolved: any[];
+        persistent: any[];
+      };
+      bulletChanges: any[];
+    };
+  }> {
+    const report1 = await this.evaluationReportModel.findById(reportId1).exec();
+    const report2 = await this.evaluationReportModel.findById(reportId2).exec();
+
+    if (!report1 || !report2) {
+      throw new Error('One or both reports not found');
+    }
+
+    // Calculate score changes
+    const scoreChanges: any = {};
+    for (const key in report2.scores) {
+      if (typeof report2.scores[key] === 'number' && typeof report1.scores[key] === 'number') {
+        const from = report1.scores[key];
+        const to = report2.scores[key];
+        const change = to - from;
+        scoreChanges[key] = {
+          from,
+          to,
+          change,
+          direction: change > 0 ? 'improved' : change < 0 ? 'degraded' : 'unchanged',
+        };
+      }
+    }
+
+    // Compare findings
+    const findings1 = new Set((report1.findings || []).map((f: any) => f.code || JSON.stringify(f)));
+    const findings2 = new Set((report2.findings || []).map((f: any) => f.code || JSON.stringify(f)));
+
+    const newFindings = (report2.findings || []).filter((f: any) =>
+      !findings1.has(f.code || JSON.stringify(f))
+    );
+    const resolvedFindings = (report1.findings || []).filter((f: any) =>
+      !findings2.has(f.code || JSON.stringify(f))
+    );
+    const persistentFindings = (report1.findings || []).filter((f: any) =>
+      findings2.has(f.code || JSON.stringify(f))
+    );
+
+    return {
+      report1: {
+        reportId: report1._id.toString(),
+        createdAt: report1.createdAt,
+        scores: report1.scores,
+        findings: report1.findings,
+        bullets: [],
+      },
+      report2: {
+        reportId: report2._id.toString(),
+        createdAt: report2.createdAt,
+        scores: report2.scores,
+        findings: report2.findings,
+        bullets: [],
+      },
+      comparison: {
+        scoreChanges,
+        findings: {
+          new: newFindings,
+          resolved: resolvedFindings,
+          persistent: persistentFindings,
+        },
+        bulletChanges: [], // Would need bullet-level comparison
+      },
+    };
+  }
 }

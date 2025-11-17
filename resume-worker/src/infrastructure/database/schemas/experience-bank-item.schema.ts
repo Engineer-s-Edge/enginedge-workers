@@ -33,6 +33,15 @@ export class ExperienceBankItemSchema extends Document {
       atsScore: { type: Number, default: 0 },
       lastUsedDate: Date,
       usageCount: { type: Number, default: 0 },
+      needsEditing: { type: Boolean, default: false },
+      flagComment: String,
+      flagReason: String,
+      flaggedAt: Date,
+      scoreHistory: [{
+        impact: Number,
+        ats: Number,
+        evaluatedAt: Date,
+      }],
     },
     required: true,
   })
@@ -51,8 +60,17 @@ export class ExperienceBankItemSchema extends Document {
     category: string;
     impactScore: number;
     atsScore: number;
-    lastUsedDate: Date;
+    lastUsedDate: Date | null;
     usageCount: number;
+    needsEditing?: boolean;
+    flagComment?: string;
+    flagReason?: string;
+    flaggedAt?: Date;
+    scoreHistory?: Array<{
+      impact: number;
+      ats: number;
+      evaluatedAt: Date;
+    }>;
   };
 
   @Prop({ required: true, unique: true, index: true })
