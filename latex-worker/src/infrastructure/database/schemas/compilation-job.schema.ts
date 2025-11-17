@@ -7,7 +7,7 @@ import { Document } from 'mongoose';
 
 export type CompilationJobDocument = CompilationJobSchema & Document;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, suppressReservedKeysWarning: true })
 export class CompilationJobSchema {
   @Prop({ required: true, unique: true, index: true })
   jobId!: string;

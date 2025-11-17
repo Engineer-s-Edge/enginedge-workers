@@ -191,7 +191,7 @@ export class ExperienceBankController {
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   async importBullets(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string } | undefined,
     @Body() body: {
       userId: string;
       format?: string;
@@ -225,7 +225,7 @@ export class ExperienceBankController {
         // Parse CSV
         const lines = fileContent.split('\n');
         const headers = lines[0].split(',');
-        bullets = lines.slice(1).map(line => {
+        bullets = lines.slice(1).map((line: string) => {
           const values = line.split(',');
           return {
             bulletText: values[0]?.replace(/^"|"$/g, '') || '',
@@ -283,7 +283,7 @@ export class ExperienceBankController {
           category: bullet.metadata?.category || 'achievement',
           impactScore: bullet.metadata?.impactScore || 0,
           atsScore: bullet.metadata?.atsScore || 0,
-          lastUsedDate: null,
+          lastUsedDate: new Date(),
           usageCount: 0,
         };
 

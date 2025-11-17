@@ -214,8 +214,8 @@ export class ExperienceBankService {
     // Sort results
     if (searchOptions.sortBy) {
       results.sort((a, b) => {
-        const aVal = a.metadata[searchOptions.sortBy!] || 0;
-        const bVal = b.metadata[searchOptions.sortBy!] || 0;
+        const aVal = (a.metadata[searchOptions.sortBy!] as number) || 0;
+        const bVal = (b.metadata[searchOptions.sortBy!] as number) || 0;
         return bVal - aVal;
       });
     }

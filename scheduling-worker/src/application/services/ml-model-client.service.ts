@@ -163,10 +163,53 @@ export class MLModelClient {
       const recommendations = response.data.recommendations;
       this.logger.debug(
         `Received ${recommendations.length} slot recommendations, ` +
-          `${recommendations.filter((r) => r.recommended).length} marked as recommended`,
+          `${recommendations.filter((r: SlotRecommendation) => r.recommended).length} marked as recommended`,
       );
 
       return recommendations;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Failed to predict slots: ${message}`, stack);
+      throw new Error(`ML service unavailable: ${message}`);
+    }
+  }
+
+  /**
+   * Predict time slots for a task within a date range
+   *
+   * @param userId - User ID
+   * @param taskData - Task information
+   * @param startDate - Start of date range
+   * @param endDate - End of date range
+   * @returns Response with slot recommendations
+   */
+  async predictSlots(
+    userId: string,
+    taskData: Record<string, unknown>,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<PredictSlotsResponse> {
+    try {
+      this.logger.debug(`Predicting slots for user ${userId} between ${startDate} and ${endDate}`);
+
+      const response = await this.httpClient.post<PredictSlotsResponse>(
+        '/predict-slots',
+        {
+          user_id: userId,
+          deliverable: taskData,
+          context: {
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+          },
+        },
+      );
+
+      this.logger.debug(
+        `Received ${response.data.recommendations.length} slot recommendations`,
+      );
+
+      return response.data;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       const stack = error instanceof Error ? error.stack : undefined;

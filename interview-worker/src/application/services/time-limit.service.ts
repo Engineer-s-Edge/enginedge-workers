@@ -4,7 +4,7 @@
  * Handles time warnings and time limit reached behavior
  */
 
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, forwardRef } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { InterviewService } from './interview.service';
 import { IInterviewSessionRepository } from '../ports/repositories.port';
@@ -24,10 +24,12 @@ export class TimeLimitService {
   private readonly sentWarnings = new Map<string, Set<string>>(); // Track sent warnings per session
 
   constructor(
+    @Inject(forwardRef(() => SessionService))
     private readonly sessionService: SessionService,
     private readonly interviewService: InterviewService,
     @Inject('IInterviewSessionRepository')
     private readonly sessionRepository: IInterviewSessionRepository,
+    @Inject(forwardRef(() => InterviewWebSocketGateway))
     private readonly websocketGateway: InterviewWebSocketGateway,
   ) {}
 

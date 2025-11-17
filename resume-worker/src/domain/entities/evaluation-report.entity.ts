@@ -12,6 +12,7 @@ export interface EvaluationScores {
   scanability: number;
   mechanics: number;
   overall: number;
+  [key: string]: number; // Index signature for dynamic access
 }
 
 export interface EvaluationGates {

@@ -704,9 +704,10 @@ Please write a compelling cover letter that:
 
     // Merge options
     const mergedOptions: GenerateCoverLetterOptions = {
+      resumeId: existing.resumeId.toString(),
       jobPostingId: existing.jobPostingId?.toString() || '',
-      tone: options.tone || existing.metadata.tone,
-      length: options.length || existing.metadata.length,
+      tone: options.tone || (existing.metadata.tone as 'professional' | 'casual' | 'enthusiastic'),
+      length: options.length || (existing.metadata.length as 'short' | 'medium' | 'long'),
       includeExperiences:
         options.includeExperiences || existing.metadata.experiencesUsed.map(id => id.toString()),
       customInstructions: options.customInstructions,
@@ -767,8 +768,8 @@ Please write a compelling cover letter that:
       metadata: {
         company: doc.metadata.company,
         position: doc.metadata.position,
-        tone: doc.metadata.tone,
-        length: doc.metadata.length,
+        tone: doc.metadata.tone as 'professional' | 'casual' | 'enthusiastic',
+        length: doc.metadata.length as 'short' | 'medium' | 'long',
         experiencesUsed: doc.metadata.experiencesUsed.map(id => id.toString()),
       },
       version: doc.version,

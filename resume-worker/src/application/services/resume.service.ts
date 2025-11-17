@@ -388,8 +388,9 @@ export class ResumeService {
           y: 200,
           width: 400,
           height: 20,
-      },
-    };
+        },
+      };
+    }
   }
 
   /**

@@ -7,10 +7,17 @@
 
 import { InterviewQuestion } from '../../../domain/entities';
 
-export const SEED_QUESTIONS: Omit<
-  InterviewQuestion,
-  'matches' | 'toObject' | 'fromObject'
->[] = [
+export const SEED_QUESTIONS: Array<{
+  questionId: string;
+  category: 'tech-trivia' | 'system-design' | 'behavioral' | 'coding';
+  subcategory?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+  question: string;
+  expectedDuration?: number;
+  starterCode?: string;
+  correctWorkingCode?: string;
+}> = [
   // Behavioral Questions
   {
     questionId: 'beh-001',

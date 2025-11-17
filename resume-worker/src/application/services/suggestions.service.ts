@@ -189,10 +189,10 @@ export class SuggestionsService {
         scoreImprovement: newScore - currentScore,
         breakdown: {
           overall: newScore,
-          ats: newEvaluation.scores.atsScore / 100,
-          content: newEvaluation.scores.avgBulletScore / 100,
-          alignment: newEvaluation.scores.alignmentScore
-            ? newEvaluation.scores.alignmentScore / 100
+          ats: newEvaluation.scores.atsParseability / 100,
+          content: newEvaluation.scores.bulletQuality / 100,
+          alignment: newEvaluation.scores.roleJdAlignment
+            ? newEvaluation.scores.roleJdAlignment / 100
             : 0,
         },
         changes: {
@@ -283,7 +283,7 @@ export class SuggestionsService {
       const jobPosting = await this.jobPostingModel.findById(jobPostingId).exec();
       if (jobPosting) {
         const requiredSkills = jobPosting.parsed?.skills?.skillsExplicit || [];
-        const missingSkills = requiredSkills.filter(skill =>
+        const missingSkills = requiredSkills.filter((skill: string) =>
           !bulletText.toLowerCase().includes(skill.toLowerCase())
         ).slice(0, 2);
 

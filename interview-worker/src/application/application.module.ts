@@ -57,6 +57,8 @@ import { TimeLimitService } from './services/time-limit.service';
     EvaluatorService,
     WebhookService,
     NotificationService,
+    PhaseTransitionService,
+    TimeLimitService,
   ],
   exports: [
     // Export domain module so infrastructure can access it

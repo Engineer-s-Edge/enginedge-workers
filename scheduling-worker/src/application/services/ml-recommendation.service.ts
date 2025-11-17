@@ -135,8 +135,8 @@ export class MLRecommendationService {
 
       // Find best recommended slot
       const bestSlot = mlResponse.recommendations
-        .filter((r) => r.recommended)
-        .sort((a, b) => b.probability - a.probability)[0];
+        .filter((r: { recommended: boolean }) => r.recommended)
+        .sort((a: { probability: number }, b: { probability: number }) => b.probability - a.probability)[0];
 
       if (!bestSlot) {
         return this.ruleBasedRecommendation(task, startDate, endDate, existingTasks);

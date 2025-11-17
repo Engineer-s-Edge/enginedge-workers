@@ -4,11 +4,11 @@
  * Handles automatic phase transitions and incomplete response handling
  */
 
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, forwardRef } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { InterviewService } from './interview.service';
 import { QuestionService } from './question.service';
-import { IInterviewSessionRepository } from '../ports/repositories.port';
+import { IInterviewSessionRepository, IInterviewResponseRepository } from '../ports/repositories.port';
 import { InterviewSession } from '../../domain/entities';
 import { InterviewWebSocketGateway } from '../../infrastructure/gateways/interview-websocket.gateway';
 
@@ -17,11 +17,15 @@ export class PhaseTransitionService {
   private readonly logger = new Logger(PhaseTransitionService.name);
 
   constructor(
+    @Inject(forwardRef(() => SessionService))
     private readonly sessionService: SessionService,
     private readonly interviewService: InterviewService,
     private readonly questionService: QuestionService,
     @Inject('IInterviewSessionRepository')
     private readonly sessionRepository: IInterviewSessionRepository,
+    @Inject('IInterviewResponseRepository')
+    private readonly responseRepository: IInterviewResponseRepository,
+    @Inject(forwardRef(() => InterviewWebSocketGateway))
     private readonly websocketGateway: InterviewWebSocketGateway,
   ) {}
 
@@ -54,7 +58,8 @@ export class PhaseTransitionService {
     // Check if phase question count reached
     // Count total responses and estimate current phase responses
     // (Simplified - in production, would track phaseId in responses)
-    const totalResponses = session.responses?.length || 0;
+    const responses = await this.responseRepository.findBySessionId(sessionId);
+    const totalResponses = responses.length;
     const previousPhasesQuestionCount = interview.phases
       .slice(0, session.currentPhase)
       .reduce((sum, p) => sum + p.questionCount, 0);
@@ -115,13 +120,17 @@ export class PhaseTransitionService {
       }
     }
 
+    // Get responses to exclude already answered questions
+    const responses = await this.responseRepository.findBySessionId(sessionId);
+    const excludeQuestionIds = responses.map((r) => r.questionId);
+
     // Select questions for next phase
     const nextQuestions = await this.questionService.selectQuestions({
       category: this.mapPhaseTypeToCategory(nextPhase.type),
       difficulty: nextPhase.difficulty,
       tags: nextPhase.tags,
       limit: nextPhase.questionCount,
-      excludeQuestionIds: session.responses?.map((r: any) => r.questionId) || [],
+      excludeQuestionIds,
     });
 
     // Update session

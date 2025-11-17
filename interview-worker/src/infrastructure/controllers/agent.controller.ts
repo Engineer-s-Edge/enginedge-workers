@@ -20,7 +20,7 @@ import { InterviewService } from '../../application/services/interview.service';
 import { CandidateProfileService } from '../../application/services/candidate-profile.service';
 import { MongoCodeExecutionRepository } from '../adapters/database/code-execution.repository';
 import { MongoWhiteboardRepository } from '../adapters/database/whiteboard.repository';
-import { IInterviewSessionRepository } from '../../application/ports/repositories.port';
+import { IInterviewSessionRepository, IInterviewResponseRepository } from '../../application/ports/repositories.port';
 import axios from 'axios';
 
 @Controller('sessions/:sessionId/agent')
@@ -36,6 +36,8 @@ export class AgentController {
     private readonly whiteboardRepository: MongoWhiteboardRepository,
     @Inject('IInterviewSessionRepository')
     private readonly sessionRepository: IInterviewSessionRepository,
+    @Inject('IInterviewResponseRepository')
+    private readonly responseRepository: IInterviewResponseRepository,
   ) {
     this.assistantWorkerUrl =
       this.configService.get<string>('ASSISTANT_WORKER_URL') ||
@@ -128,6 +130,7 @@ export class AgentController {
       phaseId: string;
       type: string;
       duration: number;
+      difficulty: 'easy' | 'medium' | 'hard';
       timeElapsed: number;
       timeRemaining: number;
     };
@@ -161,6 +164,11 @@ export class AgentController {
     const totalTimeElapsed = session.getTimeElapsed();
     const totalTimeRemaining = totalTimeLimit - totalTimeElapsed;
 
+    // Get responses for this session
+    const responses = await this.responseRepository.findBySessionId(sessionId);
+    const questionsAnswered = responses.length;
+    const questionsRemaining = interview.getTotalQuestionCount() - questionsAnswered;
+
     return {
       sessionId,
       currentPhase: currentPhase
@@ -176,9 +184,8 @@ export class AgentController {
       currentQuestion: session.currentQuestion,
       totalTimeElapsed,
       totalTimeRemaining,
-      questionsAnswered: session.responses?.length || 0,
-      questionsRemaining:
-        interview.getTotalQuestionCount() - (session.responses?.length || 0),
+      questionsAnswered,
+      questionsRemaining,
     };
   }
 
@@ -221,7 +228,7 @@ export class AgentController {
       currentPhaseIndex: session.currentPhase,
       timeElapsed: session.getTimeElapsed(),
       phaseTimeElapsed: session.getPhaseTimeElapsed(),
-      responses: session.responses || [],
+      responses: await this.responseRepository.findBySessionId(sessionId),
       codeExecutions: codeExecutions.map((e) => ({
         questionId: e.questionId,
         status: e.status,

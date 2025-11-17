@@ -190,6 +190,8 @@ import { TimeLimitService } from '@application/services/time-limit.service';
     AudioFormatAdapter,
     WebhookDeliveryAdapter,
     TestRunnerAdapter,
+    // Export gateway for use in application layer
+    InterviewWebSocketGateway,
   ],
 })
 export class InfrastructureModule {}

@@ -14,7 +14,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, WebSocket } from 'ws';
-import { Logger, Inject } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SessionService } from '../../application/services/session.service';
 import { CandidateProfileService } from '../../application/services/candidate-profile.service';
@@ -66,6 +66,7 @@ export class InterviewWebSocketGateway
 
   constructor(
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => SessionService))
     private readonly sessionService: SessionService,
     private readonly profileService: CandidateProfileService,
     private readonly codeExecutionService: CodeExecutionService,

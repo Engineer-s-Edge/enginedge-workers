@@ -493,9 +493,9 @@ export class TaskController {
 
         if (mlResponse && mlResponse.recommendations && mlResponse.recommendations.length > 0) {
           const recommendations = mlResponse.recommendations
-            .filter((r) => r.recommended)
+            .filter((r: { recommended: boolean }) => r.recommended)
             .slice(0, 3)
-            .map((r) => {
+            .map((r: { hour: number; confidence: number; probability: number }) => {
               const recommendedDate = new Date(startDate);
               recommendedDate.setHours(r.hour, 0, 0, 0);
               const recommendedEnd = new Date(recommendedDate);

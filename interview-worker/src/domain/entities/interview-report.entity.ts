@@ -16,6 +16,7 @@ export type TranscriptMessage = {
   text: string;
   type: 'user-input' | 'voice-transcription' | 'agent-response' | 'followup';
   followupForQuestionId?: string;
+  confidence?: number;
 };
 
 export type Transcript = {

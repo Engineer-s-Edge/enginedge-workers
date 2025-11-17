@@ -771,9 +771,11 @@ export class ResumeEvaluatorService {
 
       for (const key in recent) {
         if (typeof recent[key] === 'number' && typeof older[key] === 'number') {
-          if (recent[key] > older[key]) {
+          const recentVal = recent[key] as number;
+          const olderVal = older[key] as number;
+          if (recentVal > olderVal) {
             trends[key] = 'improving';
-          } else if (recent[key] < older[key]) {
+          } else if (recentVal < olderVal) {
             trends[key] = 'degrading';
           } else {
             trends[key] = 'stable';
@@ -819,8 +821,8 @@ export class ResumeEvaluatorService {
     const scoreChanges: any = {};
     for (const key in report2.scores) {
       if (typeof report2.scores[key] === 'number' && typeof report1.scores[key] === 'number') {
-        const from = report1.scores[key];
-        const to = report2.scores[key];
+        const from = report1.scores[key] as number;
+        const to = report2.scores[key] as number;
         const change = to - from;
         scoreChanges[key] = {
           from,

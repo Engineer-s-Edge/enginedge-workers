@@ -144,7 +144,7 @@ export class ToolsService {
     });
 
     // Delete draft if it was a draft
-    if (draftBullet) {
+    if (draftBullet && bulletId) {
       this.draftBullets.delete(bulletId);
     }
 

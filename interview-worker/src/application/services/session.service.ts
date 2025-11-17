@@ -4,7 +4,7 @@
  * Application service for managing interview sessions.
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InterviewSession, Interview } from '../../domain/entities';
 import { IInterviewSessionRepository, IInterviewRepository } from '../ports/repositories.port';
 import { StartInterviewUseCase } from '../use-cases/start-interview.use-case';
@@ -34,7 +34,9 @@ export class SessionService {
     private readonly webhookService: WebhookService,
     private readonly codeExecutionService: CodeExecutionService,
     private readonly testCaseRepository: MongoTestCaseRepository,
+    @Inject(forwardRef(() => PhaseTransitionService))
     private readonly phaseTransitionService: PhaseTransitionService,
+    @Inject(forwardRef(() => TimeLimitService))
     private readonly timeLimitService: TimeLimitService,
   ) {}
 

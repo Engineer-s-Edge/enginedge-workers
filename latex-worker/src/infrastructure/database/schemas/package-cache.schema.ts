@@ -18,7 +18,7 @@ export class PackageCacheSchema {
   @Prop({ required: true })
   installedAt!: Date;
 
-  @Prop({ index: true })
+  @Prop()
   lastUsedAt!: Date;
 
   @Prop({ default: 0 })
