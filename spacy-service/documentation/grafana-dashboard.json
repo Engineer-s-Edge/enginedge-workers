@@ -1,0 +1,31 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "spaCy Service - Production Dashboard",
+    "tags": ["spacy", "nlp", "production", "monitoring"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [{"expr": "up{job=\"spacy-service\"}", "legendFormat": "Service Status"}],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [{"expr": "rate(http_requests_total{job=\"spacy-service\"}[5m])", "legendFormat": "Requests/sec"}],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 3,
+        "title": "Processing Time",
+        "type": "graph",
+        "targets": [{"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"spacy-service\"}[5m]))", "legendFormat": "P95 Duration"}],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      }
+    ]
+  }
+}

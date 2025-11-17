@@ -1,0 +1,66 @@
+groups:
+  - name: identity-worker.alerts
+    rules:
+      # Service Health Alerts
+      - alert: IdentityWorkerDown
+        expr: up{job="identity-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: identity-worker
+        annotations:
+          summary: "Identity Worker is down"
+          description: "Identity Worker has been down for more than 5 minutes."
+
+      - alert: IdentityWorkerHighErrorRate
+        expr: rate(auth_operations_total{status="error",job="identity-worker"}[5m]) / rate(auth_operations_total{job="identity-worker"}[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: identity-worker
+        annotations:
+          summary: "High authentication error rate"
+          description: "Authentication error rate is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+
+      # Performance Alerts
+      - alert: IdentityWorkerHighAuthLatency
+        expr: histogram_quantile(0.95, rate(auth_operation_duration_seconds_bucket{job="identity-worker"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: identity-worker
+        annotations:
+          summary: "High authentication latency"
+          description: "95th percentile authentication duration is {{ $value | printf \"%.2f\" }}s over the last 10 minutes."
+
+      # Resource Alerts
+      - alert: IdentityWorkerHighCPUUsage
+        expr: rate(process_cpu_user_seconds_total{job="identity-worker"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: identity-worker
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }}% over the last 10 minutes."
+
+      - alert: IdentityWorkerHighMemoryUsage
+        expr: process_resident_memory_bytes{job="identity-worker"} / 1024 / 1024 > 512
+        for: 10m
+        labels:
+          severity: warning
+          service: identity-worker
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | printf \"%.2f\" }} MB."
+
+      # HTTP Request Alerts
+      - alert: IdentityWorkerHighHTTPErrorRate
+        expr: rate(http_requests_total{code=~"5..",job="identity-worker"}[5m]) / rate(http_requests_total{job="identity-worker"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: identity-worker
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate is {{ $value | printf \"%.2f\" }}%."

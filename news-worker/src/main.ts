@@ -3,7 +3,55 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
 import { LoggingInterceptor } from './infrastructure/interceptors/logging.interceptor';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import {
+  SwaggerModule,
+  DocumentBuilder,
+  OpenAPIObject,
+} from '@nestjs/swagger';
+import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
+import { createHash } from 'crypto';
+import * as path from 'path';
+import { dump } from 'js-yaml';
+
+const { readFile, writeFile, mkdir } = fs;
+
+async function syncOpenApiDocument(document: OpenAPIObject) {
+  try {
+    const documentationDir = path.resolve(process.cwd(), 'documentation');
+    const targetPath = path.join(documentationDir, 'openapi.yaml');
+    const nextContent = dump(document, {
+      noRefs: true,
+      sortKeys: true,
+      lineWidth: -1,
+    });
+    const nextChecksum = createHash('sha256')
+      .update(nextContent)
+      .digest('hex');
+
+    if (existsSync(targetPath)) {
+      const currentContent = await readFile(targetPath, 'utf8');
+      const currentChecksum = createHash('sha256')
+        .update(currentContent)
+        .digest('hex');
+      if (currentChecksum === nextChecksum) {
+        Logger.log('OpenAPI spec up to date; no changes detected', 'Swagger');
+        return;
+      }
+    }
+
+    await mkdir(documentationDir, { recursive: true });
+    await writeFile(targetPath, nextContent, 'utf8');
+    Logger.log(`OpenAPI spec updated at ${targetPath}`, 'Swagger');
+  } catch (error) {
+    Logger.warn(
+      `Failed to sync OpenAPI spec: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'Swagger',
+    );
+  }
+}
 
 async function bootstrap() {
   try {
@@ -41,6 +89,7 @@ async function bootstrap() {
       jsonDocumentUrl: 'api/docs-json',
       customSiteTitle: 'News Worker API Documentation',
     });
+    await syncOpenApiDocument(document);
 
     const port = process.env.PORT || 3009;
     await app.listen(port);
