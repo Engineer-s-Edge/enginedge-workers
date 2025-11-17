@@ -1,1064 +1,1273 @@
-openapi: 3.0.3
+components:
+  schemas:
+    AddBulletDto:
+      properties: {}
+      type: object
+    MarkReviewedDto:
+      properties: {}
+      type: object
+  securitySchemes:
+    jwt:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
 info:
-  title: Resume Worker API
+  contact: {}
   description: AI-powered resume generation, evaluation, and tailoring platform
+  title: Resume Worker API
   version: 1.0.0
-  contact:
-    name: EnginEdge Team
-    email: support@enginedge.com
-  license:
-    name: Proprietary
-    url: https://enginedge.com/license
-
-servers:
-  - url: http://localhost:3006
-    description: Development server
-  - url: https://resume.enginedge.com
-    description: Production server
-
-tags:
-  - name: Experience Bank
-    description: Manage bullet point library with vector search
-  - name: Resume
-    description: CRUD operations for resumes
-  - name: Job Posting
-    description: Extract and manage job postings
-  - name: Evaluation
-    description: Evaluate resumes and bullets
-  - name: Tailoring
-    description: Full resume tailoring workflow
-  - name: Editing
-    description: LaTeX editing operations
-  - name: Cover Letter
-    description: Generate tailored cover letters
-  - name: Health
-    description: Health checks and metrics
-
+openapi: 3.0.0
 paths:
   /health:
     get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        '200':
+          description: ''
       tags:
         - Health
-      summary: Health check
-      description: Returns service health status
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                  timestamp:
-                    type: string
-                    format: date-time
-                  uptime:
-                    type: number
-                    example: 123.45
-
-  /metrics:
-    get:
-      tags:
-        - Health
-      summary: Prometheus metrics
-      description: Returns Prometheus-formatted metrics
-      responses:
-        '200':
-          description: Metrics in Prometheus format
-          content:
-            text/plain:
-              schema:
-                type: string
-
-  /experience-bank/add:
+  /latex/lint:
     post:
+      operationId: LatexLintController_lint
+      parameters: []
+      responses:
+        '200':
+          description: ''
       tags:
-        - Experience Bank
-      summary: Add bullet point
-      description: Add a new bullet point to the experience bank
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - bulletText
-              properties:
-                userId:
-                  type: string
-                  example: user123
-                bulletText:
-                  type: string
-                  example: Developed scalable microservices reducing deployment time by 60%
-                metadata:
-                  type: object
-                  properties:
-                    technologies:
-                      type: array
-                      items:
-                        type: string
-                      example: [Node.js, Docker, Kubernetes]
-                    role:
-                      type: string
-                      example: Software Engineer
-                    company:
-                      type: string
-                      example: Tech Corp
-                    dateRange:
-                      type: string
-                      example: 2022-2024
-                    reviewed:
-                      type: boolean
-                      default: false
-                    category:
-                      type: string
-                      enum: [work, project, education]
-                      default: work
+        - LatexLint
+  /resume/ai/analyze-latex:
+    post:
+      operationId: LatexController_analyzeLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Latex
+  /resume/ai/edit-latex:
+    post:
+      operationId: LatexController_editLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Latex
+  /resume/bullets/check-match:
+    post:
+      operationId: BulletsController_checkMatch
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Bullets
+  /resume/bullets/create-reference:
+    post:
+      operationId: BulletsController_createReference
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Bullets
+  /resume/bullets/resolve-references:
+    post:
+      operationId: BulletsController_resolveReferences
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Bullets
+  /resume/cover-letters:
+    post:
+      operationId: CoverLetterController_createCoverLetter
+      parameters: []
       responses:
         '201':
-          description: Bullet point created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperienceBankItem'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /experience-bank/search:
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/generate:
     post:
-      tags:
-        - Experience Bank
-      summary: Search experience bank
-      description: Search for bullet points using vector search and metadata filters
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-              properties:
-                userId:
-                  type: string
-                query:
-                  type: string
-                  example: microservices deployment
-                filters:
-                  type: object
-                  properties:
-                    technologies:
-                      type: array
-                      items:
-                        type: string
-                    reviewed:
-                      type: boolean
-                    minImpactScore:
-                      type: number
-                      minimum: 0
-                      maximum: 1
-                    category:
-                      type: string
-                      enum: [work, project, education]
-                limit:
-                  type: integer
-                  default: 10
-                  minimum: 1
-                  maximum: 100
-      responses:
-        '200':
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ExperienceBankItem'
-                  total:
-                    type: integer
-
-  /experience-bank/list/{userId}:
-    get:
-      tags:
-        - Experience Bank
-      summary: List bullets
-      description: List all bullets for a user with optional filters
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: reviewed
-          in: query
-          schema:
-            type: boolean
-        - name: category
-          in: query
-          schema:
-            type: string
-            enum: [work, project, education]
-      responses:
-        '200':
-          description: List of bullets
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  bullets:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ExperienceBankItem'
-                  total:
-                    type: integer
-
-  /experience-bank/{id}/reviewed:
-    patch:
-      tags:
-        - Experience Bank
-      summary: Mark as reviewed
-      description: Mark a bullet point as reviewed
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Bullet marked as reviewed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperienceBankItem'
-
-  /experience-bank/{id}:
-    get:
-      tags:
-        - Experience Bank
-      summary: Get bullet by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Bullet point
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperienceBankItem'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /resume/create:
-    post:
-      tags:
-        - Resume
-      summary: Create resume
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - name
-                - latexContent
-              properties:
-                userId:
-                  type: string
-                name:
-                  type: string
-                latexContent:
-                  type: string
-                metadata:
-                  type: object
+      operationId: CoverLetterController_generateCoverLetter
+      parameters: []
       responses:
         '201':
-          description: Resume created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Resume'
-
-  /resume/{id}:
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/resume/{resumeId}:
     get:
-      tags:
-        - Resume
-      summary: Get resume
+      operationId: CoverLetterController_getCoverLettersForResume
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: resumeId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Resume
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Resume'
-    patch:
+          description: ''
       tags:
-        - Resume
-      summary: Update resume
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                latexContent:
-                  type: string
-                metadata:
-                  type: object
-      responses:
-        '200':
-          description: Resume updated
+        - CoverLetter
+  /resume/cover-letters/{id}:
     delete:
+      operationId: CoverLetterController_deleteCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+    get:
+      operationId: CoverLetterController_getCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+    patch:
+      operationId: CoverLetterController_updateCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/edit:
+    post:
+      operationId: CoverLetterController_editCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/export/pdf:
+    get:
+      operationId: CoverLetterController_exportPdf
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/export/tex:
+    get:
+      operationId: CoverLetterController_exportTex
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/regenerate:
+    post:
+      operationId: CoverLetterController_regenerateCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/evaluation/bullet:
+    post:
+      operationId: EvaluationController_evaluateBullet
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/bullets:
+    post:
+      operationId: EvaluationController_evaluateBullets
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/compare/{reportId1}/{reportId2}:
+    get:
+      operationId: EvaluationController_compareEvaluations
+      parameters:
+        - in: path
+          name: reportId1
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reportId2
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/report/{reportId}:
+    get:
+      operationId: EvaluationController_getReport
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/resume/{resumeId}:
+    post:
+      operationId: EvaluationController_evaluateResume
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/resume/{resumeId}/history:
+    get:
+      operationId: EvaluationController_getScoreHistory
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/resume/{resumeId}/reports:
+    get:
+      operationId: EvaluationController_getResumeReports
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/experience-bank:
+    post:
+      operationId: ExperienceBankController_addBullet
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBulletDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/bulk-delete:
+    post:
+      operationId: ExperienceBankController_bulkDelete
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/bulk-evaluate:
+    post:
+      operationId: ExperienceBankController_bulkEvaluate
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/bulk-review:
+    post:
+      operationId: ExperienceBankController_bulkReview
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/export:
+    get:
+      operationId: ExperienceBankController_exportBullets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: bulletIds
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeScores
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeMetadata
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/import:
+    post:
+      operationId: ExperienceBankController_importBullets
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/search:
+    get:
+      operationId: ExperienceBankController_search
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/user/{userId}:
+    get:
+      operationId: ExperienceBankController_findByUser
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: reviewed
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}:
+    delete:
+      operationId: ExperienceBankController_delete
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - ExperienceBank
+    get:
+      operationId: ExperienceBankController_findById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+    patch:
+      operationId: ExperienceBankController_updateBullet
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}/review:
+    patch:
+      operationId: ExperienceBankController_markReviewed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkReviewedDto'
+        required: true
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}/scores:
+    get:
+      operationId: ExperienceBankController_getScoreHistory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}/usage:
+    get:
+      operationId: ExperienceBankController_getUsage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+    patch:
+      operationId: ExperienceBankController_updateUsage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/job-postings/extract:
+    post:
+      operationId: JobPostingController_extractPosting
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/job-postings/user/{userId}:
+    get:
+      operationId: JobPostingController_getUserPostings
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: search
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: tags
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: company
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: role
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sortOrder
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/job-postings/user/{userId}/summary:
+    get:
+      operationId: JobPostingController_getUserPostingsSummary
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/job-postings/{id}:
+    delete:
+      operationId: JobPostingController_deletePosting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+    get:
+      operationId: JobPostingController_getPosting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+    patch:
+      operationId: JobPostingController_updatePosting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/resumes:
+    post:
+      operationId: ResumeController_create
+      parameters: []
+      responses:
+        '201':
+          description: ''
       tags:
         - Resume
-      summary: Delete resume
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Resume deleted
-
-  /job-posting/extract:
-    post:
-      tags:
-        - Job Posting
-      summary: Extract job posting
-      description: Extract structured information from a job posting
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - rawText
-              properties:
-                userId:
-                  type: string
-                url:
-                  type: string
-                rawText:
-                  type: string
-                rawHtml:
-                  type: string
-                mode:
-                  type: string
-                  enum: [nlp-only, llm-assisted]
-                  default: nlp-only
-      responses:
-        '201':
-          description: Job posting extracted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobPosting'
-
-  /job-posting/{id}:
+  /resume/resumes/job-posting/{jobPostingId}:
     get:
-      tags:
-        - Job Posting
-      summary: Get job posting
+      operationId: ResumeController_findByJobPosting
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: jobPostingId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Job posting
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobPosting'
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/user/{userId}:
+    get:
+      operationId: ResumeController_findByUser
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}:
     delete:
-      tags:
-        - Job Posting
-      summary: Delete job posting
+      operationId: ResumeController_delete
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
-        '200':
-          description: Job posting deleted
-
-  /job-posting/list/{userId}:
+        '204':
+          description: ''
+      tags:
+        - Resume
     get:
-      tags:
-        - Job Posting
-      summary: List job postings
+      operationId: ResumeController_findById
       parameters:
-        - name: userId
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: List of job postings
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/JobPosting'
-
-  /evaluation/evaluate:
-    post:
+          description: ''
       tags:
-        - Evaluation
-      summary: Evaluate resume
-      description: Evaluate an entire resume
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - resumeId
-              properties:
-                resumeId:
-                  type: string
-                mode:
-                  type: string
-                  enum: [standalone, role-guided, jd-match]
-                  default: standalone
-                jobPostingId:
-                  type: string
-                targetRole:
-                  type: string
-                options:
-                  type: object
-                  properties:
-                    autoFix:
-                      type: boolean
-                      default: true
-                    includeSwaps:
-                      type: boolean
-                      default: true
+        - Resume
+    put:
+      operationId: ResumeController_update
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       responses:
-        '201':
-          description: Evaluation complete
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EvaluationReport'
-
-  /evaluation/report/{id}:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/export/pdf:
     get:
-      tags:
-        - Evaluation
-      summary: Get evaluation report
+      operationId: ResumeController_exportPdf
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Evaluation report
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EvaluationReport'
-
-  /evaluation/reports/{resumeId}:
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/export/tex:
     get:
-      tags:
-        - Evaluation
-      summary: List evaluation reports
+      operationId: ResumeController_exportTex
       parameters:
-        - name: resumeId
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: List of reports
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/EvaluationReport'
-
-  /tailoring/tailor:
-    post:
+          description: ''
       tags:
-        - Tailoring
-      summary: Tailor resume
-      description: Start full resume tailoring workflow
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - resumeId
-                - jobPostingText
-              properties:
-                userId:
-                  type: string
-                resumeId:
-                  type: string
-                jobPostingText:
-                  type: string
-                mode:
-                  type: string
-                  enum: [auto, manual]
-                  default: auto
-                targetScore:
-                  type: number
-                  default: 95
-                  minimum: 0
-                  maximum: 100
-                options:
-                  type: object
-                  properties:
-                    maxIterations:
-                      type: integer
-                      default: 5
-                    autoApplyFixes:
-                      type: boolean
-                      default: true
-      responses:
-        '202':
-          description: Tailoring job started
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jobId:
-                    type: string
-                  status:
-                    type: string
-                    enum: [queued, processing]
-                  estimatedTime:
-                    type: integer
-
-  /tailoring/job/{jobId}:
+        - Resume
+  /resume/resumes/{id}/layout:
     get:
-      tags:
-        - Tailoring
-      summary: Get job status
+      operationId: ResumeController_getLayout
       parameters:
-        - name: jobId
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Job status
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  jobId:
-                    type: string
-                  status:
-                    type: string
-                    enum: [queued, processing, completed, failed, cancelled]
-                  progress:
-                    type: integer
-                  currentScore:
-                    type: number
-                  targetScore:
-                    type: number
-                  iterations:
-                    type: integer
-                  message:
-                    type: string
-
-  /tailoring/job/{jobId}/cancel:
-    post:
+          description: ''
       tags:
-        - Tailoring
-      summary: Cancel job
-      parameters:
-        - name: jobId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Job cancelled
-
-  /editing/{resumeId}/latex:
-    post:
-      tags:
-        - Editing
-      summary: Apply LaTeX operation
-      parameters:
-        - name: resumeId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - operation
-                - text
-              properties:
-                operation:
-                  type: string
-                  enum: [bold, italic, underline, replace, insert, delete]
-                text:
-                  type: string
-                position:
-                  type: integer
-      responses:
-        '200':
-          description: Operation applied
-
-  /editing/{resumeId}/undo:
-    post:
-      tags:
-        - Editing
-      summary: Undo last change
-      parameters:
-        - name: resumeId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Change undone
-
-  /editing/{resumeId}/redo:
-    post:
-      tags:
-        - Editing
-      summary: Redo last undone change
-      parameters:
-        - name: resumeId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Change redone
-
-  /editing/{resumeId}/preview:
-    post:
-      tags:
-        - Editing
-      summary: Generate preview
-      parameters:
-        - name: resumeId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Preview generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  pdfUrl:
-                    type: string
-                  expiresAt:
-                    type: string
-                    format: date-time
-
-  /editing/{resumeId}/suggest-swaps:
-    post:
-      tags:
-        - Editing
-      summary: Suggest bullet swaps
-      parameters:
-        - name: resumeId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                jobPostingId:
-                  type: string
-                limit:
-                  type: integer
-                  default: 5
-      responses:
-        '200':
-          description: Suggestions generated
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    currentBullet:
-                      type: string
-                    suggestedBullet:
-                      type: string
-                    reason:
-                      type: string
-                    confidence:
-                      type: number
-
-  /editing/{resumeId}/apply-swap:
-    post:
-      tags:
-        - Editing
-      summary: Apply bullet swap
-      parameters:
-        - name: resumeId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - oldBulletId
-                - newBulletId
-              properties:
-                oldBulletId:
-                  type: string
-                newBulletId:
-                  type: string
-      responses:
-        '200':
-          description: Swap applied
-
-  /cover-letter/generate:
-    post:
-      tags:
-        - Cover Letter
-      summary: Generate cover letter
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - userId
-                - options
-              properties:
-                userId:
-                  type: string
-                options:
-                  type: object
-                  required:
-                    - jobPostingId
-                  properties:
-                    jobPostingId:
-                      type: string
-                    tone:
-                      type: string
-                      enum: [professional, casual, enthusiastic]
-                      default: professional
-                    length:
-                      type: string
-                      enum: [short, medium, long]
-                      default: medium
-                    includeExperiences:
-                      type: array
-                      items:
-                        type: string
-      responses:
-        '201':
-          description: Cover letter generated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CoverLetter'
-
-  /cover-letter/{id}/regenerate:
-    post:
-      tags:
-        - Cover Letter
-      summary: Regenerate cover letter
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                options:
-                  type: object
-      responses:
-        '200':
-          description: Cover letter regenerated
-
-  /cover-letter/{id}:
+        - Resume
     patch:
-      tags:
-        - Cover Letter
-      summary: Edit cover letter
+      operationId: ResumeController_saveLayout
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  type: string
       responses:
         '200':
-          description: Cover letter updated
-
-components:
-  schemas:
-    ExperienceBankItem:
-      type: object
-      properties:
-        _id:
-          type: string
-        userId:
-          type: string
-        bulletText:
-          type: string
-        vector:
-          type: array
-          items:
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/locations:
+    get:
+      operationId: ResumeController_getLocations
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: finding
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/sync-status:
+    get:
+      operationId: ResumeController_getSyncStatus
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/apply-template:
+    post:
+      operationId: ResumeController_applyTemplate
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/current-job-posting:
+    get:
+      operationId: ResumeController_getCurrentJobPosting
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+    patch:
+      operationId: ResumeController_setCurrentJobPosting
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/formatting:
+    patch:
+      operationId: ResumeController_updateFormatting
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/sections/reorder:
+    patch:
+      operationId: ResumeController_reorderSections
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/suggestions/bank-swaps:
+    post:
+      operationId: SuggestionsController_getBankSwaps
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/suggestions/bullet-improvements:
+    post:
+      operationId: SuggestionsController_getBulletImprovements
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/suggestions/score-bullet:
+    post:
+      operationId: SuggestionsController_scoreBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/suggestions/score-resume-with-bullet:
+    post:
+      operationId: SuggestionsController_scoreResumeWithBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/tools/add-bullet-to-bank:
+    post:
+      operationId: ToolsController_addBulletToBank
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/build-cover-letter-latex:
+    post:
+      operationId: ToolsController_buildCoverLetterLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/create-bullet:
+    post:
+      operationId: ToolsController_createDraftBullet
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/edit-cover-letter-latex:
+    post:
+      operationId: ToolsController_editCoverLetterLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/evaluate-bullet:
+    post:
+      operationId: ToolsController_evaluateBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/flag-bullet:
+    post:
+      operationId: ToolsController_flagBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/get-flagged-bullets:
+    get:
+      operationId: ToolsController_getFlaggedBullets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/get-unreviewed-bullets:
+    get:
+      operationId: ToolsController_getUnreviewedBullets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/remove-bullet-from-bank/{bulletId}:
+    delete:
+      operationId: ToolsController_removeBulletFromBank
+      parameters:
+        - in: path
+          name: bulletId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/user-data:
+    get:
+      operationId: UserDataController_getUserData
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - UserData
+    patch:
+      operationId: UserDataController_updateUserData
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - UserData
+  /resume/{resumeId}/edit/apply:
+    post:
+      operationId: ResumeEditingController_applyEdit
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/redo:
+    post:
+      operationId: ResumeEditingController_redo
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/stacks:
+    get:
+      operationId: ResumeEditingController_getStackSizes
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/undo:
+    post:
+      operationId: ResumeEditingController_undo
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions:
+    get:
+      operationId: ResumeEditingController_getVersionHistory
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions/compare/{version1}/{version2}:
+    get:
+      operationId: ResumeEditingController_compareVersions
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: version1
+          required: true
+          schema:
             type: number
-        vectorModel:
-          type: string
-          example: text-embedding-004
-        metadata:
-          type: object
-          properties:
-            technologies:
-              type: array
-              items:
-                type: string
-            role:
-              type: string
-            company:
-              type: string
-            dateRange:
-              type: string
-            reviewed:
-              type: boolean
-            category:
-              type: string
-              enum: [work, project, education]
-            impactScore:
-              type: number
-            atsScore:
-              type: number
-        hash:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    Resume:
-      type: object
-      properties:
-        _id:
-          type: string
-        userId:
-          type: string
-        name:
-          type: string
-        latexContent:
-          type: string
-        currentVersion:
-          type: integer
-        versions:
-          type: array
-          items:
-            type: object
-        metadata:
-          type: object
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    JobPosting:
-      type: object
-      properties:
-        _id:
-          type: string
-        userId:
-          type: string
-        url:
-          type: string
-        rawText:
-          type: string
-        parsed:
-          type: object
-        extractionMethod:
-          type: string
-          enum: [nlp-only, llm-assisted]
-        confidence:
-          type: number
-        createdAt:
-          type: string
-          format: date-time
-
-    EvaluationReport:
-      type: object
-      properties:
-        _id:
-          type: string
-        resumeId:
-          type: string
-        userId:
-          type: string
-        mode:
-          type: string
-          enum: [standalone, role-guided, jd-match]
-        scores:
-          type: object
-          properties:
-            overall:
-              type: number
-            structure:
-              type: number
-            ats:
-              type: number
-            content:
-              type: number
-            alignment:
-              type: number
-        gates:
-          type: object
-        findings:
-          type: array
-          items:
-            type: object
-        coverage:
-          type: object
-        suggestedSwaps:
-          type: array
-          items:
-            type: object
-        createdAt:
-          type: string
-          format: date-time
-
-    CoverLetter:
-      type: object
-      properties:
-        _id:
-          type: string
-        userId:
-          type: string
-        jobPostingId:
-          type: string
-        content:
-          type: string
-        metadata:
-          type: object
-        createdAt:
-          type: string
-          format: date-time
-
-  responses:
-    BadRequest:
-      description: Bad request
-      content:
-        application/json:
+        - in: path
+          name: version2
+          required: true
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: integer
-                example: 400
-              message:
-                type: string
-              error:
-                type: string
-                example: Bad Request
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions/{versionNumber}:
+    get:
+      operationId: ResumeEditingController_getVersion
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
           schema:
-            type: object
-            properties:
-              statusCode:
-                type: integer
-                example: 404
-              message:
-                type: string
-              error:
-                type: string
-                example: Not Found
+            type: string
+        - in: path
+          name: versionNumber
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions/{versionNumber}/rollback:
+    post:
+      operationId: ResumeEditingController_rollback
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: versionNumber
+          required: true
+          schema:
+            type: number
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /tailor:
+    post:
+      operationId: ResumeTailoringController_startTailoring
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeTailoring
+  /tailor/job/{jobId}:
+    delete:
+      operationId: ResumeTailoringController_cancelJob
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeTailoring
+    get:
+      operationId: ResumeTailoringController_getJobStatus
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeTailoring
+  /tailor/user/{userId}/jobs:
+    get:
+      operationId: ResumeTailoringController_getUserJobs
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeTailoring
+servers: []
+tags:
+  - description: Resume CRUD operations
+    name: Resumes
+  - description: Manage bullet point library with vector search
+    name: Experience Bank
+  - description: Extract and manage job postings
+    name: Job Postings
+  - description: Evaluate resumes and bullets
+    name: Evaluation
+  - description: Full resume tailoring workflow
+    name: Tailoring
+  - description: LaTeX editing operations
+    name: Editing
+  - description: Generate tailored cover letters
+    name: Cover Letter
+  - description: Health checks and metrics
+    name: Health
