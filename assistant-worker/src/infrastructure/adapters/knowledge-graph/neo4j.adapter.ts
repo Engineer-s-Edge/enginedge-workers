@@ -81,6 +81,8 @@ export interface KGNode {
   researchData?: ResearchData;
   graphComponentId?: string;
   explorationStatus?: string; // Tracks how explored/researched the node is (e.g., "unexplored", "exploring", "explored", "fully_researched")
+  domain?: string; // Domain name for L1 observation nodes
+  domainColor?: string; // Color associated with the domain
 }
 
 /**

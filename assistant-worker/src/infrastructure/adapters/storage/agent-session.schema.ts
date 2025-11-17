@@ -11,38 +11,37 @@ export type AgentSessionDocument = AgentSession & Document;
 
 @Schema({ timestamps: true, collection: 'agent_sessions' })
 export class AgentSession {
-  @Prop({ required: true, unique: true, index: true })
-  sessionId: string;
+  @Prop({ required: true, unique: true })
+  sessionId!: string;
 
-  @Prop({ required: true, index: true })
-  agentId: string;
+  @Prop({ required: true })
+  agentId!: string;
 
-  @Prop({ required: true, index: true })
-  userId: string;
+  @Prop({ required: true })
+  userId!: string;
 
-  @Prop({ required: true, index: true })
-  instanceKey: string;
+  @Prop({ required: true })
+  instanceKey!: string;
 
   @Prop({
     required: true,
     enum: ['active', 'paused', 'completed', 'failed'],
     default: 'active',
-    index: true,
   })
-  status: 'active' | 'paused' | 'completed' | 'failed';
+  status!: 'active' | 'paused' | 'completed' | 'failed';
 
   @Prop({ required: true, default: Date.now })
-  createdAt: Date;
+  createdAt!: Date;
 
-  @Prop({ required: true, default: Date.now, index: true })
-  lastActivityAt: Date;
+  @Prop({ required: true, default: Date.now })
+  lastActivityAt!: Date;
 
   @Prop({ type: Object, default: {} })
-  metadata: Record<string, unknown>;
+  metadata!: Record<string, unknown>;
 
   // TTL index for automatic cleanup (sessions older than 7 days)
-  @Prop({ required: true, default: Date.now, expires: 604800 }) // 7 days in seconds
-  expiresAt: Date;
+  @Prop({ required: true, default: Date.now })
+  expiresAt!: Date;
 }
 
 export const AgentSessionSchema = SchemaFactory.createForClass(AgentSession);

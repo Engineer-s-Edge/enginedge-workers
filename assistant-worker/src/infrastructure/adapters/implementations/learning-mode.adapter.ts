@@ -5,7 +5,7 @@
  * Tracks component merges via GraphComponentService integration
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import {
   ILearningModeAdapter,
   LearningMode,
@@ -18,7 +18,10 @@ import { LearningModeService } from '../../../application/services/learning-mode
 export class LearningModeAdapter implements ILearningModeAdapter {
   private readonly logger = new Logger(LearningModeAdapter.name);
 
-  constructor(private readonly learningModeService: LearningModeService) {}
+  constructor(
+    @Inject(forwardRef(() => LearningModeService))
+    private readonly learningModeService: LearningModeService,
+  ) {}
 
   async executeLearningMode(
     config: LearningModeConfig,

@@ -285,12 +285,12 @@ export class AgentController {
    */
   @Get('stats')
   async getStats(@Query('userId') userId?: string) {
-    const sessions = userId ? this.sessions.getUserSessions(userId) : [];
+    const sessions = userId ? await this.sessions.getUserSessions(userId) : [];
 
     return {
       sessions: sessions.length,
-      activeSessions: sessions.filter((s) => s.status === 'active').length,
-      pausedSessions: sessions.filter((s) => s.status === 'paused').length,
+      activeSessions: sessions.filter((s: { status: string }) => s.status === 'active').length,
+      pausedSessions: sessions.filter((s: { status: string }) => s.status === 'paused').length,
     };
   }
 }

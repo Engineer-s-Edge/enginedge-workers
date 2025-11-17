@@ -15,13 +15,13 @@ export type TopicCatalogDocument = TopicCatalogEntry & Document;
 
 @Schema({ collection: 'topic_catalog', timestamps: true })
 export class TopicCatalog {
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   name!: string;
 
   @Prop()
   description?: string;
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   category!: string;
 
   @Prop({ type: [String], default: [] })
@@ -55,7 +55,6 @@ export class TopicCatalog {
     type: String,
     enum: Object.values(TopicSourceType),
     required: true,
-    index: true,
   })
   sourceType!: TopicSourceType;
 

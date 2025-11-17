@@ -18,6 +18,8 @@ import { Agent } from '@domain/entities/agent.entity';
 import { AgentConfig } from '@domain/value-objects/agent-config.vo';
 import { AgentCapability } from '@domain/value-objects/agent-capability.vo';
 import { IAgentRepository } from '../ports/agent.repository';
+import { AgentConfigurationService } from './agent-configuration.service';
+import { ModelValidationService } from './model-validation.service';
 
 @Injectable()
 export class AssistantExecutorService {
@@ -31,6 +33,8 @@ export class AssistantExecutorService {
     @Inject('ILogger')
     private readonly logger: ILogger,
     private readonly conversations: ConversationsService,
+    private readonly configService: AgentConfigurationService,
+    private readonly modelValidation: ModelValidationService,
   ) {
     this.logger.info('AssistantExecutorService initialized');
   }

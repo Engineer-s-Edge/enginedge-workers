@@ -221,7 +221,11 @@ export class LearningModeService {
       this.updateModeStatistics(config.mode, duration, false);
 
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Learning mode execution failed: ${err.message}`, err.stack);
+      this.logger.error(`Learning mode execution failed: ${err.message}`, {
+        stack: err.stack,
+        mode: config.mode,
+        userId: config.userId,
+      });
 
       return {
         success: false,

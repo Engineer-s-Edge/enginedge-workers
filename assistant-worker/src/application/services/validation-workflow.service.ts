@@ -13,6 +13,7 @@ import {
   ValidatorAgentRun,
   ValidationCheckType,
   ValidationResult,
+  ValidationSeverity,
 } from '@domain/validation/validation.types';
 import { ValidationService } from './validation.service';
 
@@ -115,7 +116,7 @@ export class ValidationWorkflowService {
         this.createManualReview(agentId, item, result);
       }
 
-      this.emitStatus(agentId, item, 'validation.completed', result);
+      this.emitStatus(agentId, item, 'validation.completed', result as unknown as Record<string, unknown>);
       return item;
     } catch (error) {
       const message =
@@ -282,7 +283,7 @@ export class ValidationWorkflowService {
       const entry: ValidatorAgentError = {
         timestamp: new Date(),
         message,
-        severity: 'error',
+        severity: ValidationSeverity.ERROR,
       };
       validator.errorLog.push(entry);
       validator.status = 'error';

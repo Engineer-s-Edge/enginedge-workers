@@ -9,6 +9,7 @@ import {
 import {
   ConversationStatistics,
   ConversationType,
+  ConversationSettingsOverrides,
 } from '@domain/conversations/conversation.types';
 import { ILogger } from '@application/ports/logger.port';
 import { MetricsAdapter } from '@infrastructure/adapters/monitoring/metrics.adapter';

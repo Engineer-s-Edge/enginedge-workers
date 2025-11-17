@@ -94,7 +94,7 @@ export class GraphAgentController {
       {
         name: body.name,
         agentType: 'graph',
-        config: { workflow: body.workflow as Record<string, unknown> },
+        config: { workflow: body.workflow as any },
       },
       body.userId,
     );

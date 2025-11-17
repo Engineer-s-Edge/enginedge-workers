@@ -10,7 +10,7 @@ export type CategoryDocument = Category & Document;
 
 @Schema({ collection: 'categories', timestamps: true })
 export class CategoryModel {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   name!: string;
 
   @Prop()
@@ -44,6 +44,6 @@ export class CategoryModel {
 export const CategorySchema = SchemaFactory.createForClass(CategoryModel);
 
 // Create indexes
-CategorySchema.index({ name: 1 });
+// Note: name already has a unique index from @Prop({ unique: true }), so no need to add it again
 CategorySchema.index({ parentCategoryId: 1 });
 CategorySchema.index({ topicIds: 1 });

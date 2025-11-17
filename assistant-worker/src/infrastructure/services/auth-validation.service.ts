@@ -19,7 +19,7 @@ interface AuthResult {
 @Injectable()
 export class AuthValidationService {
   private readonly logger = new Logger(AuthValidationService.name);
-  private cachedKey: CryptoKey | null = null;
+  private cachedKey: CryptoKey | Uint8Array | null = null;
   private cachedKeyExpiry = 0;
   private readonly cacheTtlMs = 5 * 60 * 1000;
 
@@ -94,9 +94,9 @@ export class AuthValidationService {
     };
   }
 
-  private async getPublicKey(): Promise<CryptoKey> {
+  private async getPublicKey(): Promise<CryptoKey | Uint8Array> {
     if (this.cachedKey && Date.now() < this.cachedKeyExpiry) {
-      return this.cachedKey;
+      return this.cachedKey as CryptoKey | Uint8Array;
     }
 
     const identityWorkerUrl =
@@ -115,8 +115,8 @@ export class AuthValidationService {
     }
 
     const publicKey = await importJWK(jwks.keys[0], 'RS256');
-    this.cachedKey = publicKey;
+    this.cachedKey = publicKey as CryptoKey | Uint8Array;
     this.cachedKeyExpiry = Date.now() + this.cacheTtlMs;
-    return publicKey;
+    return publicKey as CryptoKey | Uint8Array;
   }
 }

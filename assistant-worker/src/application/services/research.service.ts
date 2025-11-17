@@ -42,7 +42,7 @@ export class ResearchService {
         const node = await this.knowledgeGraphService.addNode(
           finding,
           'research_finding',
-          ICSLayer.ANALYSIS, // Research findings are typically at analysis layer
+          ICSLayer.L3_MODELS, // Research findings are typically at models layer
           {
             topic: data.topic,
             confidence: data.confidence || 0.8,
@@ -59,7 +59,7 @@ export class ResearchService {
       const topicNode = await this.knowledgeGraphService.addNode(
         data.topic,
         'topic',
-        ICSLayer.CONCEPT, // Topics are concepts
+        ICSLayer.L2_PATTERNS, // Topics are patterns
         {
           confidence: data.confidence || 0.8,
           timestamp: data.timestamp || new Date(),
@@ -72,7 +72,7 @@ export class ResearchService {
       // Create relationships between topic and findings
       for (const findingNodeId of nodesCreated.slice(0, -1)) {
         // Skip the topic node (last one)
-        await this.knowledgeGraphService.addRelationship(
+        await this.knowledgeGraphService.createRelationship(
           topicNode.id,
           findingNodeId,
           'HAS_FINDING',
@@ -88,7 +88,7 @@ export class ResearchService {
         const sourceNode = await this.knowledgeGraphService.addNode(
           source,
           'source',
-          ICSLayer.METADATA,
+          ICSLayer.L1_OBSERVATIONS, // Sources are observations
           {
             url: source,
             timestamp: data.timestamp || new Date(),
@@ -97,7 +97,7 @@ export class ResearchService {
         );
 
         // Link source to topic
-        await this.knowledgeGraphService.addRelationship(
+        await this.knowledgeGraphService.createRelationship(
           sourceNode.id,
           topicNode.id,
           'CITES',

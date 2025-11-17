@@ -305,6 +305,8 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
     MetricsAdapter,
     // Export KafkaProducerAdapter for application layer
     KafkaProducerAdapter,
+    // Export AuthValidationService for controllers
+    AuthValidationService,
   ],
 })
 export class InfrastructureModule {}

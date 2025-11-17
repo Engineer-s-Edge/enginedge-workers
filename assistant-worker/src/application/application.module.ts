@@ -58,6 +58,7 @@ import { GetTopicsForResearchUseCase } from './use-cases/get-topics-for-research
 import { AddTopicUseCase } from './use-cases/add-topic.use-case';
 import { ManagerRuntimeService } from './services/manager/manager-runtime.service';
 import { GeniusExpertRuntimeService } from './services/genius/genius-expert-runtime.service';
+import { ModelsService } from './services/models.service';
 import { ILogger, ILLMProvider } from '@application/ports';
 import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
 
@@ -253,6 +254,9 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
 
     // Export research service
     ResearchService,
+
+    // Export models service
+    ModelsService,
 
   ManagerRuntimeService,
   GeniusExpertRuntimeService,

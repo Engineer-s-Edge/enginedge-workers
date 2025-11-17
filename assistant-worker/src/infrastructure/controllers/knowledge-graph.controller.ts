@@ -10,6 +10,7 @@ import {
   Post,
   Get,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
@@ -18,6 +19,7 @@ import {
   Inject,
   Sse,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { MessageEvent } from '@nestjs/common';
@@ -29,7 +31,7 @@ interface Logger {
   warn(message: string, meta?: Record<string, unknown>): void;
   error(message: string, meta?: Record<string, unknown>): void;
 }
-import { ICSLayer } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
+import { ICSLayer, KGNode } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
 
 /**
  * Knowledge Graph Controller
@@ -635,9 +637,9 @@ export class KnowledgeGraphController {
     }
 
     const updated = await this.knowledgeGraphService.updateNode(nodeId, {
-      domain: body.domain,
-      domainColor: body.domainColor,
-    });
+      ...(body.domain !== undefined && { domain: body.domain }),
+      ...(body.domainColor !== undefined && { domainColor: body.domainColor }),
+    } as Partial<Omit<KGNode, 'id' | 'createdAt'>>);
 
     return {
       success: true,

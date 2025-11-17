@@ -16,7 +16,8 @@ export interface StreamEvent {
     | 'thought'
     | 'tool'
     | 'complete'
-    | 'error';
+    | 'error'
+    | 'heartbeat';
   data: any;
   timestamp: Date;
 }

@@ -196,7 +196,7 @@ export class MemoryService {
           // Only add non-empty context
           if (context && context.trim().length > 0) {
             // Add memory type label for clarity
-            const memoryLabel = memoryConfig.metadata?.label || memoryType;
+            const memoryLabel = (memoryConfig.metadata?.label as string) || memoryType || 'UNKNOWN';
             contextParts.push(`[${memoryLabel.toUpperCase()} MEMORY]\n${context}`);
           }
         } catch (error) {

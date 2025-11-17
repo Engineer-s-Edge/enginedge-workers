@@ -447,7 +447,7 @@ export class SharedMemoryService {
       ArtifactType.DOCUMENT,
       ArtifactType.CODE,
       ArtifactType.DATA,
-      ArtifactType.ANALYSIS,
+      ArtifactType.OTHER, // Using OTHER instead of non-existent ANALYSIS
       ArtifactType.DESIGN,
     ];
 

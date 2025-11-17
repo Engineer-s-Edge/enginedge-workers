@@ -1121,9 +1121,9 @@ export class KnowledgeGraphService {
     nodes: KGNode[];
     edges: KGEdge[];
   }> {
-    const allNodes = await this.getAllNodes();
-    const allEdges = await this.getAllEdges();
-    return { nodes: allNodes, edges: allEdges };
+    const allNodesResult = await this.getAllNodes();
+    const allEdgesResult = await this.getAllEdges();
+    return { nodes: allNodesResult.nodes, edges: allEdgesResult.edges };
   }
 
   /**
@@ -1137,7 +1137,8 @@ export class KnowledgeGraphService {
     nodesByStatus: Record<string, number>;
   }> {
     const stats = await this.neo4jAdapter.getStats();
-    const allNodes = await this.getAllNodes();
+    const allNodesResult = await this.getAllNodes();
+    const allNodes = allNodesResult.nodes;
 
     const nodesByCategory: Record<string, number> = {};
     const nodesByStatus: Record<string, number> = {};
@@ -1157,27 +1158,5 @@ export class KnowledgeGraphService {
       nodesByLayer: stats.nodesByLayer as any,
       nodesByStatus,
     };
-  }
-
-  /**
-   * Get all nodes
-   */
-  private async getAllNodes(): Promise<KGNode[]> {
-    // Get all nodes by querying all layers
-    const allNodes: KGNode[] = [];
-    for (const layer of Object.values(ICSLayer)) {
-      const nodes = await this.getNodesByLayer(layer);
-      allNodes.push(...nodes);
-    }
-    return allNodes;
-  }
-
-  /**
-   * Get all edges
-   */
-  private async getAllEdges(): Promise<KGEdge[]> {
-    // This would require a method in the adapter to get all edges
-    // For now, return empty array - in production, implement getAllEdges in adapter
-    return [];
   }
 }

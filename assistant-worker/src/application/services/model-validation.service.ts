@@ -90,7 +90,7 @@ export class ModelValidationService {
       };
     }
 
-    return { valid: true, maxTokens: maxOutputTokens || contextWindow };
+    return { valid: true, maxTokens: maxOutputTokens ?? contextWindow ?? undefined };
   }
 
   /**

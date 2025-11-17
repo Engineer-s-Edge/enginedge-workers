@@ -163,6 +163,7 @@ export class MongoDBAgentSessionRepository
       createdAt: doc.createdAt,
       lastActivityAt: doc.lastActivityAt,
       metadata: doc.metadata || {},
+      expiresAt: doc.expiresAt,
     };
   }
 }
