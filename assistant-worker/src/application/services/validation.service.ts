@@ -398,7 +398,8 @@ export class ValidationService {
         severity: ValidationSeverity.ERROR,
         confidence: 0.8,
         summary: 'Findings appear inconsistent',
-        recommendation: 'Align conflicting findings or provide clarifying context.',
+        recommendation:
+          'Align conflicting findings or provide clarifying context.',
       });
     }
 
@@ -431,9 +432,7 @@ export class ValidationService {
     return { issues, score };
   }
 
-  private assessLogicalCoherence(
-    report: ExpertReport,
-  ): CheckComputationResult {
+  private assessLogicalCoherence(report: ExpertReport): CheckComputationResult {
     const issues: ValidationIssue[] = [];
     const summary = report.summary || '';
 
@@ -455,7 +454,8 @@ export class ValidationService {
         severity: ValidationSeverity.WARNING,
         confidence: 0.7,
         summary: 'Missing summary for provided findings',
-        recommendation: 'Add a synthesis explaining how findings support the topic.',
+        recommendation:
+          'Add a synthesis explaining how findings support the topic.',
       });
     }
 
@@ -504,7 +504,8 @@ export class ValidationService {
           confidence: 0.5,
           summary: 'Missing relationship label for referenced node',
           details: `Node ${reference.nodeId}`,
-          recommendation: 'Specify how the finding relates to the referenced node.',
+          recommendation:
+            'Specify how the finding relates to the referenced node.',
         });
       }
     }
@@ -538,9 +539,7 @@ export class ValidationService {
     return { issues, score: issues.length ? 0.6 : 1 };
   }
 
-  private ensureComplexityMatch(
-    report: ExpertReport,
-  ): CheckComputationResult {
+  private ensureComplexityMatch(report: ExpertReport): CheckComputationResult {
     const issues: ValidationIssue[] = [];
     if (
       report.complexity !== undefined &&
@@ -599,10 +598,7 @@ export class ValidationService {
       });
     }
 
-    const score = Math.max(
-      0,
-      1 - issues.length / Math.max(sources.length, 1),
-    );
+    const score = Math.max(0, 1 - issues.length / Math.max(sources.length, 1));
     return { issues, score };
   }
 
@@ -623,21 +619,24 @@ export class ValidationService {
         confidence: 0.75,
         summary: 'Coverage below expected threshold',
         details: `Expected at least ${expected} findings, received ${actual}`,
-        recommendation: 'Expand research to cover additional aspects of the topic.',
+        recommendation:
+          'Expand research to cover additional aspects of the topic.',
       });
     }
 
     return { issues, score: Math.min(1, coverageRatio) };
   }
 
-  private verifyCitationAccuracy(
-    report: ExpertReport,
-  ): CheckComputationResult {
+  private verifyCitationAccuracy(report: ExpertReport): CheckComputationResult {
     const issues: ValidationIssue[] = [];
     const citations = report.citations || [];
 
     citations.forEach((citation, index) => {
-      if (!report.sources.some((source) => source.includes(citation.sourceId ?? ''))) {
+      if (
+        !report.sources.some((source) =>
+          source.includes(citation.sourceId ?? ''),
+        )
+      ) {
         issues.push({
           id: `${ValidationCheckType.CITATION_ACCURACY}-${index}-${randomUUID()}`,
           type: ValidationCheckType.CITATION_ACCURACY,
@@ -645,7 +644,8 @@ export class ValidationService {
           confidence: 0.65,
           summary: 'Citation references unknown source',
           details: `Citation ${citation.text}`,
-          recommendation: 'Ensure every citation maps to a provided source URL.',
+          recommendation:
+            'Ensure every citation maps to a provided source URL.',
         });
       }
     });
@@ -831,12 +831,11 @@ export class ValidationService {
 
     const previousPassRatio = stats.passRate / 100;
     const passed = result.status === 'failed' ? 0 : 1;
-    const newPassRatio =
-      ((previousPassRatio * (total - 1)) + passed) / total;
+    const newPassRatio = (previousPassRatio * (total - 1) + passed) / total;
     stats.passRate = Number((newPassRatio * 100).toFixed(2));
 
     stats.averageScore =
-      ((stats.averageScore * (total - 1)) + result.score) / total;
+      (stats.averageScore * (total - 1) + result.score) / total;
 
     Object.values(ValidationCheckType).forEach((type) => {
       const summary = result.checks?.[type];
@@ -853,12 +852,12 @@ export class ValidationService {
       const successful = autoFixes.filter((fix) => fix.success).length;
       const previousRatio = stats.autoFixSuccessRate / 100;
       const batchRatio = successful / autoFixes.length;
-      const newRatio = ((previousRatio * (total - 1)) + batchRatio) / total;
+      const newRatio = (previousRatio * (total - 1) + batchRatio) / total;
       stats.autoFixSuccessRate = Number((newRatio * 100).toFixed(2));
     }
 
     stats.averageDurationMs =
-      ((stats.averageDurationMs * (total - 1)) + result.validationDurationMs) /
+      (stats.averageDurationMs * (total - 1) + result.validationDurationMs) /
       total;
     stats.lastUpdated = new Date();
   }
@@ -906,7 +905,10 @@ export class ValidationService {
         let totalPairs = 0;
         for (let i = 0; i < embeddings.length - 1; i++) {
           for (let j = i + 1; j < embeddings.length; j++) {
-            const similarity = this.cosineSimilarity(embeddings[i], embeddings[j]);
+            const similarity = this.cosineSimilarity(
+              embeddings[i],
+              embeddings[j],
+            );
             totalPairs++;
             if (similarity > 0.5) {
               consistentPairs++;
@@ -937,7 +939,10 @@ export class ValidationService {
         );
         for (let i = 0; i < embeddings.length - 1; i++) {
           for (let j = i + 1; j < embeddings.length; j++) {
-            const similarity = this.cosineSimilarity(embeddings[i], embeddings[j]);
+            const similarity = this.cosineSimilarity(
+              embeddings[i],
+              embeddings[j],
+            );
             if (similarity > 0.9) {
               return true;
             }
@@ -979,7 +984,9 @@ export class ValidationService {
 
   private extractDomain(source: string): string | null {
     try {
-      const url = new URL(source.startsWith('http') ? source : `https://${source}`);
+      const url = new URL(
+        source.startsWith('http') ? source : `https://${source}`,
+      );
       return url.hostname.toLowerCase().replace(/^www\./, '');
     } catch {
       return null;
@@ -988,7 +995,10 @@ export class ValidationService {
 
   private checkFindingsConsistencyKeywords(findings: string[]): boolean {
     const keywords = findings.map((f) => {
-      const words = f.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+      const words = f
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 3);
       return new Set(words);
     });
 

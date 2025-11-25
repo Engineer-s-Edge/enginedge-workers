@@ -66,9 +66,8 @@ export class SuggestionsService {
     }
 
     // Calculate keyword match score
-    const keywordMatch = keywords.length > 0
-      ? matchedKeywords.length / keywords.length
-      : 0.5;
+    const keywordMatch =
+      keywords.length > 0 ? matchedKeywords.length / keywords.length : 0.5;
 
     // Check skill alignment
     const matchedSkills: string[] = [];
@@ -77,17 +76,18 @@ export class SuggestionsService {
         matchedSkills.push(skill);
       }
     }
-    const skillAlignment = requiredSkills.length > 0
-      ? matchedSkills.length / requiredSkills.length
-      : 0.5;
+    const skillAlignment =
+      requiredSkills.length > 0
+        ? matchedSkills.length / requiredSkills.length
+        : 0.5;
 
     // Role relevance (simplified - check if bullet mentions role-related terms)
     const roleTitle = jobPosting.parsed?.role?.titleRaw || '';
-    const roleRelevance = roleTitle && bulletLower.includes(roleTitle.toLowerCase())
-      ? 0.9
-      : 0.7;
+    const roleRelevance =
+      roleTitle && bulletLower.includes(roleTitle.toLowerCase()) ? 0.9 : 0.7;
 
-    const overallScore = (keywordMatch * 0.4 + skillAlignment * 0.4 + roleRelevance * 0.2);
+    const overallScore =
+      keywordMatch * 0.4 + skillAlignment * 0.4 + roleRelevance * 0.2;
 
     return {
       bulletText,
@@ -233,7 +233,11 @@ export class SuggestionsService {
     // Get current bullet score
     let currentBulletScore = 0.65; // Default
     if (jobPostingId) {
-      const bulletScore = await this.scoreBullet(bulletText, jobPostingId, userId);
+      const bulletScore = await this.scoreBullet(
+        bulletText,
+        jobPostingId,
+        userId,
+      );
       currentBulletScore = bulletScore.score;
     } else {
       const evaluation = await this.bulletEvaluatorService.evaluateBullet(
@@ -280,12 +284,17 @@ export class SuggestionsService {
 
     // Add technology suggestions if job posting provided
     if (jobPostingId) {
-      const jobPosting = await this.jobPostingModel.findById(jobPostingId).exec();
+      const jobPosting = await this.jobPostingModel
+        .findById(jobPostingId)
+        .exec();
       if (jobPosting) {
         const requiredSkills = jobPosting.parsed?.skills?.skillsExplicit || [];
-        const missingSkills = requiredSkills.filter((skill: string) =>
-          !bulletText.toLowerCase().includes(skill.toLowerCase())
-        ).slice(0, 2);
+        const missingSkills = requiredSkills
+          .filter(
+            (skill: string) =>
+              !bulletText.toLowerCase().includes(skill.toLowerCase()),
+          )
+          .slice(0, 2);
 
         for (const skill of missingSkills) {
           const improved = `${bulletText} using ${skill}`;
@@ -433,7 +442,8 @@ export class SuggestionsService {
           suggestedBulletScore = score.score;
         }
 
-        const bulletScoreImprovement = suggestedBulletScore - currentBulletScore;
+        const bulletScoreImprovement =
+          suggestedBulletScore - currentBulletScore;
 
         if (bulletScoreImprovement >= minScoreImprovement) {
           // Score resume with swap
@@ -478,8 +488,8 @@ export class SuggestionsService {
     }
 
     // Sort by resume score improvement and limit
-    suggestions.sort((a, b) =>
-      b.scoreImprovement.resumeScore - a.scoreImprovement.resumeScore
+    suggestions.sort(
+      (a, b) => b.scoreImprovement.resumeScore - a.scoreImprovement.resumeScore,
     );
 
     return {
@@ -511,7 +521,9 @@ export class SuggestionsService {
   /**
    * Get search query from job posting
    */
-  private async getJobPostingSearchQuery(jobPostingId: string): Promise<string> {
+  private async getJobPostingSearchQuery(
+    jobPostingId: string,
+  ): Promise<string> {
     const jobPosting = await this.jobPostingModel.findById(jobPostingId).exec();
     if (!jobPosting) {
       return '';
@@ -525,9 +537,19 @@ export class SuggestionsService {
    * Parse resume to extract bullets
    */
   private parseResumeBullets(latexContent: string): {
-    bullets: Array<{ id: string; text: string; section: string; index: number }>;
+    bullets: Array<{
+      id: string;
+      text: string;
+      section: string;
+      index: number;
+    }>;
   } {
-    const bullets: Array<{ id: string; text: string; section: string; index: number }> = [];
+    const bullets: Array<{
+      id: string;
+      text: string;
+      section: string;
+      index: number;
+    }> = [];
 
     // Simple parsing - extract \item commands
     const itemMatches = latexContent.matchAll(/\\item\s+([^\n]+)/g);
@@ -559,10 +581,7 @@ export class SuggestionsService {
       // Replace bullet at targetIndex
       const items = latexContent.match(/\\item\s+[^\n]+/g) || [];
       if (items[targetIndex]) {
-        return latexContent.replace(
-          items[targetIndex],
-          `\\item ${bulletText}`,
-        );
+        return latexContent.replace(items[targetIndex], `\\item ${bulletText}`);
       }
     } else {
       // Insert bullet at targetIndex

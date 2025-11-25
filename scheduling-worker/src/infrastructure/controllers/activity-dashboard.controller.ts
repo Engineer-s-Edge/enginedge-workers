@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  Logger,
-  Inject,
-} from '@nestjs/common';
+import { Controller, Get, Query, Param, Logger, Inject } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -59,30 +52,51 @@ export class ActivityDashboardController {
     });
 
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((t) => t.completionStatus === 'completed').length;
-    const inProgressTasks = tasks.filter((t) => t.completionStatus === 'in-progress').length;
-    const pendingTasks = tasks.filter((t) => t.completionStatus === 'pending').length;
+    const completedTasks = tasks.filter(
+      (t) => t.completionStatus === 'completed',
+    ).length;
+    const inProgressTasks = tasks.filter(
+      (t) => t.completionStatus === 'in-progress',
+    ).length;
+    const pendingTasks = tasks.filter(
+      (t) => t.completionStatus === 'pending',
+    ).length;
     const completionRate = totalTasks > 0 ? completedTasks / totalTasks : 0;
 
     // Calculate average durations
-    const tasksWithDuration = tasks.filter((t) => t.estimatedDuration || t.actualDuration);
-    const avgDuration = tasksWithDuration.length > 0
-      ? tasksWithDuration.reduce((sum, t) => sum + (t.estimatedDuration || t.getDurationMinutes()), 0) / tasksWithDuration.length
-      : 0;
-    const avgActualDuration = tasks.filter((t) => t.actualDuration).length > 0
-      ? tasks.filter((t) => t.actualDuration).reduce((sum, t) => sum + (t.actualDuration || 0), 0) / tasks.filter((t) => t.actualDuration).length
-      : 0;
+    const tasksWithDuration = tasks.filter(
+      (t) => t.estimatedDuration || t.actualDuration,
+    );
+    const avgDuration =
+      tasksWithDuration.length > 0
+        ? tasksWithDuration.reduce(
+            (sum, t) => sum + (t.estimatedDuration || t.getDurationMinutes()),
+            0,
+          ) / tasksWithDuration.length
+        : 0;
+    const avgActualDuration =
+      tasks.filter((t) => t.actualDuration).length > 0
+        ? tasks
+            .filter((t) => t.actualDuration)
+            .reduce((sum, t) => sum + (t.actualDuration || 0), 0) /
+          tasks.filter((t) => t.actualDuration).length
+        : 0;
 
     // On-time completion rate (completed on or before scheduled end time)
-    const onTimeCompleted = tasks.filter((t) =>
-      t.completionStatus === 'completed' &&
-      t.completedAt &&
-      t.completedAt <= t.endTime
+    const onTimeCompleted = tasks.filter(
+      (t) =>
+        t.completionStatus === 'completed' &&
+        t.completedAt &&
+        t.completedAt <= t.endTime,
     ).length;
-    const onTimeCompletionRate = completedTasks > 0 ? onTimeCompleted / completedTasks : 0;
+    const onTimeCompletionRate =
+      completedTasks > 0 ? onTimeCompleted / completedTasks : 0;
 
     // Group by category
-    const byCategory: Record<string, { completed: number; total: number; completionRate: number }> = {};
+    const byCategory: Record<
+      string,
+      { completed: number; total: number; completionRate: number }
+    > = {};
     tasks.forEach((task) => {
       const category = task.category || 'uncategorized';
       if (!byCategory[category]) {
@@ -95,9 +109,10 @@ export class ActivityDashboardController {
     });
 
     Object.keys(byCategory).forEach((category) => {
-      byCategory[category].completionRate = byCategory[category].total > 0
-        ? byCategory[category].completed / byCategory[category].total
-        : 0;
+      byCategory[category].completionRate =
+        byCategory[category].total > 0
+          ? byCategory[category].completed / byCategory[category].total
+          : 0;
     });
 
     return {
@@ -155,7 +170,8 @@ export class ActivityDashboardController {
       'partially-completed': 0,
     };
     tasks.forEach((task) => {
-      byStatus[task.completionStatus] = (byStatus[task.completionStatus] || 0) + 1;
+      byStatus[task.completionStatus] =
+        (byStatus[task.completionStatus] || 0) + 1;
     });
 
     // Locked vs unlocked
@@ -179,7 +195,12 @@ export class ActivityDashboardController {
   @ApiQuery({ name: 'startDate', required: true })
   @ApiQuery({ name: 'endDate', required: true })
   @ApiQuery({ name: 'userId', required: true })
-  @ApiQuery({ name: 'granularity', required: false, enum: ['daily', 'weekly', 'monthly'], default: 'daily' })
+  @ApiQuery({
+    name: 'granularity',
+    required: false,
+    enum: ['daily', 'weekly', 'monthly'],
+    default: 'daily',
+  })
   @ApiResponse({ status: 200, description: 'Task trends retrieved' })
   async getTaskTrends(
     @Query('startDate') startDate: string,
@@ -187,7 +208,9 @@ export class ActivityDashboardController {
     @Query('userId') userId: string,
     @Query('granularity') granularity: 'daily' | 'weekly' | 'monthly' = 'daily',
   ) {
-    this.logger.log(`Getting task trends from ${startDate} to ${endDate}, granularity: ${granularity}`);
+    this.logger.log(
+      `Getting task trends from ${startDate} to ${endDate}, granularity: ${granularity}`,
+    );
 
     const tasks = await this.taskService.getTasks({
       userId,
@@ -196,7 +219,10 @@ export class ActivityDashboardController {
     });
 
     // Group by time period based on granularity
-    const trends: Record<string, { total: number; completed: number; completionRate: number }> = {};
+    const trends: Record<
+      string,
+      { total: number; completed: number; completionRate: number }
+    > = {};
 
     tasks.forEach((task) => {
       let periodKey: string;
@@ -223,9 +249,8 @@ export class ActivityDashboardController {
 
     // Calculate completion rates
     Object.keys(trends).forEach((key) => {
-      trends[key].completionRate = trends[key].total > 0
-        ? trends[key].completed / trends[key].total
-        : 0;
+      trends[key].completionRate =
+        trends[key].total > 0 ? trends[key].completed / trends[key].total : 0;
     });
 
     return { trends, granularity };
@@ -254,23 +279,30 @@ export class ActivityDashboardController {
     });
 
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter((t) => t.completionStatus === 'completed').length;
+    const completedTasks = tasks.filter(
+      (t) => t.completionStatus === 'completed',
+    ).length;
     const taskCompletionRate = totalTasks > 0 ? completedTasks / totalTasks : 0;
 
     // Time utilization (actual time / scheduled time)
-    const scheduledTime = tasks.reduce((sum, t) => sum + t.getDurationMinutes(), 0);
+    const scheduledTime = tasks.reduce(
+      (sum, t) => sum + t.getDurationMinutes(),
+      0,
+    );
     const actualTime = tasks
       .filter((t) => t.actualDuration)
       .reduce((sum, t) => sum + (t.actualDuration || 0), 0);
     const timeUtilization = scheduledTime > 0 ? actualTime / scheduledTime : 0;
 
     // Schedule efficiency (tasks completed on time / total completed)
-    const onTimeCompleted = tasks.filter((t) =>
-      t.completionStatus === 'completed' &&
-      t.completedAt &&
-      t.completedAt <= t.endTime
+    const onTimeCompleted = tasks.filter(
+      (t) =>
+        t.completionStatus === 'completed' &&
+        t.completedAt &&
+        t.completedAt <= t.endTime,
     ).length;
-    const scheduleEfficiency = completedTasks > 0 ? onTimeCompleted / completedTasks : 0;
+    const scheduleEfficiency =
+      completedTasks > 0 ? onTimeCompleted / completedTasks : 0;
 
     // Punctuality rate (tasks started on time / total tasks)
     // Calculate based on tasks that have actual start time recorded
@@ -283,18 +315,20 @@ export class ActivityDashboardController {
 
     // Calculate overall productivity score (weighted combination)
     const components = {
-      completionRate: { value: taskCompletionRate, weight: 0.40 },
-      scheduleEfficiency: { value: scheduleEfficiency, weight: 0.30 },
-      timeUtilization: { value: Math.min(timeUtilization, 1.0), weight: 0.20 },
-      punctualityRate: { value: punctualityRate, weight: 0.10 },
+      completionRate: { value: taskCompletionRate, weight: 0.4 },
+      scheduleEfficiency: { value: scheduleEfficiency, weight: 0.3 },
+      timeUtilization: { value: Math.min(timeUtilization, 1.0), weight: 0.2 },
+      punctualityRate: { value: punctualityRate, weight: 0.1 },
     };
 
-    const overallProductivityScore = Math.round(
-      components.completionRate.value * components.completionRate.weight +
-      components.scheduleEfficiency.value * components.scheduleEfficiency.weight +
-      components.timeUtilization.value * components.timeUtilization.weight +
-      components.punctualityRate.value * components.punctualityRate.weight
-    ) * 100;
+    const overallProductivityScore =
+      Math.round(
+        components.completionRate.value * components.completionRate.weight +
+          components.scheduleEfficiency.value *
+            components.scheduleEfficiency.weight +
+          components.timeUtilization.value * components.timeUtilization.weight +
+          components.punctualityRate.value * components.punctualityRate.weight,
+      ) * 100;
 
     return {
       overallProductivityScore,
@@ -314,7 +348,12 @@ export class ActivityDashboardController {
   @ApiQuery({ name: 'startDate', required: true })
   @ApiQuery({ name: 'endDate', required: true })
   @ApiQuery({ name: 'userId', required: true })
-  @ApiQuery({ name: 'granularity', required: false, enum: ['daily', 'weekly', 'monthly'], default: 'daily' })
+  @ApiQuery({
+    name: 'granularity',
+    required: false,
+    enum: ['daily', 'weekly', 'monthly'],
+    default: 'daily',
+  })
   @ApiResponse({ status: 200, description: 'Productivity trends retrieved' })
   async getProductivityTrends(
     @Query('startDate') startDate: string,
@@ -373,7 +412,9 @@ export class ActivityDashboardController {
     @Query('endDate') endDate: string,
     @Query('userId') userId: string,
   ) {
-    this.logger.log(`Getting activity timeline from ${startDate} to ${endDate}`);
+    this.logger.log(
+      `Getting activity timeline from ${startDate} to ${endDate}`,
+    );
 
     const tasks = await this.taskService.getTasks({
       userId,
@@ -382,7 +423,9 @@ export class ActivityDashboardController {
     });
 
     // Sort by start time
-    const sortedTasks = tasks.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    const sortedTasks = tasks.sort(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime(),
+    );
 
     return {
       startDate,
@@ -421,7 +464,10 @@ export class ActivityDashboardController {
       endDate: new Date(endDate),
     });
 
-    const byCategory: Record<string, { scheduled: number; actual: number; percentage: number }> = {};
+    const byCategory: Record<
+      string,
+      { scheduled: number; actual: number; percentage: number }
+    > = {};
     let totalTime = 0;
 
     tasks.forEach((task) => {
@@ -440,9 +486,8 @@ export class ActivityDashboardController {
 
     // Calculate percentages
     Object.keys(byCategory).forEach((category) => {
-      byCategory[category].percentage = totalTime > 0
-        ? (byCategory[category].scheduled / totalTime) * 100
-        : 0;
+      byCategory[category].percentage =
+        totalTime > 0 ? (byCategory[category].scheduled / totalTime) * 100 : 0;
     });
 
     return {

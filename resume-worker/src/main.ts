@@ -20,9 +20,7 @@ async function syncOpenApiDocument(document: OpenAPIObject) {
       sortKeys: true,
       lineWidth: -1,
     });
-    const nextChecksum = createHash('sha256')
-      .update(nextContent)
-      .digest('hex');
+    const nextChecksum = createHash('sha256').update(nextContent).digest('hex');
 
     if (existsSync(targetPath)) {
       const currentContent = await readFile(targetPath, 'utf8');
@@ -100,7 +98,9 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 Resume Worker is running on: http://localhost:${port}`);
   console.log(`📊 MongoDB: ${configService.get<string>('MONGODB_URI')}`);
-  console.log(`📚 Swagger documentation available at http://localhost:${port}/api/docs`);
+  console.log(
+    `📚 Swagger documentation available at http://localhost:${port}/api/docs`,
+  );
 }
 
 bootstrap();

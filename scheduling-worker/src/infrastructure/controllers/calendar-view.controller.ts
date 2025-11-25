@@ -1,15 +1,5 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Logger,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { Controller, Get, Query, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { TaskService } from '../../application/services/task.service';
 
 /**
@@ -33,7 +23,11 @@ export class CalendarViewController {
    */
   @Get('day')
   @ApiOperation({ summary: 'Get day view data' })
-  @ApiQuery({ name: 'date', required: true, description: 'Date in YYYY-MM-DD format' })
+  @ApiQuery({
+    name: 'date',
+    required: true,
+    description: 'Date in YYYY-MM-DD format',
+  })
   @ApiQuery({ name: 'userId', required: true })
   @ApiResponse({ status: 200, description: 'Day view data retrieved' })
   async getDayView(
@@ -75,7 +69,11 @@ export class CalendarViewController {
    */
   @Get('week')
   @ApiOperation({ summary: 'Get week view data' })
-  @ApiQuery({ name: 'startDate', required: true, description: 'Start date in YYYY-MM-DD format' })
+  @ApiQuery({
+    name: 'startDate',
+    required: true,
+    description: 'Start date in YYYY-MM-DD format',
+  })
   @ApiQuery({ name: 'userId', required: true })
   @ApiResponse({ status: 200, description: 'Week view data retrieved' })
   async getWeekView(
@@ -205,7 +203,9 @@ export class CalendarViewController {
     });
 
     // Sort by start time
-    const sortedTasks = tasks.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    const sortedTasks = tasks.sort(
+      (a, b) => a.startTime.getTime() - b.startTime.getTime(),
+    );
 
     return {
       startDate,

@@ -55,8 +55,16 @@ export class TaskController {
   @ApiQuery({ name: 'startDate', required: false })
   @ApiQuery({ name: 'endDate', required: false })
   @ApiQuery({ name: 'category', required: false })
-  @ApiQuery({ name: 'priority', required: false, enum: ['low', 'medium', 'high', 'urgent'] })
-  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'in-progress', 'completed', 'partially-completed'] })
+  @ApiQuery({
+    name: 'priority',
+    required: false,
+    enum: ['low', 'medium', 'high', 'urgent'],
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'in-progress', 'completed', 'partially-completed'],
+  })
   @ApiQuery({ name: 'isLocked', required: false, type: Boolean })
   @ApiQuery({ name: 'tags', required: false, type: [String] })
   @ApiResponse({ status: 200, description: 'Tasks retrieved' })
@@ -66,17 +74,14 @@ export class TaskController {
     @Query('endDate') endDate?: string,
     @Query('category') category?: string,
     @Query('priority') priority?: TaskPriority,
-    @Query('status') status?: 'pending' | 'in-progress' | 'completed' | 'partially-completed',
+    @Query('status')
+    status?: 'pending' | 'in-progress' | 'completed' | 'partially-completed',
     @Query('isLocked') isLocked?: boolean,
     @Query('tags') tags?: string | string[],
   ) {
     this.logger.log('Listing tasks');
 
-    const tagArray = tags
-      ? Array.isArray(tags)
-        ? tags
-        : [tags]
-      : undefined;
+    const tagArray = tags ? (Array.isArray(tags) ? tags : [tags]) : undefined;
 
     const tasks = await this.taskService.getTasks({
       userId,
@@ -211,7 +216,10 @@ export class TaskController {
       type: 'object',
       required: ['deferType'],
       properties: {
-        deferType: { type: 'string', enum: ['same-day', 'next-day', 'next-3-days', 'next-week'] },
+        deferType: {
+          type: 'string',
+          enum: ['same-day', 'next-day', 'next-3-days', 'next-week'],
+        },
         newTime: { type: 'string', format: 'date-time' },
       },
     },
@@ -219,7 +227,11 @@ export class TaskController {
   @ApiResponse({ status: 200, description: 'Task deferred' })
   async deferTask(
     @Param('taskId') taskId: string,
-    @Body() body: { deferType: 'same-day' | 'next-day' | 'next-3-days' | 'next-week'; newTime?: string },
+    @Body()
+    body: {
+      deferType: 'same-day' | 'next-day' | 'next-3-days' | 'next-week';
+      newTime?: string;
+    },
   ) {
     this.logger.log(`Deferring task: ${taskId}, type: ${body.deferType}`);
     const task = await this.taskService.deferTask(
@@ -252,14 +264,18 @@ export class TaskController {
         splitEvenly: { type: 'boolean' },
         durations: { type: 'array', items: { type: 'number' } },
         scheduleParts: { type: 'boolean' },
-        deferType: { type: 'string', enum: ['next-day', 'next-3-days', 'next-week'] },
+        deferType: {
+          type: 'string',
+          enum: ['next-day', 'next-3-days', 'next-week'],
+        },
       },
     },
   })
   @ApiResponse({ status: 200, description: 'Task split' })
   async splitTask(
     @Param('taskId') taskId: string,
-    @Body() body: {
+    @Body()
+    body: {
       numberOfTasks: number;
       splitEvenly: boolean;
       durations?: number[];
@@ -306,7 +322,8 @@ export class TaskController {
   @ApiResponse({ status: 200, description: 'Task completed' })
   async completeTask(
     @Param('taskId') taskId: string,
-    @Body() body: {
+    @Body()
+    body: {
       completionType: 'fully' | 'partially';
       completionPercentage?: number;
       notes?: string;
@@ -372,7 +389,10 @@ export class TaskController {
         recurrence: {
           type: 'object',
           properties: {
-            frequency: { type: 'string', enum: ['daily', 'weekly', 'monthly', 'yearly'] },
+            frequency: {
+              type: 'string',
+              enum: ['daily', 'weekly', 'monthly', 'yearly'],
+            },
             interval: { type: 'number' },
             byDay: { type: 'array', items: { type: 'string' } },
             until: { type: 'string', format: 'date-time' },
@@ -388,7 +408,10 @@ export class TaskController {
     @Body() body: { recurrence: EventRecurrence },
   ) {
     this.logger.log(`Making task recurring: ${taskId}`);
-    const task = await this.taskService.makeTaskRecurring(taskId, body.recurrence);
+    const task = await this.taskService.makeTaskRecurring(
+      taskId,
+      body.recurrence,
+    );
     return {
       taskId: task.id,
       recurrence: task.recurrence,
@@ -456,7 +479,8 @@ export class TaskController {
   @ApiResponse({ status: 200, description: 'ML scheduling recommendations' })
   async scheduleTask(
     @Query('userId') userId: string,
-    @Body() body: {
+    @Body()
+    body: {
       title: string;
       description?: string;
       estimatedDuration: number;
@@ -489,25 +513,42 @@ export class TaskController {
           category: body.category || 'general',
         };
 
-        const mlResponse = await this.mlModelClient.predictSlots(userId, taskData, startDate, endDate);
+        const mlResponse = await this.mlModelClient.predictSlots(
+          userId,
+          taskData,
+          startDate,
+          endDate,
+        );
 
-        if (mlResponse && mlResponse.recommendations && mlResponse.recommendations.length > 0) {
+        if (
+          mlResponse &&
+          mlResponse.recommendations &&
+          mlResponse.recommendations.length > 0
+        ) {
           const recommendations = mlResponse.recommendations
             .filter((r: { recommended: boolean }) => r.recommended)
             .slice(0, 3)
-            .map((r: { hour: number; confidence: number; probability: number }) => {
-              const recommendedDate = new Date(startDate);
-              recommendedDate.setHours(r.hour, 0, 0, 0);
-              const recommendedEnd = new Date(recommendedDate);
-              recommendedEnd.setMinutes(recommendedEnd.getMinutes() + body.estimatedDuration);
+            .map(
+              (r: {
+                hour: number;
+                confidence: number;
+                probability: number;
+              }) => {
+                const recommendedDate = new Date(startDate);
+                recommendedDate.setHours(r.hour, 0, 0, 0);
+                const recommendedEnd = new Date(recommendedDate);
+                recommendedEnd.setMinutes(
+                  recommendedEnd.getMinutes() + body.estimatedDuration,
+                );
 
-              return {
-                startTime: recommendedDate.toISOString(),
-                endTime: recommendedEnd.toISOString(),
-                confidence: r.confidence,
-                reasoning: `ML-optimized time slot based on productivity patterns. Confidence: ${(r.confidence * 100).toFixed(1)}%`,
-              };
-            });
+                return {
+                  startTime: recommendedDate.toISOString(),
+                  endTime: recommendedEnd.toISOString(),
+                  confidence: r.confidence,
+                  reasoning: `ML-optimized time slot based on productivity patterns. Confidence: ${(r.confidence * 100).toFixed(1)}%`,
+                };
+              },
+            );
 
           return {
             recommendations,
@@ -516,7 +557,9 @@ export class TaskController {
           };
         }
       } catch (error) {
-        this.logger.warn(`ML scheduling failed: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `ML scheduling failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -524,7 +567,9 @@ export class TaskController {
     const recommendations = [
       {
         startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000 + body.estimatedDuration * 60 * 1000).toISOString(),
+        endTime: new Date(
+          Date.now() + 24 * 60 * 60 * 1000 + body.estimatedDuration * 60 * 1000,
+        ).toISOString(),
         confidence: 0.75,
         reasoning: 'High availability, optimal productivity time, no conflicts',
       },
@@ -565,7 +610,8 @@ export class TaskController {
   })
   @ApiResponse({ status: 200, description: 'Split tasks scheduled' })
   async splitAndScheduleTask(
-    @Body() body: {
+    @Body()
+    body: {
       title: string;
       description?: string;
       totalDuration: number;
@@ -580,13 +626,19 @@ export class TaskController {
   ) {
     this.logger.log(`ML splitting and scheduling task: ${body.title}`);
 
-    const numberOfParts = Math.ceil(body.totalDuration / body.preferredPartDuration);
+    const numberOfParts = Math.ceil(
+      body.totalDuration / body.preferredPartDuration,
+    );
     const splitTasks = [];
 
     for (let i = 0; i < numberOfParts; i++) {
-      const startTime = new Date(new Date(body.timeRange.start).getTime() + i * 24 * 60 * 60 * 1000);
+      const startTime = new Date(
+        new Date(body.timeRange.start).getTime() + i * 24 * 60 * 60 * 1000,
+      );
       startTime.setHours(9, 0, 0, 0);
-      const endTime = new Date(startTime.getTime() + body.preferredPartDuration * 60 * 1000);
+      const endTime = new Date(
+        startTime.getTime() + body.preferredPartDuration * 60 * 1000,
+      );
 
       splitTasks.push({
         id: `task_${Date.now()}_${i}`,

@@ -22,7 +22,9 @@ export interface IValidationAdapter {
   /**
    * Batch validate multiple expert reports with queue-aware orchestration.
    */
-  validateBatch(request: BatchValidationRequest): Promise<BatchValidationResult>;
+  validateBatch(
+    request: BatchValidationRequest,
+  ): Promise<BatchValidationResult>;
 
   /**
    * Retrieve current validation configuration.

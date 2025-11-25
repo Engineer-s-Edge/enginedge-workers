@@ -118,9 +118,8 @@ export class MemoryService {
   ): Promise<string> {
     try {
       // Get conversation to retrieve active memory types
-      const conversation = await this.conversationsService.getConversation(
-        conversationId,
-      );
+      const conversation =
+        await this.conversationsService.getConversation(conversationId);
 
       if (!conversation) {
         this.logger.warn('Conversation not found for combined context', {
@@ -158,9 +157,8 @@ export class MemoryService {
             // Summary memory - get summary if available
             if (this.summaryMemory.getSummary) {
               try {
-                const summary = await this.summaryMemory.getSummary(
-                  conversationId,
-                );
+                const summary =
+                  await this.summaryMemory.getSummary(conversationId);
                 context = `Summary: ${summary}`;
               } catch (error) {
                 // Summary not available, fall back to regular context
@@ -173,9 +171,8 @@ export class MemoryService {
             // Entity memory - get entities if available
             if (this.entityMemory.getEntities) {
               try {
-                const entities = await this.entityMemory.getEntities(
-                  conversationId,
-                );
+                const entities =
+                  await this.entityMemory.getEntities(conversationId);
                 if (entities && entities.length > 0) {
                   context = `Entities: ${JSON.stringify(entities)}`;
                 } else {
@@ -196,8 +193,13 @@ export class MemoryService {
           // Only add non-empty context
           if (context && context.trim().length > 0) {
             // Add memory type label for clarity
-            const memoryLabel = (memoryConfig.metadata?.label as string) || memoryType || 'UNKNOWN';
-            contextParts.push(`[${memoryLabel.toUpperCase()} MEMORY]\n${context}`);
+            const memoryLabel =
+              (memoryConfig.metadata?.label as string) ||
+              memoryType ||
+              'UNKNOWN';
+            contextParts.push(
+              `[${memoryLabel.toUpperCase()} MEMORY]\n${context}`,
+            );
           }
         } catch (error) {
           this.logger.warn('Failed to get context from memory type', {

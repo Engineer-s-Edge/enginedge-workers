@@ -456,14 +456,15 @@ describe('Graph Agent', () => {
 
       await graphAgent.execute(graphDefinition);
 
-      const completeMock =
-        mockLLMProvider.complete as jest.MockedFunction<ILLMProvider['complete']>;
+      const completeMock = mockLLMProvider.complete as jest.MockedFunction<
+        ILLMProvider['complete']
+      >;
       expect(completeMock).toHaveBeenCalledTimes(2);
       const secondCall = completeMock.mock.calls[1][0];
-  expect(secondCall.messages.length).toBeGreaterThan(2);
-  const contextMessage = secondCall.messages[1];
-  expect(contextMessage.role).toBe('system');
-  expect(contextMessage.content).toContain('Shared memory');
+      expect(secondCall.messages.length).toBeGreaterThan(2);
+      const contextMessage = secondCall.messages[1];
+      expect(contextMessage.role).toBe('system');
+      expect(contextMessage.content).toContain('Shared memory');
 
       const conversation = memoryManager.getConversation(
         'graph:memory-graph:memory:shared_rag',

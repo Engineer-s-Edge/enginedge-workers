@@ -23,7 +23,10 @@ export class MongoFavoriteRepository implements OnModuleInit {
 
   async onModuleInit() {
     this.collection = this.db.collection('interview_favorites');
-    await this.collection.createIndex({ userId: 1, interviewId: 1 }, { unique: true });
+    await this.collection.createIndex(
+      { userId: 1, interviewId: 1 },
+      { unique: true },
+    );
     await this.collection.createIndex({ userId: 1 });
     await this.collection.createIndex({ interviewId: 1 });
     this.logger.log('MongoFavoriteRepository initialized');

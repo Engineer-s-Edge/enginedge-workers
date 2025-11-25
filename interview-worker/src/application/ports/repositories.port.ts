@@ -29,7 +29,13 @@ export interface IInterviewRepository {
     category?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     search?: string;
-  }): Promise<{ interviews: Interview[]; total: number; page: number; limit: number; totalPages: number }>;
+  }): Promise<{
+    interviews: Interview[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>;
   update(id: string, interview: Partial<Interview>): Promise<Interview | null>;
   delete(id: string): Promise<boolean>;
 }

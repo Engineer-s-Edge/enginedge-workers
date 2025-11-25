@@ -265,14 +265,16 @@ export class CollectiveAgent extends BaseAgent {
 
     const recentCompletions = completedTasks
       .filter((task) => !!task.completedAt)
-      .sort((a, b) =>
-        (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0),
+      .sort(
+        (a, b) =>
+          (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0),
       )
       .slice(0, 10)
       .map((task) => ({
         taskId: task.id,
         title: task.title,
-        completedAt: task.completedAt?.toISOString() || new Date().toISOString(),
+        completedAt:
+          task.completedAt?.toISOString() || new Date().toISOString(),
         assignedAgentId: task.assignedAgentId,
       }));
 
@@ -382,11 +384,16 @@ export class CollectiveAgent extends BaseAgent {
     return task;
   }
 
-  updateTask(taskId: string, updates: UpdateCollectiveTaskOptions): CollectiveTask {
+  updateTask(
+    taskId: string,
+    updates: UpdateCollectiveTaskOptions,
+  ): CollectiveTask {
     const task = this.tasks.get(taskId);
 
     if (!task) {
-      throw new Error(`Task ${taskId} not found in collective ${this.collectiveId}`);
+      throw new Error(
+        `Task ${taskId} not found in collective ${this.collectiveId}`,
+      );
     }
 
     if (typeof updates.title === 'string') {
@@ -447,10 +454,14 @@ export class CollectiveAgent extends BaseAgent {
   }
 
   async resolveDeadlock(deadlockId: string): Promise<DeadlockSnapshot[]> {
-    const deadlock = this.lastDetectedDeadlocks.find((entry) => entry.id === deadlockId);
+    const deadlock = this.lastDetectedDeadlocks.find(
+      (entry) => entry.id === deadlockId,
+    );
 
     if (!deadlock) {
-      throw new Error(`Deadlock '${deadlockId}' not found in collective ${this.collectiveId}`);
+      throw new Error(
+        `Deadlock '${deadlockId}' not found in collective ${this.collectiveId}`,
+      );
     }
 
     this.logger.info('Manually resolving deadlock cycle', {
@@ -462,7 +473,8 @@ export class CollectiveAgent extends BaseAgent {
     this.breakDeadlockCycle(deadlock.cycle);
 
     const tasksSnapshot = Array.from(this.tasks.values());
-    const remainingDeadlocks = await this.deadlockDetection.detectDeadlocks(tasksSnapshot);
+    const remainingDeadlocks =
+      await this.deadlockDetection.detectDeadlocks(tasksSnapshot);
 
     this.lastDetectedDeadlocks = remainingDeadlocks;
     this.lastDeadlockDetectedAt = remainingDeadlocks.length
@@ -479,7 +491,9 @@ export class CollectiveAgent extends BaseAgent {
     const task = this.tasks.get(taskId);
 
     if (!task) {
-      throw new Error(`Task ${taskId} not found in collective ${this.collectiveId}`);
+      throw new Error(
+        `Task ${taskId} not found in collective ${this.collectiveId}`,
+      );
     }
 
     const subAgentExists = this.collectiveState.subAgents.some(
@@ -509,9 +523,7 @@ export class CollectiveAgent extends BaseAgent {
     }
 
     if (!assignedAgentId) {
-      throw new Error(
-        `Unable to assign task ${taskId} to agent ${agentId}`,
-      );
+      throw new Error(`Unable to assign task ${taskId} to agent ${agentId}`);
     }
 
     const now = new Date();
@@ -581,7 +593,9 @@ export class CollectiveAgent extends BaseAgent {
     const task = this.tasks.get(taskId);
 
     if (!task) {
-      throw new Error(`Task ${taskId} not found in collective ${this.collectiveId}`);
+      throw new Error(
+        `Task ${taskId} not found in collective ${this.collectiveId}`,
+      );
     }
 
     if (task.state === TaskState.COMPLETED) {
@@ -676,10 +690,7 @@ export class CollectiveAgent extends BaseAgent {
         this.refreshTaskDependencyStatus(survivor);
       }
 
-      if (
-        survivor.childTaskIds.length !== prevChildren ||
-        parentRemoved
-      ) {
+      if (survivor.childTaskIds.length !== prevChildren || parentRemoved) {
         survivor.updatedAt = new Date();
       }
 
@@ -843,7 +854,9 @@ export class CollectiveAgent extends BaseAgent {
 
   private removePendingAssignment(taskId: string): void {
     const pending = this.collectiveState.pendingAssignments;
-    const filtered = pending.filter((assignment) => assignment.taskId !== taskId);
+    const filtered = pending.filter(
+      (assignment) => assignment.taskId !== taskId,
+    );
 
     if (filtered.length === pending.length) {
       return;
@@ -857,7 +870,9 @@ export class CollectiveAgent extends BaseAgent {
 
   private markAssignmentCompleted(taskId: string): void {
     const pending = this.collectiveState.pendingAssignments;
-    const index = pending.findIndex((assignment) => assignment.taskId === taskId);
+    const index = pending.findIndex(
+      (assignment) => assignment.taskId === taskId,
+    );
     if (index === -1) {
       return;
     }
@@ -1072,8 +1087,7 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
       this.logger.warn(
         'Failed to parse task hierarchy, using simple decomposition',
         {
-          error:
-            error instanceof Error ? error.message : JSON.stringify(error),
+          error: error instanceof Error ? error.message : JSON.stringify(error),
         },
       );
       // Fallback to simple decomposition
@@ -1436,7 +1450,7 @@ Return a JSON array of tasks with: level (0-7), title, description, dependencies
     // Release agent load
     this.taskAssignment.releaseTask(task.assignedAgentId);
 
-  this.markAssignmentCompleted(task.id);
+    this.markAssignmentCompleted(task.id);
 
     // Update stats
     const stats = this.collectiveState.subAgentStats.find(

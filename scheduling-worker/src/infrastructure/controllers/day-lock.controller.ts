@@ -79,7 +79,9 @@ export class DayLockController {
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
   ) {
-    this.logger.log(`Getting locked days for user ${userId} from ${startDate} to ${endDate}`);
+    this.logger.log(
+      `Getting locked days for user ${userId} from ${startDate} to ${endDate}`,
+    );
     const lockedDays = await this.dayLockService.getLockedDays(
       userId,
       new Date(startDate),

@@ -290,11 +290,14 @@ export class ScheduledLearningManagerService
             },
           );
 
-          this.logger.info(`Genius learning session launched for scheduled topic`, {
-            scheduleId,
-            topicId: schedule.topicId,
-            userId: schedule.userId,
-          });
+          this.logger.info(
+            `Genius learning session launched for scheduled topic`,
+            {
+              scheduleId,
+              topicId: schedule.topicId,
+              userId: schedule.userId,
+            },
+          );
         } catch (error) {
           this.logger.error(
             `Failed to launch Genius learning session: ${error instanceof Error ? error.message : String(error)}`,

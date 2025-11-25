@@ -9,7 +9,10 @@ export class CoverLetterMetadataSchema {
   @Prop()
   position!: string;
 
-  @Prop({ enum: ['professional', 'casual', 'enthusiastic'], default: 'professional' })
+  @Prop({
+    enum: ['professional', 'casual', 'enthusiastic'],
+    default: 'professional',
+  })
   tone!: string;
 
   @Prop({ enum: ['short', 'medium', 'long'], default: 'medium' })
@@ -19,7 +22,9 @@ export class CoverLetterMetadataSchema {
   experiencesUsed!: Types.ObjectId[];
 }
 
-const CoverLetterMetadataSchemaFactory = SchemaFactory.createForClass(CoverLetterMetadataSchema);
+const CoverLetterMetadataSchemaFactory = SchemaFactory.createForClass(
+  CoverLetterMetadataSchema,
+);
 
 @Schema({ timestamps: true })
 export class CoverLetterSchema extends Document {
@@ -51,7 +56,8 @@ export class CoverLetterSchema extends Document {
   updatedAt!: Date;
 }
 
-export const CoverLetterSchemaFactory = SchemaFactory.createForClass(CoverLetterSchema);
+export const CoverLetterSchemaFactory =
+  SchemaFactory.createForClass(CoverLetterSchema);
 
 // Add indexes
 CoverLetterSchemaFactory.index({ userId: 1, createdAt: -1 });

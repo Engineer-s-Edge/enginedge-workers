@@ -199,8 +199,8 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     // Research service
     ResearchService,
 
-  ManagerRuntimeService,
-  GeniusExpertRuntimeService,
+    ManagerRuntimeService,
+    GeniusExpertRuntimeService,
 
     // Topic use cases
     GetTopicsForResearchUseCase,
@@ -258,8 +258,8 @@ import { KnowledgeGraphPort } from '@domain/ports/knowledge-graph.port';
     // Export models service
     ModelsService,
 
-  ManagerRuntimeService,
-  GeniusExpertRuntimeService,
+    ManagerRuntimeService,
+    GeniusExpertRuntimeService,
 
     // Export topic use cases
     GetTopicsForResearchUseCase,

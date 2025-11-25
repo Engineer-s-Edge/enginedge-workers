@@ -16,7 +16,10 @@ import { CoverLetterController } from './controllers/cover-letter.controller';
 import { SuggestionsController } from './controllers/suggestions.controller';
 import { ToolsController } from './controllers/tools.controller';
 import { BulletsController } from './controllers/bullets.controller';
-import { LatexController, LatexLintController } from './controllers/latex.controller';
+import {
+  LatexController,
+  LatexLintController,
+} from './controllers/latex.controller';
 import { UserDataController } from './controllers/user-data.controller';
 import { MessageBrokerPort } from '../application/ports/message-broker.port';
 

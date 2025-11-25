@@ -52,10 +52,11 @@ export class CodeExecutionController {
     );
 
     // Load user-created test cases for this session and question
-    const userTestCases = await this.userTestCaseRepository.findBySessionAndQuestion(
-      sessionId,
-      body.questionId,
-    );
+    const userTestCases =
+      await this.userTestCaseRepository.findBySessionAndQuestion(
+        sessionId,
+        body.questionId,
+      );
 
     // Get question to access correct working code
     const question = await this.questionService.getQuestion(body.questionId);

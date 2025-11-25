@@ -73,15 +73,16 @@ export class MongoTaskRepository implements ITaskRepository {
       return doc ? Task.fromObject(doc) : null;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Failed to find task by id: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error(`Failed to find task by id: ${err.message}`, err.stack);
       throw error;
     }
   }
 
-  async findByDateRange(startDate: Date, endDate: Date, userId?: string): Promise<Task[]> {
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         startTime: { $lt: endDate },
@@ -102,7 +103,12 @@ export class MongoTaskRepository implements ITaskRepository {
     }
   }
 
-  async findByCategory(category: string, startDate: Date, endDate: Date, userId?: string): Promise<Task[]> {
+  async findByCategory(
+    category: string,
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         category,
@@ -124,7 +130,11 @@ export class MongoTaskRepository implements ITaskRepository {
     }
   }
 
-  async findLockedTasks(startDate: Date, endDate: Date, userId?: string): Promise<Task[]> {
+  async findLockedTasks(
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         isLocked: true,
@@ -146,7 +156,11 @@ export class MongoTaskRepository implements ITaskRepository {
     }
   }
 
-  async findUnlockedTasks(startDate: Date, endDate: Date, userId?: string): Promise<Task[]> {
+  async findUnlockedTasks(
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         $or: [{ isLocked: false }, { isLocked: { $exists: false } }],
@@ -168,7 +182,12 @@ export class MongoTaskRepository implements ITaskRepository {
     }
   }
 
-  async findByStatus(status: Task['completionStatus'], startDate: Date, endDate: Date, userId?: string): Promise<Task[]> {
+  async findByStatus(
+    status: Task['completionStatus'],
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         completionStatus: status,
@@ -190,7 +209,12 @@ export class MongoTaskRepository implements ITaskRepository {
     }
   }
 
-  async findByPriority(priority: Task['priority'], startDate: Date, endDate: Date, userId?: string): Promise<Task[]> {
+  async findByPriority(
+    priority: Task['priority'],
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         priority,
@@ -212,7 +236,11 @@ export class MongoTaskRepository implements ITaskRepository {
     }
   }
 
-  async findByUserId(userId: string, startDate?: Date, endDate?: Date): Promise<Task[]> {
+  async findByUserId(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<Task[]> {
     try {
       const query: any = {
         'metadata.userId': userId,

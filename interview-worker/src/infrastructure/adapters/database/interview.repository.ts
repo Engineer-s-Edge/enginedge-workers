@@ -105,7 +105,13 @@ export class MongoInterviewRepository
     category?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     search?: string;
-  }): Promise<{ interviews: Interview[]; total: number; page: number; limit: number; totalPages: number }> {
+  }): Promise<{
+    interviews: Interview[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 20;

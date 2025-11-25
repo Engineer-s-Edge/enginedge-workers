@@ -191,7 +191,9 @@ export class MLModelClient {
     endDate: Date,
   ): Promise<PredictSlotsResponse> {
     try {
-      this.logger.debug(`Predicting slots for user ${userId} between ${startDate} and ${endDate}`);
+      this.logger.debug(
+        `Predicting slots for user ${userId} between ${startDate} and ${endDate}`,
+      );
 
       const response = await this.httpClient.post<PredictSlotsResponse>(
         '/predict-slots',

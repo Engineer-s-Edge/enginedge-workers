@@ -39,10 +39,7 @@ import { AgentFactory } from '@domain/services/agent-factory.service';
 import { CreateAgentDTO, UpdateAgentDTO } from '../dto';
 import { AgentExecutionService } from './agent-execution.service';
 import { CheckpointService } from './checkpoint.service';
-import {
-  AgentSessionService,
-  UserInteraction,
-} from './agent-session.service';
+import { AgentSessionService, UserInteraction } from './agent-session.service';
 import { AgentEventService } from './agent-event.service';
 
 /**
@@ -568,9 +565,7 @@ export class AgentService {
     const instance = await this.getAgentInstance(agentId, userId);
     const historyCapable = instance as GraphSnapshotCapable;
     if (typeof historyCapable.getNodeExecutionDetail === 'function') {
-      return (
-        historyCapable.getNodeExecutionDetail(nodeId, executionId) || null
-      );
+      return historyCapable.getNodeExecutionDetail(nodeId, executionId) || null;
     }
     return null;
   }
@@ -692,7 +687,9 @@ export class AgentService {
     const instance = await this.getAgentInstance(agentId, userId);
     const graphCapable = instance as GraphSnapshotCapable;
     if (typeof graphCapable.updateConvergenceConfig !== 'function') {
-      throw new NotFoundException('Graph agent does not support convergence config updates');
+      throw new NotFoundException(
+        'Graph agent does not support convergence config updates',
+      );
     }
     const updated = graphCapable.updateConvergenceConfig(nodeId, config);
     if (!updated) {
@@ -712,7 +709,9 @@ export class AgentService {
     const instance = await this.getAgentInstance(agentId, userId);
     const graphCapable = instance as GraphSnapshotCapable;
     if (typeof graphCapable.updateDataOrdering !== 'function') {
-      throw new NotFoundException('Graph agent does not support data ordering updates');
+      throw new NotFoundException(
+        'Graph agent does not support data ordering updates',
+      );
     }
     const updated = graphCapable.updateDataOrdering(nodeId, ordering);
     if (!updated) {
@@ -732,7 +731,9 @@ export class AgentService {
     const instance = await this.getAgentInstance(agentId, userId);
     const graphCapable = instance as GraphSnapshotCapable;
     if (typeof graphCapable.bulkUpdateNodes !== 'function') {
-      throw new NotFoundException('Graph agent does not support node bulk updates');
+      throw new NotFoundException(
+        'Graph agent does not support node bulk updates',
+      );
     }
     try {
       return graphCapable.bulkUpdateNodes(filter, updates);
@@ -758,7 +759,9 @@ export class AgentService {
     const instance = await this.getAgentInstance(agentId, userId);
     const graphCapable = instance as GraphSnapshotCapable;
     if (typeof graphCapable.bulkUpdateEdges !== 'function') {
-      throw new NotFoundException('Graph agent does not support edge bulk updates');
+      throw new NotFoundException(
+        'Graph agent does not support edge bulk updates',
+      );
     }
     try {
       return graphCapable.bulkUpdateEdges(filter, updates);
@@ -828,10 +831,14 @@ export class AgentService {
     const instance = await this.getAgentInstance(agentId, userId);
     const graphCapable = instance as GraphSnapshotCapable;
     if (typeof graphCapable.getRuntimeCheckpointSnapshot !== 'function') {
-      throw new NotFoundException('Graph agent does not expose runtime checkpoints');
+      throw new NotFoundException(
+        'Graph agent does not expose runtime checkpoints',
+      );
     }
     if (typeof graphCapable.restoreGraphState !== 'function') {
-      throw new NotFoundException('Graph agent does not support checkpoint restore');
+      throw new NotFoundException(
+        'Graph agent does not support checkpoint restore',
+      );
     }
 
     const snapshot = graphCapable.getRuntimeCheckpointSnapshot(checkpointId);
@@ -1286,8 +1293,7 @@ export class AgentService {
       options?.limit && options.limit > 0
         ? Math.min(options.limit, maxWindow)
         : maxWindow;
-    const direction =
-      options?.direction === 'forward' ? 'forward' : 'backward';
+    const direction = options?.direction === 'forward' ? 'forward' : 'backward';
 
     const startBound = this.parseTimestamp(options?.start);
     const endBound = this.parseTimestamp(options?.end);

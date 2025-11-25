@@ -30,7 +30,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async scheduleLearning(config: ScheduleConfig): Promise<ScheduleInfo> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.scheduleLearning(config);
     } catch (error) {
@@ -46,7 +48,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async cancelScheduled(scheduleId: string): Promise<boolean> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.cancelScheduled(scheduleId);
     } catch (error) {
@@ -59,7 +63,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async getSchedule(scheduleId: string): Promise<ScheduleInfo | null> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.getSchedule(scheduleId);
     } catch (error) {
@@ -72,7 +78,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async getUserSchedules(userId: string): Promise<ScheduleInfo[]> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.getUserSchedules(userId);
     } catch (error) {
@@ -91,7 +99,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   ): Promise<ScheduleInfo> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.updateSchedule(
         scheduleId,
@@ -107,7 +117,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async getNextScheduledRuns(limit = 10): Promise<ScheduleInfo[]> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.getNextScheduledRuns(limit);
     } catch (error) {
@@ -123,7 +135,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async pauseSchedule(scheduleId: string): Promise<boolean> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.pauseSchedule(scheduleId);
     } catch (error) {
@@ -136,7 +150,9 @@ export class ScheduledLearningAdapter implements IScheduledLearningAdapter {
   async resumeSchedule(scheduleId: string): Promise<boolean> {
     try {
       if (!this.scheduledLearningManager) {
-        throw new Error('ScheduledLearningManagerService is required but not available');
+        throw new Error(
+          'ScheduledLearningManagerService is required but not available',
+        );
       }
       return await this.scheduledLearningManager.resumeSchedule(scheduleId);
     } catch (error) {

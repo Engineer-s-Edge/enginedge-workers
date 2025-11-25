@@ -90,7 +90,10 @@ export class ModelValidationService {
       };
     }
 
-    return { valid: true, maxTokens: maxOutputTokens ?? contextWindow ?? undefined };
+    return {
+      valid: true,
+      maxTokens: maxOutputTokens ?? contextWindow ?? undefined,
+    };
   }
 
   /**
@@ -114,7 +117,10 @@ export class ModelValidationService {
    */
   private async loadModelsIfNeeded(): Promise<void> {
     const now = Date.now();
-    if (now - this.cacheTimestamp < this.CACHE_TTL && this.modelsCache.length > 0) {
+    if (
+      now - this.cacheTimestamp < this.CACHE_TTL &&
+      this.modelsCache.length > 0
+    ) {
       return; // Cache is still valid
     }
 
@@ -126,7 +132,9 @@ export class ModelValidationService {
         const data = fs.readFileSync(modelsPath, 'utf-8');
         this.modelsCache = JSON.parse(data) as Model[];
         this.cacheTimestamp = now;
-        this.logger.debug(`Loaded ${this.modelsCache.length} models into cache`);
+        this.logger.debug(
+          `Loaded ${this.modelsCache.length} models into cache`,
+        );
       } else {
         this.logger.warn('models.json not found, using empty cache');
         this.modelsCache = [];

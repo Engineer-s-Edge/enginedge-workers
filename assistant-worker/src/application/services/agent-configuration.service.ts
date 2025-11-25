@@ -26,9 +26,14 @@ export class AgentConfigurationService {
     const merged: Record<string, unknown> = { ...baseConfig };
 
     // Merge LLM configuration
-    if (overrides.llm || overrides.model || overrides.temperature || overrides.maxTokens) {
+    if (
+      overrides.llm ||
+      overrides.model ||
+      overrides.temperature ||
+      overrides.maxTokens
+    ) {
       merged.llm = {
-        ...(baseConfig.llm as Record<string, unknown> || {}),
+        ...((baseConfig.llm as Record<string, unknown>) || {}),
         ...(overrides.llm || {}),
       };
 
@@ -36,10 +41,17 @@ export class AgentConfigurationService {
       if (overrides.model && !overrides.llm?.model) {
         (merged.llm as Record<string, unknown>).model = overrides.model;
       }
-      if (overrides.temperature !== undefined && overrides.llm?.temperature === undefined) {
-        (merged.llm as Record<string, unknown>).temperature = overrides.temperature;
+      if (
+        overrides.temperature !== undefined &&
+        overrides.llm?.temperature === undefined
+      ) {
+        (merged.llm as Record<string, unknown>).temperature =
+          overrides.temperature;
       }
-      if (overrides.maxTokens !== undefined && overrides.llm?.maxTokens === undefined) {
+      if (
+        overrides.maxTokens !== undefined &&
+        overrides.llm?.maxTokens === undefined
+      ) {
         (merged.llm as Record<string, unknown>).maxTokens = overrides.maxTokens;
       }
     }
@@ -61,23 +73,25 @@ export class AgentConfigurationService {
     // Merge tools configuration
     if (overrides.tools) {
       merged.tools = {
-        ...(baseConfig.tools as Record<string, unknown> || {}),
+        ...((baseConfig.tools as Record<string, unknown>) || {}),
         ...overrides.tools,
       };
 
       // Handle legacy allowList/denyList
       if (overrides.tools.allowList && !overrides.tools.enabled) {
-        (merged.tools as Record<string, unknown>).enabled = overrides.tools.allowList;
+        (merged.tools as Record<string, unknown>).enabled =
+          overrides.tools.allowList;
       }
       if (overrides.tools.denyList && !overrides.tools.disabled) {
-        (merged.tools as Record<string, unknown>).disabled = overrides.tools.denyList;
+        (merged.tools as Record<string, unknown>).disabled =
+          overrides.tools.denyList;
       }
     }
 
     // Merge streaming configuration
     if (overrides.streaming) {
       merged.streaming = {
-        ...(baseConfig.streaming as Record<string, unknown> || {}),
+        ...((baseConfig.streaming as Record<string, unknown>) || {}),
         ...overrides.streaming,
       };
     }
@@ -85,20 +99,24 @@ export class AgentConfigurationService {
     // Merge reasoning configuration
     if (overrides.reasoning) {
       merged.reasoning = {
-        ...(baseConfig.reasoning as Record<string, unknown> || {}),
+        ...((baseConfig.reasoning as Record<string, unknown>) || {}),
         ...overrides.reasoning,
       };
 
       // Handle legacy steps property
-      if (overrides.reasoning.steps !== undefined && overrides.reasoning.maxSteps === undefined) {
-        (merged.reasoning as Record<string, unknown>).maxSteps = overrides.reasoning.steps;
+      if (
+        overrides.reasoning.steps !== undefined &&
+        overrides.reasoning.maxSteps === undefined
+      ) {
+        (merged.reasoning as Record<string, unknown>).maxSteps =
+          overrides.reasoning.steps;
       }
     }
 
     // Merge checkpoints configuration
     if (overrides.checkpoints) {
       merged.checkpoints = {
-        ...(baseConfig.checkpoints as Record<string, unknown> || {}),
+        ...((baseConfig.checkpoints as Record<string, unknown>) || {}),
         ...overrides.checkpoints,
       };
     }
@@ -106,7 +124,7 @@ export class AgentConfigurationService {
     // Merge custom settings
     if (overrides.custom) {
       merged.custom = {
-        ...(baseConfig.custom as Record<string, unknown> || {}),
+        ...((baseConfig.custom as Record<string, unknown>) || {}),
         ...overrides.custom,
       };
     }

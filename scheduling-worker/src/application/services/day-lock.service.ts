@@ -24,13 +24,18 @@ export class DayLockService {
   /**
    * Lock a day
    */
-  async lockDay(userId: string, date: Date): Promise<{
+  async lockDay(
+    userId: string,
+    date: Date,
+  ): Promise<{
     date: string;
     isLocked: boolean;
     lockedAt: Date;
     lockedTasks: string[];
   }> {
-    this.logger.log(`Locking day ${date.toISOString().split('T')[0]} for user ${userId}`);
+    this.logger.log(
+      `Locking day ${date.toISOString().split('T')[0]} for user ${userId}`,
+    );
 
     await this.dayLockRepository.lockDay(userId, date);
 
@@ -40,7 +45,11 @@ export class DayLockService {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const tasks = await this.taskRepository.findByDateRange(startOfDay, endOfDay, userId);
+    const tasks = await this.taskRepository.findByDateRange(
+      startOfDay,
+      endOfDay,
+      userId,
+    );
     const taskIds = tasks.map((t) => t.id);
 
     return {
@@ -54,11 +63,16 @@ export class DayLockService {
   /**
    * Unlock a day
    */
-  async unlockDay(userId: string, date: Date): Promise<{
+  async unlockDay(
+    userId: string,
+    date: Date,
+  ): Promise<{
     date: string;
     isLocked: boolean;
   }> {
-    this.logger.log(`Unlocking day ${date.toISOString().split('T')[0]} for user ${userId}`);
+    this.logger.log(
+      `Unlocking day ${date.toISOString().split('T')[0]} for user ${userId}`,
+    );
 
     await this.dayLockRepository.unlockDay(userId, date);
 
@@ -78,12 +92,22 @@ export class DayLockService {
   /**
    * Get locked days in a date range
    */
-  async getLockedDays(userId: string, startDate: Date, endDate: Date): Promise<Array<{
-    date: string;
-    isLocked: boolean;
-    lockedAt: Date;
-  }>> {
-    const lockedDays = await this.dayLockRepository.getLockedDaysWithMetadata(userId, startDate, endDate);
+  async getLockedDays(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<
+    Array<{
+      date: string;
+      isLocked: boolean;
+      lockedAt: Date;
+    }>
+  > {
+    const lockedDays = await this.dayLockRepository.getLockedDaysWithMetadata(
+      userId,
+      startDate,
+      endDate,
+    );
     return lockedDays.map((ld) => ({
       date: ld.date.toISOString().split('T')[0],
       isLocked: true,

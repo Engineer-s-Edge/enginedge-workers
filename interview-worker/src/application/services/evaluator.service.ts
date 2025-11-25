@@ -352,10 +352,11 @@ Output valid JSON only (no markdown, no code blocks):
     );
 
     // Calculate time spent (simplified - would need more sophisticated tracking)
-    const timeSpent = questionMessages.length > 0
-      ? questionMessages[questionMessages.length - 1].timestamp.getTime() -
-        questionMessages[0].timestamp.getTime()
-      : undefined;
+    const timeSpent =
+      questionMessages.length > 0
+        ? questionMessages[questionMessages.length - 1].timestamp.getTime() -
+          questionMessages[0].timestamp.getTime()
+        : undefined;
 
     // Extract thought process indicators
     const thoughtProcess = this.extractThoughtProcess(questionMessages);

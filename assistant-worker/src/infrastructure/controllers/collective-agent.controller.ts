@@ -42,7 +42,11 @@ import {
   LockType,
   CollectiveArtifact,
 } from '@domain/entities/collective-artifact.entity';
-import { CollectiveTask, TaskLevel, TaskState } from '@domain/entities/collective-task.entity';
+import {
+  CollectiveTask,
+  TaskLevel,
+  TaskState,
+} from '@domain/entities/collective-task.entity';
 import {
   CollectiveMessage,
   MessagePriority,
@@ -176,9 +180,7 @@ export class CollectiveAgentController {
       const queueMetrics = this.messageQueue.getAgentQueueMetrics(
         subAgent.agentId,
       );
-      const assignedTasks = this.taskAssignment.getAgentLoad(
-        subAgent.agentId,
-      );
+      const assignedTasks = this.taskAssignment.getAgentLoad(subAgent.agentId);
 
       return {
         agentId: subAgent.agentId,
@@ -208,8 +210,7 @@ export class CollectiveAgentController {
           nextMessage: queueMetrics.nextMessage
             ? {
                 ...queueMetrics.nextMessage,
-                createdAt:
-                  queueMetrics.nextMessage.createdAt.toISOString(),
+                createdAt: queueMetrics.nextMessage.createdAt.toISOString(),
               }
             : null,
           oldestMessageCreatedAt:
@@ -218,8 +219,9 @@ export class CollectiveAgentController {
       };
     });
 
-    const activeCount = subAgents.filter((agent) => agent.status === 'active')
-      .length;
+    const activeCount = subAgents.filter(
+      (agent) => agent.status === 'active',
+    ).length;
 
     return {
       agentId,
@@ -336,12 +338,12 @@ export class CollectiveAgentController {
     const normalized = raw.toLowerCase();
     const mapping: Record<string, MessageType> = {
       delegation: MessageType.DELEGATION,
-      'help_request': MessageType.HELP_REQUEST,
+      help_request: MessageType.HELP_REQUEST,
       'help-request': MessageType.HELP_REQUEST,
       help: MessageType.HELP_REQUEST,
       info: MessageType.INFO_REQUEST,
-      'info_request': MessageType.INFO_REQUEST,
-      'pm_directive': MessageType.PM_DIRECTIVE,
+      info_request: MessageType.INFO_REQUEST,
+      pm_directive: MessageType.PM_DIRECTIVE,
       directive: MessageType.PM_DIRECTIVE,
       status: MessageType.STATUS_UPDATE,
       result: MessageType.RESULT,
@@ -877,10 +879,7 @@ export class CollectiveAgentController {
       return {
         agentId,
         taskId,
-        dependencies: this.resolveDependencyTasks(
-          instance,
-          task.dependencies,
-        ),
+        dependencies: this.resolveDependencyTasks(instance, task.dependencies),
         updated: false,
         generatedAt: new Date().toISOString(),
       };
@@ -893,10 +892,7 @@ export class CollectiveAgentController {
     return {
       agentId,
       taskId,
-      dependencies: this.resolveDependencyTasks(
-        instance,
-        updated.dependencies,
-      ),
+      dependencies: this.resolveDependencyTasks(instance, updated.dependencies),
       updated: true,
       generatedAt: new Date().toISOString(),
     };
@@ -937,10 +933,7 @@ export class CollectiveAgentController {
         agentId,
         taskId,
         removed: false,
-        dependencies: this.resolveDependencyTasks(
-          instance,
-          task.dependencies,
-        ),
+        dependencies: this.resolveDependencyTasks(instance, task.dependencies),
         generatedAt: new Date().toISOString(),
       };
     }
@@ -953,10 +946,7 @@ export class CollectiveAgentController {
       agentId,
       taskId,
       removed: true,
-      dependencies: this.resolveDependencyTasks(
-        instance,
-        updated.dependencies,
-      ),
+      dependencies: this.resolveDependencyTasks(instance, updated.dependencies),
       generatedAt: new Date().toISOString(),
     };
   }
@@ -978,13 +968,21 @@ export class CollectiveAgentController {
       assignedAgentId?: string;
     },
   ) {
-    this.logger.info('Creating collective task', { agentId, title: body.title });
+    this.logger.info('Creating collective task', {
+      agentId,
+      title: body.title,
+    });
 
     if (!body.userId || !body.title) {
-      throw new BadRequestException('userId and title are required to create a task');
+      throw new BadRequestException(
+        'userId and title are required to create a task',
+      );
     }
 
-    const instance = await this.agentService.getAgentInstance(agentId, body.userId);
+    const instance = await this.agentService.getAgentInstance(
+      agentId,
+      body.userId,
+    );
 
     if (!(instance instanceof CollectiveAgent)) {
       throw new BadRequestException(
@@ -1034,7 +1032,10 @@ export class CollectiveAgentController {
       throw new BadRequestException('userId is required to update tasks');
     }
 
-    const instance = await this.agentService.getAgentInstance(agentId, body.userId);
+    const instance = await this.agentService.getAgentInstance(
+      agentId,
+      body.userId,
+    );
 
     if (!(instance instanceof CollectiveAgent)) {
       throw new BadRequestException(
@@ -1116,10 +1117,10 @@ export class CollectiveAgentController {
       state: task.state,
       priority: task.priority,
       assignedAgentId: task.assignedAgentId ?? null,
-  dependencies: [...(task.dependencies ?? [])],
-  blockedBy: [...(task.blockedBy ?? [])],
-  parentTaskId: task.parentTaskId ?? null,
-  childTaskIds: [...(task.childTaskIds ?? [])],
+      dependencies: [...(task.dependencies ?? [])],
+      blockedBy: [...(task.blockedBy ?? [])],
+      parentTaskId: task.parentTaskId ?? null,
+      childTaskIds: [...(task.childTaskIds ?? [])],
       conversationId: task.conversationId ?? null,
       metadata: task.metadata ?? null,
       createdAt: task.createdAt.toISOString(),
@@ -1252,9 +1253,7 @@ export class CollectiveAgentController {
         ? 0
         : Math.min(
             100,
-            Math.round(
-              ((completedTasks + inProgressTasks) / totalTasks) * 100,
-            ),
+            Math.round(((completedTasks + inProgressTasks) / totalTasks) * 100),
           );
 
     const averageSuccessRate =
@@ -1269,8 +1268,9 @@ export class CollectiveAgentController {
           )
         : 0;
 
-    const activeAgents = state.subAgents.filter((agent) => agent.isActive)
-      .length;
+    const activeAgents = state.subAgents.filter(
+      (agent) => agent.isActive,
+    ).length;
 
     const metrics: CollectiveProgressMetrics = {
       collectiveId: instance.getCollectiveId(),
@@ -1425,9 +1425,8 @@ export class CollectiveAgentController {
 
     this.ensureSubAgentRegistered(instance, targetAgentId, agentId);
 
-    const { queueMetrics, messages } = this.buildAgentQueueSnapshot(
-      targetAgentId,
-    );
+    const { queueMetrics, messages } =
+      this.buildAgentQueueSnapshot(targetAgentId);
 
     return {
       agentId,
@@ -1493,9 +1492,8 @@ export class CollectiveAgentController {
 
     this.ensureSubAgentRegistered(instance, targetAgentId, agentId);
 
-    const { queueMetrics, messages } = this.buildAgentQueueSnapshot(
-      targetAgentId,
-    );
+    const { queueMetrics, messages } =
+      this.buildAgentQueueSnapshot(targetAgentId);
 
     return {
       agentId,
@@ -1627,22 +1625,23 @@ export class CollectiveAgentController {
 
         return this.messageQueue.streamMessages(instance.getCollectiveId());
       }),
-      map((message) =>
-        new MessageEvent('collective-message', {
-          data: {
-            id: message.id,
-            collectiveId: message.collectiveId,
-            sourceAgentId: message.sourceAgentId,
-            targetAgentId: message.targetAgentId,
-            type: message.type,
-            priority: message.priority,
-            status: message.status,
-            taskId: message.taskId ?? null,
-            content: message.content,
-            metadata: message.metadata ?? null,
-            createdAt: message.createdAt.toISOString(),
-          },
-        }),
+      map(
+        (message) =>
+          new MessageEvent('collective-message', {
+            data: {
+              id: message.id,
+              collectiveId: message.collectiveId,
+              sourceAgentId: message.sourceAgentId,
+              targetAgentId: message.targetAgentId,
+              type: message.type,
+              priority: message.priority,
+              status: message.status,
+              taskId: message.taskId ?? null,
+              content: message.content,
+              metadata: message.metadata ?? null,
+              createdAt: message.createdAt.toISOString(),
+            },
+          }),
       ),
     );
 
@@ -1660,9 +1659,7 @@ export class CollectiveAgentController {
       throw new BadRequestException('userId query parameter is required');
     }
 
-    return from(
-      this.agentService.getAgentInstance(agentId, userId),
-    ).pipe(
+    return from(this.agentService.getAgentInstance(agentId, userId)).pipe(
       mergeMap((instance) => {
         if (!(instance instanceof CollectiveAgent)) {
           throw new BadRequestException(
@@ -1674,13 +1671,14 @@ export class CollectiveAgentController {
           instance.getCollectiveId(),
         );
       }),
-      map((event: CollectiveArtifactEvent) =>
-        new MessageEvent('collective-artifact', {
-          data: {
-            action: event.action,
-            artifact: this.serializeArtifact(event.artifact),
-          },
-        }),
+      map(
+        (event: CollectiveArtifactEvent) =>
+          new MessageEvent('collective-artifact', {
+            data: {
+              action: event.action,
+              artifact: this.serializeArtifact(event.artifact),
+            },
+          }),
       ),
     );
   }
@@ -1855,9 +1853,7 @@ export class CollectiveAgentController {
     this.logger.info('Manually completing task', { agentId, taskId });
 
     if (!body.userId) {
-      throw new BadRequestException(
-        'userId is required to complete a task',
-      );
+      throw new BadRequestException('userId is required to complete a task');
     }
 
     const instance = await this.agentService.getAgentInstance(
@@ -2093,7 +2089,7 @@ export class CollectiveAgentController {
       },
     );
 
-  const created = await this.sharedMemory.createArtifact(artifact);
+    const created = await this.sharedMemory.createArtifact(artifact);
 
     return {
       success: true,
@@ -2210,7 +2206,7 @@ export class CollectiveAgentController {
       description?: string;
       content?: string;
       tags?: string[];
-  metadata?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
       type?: ArtifactType;
     },
   ) {

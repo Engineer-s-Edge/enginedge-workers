@@ -28,7 +28,10 @@ export class ValidationWorkflowService {
   private readonly reviews: ReviewMap = new Map();
   private readonly validators: ValidatorMap = new Map();
   private readonly subscribers = new Map<string, Set<Subscriber>>();
-  private readonly statusSnapshots = new Map<string, ValidationStatusSnapshot>();
+  private readonly statusSnapshots = new Map<
+    string,
+    ValidationStatusSnapshot
+  >();
   private readonly validations = new Map<string, ValidationResult>();
   private readonly validationReports = new Map<string, ExpertReport>();
   private readonly validationAgents = new Map<string, string>();
@@ -52,12 +55,20 @@ export class ValidationWorkflowService {
       createdAt: new Date(),
       updatedAt: new Date(),
       history: [
-        { status: 'pending', timestamp: new Date(), notes: 'Queued for validation' },
+        {
+          status: 'pending',
+          timestamp: new Date(),
+          notes: 'Queued for validation',
+        },
       ],
     };
 
     queue.push(item);
-    queue.sort((a, b) => b.priority - a.priority || a.createdAt.getTime() - b.createdAt.getTime());
+    queue.sort(
+      (a, b) =>
+        b.priority - a.priority ||
+        a.createdAt.getTime() - b.createdAt.getTime(),
+    );
 
     this.emitEvent(agentId, {
       type: 'validation.started',
@@ -72,20 +83,28 @@ export class ValidationWorkflowService {
     return [...this.getQueue(agentId)];
   }
 
-  getQueueItem(agentId: string, queueId: string): ValidationQueueItem | undefined {
+  getQueueItem(
+    agentId: string,
+    queueId: string,
+  ): ValidationQueueItem | undefined {
     return this.getQueue(agentId).find((item) => item.id === queueId);
   }
 
   async processQueueItem(
     agentId: string,
     queueId: string,
-    options?: { applyFixes?: boolean; config?: BatchValidationRequest['config'] },
+    options?: {
+      applyFixes?: boolean;
+      config?: BatchValidationRequest['config'];
+    },
   ): Promise<ValidationQueueItem> {
     const queue = this.getQueue(agentId);
     const item = queue.find((entry) => entry.id === queueId);
 
     if (!item) {
-      throw new NotFoundException(`Validation queue item '${queueId}' not found`);
+      throw new NotFoundException(
+        `Validation queue item '${queueId}' not found`,
+      );
     }
 
     this.updateQueueStatus(item, 'in-progress', 'Validation started');
@@ -116,7 +135,12 @@ export class ValidationWorkflowService {
         this.createManualReview(agentId, item, result);
       }
 
-      this.emitStatus(agentId, item, 'validation.completed', result as unknown as Record<string, unknown>);
+      this.emitStatus(
+        agentId,
+        item,
+        'validation.completed',
+        result as unknown as Record<string, unknown>,
+      );
       return item;
     } catch (error) {
       const message =
@@ -134,7 +158,10 @@ export class ValidationWorkflowService {
     );
   }
 
-  getStatus(expertId: string, reportId: string): ValidationStatusSnapshot | undefined {
+  getStatus(
+    expertId: string,
+    reportId: string,
+  ): ValidationStatusSnapshot | undefined {
     return this.statusSnapshots.get(this.snapshotKey(expertId, reportId));
   }
 
@@ -292,7 +319,10 @@ export class ValidationWorkflowService {
     }
   }
 
-  listValidatorErrors(agentId: string, validatorId: string): ValidatorAgentError[] {
+  listValidatorErrors(
+    agentId: string,
+    validatorId: string,
+  ): ValidatorAgentError[] {
     const validator = this.getValidators(agentId).find(
       (entry) => entry.validatorId === validatorId,
     );

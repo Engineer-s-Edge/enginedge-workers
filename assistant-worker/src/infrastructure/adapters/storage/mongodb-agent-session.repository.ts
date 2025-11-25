@@ -8,10 +8,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ILogger } from '@application/ports/logger.port';
-import {
-  AgentSession,
-  AgentSessionDocument,
-} from './agent-session.schema';
+import { AgentSession, AgentSessionDocument } from './agent-session.schema';
 
 export interface IAgentSessionRepository {
   create(session: Omit<AgentSession, 'expiresAt'>): Promise<AgentSession>;
@@ -21,15 +18,16 @@ export interface IAgentSessionRepository {
   findByAgentId(agentId: string, status?: string): Promise<AgentSession[]>;
   updateStatus(sessionId: string, status: string): Promise<boolean>;
   updateActivity(sessionId: string): Promise<boolean>;
-  updateMetadata(sessionId: string, metadata: Record<string, unknown>): Promise<boolean>;
+  updateMetadata(
+    sessionId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<boolean>;
   delete(sessionId: string): Promise<boolean>;
   cleanupOldSessions(maxAgeHours?: number): Promise<number>;
 }
 
 @Injectable()
-export class MongoDBAgentSessionRepository
-  implements IAgentSessionRepository
-{
+export class MongoDBAgentSessionRepository implements IAgentSessionRepository {
   constructor(
     @InjectModel(AgentSession.name)
     private readonly sessionModel: Model<AgentSessionDocument>,
@@ -54,9 +52,7 @@ export class MongoDBAgentSessionRepository
     return doc ? this.toSession(doc) : null;
   }
 
-  async findByInstanceKey(
-    instanceKey: string,
-  ): Promise<AgentSession | null> {
+  async findByInstanceKey(instanceKey: string): Promise<AgentSession | null> {
     const doc = await this.sessionModel
       .findOne({ instanceKey, status: 'active' })
       .sort({ lastActivityAt: -1 })
@@ -64,15 +60,15 @@ export class MongoDBAgentSessionRepository
     return doc ? this.toSession(doc) : null;
   }
 
-  async findByUserId(
-    userId: string,
-    status?: string,
-  ): Promise<AgentSession[]> {
+  async findByUserId(userId: string, status?: string): Promise<AgentSession[]> {
     const query: any = { userId };
     if (status) {
       query.status = status;
     }
-    const docs = await this.sessionModel.find(query).sort({ lastActivityAt: -1 }).exec();
+    const docs = await this.sessionModel
+      .find(query)
+      .sort({ lastActivityAt: -1 })
+      .exec();
     return docs.map((doc) => this.toSession(doc));
   }
 
@@ -84,7 +80,10 @@ export class MongoDBAgentSessionRepository
     if (status) {
       query.status = status;
     }
-    const docs = await this.sessionModel.find(query).sort({ lastActivityAt: -1 }).exec();
+    const docs = await this.sessionModel
+      .find(query)
+      .sort({ lastActivityAt: -1 })
+      .exec();
     return docs.map((doc) => this.toSession(doc));
   }
 
@@ -136,9 +135,7 @@ export class MongoDBAgentSessionRepository
   }
 
   async delete(sessionId: string): Promise<boolean> {
-    const result = await this.sessionModel
-      .deleteOne({ sessionId })
-      .exec();
+    const result = await this.sessionModel.deleteOne({ sessionId }).exec();
     return result.deletedCount > 0;
   }
 

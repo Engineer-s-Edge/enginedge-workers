@@ -74,7 +74,8 @@ export class ResumeController {
   @HttpCode(HttpStatus.OK)
   async applyTemplate(
     @Param('resumeId') resumeId: string,
-    @Body() body: {
+    @Body()
+    body: {
       templateId: string;
       preserveBullets: boolean;
       userData: any;
@@ -116,10 +117,7 @@ export class ResumeController {
 
   @Patch(':id/layout')
   @HttpCode(HttpStatus.OK)
-  async saveLayout(
-    @Param('id') id: string,
-    @Body() body: { layout: any },
-  ) {
+  async saveLayout(@Param('id') id: string, @Body() body: { layout: any }) {
     return this.resumeService.saveLayout(new Types.ObjectId(id), body.layout);
   }
 
@@ -132,7 +130,10 @@ export class ResumeController {
   async exportTex(@Param('id') id: string, @Res() res: Response) {
     const result = await this.resumeService.exportTex(new Types.ObjectId(id));
     res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     res.send(result.content);
   }
 
@@ -140,7 +141,10 @@ export class ResumeController {
   async exportPdf(@Param('id') id: string, @Res() res: Response) {
     const result = await this.resumeService.exportPdf(new Types.ObjectId(id));
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     // In production, fetch PDF from URL and stream it
     res.redirect(result.pdfUrl);
   }
@@ -165,7 +169,9 @@ export class ResumeController {
 
   @Get(':resumeId/current-job-posting')
   async getCurrentJobPosting(@Param('resumeId') resumeId: string) {
-    return this.resumeService.getCurrentJobPosting(new Types.ObjectId(resumeId));
+    return this.resumeService.getCurrentJobPosting(
+      new Types.ObjectId(resumeId),
+    );
   }
 
   @Patch(':resumeId/current-job-posting')

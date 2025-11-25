@@ -137,7 +137,10 @@ export class ConversationsService {
       },
     };
 
-    return this.repo.createCheckpoint(conversationId, checkpointWithState as any);
+    return this.repo.createCheckpoint(
+      conversationId,
+      checkpointWithState as any,
+    );
   }
 
   async updateSettings(
@@ -159,11 +162,12 @@ export class ConversationsService {
 
         // Validate token limits if maxTokens is specified
         if (llmConfig.maxTokens) {
-          const tokenValidation = await this.modelValidation.validateTokenLimits(
-            llmConfig.provider,
-            llmConfig.model,
-            llmConfig.maxTokens,
-          );
+          const tokenValidation =
+            await this.modelValidation.validateTokenLimits(
+              llmConfig.provider,
+              llmConfig.model,
+              llmConfig.maxTokens,
+            );
           if (!tokenValidation.valid) {
             throw new Error(tokenValidation.error);
           }
@@ -198,7 +202,9 @@ export class ConversationsService {
     }
 
     const memories = conv.settingsOverrides?.memories || [];
-    const memoryId = memoryConfig.id || `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const memoryId =
+      memoryConfig.id ||
+      `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     const newMemory = {
       ...memoryConfig,
@@ -231,7 +237,9 @@ export class ConversationsService {
     const memoryIndex = memories.findIndex((m: any) => m.id === memoryId);
 
     if (memoryIndex === -1) {
-      throw new Error(`Memory ${memoryId} not found in conversation ${conversationId}`);
+      throw new Error(
+        `Memory ${memoryId} not found in conversation ${conversationId}`,
+      );
     }
 
     const updatedMemories = [...memories];
@@ -262,7 +270,9 @@ export class ConversationsService {
     const filteredMemories = memories.filter((m: any) => m.id !== memoryId);
 
     if (filteredMemories.length === memories.length) {
-      throw new Error(`Memory ${memoryId} not found in conversation ${conversationId}`);
+      throw new Error(
+        `Memory ${memoryId} not found in conversation ${conversationId}`,
+      );
     }
 
     const updatedOverrides = {
@@ -429,8 +439,10 @@ export class ConversationsService {
     return checkpoints.map((cp) => {
       const event = checkpointEvents.find((e) => {
         const payload = e.payload as any;
-        return payload.kind === 'checkpoint' &&
-               payload.data?.checkpointId === cp.checkpointId;
+        return (
+          payload.kind === 'checkpoint' &&
+          payload.data?.checkpointId === cp.checkpointId
+        );
       });
 
       return {
@@ -532,9 +544,7 @@ export class ConversationsService {
       );
 
       // Filter to only conversations with matching messages
-      conversations = conversations.filter((c) =>
-        matchingConvIds.has(c.id),
-      );
+      conversations = conversations.filter((c) => matchingConvIds.has(c.id));
     }
 
     const total = conversations.length;
@@ -906,7 +916,9 @@ export class ConversationsService {
             role: payload.data.role,
             content: payload.data.content,
             timestamp: e.ts,
-            metadata: options.includeMetadata ? payload.data.metadata : undefined,
+            metadata: options.includeMetadata
+              ? payload.data.metadata
+              : undefined,
           };
         }
         return null;

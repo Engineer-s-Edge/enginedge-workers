@@ -20,7 +20,20 @@ export interface GraphMemoryRecord {
 export class GraphMemoryRouter {
   constructor(private readonly memoryManager: MemoryManager) {}
 
-  ensureGroup(graphId: string, group: GraphMemoryGroup | { id: string; name?: string; memoryType?: string; provider?: string; vectorStore?: string; ragPipelineId?: string; knowledgeGraphId?: string }): void {
+  ensureGroup(
+    graphId: string,
+    group:
+      | GraphMemoryGroup
+      | {
+          id: string;
+          name?: string;
+          memoryType?: string;
+          provider?: string;
+          vectorStore?: string;
+          ragPipelineId?: string;
+          knowledgeGraphId?: string;
+        },
+  ): void {
     const conversationId = this.getConversationId(graphId, group.id);
     const existing = this.memoryManager.getConversation(conversationId);
 
@@ -50,7 +63,11 @@ export class GraphMemoryRouter {
     }
   }
 
-  appendRecords(graphId: string, groupId: string, records: GraphMemoryRecord[]): void {
+  appendRecords(
+    graphId: string,
+    groupId: string,
+    records: GraphMemoryRecord[],
+  ): void {
     if (!records.length) {
       return;
     }
@@ -75,7 +92,11 @@ export class GraphMemoryRouter {
     }
   }
 
-  getRecentMessages(graphId: string, groupId: string, limit: number = 10): Message[] {
+  getRecentMessages(
+    graphId: string,
+    groupId: string,
+    limit: number = 10,
+  ): Message[] {
     const conversationId = this.getConversationId(graphId, groupId);
     return this.memoryManager.getRecentMessages(conversationId, limit);
   }

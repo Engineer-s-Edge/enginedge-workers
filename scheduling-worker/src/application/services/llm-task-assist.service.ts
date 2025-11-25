@@ -60,14 +60,19 @@ export class LLMTaskAssistService {
    * Extract structured task data from natural language description
    */
   async extractTaskData(description: string): Promise<TaskAssistResponse> {
-    this.logger.log(`Extracting task data from description: ${description.substring(0, 50)}...`);
+    this.logger.log(
+      `Extracting task data from description: ${description.substring(0, 50)}...`,
+    );
 
     try {
       // Call assistant-worker's task-assist agent
       // This would use a specialized agent that extracts task information
-      const response = await this.httpClient.post('/assistant/agents/task-assist', {
-        description,
-      });
+      const response = await this.httpClient.post(
+        '/assistant/agents/task-assist',
+        {
+          description,
+        },
+      );
 
       // Transform response to our format
       const data = response.data;
@@ -75,7 +80,8 @@ export class LLMTaskAssistService {
       return {
         title: data.title || this.extractTitle(description),
         description: data.description,
-        estimatedDuration: data.estimatedDuration || this.estimateDuration(description),
+        estimatedDuration:
+          data.estimatedDuration || this.estimateDuration(description),
         priority: data.priority || this.extractPriority(description),
         category: data.category || this.extractCategory(description),
         tags: data.tags || this.extractTags(description),
@@ -156,13 +162,22 @@ export class LLMTaskAssistService {
   /**
    * Extract priority from description
    */
-  private extractPriority(description: string): 'low' | 'medium' | 'high' | 'urgent' {
+  private extractPriority(
+    description: string,
+  ): 'low' | 'medium' | 'high' | 'urgent' {
     const lowerDesc = description.toLowerCase();
 
-    if (lowerDesc.includes('urgent') || lowerDesc.includes('asap') || lowerDesc.includes('immediately')) {
+    if (
+      lowerDesc.includes('urgent') ||
+      lowerDesc.includes('asap') ||
+      lowerDesc.includes('immediately')
+    ) {
       return 'urgent';
     }
-    if (lowerDesc.includes('high priority') || lowerDesc.includes('important')) {
+    if (
+      lowerDesc.includes('high priority') ||
+      lowerDesc.includes('important')
+    ) {
       return 'high';
     }
     if (lowerDesc.includes('low priority') || lowerDesc.includes('whenever')) {
@@ -178,16 +193,32 @@ export class LLMTaskAssistService {
   private extractCategory(description: string): string {
     const lowerDesc = description.toLowerCase();
 
-    if (lowerDesc.includes('meeting') || lowerDesc.includes('call') || lowerDesc.includes('standup')) {
+    if (
+      lowerDesc.includes('meeting') ||
+      lowerDesc.includes('call') ||
+      lowerDesc.includes('standup')
+    ) {
       return 'meeting';
     }
-    if (lowerDesc.includes('work') || lowerDesc.includes('project') || lowerDesc.includes('task')) {
+    if (
+      lowerDesc.includes('work') ||
+      lowerDesc.includes('project') ||
+      lowerDesc.includes('task')
+    ) {
       return 'work';
     }
-    if (lowerDesc.includes('personal') || lowerDesc.includes('family') || lowerDesc.includes('home')) {
+    if (
+      lowerDesc.includes('personal') ||
+      lowerDesc.includes('family') ||
+      lowerDesc.includes('home')
+    ) {
       return 'personal';
     }
-    if (lowerDesc.includes('exercise') || lowerDesc.includes('workout') || lowerDesc.includes('gym')) {
+    if (
+      lowerDesc.includes('exercise') ||
+      lowerDesc.includes('workout') ||
+      lowerDesc.includes('gym')
+    ) {
       return 'health';
     }
 

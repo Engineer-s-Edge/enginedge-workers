@@ -110,9 +110,7 @@ export class SessionController {
   }
 
   @Get(':sessionId/completion-status')
-  async getCompletionStatus(
-    @Param('sessionId') sessionId: string,
-  ): Promise<{
+  async getCompletionStatus(@Param('sessionId') sessionId: string): Promise<{
     sessionId: string;
     status: string;
     completedAt?: Date;
@@ -127,10 +125,10 @@ export class SessionController {
     }
 
     // Get interview to calculate total questions
-    const interview = await this.sessionService.getInterview(session.interviewId);
-    const totalQuestions = interview
-      ? interview.getTotalQuestionCount()
-      : 0;
+    const interview = await this.sessionService.getInterview(
+      session.interviewId,
+    );
+    const totalQuestions = interview ? interview.getTotalQuestionCount() : 0;
 
     return {
       sessionId: session.sessionId,
@@ -139,9 +137,12 @@ export class SessionController {
       totalQuestions,
       answeredQuestions: totalQuestions - session.skippedQuestions.length,
       skippedQuestions: session.skippedQuestions.length,
-      progress: totalQuestions > 0
-        ? ((totalQuestions - session.skippedQuestions.length) / totalQuestions) * 100
-        : 0,
+      progress:
+        totalQuestions > 0
+          ? ((totalQuestions - session.skippedQuestions.length) /
+              totalQuestions) *
+            100
+          : 0,
     };
   }
 

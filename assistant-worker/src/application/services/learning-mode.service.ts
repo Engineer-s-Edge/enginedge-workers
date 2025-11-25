@@ -68,11 +68,16 @@ export class LearningModeService {
   /**
    * Execute learning in specified mode
    */
-  async executeLearningMode(config: LearningModeConfig): Promise<LearningModeResult> {
-    this.logger.info(`Executing ${config.mode} learning for user ${config.userId}`, {
-      topics: config.topics?.length || 0,
-      detectedGaps: config.detectedGaps?.length || 0,
-    });
+  async executeLearningMode(
+    config: LearningModeConfig,
+  ): Promise<LearningModeResult> {
+    this.logger.info(
+      `Executing ${config.mode} learning for user ${config.userId}`,
+      {
+        topics: config.topics?.length || 0,
+        detectedGaps: config.detectedGaps?.length || 0,
+      },
+    );
 
     const sessionId = `session_${config.userId}_${Date.now()}`;
     const startTime = Date.now();
@@ -95,7 +100,8 @@ export class LearningModeService {
     let finalComponentCount = 0;
     if (this.graphComponentService) {
       try {
-        initialComponentCount = await this.graphComponentService.getComponentCount();
+        initialComponentCount =
+          await this.graphComponentService.getComponentCount();
         this.logger.debug(`Initial component count: ${initialComponentCount}`);
       } catch (error) {
         this.logger.warn(
@@ -115,13 +121,14 @@ export class LearningModeService {
             case 'user-directed':
               if (config.topics && config.topics.length > 0) {
                 // Execute user-directed learning with specified topics
-                const result = await this.geniusOrchestrator.executeUserDirectedLearning(
-                  config.userId,
-                  config.topics.map((topic) => ({
-                    topic,
-                    complexity: 'L3', // Default complexity, could be enhanced
-                  })),
-                );
+                const result =
+                  await this.geniusOrchestrator.executeUserDirectedLearning(
+                    config.userId,
+                    config.topics.map((topic) => ({
+                      topic,
+                      complexity: 'L3', // Default complexity, could be enhanced
+                    })),
+                  );
                 topicsProcessed = config.topics;
                 success = result?.success !== false;
               } else {
@@ -132,14 +139,16 @@ export class LearningModeService {
 
             case 'autonomous':
               // Execute autonomous learning (detects gaps and processes topics)
-              const autonomousResult = await this.geniusOrchestrator.executeAutonomousLearning(
-                config.userId,
-                {
-                  maxTopics: config.topics?.length || 5,
-                  minPriority: 0,
-                },
-              );
-              topicsProcessed = autonomousResult?.topicsProcessed || config.topics || [];
+              const autonomousResult =
+                await this.geniusOrchestrator.executeAutonomousLearning(
+                  config.userId,
+                  {
+                    maxTopics: config.topics?.length || 5,
+                    minPriority: 0,
+                  },
+                );
+              topicsProcessed =
+                autonomousResult?.topicsProcessed || config.topics || [];
               success = autonomousResult?.success !== false;
               break;
 
@@ -148,7 +157,9 @@ export class LearningModeService {
               // This mode just tracks the session
               topicsProcessed = config.topics || [];
               success = true;
-              this.logger.info('Scheduled learning mode - execution handled by scheduler');
+              this.logger.info(
+                'Scheduled learning mode - execution handled by scheduler',
+              );
               break;
 
             default:
@@ -163,7 +174,9 @@ export class LearningModeService {
           success = false;
         }
       } else {
-        this.logger.warn('GeniusAgentOrchestrator not available, learning execution skipped');
+        this.logger.warn(
+          'GeniusAgentOrchestrator not available, learning execution skipped',
+        );
         topicsProcessed = config.topics || [];
         success = false;
       }
@@ -172,9 +185,13 @@ export class LearningModeService {
       let componentsMerged = 0;
       if (this.graphComponentService) {
         try {
-          finalComponentCount = await this.graphComponentService.getComponentCount();
+          finalComponentCount =
+            await this.graphComponentService.getComponentCount();
           // Components merged = initial - final (when components merge, count decreases)
-          componentsMerged = Math.max(0, initialComponentCount - finalComponentCount);
+          componentsMerged = Math.max(
+            0,
+            initialComponentCount - finalComponentCount,
+          );
           this.logger.debug(
             `Component merge tracking: initial=${initialComponentCount}, final=${finalComponentCount}, merged=${componentsMerged}`,
           );
@@ -254,7 +271,9 @@ export class LearningModeService {
     // Cancel any active learning session
     const activeSession = this.activeSessions.get(userId);
     if (activeSession) {
-      this.logger.warn(`Cancelling active ${activeSession.mode} session for user ${userId}`);
+      this.logger.warn(
+        `Cancelling active ${activeSession.mode} session for user ${userId}`,
+      );
       this.activeSessions.delete(userId);
     }
 
@@ -267,7 +286,9 @@ export class LearningModeService {
   /**
    * Get mode statistics
    */
-  async getModeStatistics(mode: LearningMode): Promise<Record<string, unknown>> {
+  async getModeStatistics(
+    mode: LearningMode,
+  ): Promise<Record<string, unknown>> {
     const stats = this.modeStats.get(mode);
     if (!stats) {
       return {
@@ -325,7 +346,11 @@ export class LearningModeService {
   /**
    * Update mode statistics
    */
-  private updateModeStatistics(mode: LearningMode, duration: number, success: boolean): void {
+  private updateModeStatistics(
+    mode: LearningMode,
+    duration: number,
+    success: boolean,
+  ): void {
     const stats = this.modeStats.get(mode);
     if (!stats) {
       return;
@@ -342,7 +367,8 @@ export class LearningModeService {
     }
 
     const totalAttempts = stats.successCount + stats.failureCount;
-    stats.successRate = totalAttempts > 0 ? stats.successCount / totalAttempts : 0;
+    stats.successRate =
+      totalAttempts > 0 ? stats.successCount / totalAttempts : 0;
     stats.lastUsed = new Date();
 
     this.modeStats.set(mode, stats);

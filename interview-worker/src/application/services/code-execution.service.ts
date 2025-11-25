@@ -84,7 +84,11 @@ export class CodeExecutionService {
       // If custom test cases and correct working code are provided,
       // also run correct working code against custom test cases
       let correctCodeResults: TestResult[] = [];
-      if (dto.customTestCases && dto.customTestCases.length > 0 && dto.correctWorkingCode) {
+      if (
+        dto.customTestCases &&
+        dto.customTestCases.length > 0 &&
+        dto.correctWorkingCode
+      ) {
         correctCodeResults = await this.testRunner.runTests(
           dto.correctWorkingCode,
           dto.language,
@@ -113,7 +117,11 @@ export class CodeExecutionService {
 
       // Store correct code results in execution for later retrieval
       // This allows frontend to display both "Your code" and "Expected (correct solution)" results
-      if (dto.customTestCases && dto.customTestCases.length > 0 && dto.correctWorkingCode) {
+      if (
+        dto.customTestCases &&
+        dto.customTestCases.length > 0 &&
+        dto.correctWorkingCode
+      ) {
         // We'll store this information in the execution object
         // The frontend can query for both results
         (execution as any).customTestCasesResults = {

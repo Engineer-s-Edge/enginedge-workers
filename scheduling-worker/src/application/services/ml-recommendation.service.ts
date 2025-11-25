@@ -57,15 +57,27 @@ export class MLRecommendationService {
     recommendations: TaskRecommendation[];
     summary: RecommendationSummary;
   }> {
-    this.logger.log(`Generating recommendations for user ${userId} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    this.logger.log(
+      `Generating recommendations for user ${userId} from ${startDate.toISOString()} to ${endDate.toISOString()}`,
+    );
 
     // Get all unlocked tasks in range
-    const allTasks = await this.taskRepository.findByDateRange(startDate, endDate, userId);
+    const allTasks = await this.taskRepository.findByDateRange(
+      startDate,
+      endDate,
+      userId,
+    );
     const unlockedTasks = allTasks.filter((t) => !t.isLocked);
 
     // Get locked days
-    const lockedDays = await this.dayLockRepository.getLockedDays(userId, startDate, endDate);
-    const lockedDayStrings = new Set(lockedDays.map((d) => d.toISOString().split('T')[0]));
+    const lockedDays = await this.dayLockRepository.getLockedDays(
+      userId,
+      startDate,
+      endDate,
+    );
+    const lockedDayStrings = new Set(
+      lockedDays.map((d) => d.toISOString().split('T')[0]),
+    );
 
     // Filter out tasks on locked days
     const tasksToRecommend = unlockedTasks.filter((t) => {
@@ -78,12 +90,20 @@ export class MLRecommendationService {
     // For each task, find better time slots using ML
     for (const task of tasksToRecommend) {
       try {
-        const recommendation = await this.recommendTaskTime(task, userId, startDate, endDate, allTasks);
+        const recommendation = await this.recommendTaskTime(
+          task,
+          userId,
+          startDate,
+          endDate,
+          allTasks,
+        );
         if (recommendation) {
           recommendations.push(recommendation);
         }
       } catch (error) {
-        this.logger.warn(`Failed to generate recommendation for task ${task.id}: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.warn(
+          `Failed to generate recommendation for task ${task.id}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
 
@@ -113,7 +133,12 @@ export class MLRecommendationService {
 
     if (!mlAvailable) {
       // Fallback to rule-based recommendation
-      return this.ruleBasedRecommendation(task, startDate, endDate, existingTasks);
+      return this.ruleBasedRecommendation(
+        task,
+        startDate,
+        endDate,
+        existingTasks,
+      );
     }
 
     try {
@@ -127,31 +152,60 @@ export class MLRecommendationService {
       };
 
       // Call ML service to get slot recommendations
-      const mlResponse = await this.mlModelClient.predictSlots(userId, taskData, startDate, endDate);
+      const mlResponse = await this.mlModelClient.predictSlots(
+        userId,
+        taskData,
+        startDate,
+        endDate,
+      );
 
-      if (!mlResponse || !mlResponse.recommendations || mlResponse.recommendations.length === 0) {
-        return this.ruleBasedRecommendation(task, startDate, endDate, existingTasks);
+      if (
+        !mlResponse ||
+        !mlResponse.recommendations ||
+        mlResponse.recommendations.length === 0
+      ) {
+        return this.ruleBasedRecommendation(
+          task,
+          startDate,
+          endDate,
+          existingTasks,
+        );
       }
 
       // Find best recommended slot
       const bestSlot = mlResponse.recommendations
         .filter((r: { recommended: boolean }) => r.recommended)
-        .sort((a: { probability: number }, b: { probability: number }) => b.probability - a.probability)[0];
+        .sort(
+          (a: { probability: number }, b: { probability: number }) =>
+            b.probability - a.probability,
+        )[0];
 
       if (!bestSlot) {
-        return this.ruleBasedRecommendation(task, startDate, endDate, existingTasks);
+        return this.ruleBasedRecommendation(
+          task,
+          startDate,
+          endDate,
+          existingTasks,
+        );
       }
 
       // Convert hour to actual datetime
       const recommendedDate = new Date(startDate);
       recommendedDate.setHours(bestSlot.hour, 0, 0, 0);
       const recommendedEnd = new Date(recommendedDate);
-      recommendedEnd.setMinutes(recommendedEnd.getMinutes() + (task.estimatedDuration || task.getDurationMinutes()));
+      recommendedEnd.setMinutes(
+        recommendedEnd.getMinutes() +
+          (task.estimatedDuration || task.getDurationMinutes()),
+      );
 
       // Validate against scheduling rules
       const existingTaskData = existingTasks
         .filter((t) => t.id !== task.id)
-        .map((t) => ({ startTime: t.startTime, endTime: t.endTime, isLocked: t.isLocked }));
+        .map((t) => ({
+          startTime: t.startTime,
+          endTime: t.endTime,
+          isLocked: t.isLocked,
+        }));
 
       const validation = this.schedulingRules.validateTaskSchedule(
         recommendedDate,
@@ -161,7 +215,12 @@ export class MLRecommendationService {
 
       if (!validation.valid) {
         // Try rule-based if ML recommendation is invalid
-        return this.ruleBasedRecommendation(task, startDate, endDate, existingTasks);
+        return this.ruleBasedRecommendation(
+          task,
+          startDate,
+          endDate,
+          existingTasks,
+        );
       }
 
       return {
@@ -174,8 +233,15 @@ export class MLRecommendationService {
         confidence: bestSlot.confidence,
       };
     } catch (error) {
-      this.logger.warn(`ML recommendation failed for task ${task.id}, using rule-based: ${error instanceof Error ? error.message : String(error)}`);
-      return this.ruleBasedRecommendation(task, startDate, endDate, existingTasks);
+      this.logger.warn(
+        `ML recommendation failed for task ${task.id}, using rule-based: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return this.ruleBasedRecommendation(
+        task,
+        startDate,
+        endDate,
+        existingTasks,
+      );
     }
   }
 
@@ -191,7 +257,11 @@ export class MLRecommendationService {
     const duration = task.estimatedDuration || task.getDurationMinutes();
     const existingTaskData = existingTasks
       .filter((t) => t.id !== task.id)
-      .map((t) => ({ startTime: t.startTime, endTime: t.endTime, isLocked: t.isLocked }));
+      .map((t) => ({
+        startTime: t.startTime,
+        endTime: t.endTime,
+        isLocked: t.isLocked,
+      }));
 
     // Find available slots
     const slots = this.schedulingRules.findAvailableSlots(
@@ -221,14 +291,19 @@ export class MLRecommendationService {
   /**
    * Calculate improvement score
    */
-  private calculateImprovementScore(recommendations: TaskRecommendation[]): number {
+  private calculateImprovementScore(
+    recommendations: TaskRecommendation[],
+  ): number {
     if (recommendations.length === 0) {
       return 0;
     }
 
     // Average confidence weighted by number of recommendations
-    const avgConfidence = recommendations.reduce((sum, r) => sum + r.confidence, 0) / recommendations.length;
-    const coverage = recommendations.length / Math.max(recommendations.length, 1);
+    const avgConfidence =
+      recommendations.reduce((sum, r) => sum + r.confidence, 0) /
+      recommendations.length;
+    const coverage =
+      recommendations.length / Math.max(recommendations.length, 1);
 
     return Math.min(avgConfidence * coverage, 1.0);
   }
@@ -249,11 +324,14 @@ export class MLRecommendationService {
       newStartTime: Date;
     }>;
   }> {
-    this.logger.log(`Applying ${recommendationIds.length} recommendations for user ${userId}`);
+    this.logger.log(
+      `Applying ${recommendationIds.length} recommendations for user ${userId}`,
+    );
 
-    const recommendationsToApply = recommendationIds.length > 0
-      ? allRecommendations.filter((r) => recommendationIds.includes(r.taskId))
-      : allRecommendations;
+    const recommendationsToApply =
+      recommendationIds.length > 0
+        ? allRecommendations.filter((r) => recommendationIds.includes(r.taskId))
+        : allRecommendations;
 
     const updatedTasks: Array<{
       taskId: string;
@@ -280,14 +358,20 @@ export class MLRecommendationService {
 
         // Check if day is still unlocked
         const taskDate = task.startTime.toISOString().split('T')[0];
-        const isLocked = await this.dayLockRepository.isDayLocked(userId, task.startTime);
+        const isLocked = await this.dayLockRepository.isDayLocked(
+          userId,
+          task.startTime,
+        );
         if (isLocked) {
           failed++;
           continue;
         }
 
         // Apply recommendation
-        const deferred = task.defer(recommendation.recommendedStartTime, recommendation.recommendedEndTime);
+        const deferred = task.defer(
+          recommendation.recommendedStartTime,
+          recommendation.recommendedEndTime,
+        );
         await this.taskRepository.update(deferred);
 
         updatedTasks.push({
@@ -298,7 +382,9 @@ export class MLRecommendationService {
 
         accepted++;
       } catch (error) {
-        this.logger.error(`Failed to apply recommendation for task ${recommendation.taskId}: ${error instanceof Error ? error.message : String(error)}`);
+        this.logger.error(
+          `Failed to apply recommendation for task ${recommendation.taskId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
         failed++;
       }
     }

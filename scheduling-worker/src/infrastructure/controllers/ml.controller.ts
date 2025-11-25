@@ -291,7 +291,8 @@ export class MLController {
    */
   @Post('tasks/schedule')
   async scheduleTaskML(
-    @Body() body: {
+    @Body()
+    body: {
       title: string;
       description?: string;
       estimatedDuration: number;
@@ -312,7 +313,9 @@ export class MLController {
     const recommendations = [
       {
         startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000 + body.estimatedDuration * 60 * 1000).toISOString(),
+        endTime: new Date(
+          Date.now() + 24 * 60 * 60 * 1000 + body.estimatedDuration * 60 * 1000,
+        ).toISOString(),
         confidence: 0.85,
         reasoning: 'High availability, optimal productivity time, no conflicts',
       },
@@ -333,7 +336,8 @@ export class MLController {
    */
   @Post('tasks/split-schedule')
   async splitAndScheduleTaskML(
-    @Body() body: {
+    @Body()
+    body: {
       title: string;
       description?: string;
       totalDuration: number;
@@ -348,13 +352,19 @@ export class MLController {
   ) {
     this.logger.log(`ML splitting and scheduling task: ${body.title}`);
 
-    const numberOfParts = Math.ceil(body.totalDuration / body.preferredPartDuration);
+    const numberOfParts = Math.ceil(
+      body.totalDuration / body.preferredPartDuration,
+    );
     const splitTasks = [];
 
     for (let i = 0; i < numberOfParts; i++) {
-      const startTime = new Date(new Date(body.timeRange.start).getTime() + i * 24 * 60 * 60 * 1000);
+      const startTime = new Date(
+        new Date(body.timeRange.start).getTime() + i * 24 * 60 * 60 * 1000,
+      );
       startTime.setHours(9, 0, 0, 0);
-      const endTime = new Date(startTime.getTime() + body.preferredPartDuration * 60 * 1000);
+      const endTime = new Date(
+        startTime.getTime() + body.preferredPartDuration * 60 * 1000,
+      );
 
       splitTasks.push({
         id: `task_${Date.now()}_${i}`,
@@ -399,7 +409,8 @@ export class MLController {
    */
   @Post('recommendations/accept')
   async acceptRecommendationsML(
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       recommendationIds?: string[];
       allRecommendations: Array<{

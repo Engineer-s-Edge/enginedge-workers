@@ -49,9 +49,7 @@ export class AnalyticsController {
   }
 
   @Get(':userId/analytics/phases')
-  async getPhasePerformance(
-    @Param('userId') userId: string,
-  ): Promise<{
+  async getPhasePerformance(@Param('userId') userId: string): Promise<{
     phases: Array<{
       phaseType: string;
       averageScore: number;
@@ -66,9 +64,7 @@ export class AnalyticsController {
   }
 
   @Get(':userId/analytics/time-efficiency')
-  async getTimeEfficiency(
-    @Param('userId') userId: string,
-  ): Promise<{
+  async getTimeEfficiency(@Param('userId') userId: string): Promise<{
     averageTimePerQuestion: number;
     timeEfficiencyTrend: Array<{
       date: string;
@@ -82,9 +78,7 @@ export class AnalyticsController {
   }
 
   @Get(':userId/analytics/question-types')
-  async getQuestionTypePerformance(
-    @Param('userId') userId: string,
-  ): Promise<{
+  async getQuestionTypePerformance(@Param('userId') userId: string): Promise<{
     byType: Array<{
       type: string;
       averageScore: number;

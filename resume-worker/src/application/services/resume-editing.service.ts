@@ -349,8 +349,8 @@ export class ResumeEditingService {
     const sections = this.parseSections(resume.latexContent);
 
     // Reorder sections
-    const reorderedSections = sectionOrder.map(sectionName => {
-      const section = sections.find(s => s.name === sectionName);
+    const reorderedSections = sectionOrder.map((sectionName) => {
+      const section = sections.find((s) => s.name === sectionName);
       if (!section) {
         throw new Error(`Section ${sectionName} not found`);
       }
@@ -394,7 +394,10 @@ export class ResumeEditingService {
 
     // Update font family
     if (formatting.fonts?.family) {
-      updatedLatex = this.updateFontFamily(updatedLatex, formatting.fonts.family);
+      updatedLatex = this.updateFontFamily(
+        updatedLatex,
+        formatting.fonts.family,
+      );
     }
 
     // Update font size
@@ -451,13 +454,22 @@ export class ResumeEditingService {
       result = result.replace(/\\name\{[^}]+\}/g, `\\name{${userData.name}}`);
     }
     if (userData.email) {
-      result = result.replace(/\\email\{[^}]+\}/g, `\\email{${userData.email}}`);
+      result = result.replace(
+        /\\email\{[^}]+\}/g,
+        `\\email{${userData.email}}`,
+      );
     }
     if (userData.phone) {
-      result = result.replace(/\\phone\{[^}]+\}/g, `\\phone{${userData.phone}}`);
+      result = result.replace(
+        /\\phone\{[^}]+\}/g,
+        `\\phone{${userData.phone}}`,
+      );
     }
     if (userData.address) {
-      result = result.replace(/\\address\{[^}]+\}/g, `\\address{${userData.address}}`);
+      result = result.replace(
+        /\\address\{[^}]+\}/g,
+        `\\address{${userData.address}}`,
+      );
     }
     return result;
   }
@@ -465,18 +477,28 @@ export class ResumeEditingService {
   /**
    * Preserve bullet references in new template
    */
-  private preserveBulletReferences(latexContent: string, refs: string[]): string {
+  private preserveBulletReferences(
+    latexContent: string,
+    refs: string[],
+  ): string {
     // Simple implementation - append bullet references
-    const refSection = refs.map(ref => `\\bulletref{${ref}}`).join('\n');
-    return latexContent.replace('\\end{document}', `${refSection}\n\\end{document}`);
+    const refSection = refs.map((ref) => `\\bulletref{${ref}}`).join('\n');
+    return latexContent.replace(
+      '\\end{document}',
+      `${refSection}\n\\end{document}`,
+    );
   }
 
   /**
    * Parse sections from LaTeX
    */
-  private parseSections(latexContent: string): Array<{ name: string; content: string }> {
+  private parseSections(
+    latexContent: string,
+  ): Array<{ name: string; content: string }> {
     const sections: Array<{ name: string; content: string }> = [];
-    const sectionMatches = latexContent.matchAll(/\\section\{([^}]+)\}([\s\S]*?)(?=\\section|\\end\{document})/g);
+    const sectionMatches = latexContent.matchAll(
+      /\\section\{([^}]+)\}([\s\S]*?)(?=\\section|\\end\{document})/g,
+    );
     for (const match of sectionMatches) {
       sections.push({
         name: match[1],
@@ -494,7 +516,9 @@ export class ResumeEditingService {
     sections: Array<{ name: string; content: string }>,
   ): string {
     const preamble = originalLatex.split('\\begin{document}')[0];
-    const sectionsLatex = sections.map(s => `\\section{${s.name}}${s.content}`).join('\n');
+    const sectionsLatex = sections
+      .map((s) => `\\section{${s.name}}${s.content}`)
+      .join('\n');
     return `${preamble}\\begin{document}\n${sectionsLatex}\n\\end{document}`;
   }
 
@@ -539,9 +563,15 @@ export class ResumeEditingService {
     }
     // Define colors
     const colorDefs = Object.entries(colors)
-      .map(([name, value]) => `\\definecolor{${name}}{HTML}{${(value as string).replace('#', '')}}`)
+      .map(
+        ([name, value]) =>
+          `\\definecolor{${name}}{HTML}{${(value as string).replace('#', '')}}`,
+      )
       .join('\n');
-    latexContent = latexContent.replace('\\begin{document}', `${colorDefs}\n\\begin{document}`);
+    latexContent = latexContent.replace(
+      '\\begin{document}',
+      `${colorDefs}\n\\begin{document}`,
+    );
     return latexContent;
   }
 

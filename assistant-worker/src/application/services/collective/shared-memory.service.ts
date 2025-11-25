@@ -87,11 +87,11 @@ export class SharedMemoryService {
         content: artifact.content,
       });
 
-    // Store artifact
-    this.artifacts.set(artifact.id, artifact);
-    this.searchService.indexArtifact(artifact);
+      // Store artifact
+      this.artifacts.set(artifact.id, artifact);
+      this.searchService.indexArtifact(artifact);
 
-    this.publishArtifactEvent({ action: 'created', artifact });
+      this.publishArtifactEvent({ action: 'created', artifact });
 
       this.logger.info(`Created artifact ${artifact.id}`, {});
       return artifact;
@@ -185,7 +185,9 @@ export class SharedMemoryService {
     const artifact = this.artifacts.get(artifactId);
 
     if (!artifact || artifact.collectiveId !== collectiveId) {
-      throw new Error(`Artifact ${artifactId} not found in collective ${collectiveId}`);
+      throw new Error(
+        `Artifact ${artifactId} not found in collective ${collectiveId}`,
+      );
     }
 
     const lockToken = await this.lockingService.acquireLock(
@@ -208,8 +210,8 @@ export class SharedMemoryService {
         description: updates.description ?? artifact.description,
         content: updates.content ?? artifact.content,
         tags: updates.tags ?? artifact.tags,
-    metadata: updates.metadata ?? artifact.metadata,
-    type: updates.type ?? artifact.type,
+        metadata: updates.metadata ?? artifact.metadata,
+        type: updates.type ?? artifact.type,
         version: artifact.version + 1,
         updatedAt: new Date(),
         searchableContent: this.buildSearchableContent({
@@ -221,10 +223,10 @@ export class SharedMemoryService {
         createdBy: artifact.createdBy,
       };
 
-  this.artifacts.set(artifactId, updated);
-  this.searchService.indexArtifact(updated);
+      this.artifacts.set(artifactId, updated);
+      this.searchService.indexArtifact(updated);
 
-  this.publishArtifactEvent({ action: 'updated', artifact: updated });
+      this.publishArtifactEvent({ action: 'updated', artifact: updated });
 
       return updated;
     } finally {
@@ -240,7 +242,9 @@ export class SharedMemoryService {
     const artifact = this.artifacts.get(artifactId);
 
     if (!artifact || artifact.collectiveId !== collectiveId) {
-      throw new Error(`Artifact ${artifactId} not found in collective ${collectiveId}`);
+      throw new Error(
+        `Artifact ${artifactId} not found in collective ${collectiveId}`,
+      );
     }
 
     const lockToken = await this.lockingService.acquireLock(
@@ -255,10 +259,10 @@ export class SharedMemoryService {
     }
 
     try {
-  const snapshot = { ...artifact };
-  this.artifacts.delete(artifactId);
-  this.searchService.removeArtifact(artifactId);
-  this.publishArtifactEvent({ action: 'deleted', artifact: snapshot });
+      const snapshot = { ...artifact };
+      this.artifacts.delete(artifactId);
+      this.searchService.removeArtifact(artifactId);
+      this.publishArtifactEvent({ action: 'deleted', artifact: snapshot });
       return true;
     } finally {
       await this.lockingService.releaseLock(artifactId, lockToken);
@@ -471,7 +475,9 @@ export class SharedMemoryService {
     const MIN_ARTIFACTS_PER_AREA = 2;
     for (const [area, count] of artifactsByArea.entries()) {
       if (count < MIN_ARTIFACTS_PER_AREA) {
-        gaps.push(`Insufficient coverage in "${area}" (only ${count} artifact(s))`);
+        gaps.push(
+          `Insufficient coverage in "${area}" (only ${count} artifact(s))`,
+        );
       }
     }
 
@@ -487,7 +493,9 @@ export class SharedMemoryService {
     }
 
     // Find task areas not covered by artifacts
-    const artifactAreasSet = new Set(knowledgeAreas.map((a) => a.toLowerCase()));
+    const artifactAreasSet = new Set(
+      knowledgeAreas.map((a) => a.toLowerCase()),
+    );
     for (const taskArea of taskAreas) {
       if (!artifactAreasSet.has(taskArea)) {
         gaps.push(`Task area "${taskArea}" lacks artifact coverage`);
@@ -518,10 +526,7 @@ export class SharedMemoryService {
     if (artifacts.length > 0) {
       const typeCounts = new Map<ArtifactType, number>();
       for (const artifact of artifacts) {
-        typeCounts.set(
-          artifact.type,
-          (typeCounts.get(artifact.type) || 0) + 1,
-        );
+        typeCounts.set(artifact.type, (typeCounts.get(artifact.type) || 0) + 1);
       }
 
       // If one type dominates (>80%), flag as gap
@@ -539,10 +544,12 @@ export class SharedMemoryService {
     return gaps;
   }
 
-  streamArtifactEvents(collectiveId: string): Observable<CollectiveArtifactEvent> {
-    return this.artifactSubject.asObservable().pipe(
-      filter((event) => event.artifact.collectiveId === collectiveId),
-    );
+  streamArtifactEvents(
+    collectiveId: string,
+  ): Observable<CollectiveArtifactEvent> {
+    return this.artifactSubject
+      .asObservable()
+      .pipe(filter((event) => event.artifact.collectiveId === collectiveId));
   }
 
   /**

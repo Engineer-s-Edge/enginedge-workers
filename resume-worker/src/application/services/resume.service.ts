@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
@@ -204,12 +209,13 @@ export class ResumeService {
   /**
    * Save layout for resume
    */
-  async saveLayout(id: Types.ObjectId, layout: any): Promise<{ success: boolean; resumeId: string; layout: any }> {
-    const resume = await this.resumeModel.findByIdAndUpdate(
-      id,
-      { $set: { layout } },
-      { new: true },
-    ).exec();
+  async saveLayout(
+    id: Types.ObjectId,
+    layout: any,
+  ): Promise<{ success: boolean; resumeId: string; layout: any }> {
+    const resume = await this.resumeModel
+      .findByIdAndUpdate(id, { $set: { layout } }, { new: true })
+      .exec();
 
     if (!resume) {
       throw new Error('Resume not found');
@@ -225,7 +231,9 @@ export class ResumeService {
   /**
    * Get saved layout for resume
    */
-  async getLayout(id: Types.ObjectId): Promise<{ resumeId: string; layout: any; lastUpdated?: Date } | null> {
+  async getLayout(
+    id: Types.ObjectId,
+  ): Promise<{ resumeId: string; layout: any; lastUpdated?: Date } | null> {
     const resume = await this.resumeModel.findById(id).exec();
     if (!resume) {
       return null;
@@ -246,7 +254,9 @@ export class ResumeService {
   /**
    * Export resume as LaTeX
    */
-  async exportTex(id: Types.ObjectId): Promise<{ content: string; filename: string }> {
+  async exportTex(
+    id: Types.ObjectId,
+  ): Promise<{ content: string; filename: string }> {
     const resume = await this.resumeModel.findById(id).exec();
     if (!resume) {
       throw new Error('Resume not found');
@@ -261,14 +271,17 @@ export class ResumeService {
   /**
    * Export resume as PDF
    */
-  async exportPdf(id: Types.ObjectId): Promise<{ pdfUrl: string; filename: string }> {
+  async exportPdf(
+    id: Types.ObjectId,
+  ): Promise<{ pdfUrl: string; filename: string }> {
     const resume = await this.resumeModel.findById(id).exec();
     if (!resume) {
       throw new Error('Resume not found');
     }
 
     // Compile LaTeX to PDF via latex-worker
-    const latexWorkerUrl = process.env.LATEX_WORKER_URL || 'http://localhost:3005';
+    const latexWorkerUrl =
+      process.env.LATEX_WORKER_URL || 'http://localhost:3005';
     const response = await fetch(`${latexWorkerUrl}/latex/compile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -357,9 +370,11 @@ export class ResumeService {
           currentSectionIndex = 0;
         }
         if (line.includes('\\item')) {
-          if (currentSection === section &&
-              parseInt(sectionIndex) === currentSectionIndex &&
-              parseInt(bulletIndex) === currentBulletIndex) {
+          if (
+            currentSection === section &&
+            parseInt(sectionIndex) === currentSectionIndex &&
+            parseInt(bulletIndex) === currentBulletIndex
+          ) {
             startLine = i + 1;
             endLine = i + 3; // Assume bullet spans 3 lines
             break;
@@ -407,7 +422,8 @@ export class ResumeService {
 
     return {
       resumeId: resume._id.toString(),
-      currentJobPostingId: (resume as any).currentJobPostingId?.toString() || null,
+      currentJobPostingId:
+        (resume as any).currentJobPostingId?.toString() || null,
     };
   }
 
@@ -422,11 +438,13 @@ export class ResumeService {
     resumeId: string;
     currentJobPostingId: string;
   }> {
-    const resume = await this.resumeModel.findByIdAndUpdate(
-      id,
-      { $set: { currentJobPostingId: new Types.ObjectId(jobPostingId) } },
-      { new: true },
-    ).exec();
+    const resume = await this.resumeModel
+      .findByIdAndUpdate(
+        id,
+        { $set: { currentJobPostingId: new Types.ObjectId(jobPostingId) } },
+        { new: true },
+      )
+      .exec();
 
     if (!resume) {
       throw new Error('Resume not found');

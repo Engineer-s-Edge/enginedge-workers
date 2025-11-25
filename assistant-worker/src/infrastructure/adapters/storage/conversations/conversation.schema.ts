@@ -43,7 +43,8 @@ class ReasoningConfigSchema {
   @Prop() maxSteps?: number;
   @Prop() temperature?: number;
   @Prop() maxTokens?: number;
-  @Prop({ type: SelfConsistencySchema }) selfConsistency?: SelfConsistencySchema;
+  @Prop({ type: SelfConsistencySchema })
+  selfConsistency?: SelfConsistencySchema;
   @Prop() promptTemplate?: string;
   @Prop({ type: [Object] }) fewShotExamples?: any[];
   @Prop() steps?: number; // Legacy support
@@ -61,7 +62,10 @@ class ToolsConfigSchema {
 @Schema({ _id: false })
 class AutoSaveIntervalSchema {
   @Prop() value!: number;
-  @Prop({ enum: ['messages', 'turns', 'minutes'] }) unit!: 'messages' | 'turns' | 'minutes';
+  @Prop({ enum: ['messages', 'turns', 'minutes'] }) unit!:
+    | 'messages'
+    | 'turns'
+    | 'minutes';
 }
 
 @Schema({ _id: false })
@@ -69,7 +73,8 @@ class CheckpointsConfigSchema {
   @Prop() enabled?: boolean;
   @Prop() maxCheckpoints?: number;
   @Prop() autoSave?: boolean;
-  @Prop({ type: AutoSaveIntervalSchema }) autoSaveInterval?: AutoSaveIntervalSchema;
+  @Prop({ type: AutoSaveIntervalSchema })
+  autoSaveInterval?: AutoSaveIntervalSchema;
   @Prop({ type: [String] }) allowedCheckpointTypes?: string[];
 }
 
@@ -98,7 +103,8 @@ class SettingsOverridesSchema {
   @Prop({ type: ReasoningConfigSchema }) reasoning?: ReasoningConfigSchema;
   @Prop({ type: ToolsConfigSchema }) tools?: ToolsConfigSchema;
   @Prop({ type: StreamingConfigSchema }) streaming?: StreamingConfigSchema;
-  @Prop({ type: CheckpointsConfigSchema }) checkpoints?: CheckpointsConfigSchema;
+  @Prop({ type: CheckpointsConfigSchema })
+  checkpoints?: CheckpointsConfigSchema;
   @Prop({ type: Object }) custom?: Record<string, unknown>;
 }
 

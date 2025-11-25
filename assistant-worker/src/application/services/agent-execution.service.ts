@@ -44,7 +44,10 @@ export class AgentExecutionService {
     let memoryContext: string | undefined;
     if (this.memoryService && conversationId) {
       try {
-        memoryContext = await this.memoryService.getCombinedContext(conversationId, input);
+        memoryContext = await this.memoryService.getCombinedContext(
+          conversationId,
+          input,
+        );
       } catch (error) {
         this.logger.warn('Failed to get combined memory context', {
           conversationId,
@@ -184,7 +187,10 @@ export class AgentExecutionService {
     let memoryContext: string | undefined;
     if (this.memoryService && conversationId) {
       try {
-        memoryContext = await this.memoryService.getCombinedContext(conversationId, input);
+        memoryContext = await this.memoryService.getCombinedContext(
+          conversationId,
+          input,
+        );
       } catch (error) {
         this.logger.warn('Failed to get combined memory context', {
           conversationId,

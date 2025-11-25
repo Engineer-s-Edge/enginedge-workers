@@ -86,7 +86,10 @@ export class ExperienceBankService {
    */
   private generateVector(text: string): number[] {
     // Simple hash-based vector (in production, use actual embedding service)
-    const hash = crypto.createHash('sha256').update(text.toLowerCase()).digest('hex');
+    const hash = crypto
+      .createHash('sha256')
+      .update(text.toLowerCase())
+      .digest('hex');
     const vector: number[] = [];
     for (let i = 0; i < 32; i += 2) {
       vector.push(parseInt(hash.substr(i, 2), 16) / 255);
@@ -118,7 +121,10 @@ export class ExperienceBankService {
    * Generate hash for bullet text
    */
   private generateHash(text: string): string {
-    return crypto.createHash('sha256').update(text.toLowerCase().trim()).digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(text.toLowerCase().trim())
+      .digest('hex');
   }
 
   async addBullet(
@@ -130,7 +136,9 @@ export class ExperienceBankService {
     const hash = this.generateHash(bulletText);
 
     // Check if bullet already exists
-    const existing = await this.experienceBankModel.findOne({ hash, userId }).exec();
+    const existing = await this.experienceBankModel
+      .findOne({ hash, userId })
+      .exec();
     if (existing) {
       return this.toItem(existing);
     }
@@ -184,14 +192,21 @@ export class ExperienceBankService {
       if (searchOptions.filters.reviewed !== undefined) {
         query['metadata.reviewed'] = searchOptions.filters.reviewed;
       }
-      if (searchOptions.filters.technologies && searchOptions.filters.technologies.length > 0) {
-        query['metadata.technologies'] = { $in: searchOptions.filters.technologies };
+      if (
+        searchOptions.filters.technologies &&
+        searchOptions.filters.technologies.length > 0
+      ) {
+        query['metadata.technologies'] = {
+          $in: searchOptions.filters.technologies,
+        };
       }
       if (searchOptions.filters.role) {
         query['metadata.role'] = searchOptions.filters.role;
       }
       if (searchOptions.filters.minImpactScore !== undefined) {
-        query['metadata.impactScore'] = { $gte: searchOptions.filters.minImpactScore };
+        query['metadata.impactScore'] = {
+          $gte: searchOptions.filters.minImpactScore,
+        };
       }
       if (searchOptions.filters.needsEditing !== undefined) {
         query['metadata.needsEditing'] = searchOptions.filters.needsEditing;
@@ -203,12 +218,12 @@ export class ExperienceBankService {
     // If query text provided, do vector similarity search
     if (searchOptions.query) {
       const queryVector = this.generateVector(searchOptions.query);
-      const scored = results.map(item => ({
+      const scored = results.map((item) => ({
         item: this.toItem(item),
         similarity: this.cosineSimilarity(queryVector, item.vector),
       }));
       scored.sort((a, b) => b.similarity - a.similarity);
-      results = scored.map(s => s.item as any);
+      results = scored.map((s) => s.item as any);
     }
 
     // Sort results
@@ -222,7 +237,7 @@ export class ExperienceBankService {
 
     // Apply limit
     const limit = searchOptions.limit || 50;
-    return results.slice(0, limit).map(item => this.toItem(item));
+    return results.slice(0, limit).map((item) => this.toItem(item));
   }
 
   async findById(id: Types.ObjectId): Promise<ExperienceBankItem | null> {
@@ -249,7 +264,7 @@ export class ExperienceBankService {
       .limit(options?.limit || 100)
       .exec();
 
-    return items.map(item => this.toItem(item));
+    return items.map((item) => this.toItem(item));
   }
 
   async list(
@@ -260,27 +275,27 @@ export class ExperienceBankService {
   }
 
   async markAsReviewed(bulletId: string): Promise<void> {
-    await this.experienceBankModel.updateOne(
-      { _id: bulletId },
-      { $set: { 'metadata.reviewed': true } },
-    ).exec();
+    await this.experienceBankModel
+      .updateOne({ _id: bulletId }, { $set: { 'metadata.reviewed': true } })
+      .exec();
   }
 
   async markReviewed(id: Types.ObjectId, reviewed: boolean): Promise<void> {
-    await this.experienceBankModel.updateOne(
-      { _id: id },
-      { $set: { 'metadata.reviewed': reviewed } },
-    ).exec();
+    await this.experienceBankModel
+      .updateOne({ _id: id }, { $set: { 'metadata.reviewed': reviewed } })
+      .exec();
   }
 
   async updateUsage(id: Types.ObjectId): Promise<void> {
-    await this.experienceBankModel.updateOne(
-      { _id: id },
-      {
-        $inc: { 'metadata.usageCount': 1 },
-        $set: { 'metadata.lastUsedDate': new Date() },
-      },
-    ).exec();
+    await this.experienceBankModel
+      .updateOne(
+        { _id: id },
+        {
+          $inc: { 'metadata.usageCount': 1 },
+          $set: { 'metadata.lastUsedDate': new Date() },
+        },
+      )
+      .exec();
   }
 
   async delete(id: Types.ObjectId): Promise<void> {
@@ -311,16 +326,14 @@ export class ExperienceBankService {
     }
 
     if (updates.metadata) {
-      Object.keys(updates.metadata).forEach(key => {
+      Object.keys(updates.metadata).forEach((key) => {
         updateData[`metadata.${key}`] = (updates.metadata as any)[key];
       });
     }
 
-    const item = await this.experienceBankModel.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true },
-    ).exec();
+    const item = await this.experienceBankModel
+      .findByIdAndUpdate(id, { $set: updateData }, { new: true })
+      .exec();
 
     if (!item) {
       throw new Error('Bullet not found');
@@ -335,15 +348,17 @@ export class ExperienceBankService {
         false,
       );
 
-      await this.experienceBankModel.updateOne(
-        { _id: id },
-        {
-          $set: {
-            'metadata.impactScore': evaluation.overallScore,
-            'metadata.atsScore': evaluation.overallScore * 0.9, // Approximate ATS score
+      await this.experienceBankModel
+        .updateOne(
+          { _id: id },
+          {
+            $set: {
+              'metadata.impactScore': evaluation.overallScore,
+              'metadata.atsScore': evaluation.overallScore * 0.9, // Approximate ATS score
+            },
           },
-        },
-      ).exec();
+        )
+        .exec();
     }
 
     return this.toItem(item);
@@ -352,14 +367,19 @@ export class ExperienceBankService {
   /**
    * Check if bullet text matches existing entry
    */
-  async checkMatch(bulletText: string, userId: string): Promise<{
+  async checkMatch(
+    bulletText: string,
+    userId: string,
+  ): Promise<{
     matches: boolean;
     bulletId?: string;
     exactMatch: boolean;
     similarBullets: Array<{ id: string; text: string; similarity: number }>;
   }> {
     const hash = this.generateHash(bulletText);
-    const exact = await this.experienceBankModel.findOne({ hash, userId }).exec();
+    const exact = await this.experienceBankModel
+      .findOne({ hash, userId })
+      .exec();
 
     if (exact) {
       return {
@@ -374,12 +394,12 @@ export class ExperienceBankService {
     const queryVector = this.generateVector(bulletText);
     const allBullets = await this.experienceBankModel.find({ userId }).exec();
     const similar = allBullets
-      .map(item => ({
+      .map((item) => ({
         id: item._id.toString(),
         text: item.bulletText,
         similarity: this.cosineSimilarity(queryVector, item.vector),
       }))
-      .filter(s => s.similarity > 0.8)
+      .filter((s) => s.similarity > 0.8)
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5);
 

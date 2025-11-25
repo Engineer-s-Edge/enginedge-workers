@@ -4,7 +4,10 @@
  * Interface for persisting and retrieving research sessions from storage.
  */
 
-import { ResearchSession, CreateResearchSessionInput } from '../../domain/entities/research-session.entity';
+import {
+  ResearchSession,
+  CreateResearchSessionInput,
+} from '../../domain/entities/research-session.entity';
 
 export interface IResearchSessionRepository {
   /**
@@ -20,22 +23,37 @@ export interface IResearchSessionRepository {
   /**
    * Find sessions by user ID
    */
-  findByUserId(userId: string, limit?: number, offset?: number): Promise<ResearchSession[]>;
+  findByUserId(
+    userId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<ResearchSession[]>;
 
   /**
    * Find sessions by agent ID
    */
-  findByAgentId(agentId: string, limit?: number, offset?: number): Promise<ResearchSession[]>;
+  findByAgentId(
+    agentId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<ResearchSession[]>;
 
   /**
    * Find sessions by conversation ID
    */
-  findByConversationId(conversationId: string, limit?: number, offset?: number): Promise<ResearchSession[]>;
+  findByConversationId(
+    conversationId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<ResearchSession[]>;
 
   /**
    * Update session
    */
-  update(id: string, updates: Partial<ResearchSession>): Promise<ResearchSession>;
+  update(
+    id: string,
+    updates: Partial<ResearchSession>,
+  ): Promise<ResearchSession>;
 
   /**
    * Delete session

@@ -13,7 +13,10 @@ import {
   ResearchReport,
   GraphStatistics,
 } from '../../infrastructure/adapters/interfaces/knowledge-graph.adapter.interface';
-import { ICSLayer, KGNode } from '../../infrastructure/adapters/knowledge-graph/neo4j.adapter';
+import {
+  ICSLayer,
+  KGNode,
+} from '../../infrastructure/adapters/knowledge-graph/neo4j.adapter';
 
 @Injectable()
 export class ResearchService {
@@ -213,7 +216,8 @@ export class ResearchService {
   async searchTopics(query: string, userId?: string): Promise<string[]> {
     try {
       // Get all topic nodes
-      const topicNodes = await this.knowledgeGraphService.getNodesByType('topic');
+      const topicNodes =
+        await this.knowledgeGraphService.getNodesByType('topic');
 
       // Filter by userId if provided
       const userTopicNodes = userId
@@ -243,7 +247,8 @@ export class ResearchService {
   ): Promise<Record<string, unknown>> {
     try {
       // Get all topic nodes
-      const topicNodes = await this.knowledgeGraphService.getNodesByType('topic');
+      const topicNodes =
+        await this.knowledgeGraphService.getNodesByType('topic');
 
       // Find the specific topic
       const topicNode = topicNodes.find(
@@ -290,8 +295,7 @@ export class ResearchService {
         sources: Array.from(sources),
         avgConfidence:
           confidenceCount > 0 ? totalConfidence / confidenceCount : 0,
-        lastUpdated:
-          (topicNode.properties?.timestamp as Date) || new Date(),
+        lastUpdated: (topicNode.properties?.timestamp as Date) || new Date(),
         confidence: topicNode.properties?.confidence || 0,
       };
     } catch (error) {

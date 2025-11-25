@@ -73,7 +73,8 @@ export class JobPostingController {
   @Patch(':id')
   async updatePosting(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       tags?: string[];
       notes?: string;
     },

@@ -289,8 +289,12 @@ export class AgentController {
 
     return {
       sessions: sessions.length,
-      activeSessions: sessions.filter((s: { status: string }) => s.status === 'active').length,
-      pausedSessions: sessions.filter((s: { status: string }) => s.status === 'paused').length,
+      activeSessions: sessions.filter(
+        (s: { status: string }) => s.status === 'active',
+      ).length,
+      pausedSessions: sessions.filter(
+        (s: { status: string }) => s.status === 'paused',
+      ).length,
     };
   }
 }

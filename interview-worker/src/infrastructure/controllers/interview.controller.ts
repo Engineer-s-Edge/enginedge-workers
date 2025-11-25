@@ -157,7 +157,10 @@ export class InterviewController {
   async unpublishInterview(
     @Param('id') id: string,
   ): Promise<{ id: string; visibility: string; publishedAt: null }> {
-    const interview = await this.interviewService.publishInterview(id, 'private');
+    const interview = await this.interviewService.publishInterview(
+      id,
+      'private',
+    );
     if (!interview) {
       throw new HttpException('Interview not found', HttpStatus.NOT_FOUND);
     }

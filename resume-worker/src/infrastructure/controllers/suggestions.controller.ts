@@ -15,11 +15,9 @@ export class SuggestionsController {
 
   @Post('score-bullet')
   @HttpCode(HttpStatus.OK)
-  async scoreBullet(@Body() body: {
-    bulletText: string;
-    jobPostingId: string;
-    userId: string;
-  }) {
+  async scoreBullet(
+    @Body() body: { bulletText: string; jobPostingId: string; userId: string },
+  ) {
     return this.suggestionsService.scoreBullet(
       body.bulletText,
       body.jobPostingId,
@@ -29,16 +27,19 @@ export class SuggestionsController {
 
   @Post('score-resume-with-bullet')
   @HttpCode(HttpStatus.OK)
-  async scoreResumeWithBullet(@Body() body: {
-    resumeId: string;
-    bulletText: string;
-    bulletId?: string;
-    targetSection: string;
-    targetIndex: number;
-    jobPostingId: string;
-    replaceExisting: boolean;
-    existingBulletId?: string;
-  }) {
+  async scoreResumeWithBullet(
+    @Body()
+    body: {
+      resumeId: string;
+      bulletText: string;
+      bulletId?: string;
+      targetSection: string;
+      targetIndex: number;
+      jobPostingId: string;
+      replaceExisting: boolean;
+      existingBulletId?: string;
+    },
+  ) {
     return this.suggestionsService.scoreResumeWithBullet(
       body.resumeId,
       body.bulletText,
@@ -53,13 +54,16 @@ export class SuggestionsController {
 
   @Post('bullet-improvements')
   @HttpCode(HttpStatus.OK)
-  async getBulletImprovements(@Body() body: {
-    resumeId: string;
-    bulletText: string;
-    jobPostingId?: string;
-    minScoreImprovement: number;
-    userId: string;
-  }) {
+  async getBulletImprovements(
+    @Body()
+    body: {
+      resumeId: string;
+      bulletText: string;
+      jobPostingId?: string;
+      minScoreImprovement: number;
+      userId: string;
+    },
+  ) {
     return this.suggestionsService.getBulletImprovements(
       body.resumeId,
       body.bulletText,
@@ -71,13 +75,16 @@ export class SuggestionsController {
 
   @Post('bank-swaps')
   @HttpCode(HttpStatus.OK)
-  async getBankSwaps(@Body() body: {
-    resumeId: string;
-    jobPostingId?: string;
-    userId: string;
-    minScoreImprovement: number;
-    limit: number;
-  }) {
+  async getBankSwaps(
+    @Body()
+    body: {
+      resumeId: string;
+      jobPostingId?: string;
+      userId: string;
+      minScoreImprovement: number;
+      limit: number;
+    },
+  ) {
     return this.suggestionsService.getBankSwaps(
       body.resumeId,
       body.jobPostingId,

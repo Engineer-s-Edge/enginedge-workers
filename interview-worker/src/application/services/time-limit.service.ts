@@ -248,7 +248,9 @@ export class TimeLimitService {
     sessionId: string,
     session: InterviewSession,
   ): Promise<void> {
-    this.logger.log(`Total time limit reached for ${sessionId}, ending session`);
+    this.logger.log(
+      `Total time limit reached for ${sessionId}, ending session`,
+    );
     await this.sessionService.endSession(sessionId);
   }
 }

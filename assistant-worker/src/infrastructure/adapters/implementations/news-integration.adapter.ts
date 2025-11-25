@@ -42,7 +42,8 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
         url: `https://example.com/news/${topic.replace(/\s+/g, '-')}/${i}`,
         publishedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000), // Staggered dates
         relevanceScore: 0.8 - i * 0.1,
-        sentiment: i % 3 === 0 ? 'positive' : i % 3 === 1 ? 'neutral' : 'negative',
+        sentiment:
+          i % 3 === 0 ? 'positive' : i % 3 === 1 ? 'neutral' : 'negative',
       }));
       this.newsCache.set(topic, articles);
     });
@@ -90,16 +91,22 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       }
 
       // Generate sample articles if topic not in cache
-      const sampleArticles: NewsArticle[] = Array.from({ length: Math.min(limit, 5) }, (_, i) => ({
-        id: `article_${topic.replace(/\s+/g, '_')}_${Date.now()}_${i}`,
-        title: `News update: ${topic} - Update ${i + 1}`,
-        content: `This is a sample news article about ${topic}. In a real implementation, this would fetch actual news from external APIs like NewsAPI, Google News RSS, or other news aggregators.`,
-        source: 'Sample News Source',
-        url: `https://example.com/news/${topic.replace(/\s+/g, '-')}/${i}`,
-        publishedAt: new Date(Date.now() - i * 60 * 60 * 1000), // Recent hours
-        relevanceScore: 0.7 + Math.random() * 0.2,
-        sentiment: ['positive', 'neutral', 'negative'][i % 3] as 'positive' | 'neutral' | 'negative',
-      }));
+      const sampleArticles: NewsArticle[] = Array.from(
+        { length: Math.min(limit, 5) },
+        (_, i) => ({
+          id: `article_${topic.replace(/\s+/g, '_')}_${Date.now()}_${i}`,
+          title: `News update: ${topic} - Update ${i + 1}`,
+          content: `This is a sample news article about ${topic}. In a real implementation, this would fetch actual news from external APIs like NewsAPI, Google News RSS, or other news aggregators.`,
+          source: 'Sample News Source',
+          url: `https://example.com/news/${topic.replace(/\s+/g, '-')}/${i}`,
+          publishedAt: new Date(Date.now() - i * 60 * 60 * 1000), // Recent hours
+          relevanceScore: 0.7 + Math.random() * 0.2,
+          sentiment: ['positive', 'neutral', 'negative'][i % 3] as
+            | 'positive'
+            | 'neutral'
+            | 'negative',
+        }),
+      );
 
       // Cache for future requests
       this.newsCache.set(topic.toLowerCase(), sampleArticles);
@@ -135,8 +142,11 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
         themes.get(sentiment)!.count++;
 
         // Extract keywords from title (simple word frequency)
-        const words = a.title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-        words.forEach(word => {
+        const words = a.title
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((w) => w.length > 3);
+        words.forEach((word) => {
           keywords.set(word, (keywords.get(word) || 0) + 1);
         });
       });
@@ -165,17 +175,25 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
           insights.push('Overall sentiment is neutral');
         }
         if (topKeywords.length > 0) {
-          insights.push(`Key themes: ${topKeywords.slice(0, 3).map(t => t.theme).join(', ')}`);
+          insights.push(
+            `Key themes: ${topKeywords
+              .slice(0, 3)
+              .map((t) => t.theme)
+              .join(', ')}`,
+          );
         }
       }
 
       return {
         articles,
-        themes: topKeywords.length > 0 ? topKeywords : Array.from(themes.values()).map((t) => ({
-          theme: t.sentiment,
-          frequency: t.count,
-          sentiment: t.sentiment,
-        })),
+        themes:
+          topKeywords.length > 0
+            ? topKeywords
+            : Array.from(themes.values()).map((t) => ({
+                theme: t.sentiment,
+                frequency: t.count,
+                sentiment: t.sentiment,
+              })),
         insights,
         summary: `Analyzed ${articles.length} articles with ${themes.size} sentiment categories and ${topKeywords.length} key themes`,
         timestamp: new Date(),
@@ -259,16 +277,19 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
 
       // If no results, generate sample articles for the query
       if (results.length === 0) {
-        const sampleArticles: NewsArticle[] = Array.from({ length: Math.min(limit, 3) }, (_, i) => ({
-          id: `search_${query.replace(/\s+/g, '_')}_${Date.now()}_${i}`,
-          title: `Search result: ${query} - Result ${i + 1}`,
-          content: `This article discusses ${query}. In a real implementation, this would return actual search results from news APIs.`,
-          source: 'Search Results',
-          url: `https://example.com/search?q=${encodeURIComponent(query)}&result=${i}`,
-          publishedAt: new Date(Date.now() - i * 60 * 60 * 1000),
-          relevanceScore: 0.8 - i * 0.1,
-          sentiment: 'neutral',
-        }));
+        const sampleArticles: NewsArticle[] = Array.from(
+          { length: Math.min(limit, 3) },
+          (_, i) => ({
+            id: `search_${query.replace(/\s+/g, '_')}_${Date.now()}_${i}`,
+            title: `Search result: ${query} - Result ${i + 1}`,
+            content: `This article discusses ${query}. In a real implementation, this would return actual search results from news APIs.`,
+            source: 'Search Results',
+            url: `https://example.com/search?q=${encodeURIComponent(query)}&result=${i}`,
+            publishedAt: new Date(Date.now() - i * 60 * 60 * 1000),
+            relevanceScore: 0.8 - i * 0.1,
+            sentiment: 'neutral',
+          }),
+        );
         return sampleArticles;
       }
 
@@ -342,8 +363,8 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       if (this.trendingTopicsCache.length > 0) {
         // Return topics with high frequency as "emerging"
         const highFrequencyTopics = this.trendingTopicsCache
-          .filter(t => t.frequency > 70)
-          .map(t => t.topic)
+          .filter((t) => t.frequency > 70)
+          .map((t) => t.topic)
           .slice(0, 5);
         if (highFrequencyTopics.length > 0) {
           return highFrequencyTopics;
@@ -354,14 +375,22 @@ export class NewsIntegrationAdapter implements INewsIntegrationAdapter {
       const topicsWithRecentNews = Array.from(this.newsCache.entries())
         .filter(([_, articles]) => {
           const recentThreshold = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days
-          return articles.some(a => a.publishedAt.getTime() > recentThreshold);
+          return articles.some(
+            (a) => a.publishedAt.getTime() > recentThreshold,
+          );
         })
         .map(([topic, _]) => topic)
         .slice(0, 5);
 
       return topicsWithRecentNews.length > 0
         ? topicsWithRecentNews
-        : ['artificial intelligence', 'machine learning', 'quantum computing', 'climate change', 'space exploration'];
+        : [
+            'artificial intelligence',
+            'machine learning',
+            'quantum computing',
+            'climate change',
+            'space exploration',
+          ];
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(

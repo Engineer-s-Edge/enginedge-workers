@@ -8,7 +8,10 @@ import { Injectable, Inject, Logger, forwardRef } from '@nestjs/common';
 import { SessionService } from './session.service';
 import { InterviewService } from './interview.service';
 import { QuestionService } from './question.service';
-import { IInterviewSessionRepository, IInterviewResponseRepository } from '../ports/repositories.port';
+import {
+  IInterviewSessionRepository,
+  IInterviewResponseRepository,
+} from '../ports/repositories.port';
 import { InterviewSession } from '../../domain/entities';
 import { InterviewWebSocketGateway } from '../../infrastructure/gateways/interview-websocket.gateway';
 

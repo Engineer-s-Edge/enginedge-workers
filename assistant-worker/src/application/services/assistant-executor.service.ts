@@ -95,7 +95,9 @@ export class AssistantExecutorService {
       } else {
         conversation = await this.conversations.getConversation(conversationId);
         if (!conversation) {
-          throw new BadRequestException(`Conversation ${conversationId} not found`);
+          throw new BadRequestException(
+            `Conversation ${conversationId} not found`,
+          );
         }
         // Append user input to existing conversation
         await this.conversations.addMessage(conversationId, {
@@ -124,11 +126,12 @@ export class AssistantExecutorService {
 
           // Validate token limits if maxTokens is specified
           if (llmConfig.maxTokens) {
-            const tokenValidation = await this.modelValidation.validateTokenLimits(
-              llmConfig.provider,
-              llmConfig.model,
-              llmConfig.maxTokens,
-            );
+            const tokenValidation =
+              await this.modelValidation.validateTokenLimits(
+                llmConfig.provider,
+                llmConfig.model,
+                llmConfig.maxTokens,
+              );
             if (!tokenValidation.valid) {
               throw new BadRequestException(tokenValidation.error);
             }
@@ -137,7 +140,10 @@ export class AssistantExecutorService {
       }
 
       // Create execution context with merged settings
-      const mergedConfig = this.configService.mergeSettings(agent, conversation?.settingsOverrides);
+      const mergedConfig = this.configService.mergeSettings(
+        agent,
+        conversation?.settingsOverrides,
+      );
       const context: Partial<ExecutionContext> = {
         userId: executeDto.userId || 'default-user',
         conversationId,
@@ -152,7 +158,9 @@ export class AssistantExecutorService {
       if (streamingEnabled || executeDto.options?.streaming) {
         // For streaming, we should use stream method, but executeAgent returns ExecutionResult
         // For now, we'll execute normally but note that streaming should be handled separately
-        this.logger.info('Streaming enabled in conversation settings, but using execute method');
+        this.logger.info(
+          'Streaming enabled in conversation settings, but using execute method',
+        );
         result = await this.agentService.executeAgent(
           agentId,
           executeDto.userId || 'default-user',

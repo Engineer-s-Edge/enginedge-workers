@@ -20,7 +20,12 @@ import {
   NotFoundException,
   Inject,
 } from '@nestjs/common';
-import { HITLService, HITLRequest, HITLRequestType, HITLStatus } from '@application/services/hitl.service';
+import {
+  HITLService,
+  HITLRequest,
+  HITLRequestType,
+  HITLStatus,
+} from '@application/services/hitl.service';
 
 // Logger interface for infrastructure use
 interface Logger {
@@ -84,7 +89,9 @@ export class HITLController {
    */
   @Get('requests/:requestId')
   @HttpCode(HttpStatus.OK)
-  async getRequest(@Param('requestId') requestId: string): Promise<HITLRequest> {
+  async getRequest(
+    @Param('requestId') requestId: string,
+  ): Promise<HITLRequest> {
     const request = await this.hitlService.getRequest(requestId);
 
     if (!request) {
@@ -185,9 +192,7 @@ export class HITLController {
    */
   @Delete('agents/:agentId/requests')
   @HttpCode(HttpStatus.OK)
-  async clearAgentRequests(
-    @Param('agentId') agentId: string,
-  ): Promise<{
+  async clearAgentRequests(@Param('agentId') agentId: string): Promise<{
     success: boolean;
     clearedCount: number;
     message: string;
@@ -222,9 +227,7 @@ export class HITLController {
    */
   @Get('stats/agents/:agentId')
   @HttpCode(HttpStatus.OK)
-  async getAgentStats(
-    @Param('agentId') agentId: string,
-  ): Promise<{
+  async getAgentStats(@Param('agentId') agentId: string): Promise<{
     agentId: string;
     totalRequests: number;
     pendingRequests: number;

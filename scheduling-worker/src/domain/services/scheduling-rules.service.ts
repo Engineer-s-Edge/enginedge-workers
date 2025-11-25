@@ -41,7 +41,11 @@ export class SchedulingRulesService {
   validateTaskSchedule(
     startTime: Date,
     endTime: Date,
-    existingTasks: Array<{ startTime: Date; endTime: Date; isLocked?: boolean }>,
+    existingTasks: Array<{
+      startTime: Date;
+      endTime: Date;
+      isLocked?: boolean;
+    }>,
     rules: Partial<SchedulingRules> = {},
   ): { valid: boolean; errors: string[] } {
     const effectiveRules = { ...this.defaultRules, ...rules };
@@ -51,7 +55,9 @@ export class SchedulingRulesService {
     if (effectiveRules.minimumDuration) {
       const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
       if (duration < effectiveRules.minimumDuration) {
-        errors.push(`Task duration (${duration} minutes) is less than minimum (${effectiveRules.minimumDuration} minutes)`);
+        errors.push(
+          `Task duration (${duration} minutes) is less than minimum (${effectiveRules.minimumDuration} minutes)`,
+        );
       }
     }
 
@@ -66,11 +72,15 @@ export class SchedulingRulesService {
       const endHour = endTime.getHours();
 
       if (startHour < effectiveRules.workingHours.startHour) {
-        errors.push(`Task starts before working hours (${effectiveRules.workingHours.startHour}:00)`);
+        errors.push(
+          `Task starts before working hours (${effectiveRules.workingHours.startHour}:00)`,
+        );
       }
 
       if (endHour > effectiveRules.workingHours.endHour) {
-        errors.push(`Task ends after working hours (${effectiveRules.workingHours.endHour}:00)`);
+        errors.push(
+          `Task ends after working hours (${effectiveRules.workingHours.endHour}:00)`,
+        );
       }
     }
 
@@ -92,7 +102,9 @@ export class SchedulingRulesService {
           (task.startTime < endTime && task.endTime > startTime);
 
         if (overlaps) {
-          errors.push(`Task overlaps with existing task (${task.startTime.toISOString()} - ${task.endTime.toISOString()})`);
+          errors.push(
+            `Task overlaps with existing task (${task.startTime.toISOString()} - ${task.endTime.toISOString()})`,
+          );
         }
       }
     }
@@ -102,13 +114,17 @@ export class SchedulingRulesService {
       for (const task of existingTasks) {
         if (task.isLocked) continue;
 
-        const timeBetween = Math.min(
-          Math.abs(startTime.getTime() - task.endTime.getTime()),
-          Math.abs(endTime.getTime() - task.startTime.getTime()),
-        ) / (1000 * 60);
+        const timeBetween =
+          Math.min(
+            Math.abs(startTime.getTime() - task.endTime.getTime()),
+            Math.abs(endTime.getTime() - task.startTime.getTime()),
+          ) /
+          (1000 * 60);
 
         if (timeBetween < effectiveRules.bufferMinutes && timeBetween > 0) {
-          errors.push(`Task does not have enough buffer time (${timeBetween} minutes < ${effectiveRules.bufferMinutes} minutes)`);
+          errors.push(
+            `Task does not have enough buffer time (${timeBetween} minutes < ${effectiveRules.bufferMinutes} minutes)`,
+          );
         }
       }
     }
@@ -125,7 +141,11 @@ export class SchedulingRulesService {
   findAvailableSlots(
     date: Date,
     durationMinutes: number,
-    existingTasks: Array<{ startTime: Date; endTime: Date; isLocked?: boolean }>,
+    existingTasks: Array<{
+      startTime: Date;
+      endTime: Date;
+      isLocked?: boolean;
+    }>,
     rules: Partial<SchedulingRules> = {},
   ): Array<{ startTime: Date; endTime: Date }> {
     const effectiveRules = { ...this.defaultRules, ...rules };
@@ -170,7 +190,9 @@ export class SchedulingRulesService {
         if (task.endTime > currentTime) {
           currentTime = new Date(task.endTime);
           if (effectiveRules.bufferMinutes) {
-            currentTime.setMinutes(currentTime.getMinutes() + effectiveRules.bufferMinutes);
+            currentTime.setMinutes(
+              currentTime.getMinutes() + effectiveRules.bufferMinutes,
+            );
           }
         }
         continue;
@@ -183,7 +205,8 @@ export class SchedulingRulesService {
       }
 
       if (slotEnd > currentTime) {
-        const slotDuration = (slotEnd.getTime() - currentTime.getTime()) / (1000 * 60);
+        const slotDuration =
+          (slotEnd.getTime() - currentTime.getTime()) / (1000 * 60);
         if (slotDuration >= durationMinutes) {
           const slotEndTime = new Date(currentTime);
           slotEndTime.setMinutes(slotEndTime.getMinutes() + durationMinutes);
@@ -197,13 +220,16 @@ export class SchedulingRulesService {
       // Move current time past this task
       currentTime = new Date(task.endTime);
       if (effectiveRules.bufferMinutes) {
-        currentTime.setMinutes(currentTime.getMinutes() + effectiveRules.bufferMinutes);
+        currentTime.setMinutes(
+          currentTime.getMinutes() + effectiveRules.bufferMinutes,
+        );
       }
     }
 
     // Check if there's a slot after the last task
     if (currentTime < endOfDay) {
-      const slotDuration = (endOfDay.getTime() - currentTime.getTime()) / (1000 * 60);
+      const slotDuration =
+        (endOfDay.getTime() - currentTime.getTime()) / (1000 * 60);
       if (slotDuration >= durationMinutes) {
         const slotEndTime = new Date(currentTime);
         slotEndTime.setMinutes(slotEndTime.getMinutes() + durationMinutes);

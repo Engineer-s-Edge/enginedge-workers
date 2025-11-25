@@ -164,7 +164,9 @@ export class ReActAgentController {
             ? (metadata.iterations as number)
             : trace.thoughts.length) || 0,
       },
-      lastUpdate: this.toIsoString(metadata?.lastUpdate as Date | string | undefined),
+      lastUpdate: this.toIsoString(
+        metadata?.lastUpdate as Date | string | undefined,
+      ),
     };
   }
 
@@ -257,9 +259,7 @@ export class ReActAgentController {
     const thoughts = this.serializeThoughts(
       (metadata.thoughts as Thought[]) || [],
     );
-    const actions = this.serializeActions(
-      (metadata.actions as Action[]) || [],
-    );
+    const actions = this.serializeActions((metadata.actions as Action[]) || []);
     const observations = this.serializeObservations(
       (metadata.observations as Observation[]) || [],
     );
@@ -338,7 +338,8 @@ export class ReActAgentController {
     userId: string,
     existingAgent?: Agent,
   ): Promise<{ agent: Agent; instance: ReActAgent }> {
-    const agent = existingAgent || (await this.agentService.getAgent(agentId, userId));
+    const agent =
+      existingAgent || (await this.agentService.getAgent(agentId, userId));
     if (!agent) {
       throw new NotFoundException(`Agent ${agentId} not found`);
     }

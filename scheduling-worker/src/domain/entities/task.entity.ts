@@ -7,9 +7,18 @@
  * Domain Entity - No infrastructure dependencies
  */
 
-import { CalendarEvent, EventAttendee, EventReminder, EventRecurrence } from './calendar-event.entity';
+import {
+  CalendarEvent,
+  EventAttendee,
+  EventReminder,
+  EventRecurrence,
+} from './calendar-event.entity';
 
-export type TaskCompletionStatus = 'pending' | 'in-progress' | 'completed' | 'partially-completed';
+export type TaskCompletionStatus =
+  | 'pending'
+  | 'in-progress'
+  | 'completed'
+  | 'partially-completed';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export class Task extends CalendarEvent {
@@ -71,11 +80,19 @@ export class Task extends CalendarEvent {
     if (this.actualDuration && this.actualDuration <= 0) {
       throw new Error('Actual duration must be positive');
     }
-    if (this.completionStatus === 'completed' && this.completionPercentage !== 100) {
+    if (
+      this.completionStatus === 'completed' &&
+      this.completionPercentage !== 100
+    ) {
       throw new Error('Completed tasks must have 100% completion percentage');
     }
-    if (this.completionStatus === 'partially-completed' && this.completionPercentage === 100) {
-      throw new Error('Partially completed tasks cannot have 100% completion percentage');
+    if (
+      this.completionStatus === 'partially-completed' &&
+      this.completionPercentage === 100
+    ) {
+      throw new Error(
+        'Partially completed tasks cannot have 100% completion percentage',
+      );
     }
   }
 
@@ -116,7 +133,11 @@ export class Task extends CalendarEvent {
   /**
    * Mark task as partially complete
    */
-  markPartiallyComplete(completionPercentage: number, actualDuration?: number, notes?: string): Task {
+  markPartiallyComplete(
+    completionPercentage: number,
+    actualDuration?: number,
+    notes?: string,
+  ): Task {
     if (completionPercentage <= 0 || completionPercentage >= 100) {
       throw new Error('Partial completion percentage must be between 1 and 99');
     }
@@ -241,7 +262,9 @@ export class Task extends CalendarEvent {
       this.id,
       this.calendarId,
       updates.title ?? this.title,
-      updates.description !== undefined ? updates.description : this.description,
+      updates.description !== undefined
+        ? updates.description
+        : this.description,
       this.startTime,
       this.endTime,
       updates.location !== undefined ? updates.location : this.location,
@@ -362,18 +385,21 @@ export class Task extends CalendarEvent {
   /**
    * Create from CalendarEvent
    */
-  static fromCalendarEvent(event: CalendarEvent, taskFields?: {
-    completionStatus?: TaskCompletionStatus;
-    completionPercentage?: number;
-    isLocked?: boolean;
-    estimatedDuration?: number;
-    actualDuration?: number;
-    category?: string;
-    priority?: TaskPriority;
-    tags?: string[];
-    parentTaskId?: string;
-    splitFromTaskId?: string;
-  }): Task {
+  static fromCalendarEvent(
+    event: CalendarEvent,
+    taskFields?: {
+      completionStatus?: TaskCompletionStatus;
+      completionPercentage?: number;
+      isLocked?: boolean;
+      estimatedDuration?: number;
+      actualDuration?: number;
+      category?: string;
+      priority?: TaskPriority;
+      tags?: string[];
+      parentTaskId?: string;
+      splitFromTaskId?: string;
+    },
+  ): Task {
     return new Task(
       event.id,
       event.calendarId,

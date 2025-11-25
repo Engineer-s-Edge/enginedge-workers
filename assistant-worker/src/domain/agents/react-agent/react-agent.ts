@@ -365,10 +365,7 @@ export class ReActAgent extends BaseAgent {
     input: unknown,
   ): Promise<Observation> {
     try {
-      if (
-        this.config.tools?.length &&
-        !this.config.tools.includes(toolName)
-      ) {
+      if (this.config.tools?.length && !this.config.tools.includes(toolName)) {
         this.logger.warn('Attempted to execute unregistered tool', {
           toolName,
           registeredTools: this.config.tools,
@@ -450,7 +447,9 @@ Available tools: ${this.config.tools?.join(', ') || 'None'}`;
 
     const metadata = this.getState().getMetadata() || {};
     const thinkingSteps = Array.isArray(metadata?.thinkingSteps)
-      ? slice(metadata.thinkingSteps as Array<{ step: string; timestamp: Date }>)
+      ? slice(
+          metadata.thinkingSteps as Array<{ step: string; timestamp: Date }>,
+        )
       : [];
     const executedTools = Array.isArray(metadata?.executedTools)
       ? slice(

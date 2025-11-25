@@ -59,7 +59,10 @@ export class LatexService {
     }
 
     // Apply user request (simplified)
-    if (userRequest.toLowerCase().includes('larger') || userRequest.toLowerCase().includes('header')) {
+    if (
+      userRequest.toLowerCase().includes('larger') ||
+      userRequest.toLowerCase().includes('header')
+    ) {
       edits.push({
         type: 'replace',
         range: {
@@ -72,7 +75,10 @@ export class LatexService {
       });
     }
 
-    if (userRequest.toLowerCase().includes('spacing') || userRequest.toLowerCase().includes('space')) {
+    if (
+      userRequest.toLowerCase().includes('spacing') ||
+      userRequest.toLowerCase().includes('space')
+    ) {
       edits.push({
         type: 'insert',
         position: { line: 10, column: 1 },
@@ -140,7 +146,10 @@ export class LatexService {
     }> = [];
 
     // Process linting errors
-    if (lintingErrors && (analysisType === 'errors-only' || analysisType === 'comprehensive')) {
+    if (
+      lintingErrors &&
+      (analysisType === 'errors-only' || analysisType === 'comprehensive')
+    ) {
       for (const error of lintingErrors) {
         errors.push({
           line: error.line,
@@ -152,7 +161,10 @@ export class LatexService {
     }
 
     // Process linting warnings
-    if (lintingWarnings && (analysisType === 'warnings-only' || analysisType === 'comprehensive')) {
+    if (
+      lintingWarnings &&
+      (analysisType === 'warnings-only' || analysisType === 'comprehensive')
+    ) {
       for (const warning of lintingWarnings) {
         warnings.push({
           line: warning.line,
@@ -176,15 +188,19 @@ export class LatexService {
 
     const overallHealth = Math.max(
       0,
-      1.0 - (errors.length * 0.1) - (warnings.length * 0.05),
+      1.0 - errors.length * 0.1 - warnings.length * 0.05,
     );
 
     const recommendations: string[] = [];
     if (errors.length > 0) {
-      recommendations.push(`Fix ${errors.length} critical error${errors.length > 1 ? 's' : ''}`);
+      recommendations.push(
+        `Fix ${errors.length} critical error${errors.length > 1 ? 's' : ''}`,
+      );
     }
     if (warnings.length > 0) {
-      recommendations.push(`Address ${warnings.length} warning${warnings.length > 1 ? 's' : ''} for better formatting`);
+      recommendations.push(
+        `Address ${warnings.length} warning${warnings.length > 1 ? 's' : ''} for better formatting`,
+      );
     }
     if (bestPractices.length > 0) {
       recommendations.push('Consider modernizing LaTeX style');

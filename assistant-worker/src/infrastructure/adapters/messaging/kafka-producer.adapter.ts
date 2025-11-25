@@ -5,7 +5,12 @@
  * Used to dispatch commands to scheduling-worker and other workers.
  */
 
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { Kafka, Producer, KafkaConfig } from 'kafkajs';
 import { ILogger } from '@application/ports/logger.port';
 
@@ -39,7 +44,9 @@ export class KafkaProducerAdapter implements OnModuleInit, OnModuleDestroy {
    */
   private async connect(): Promise<void> {
     try {
-      const brokers = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
+      const brokers = (process.env.KAFKA_BROKERS || 'localhost:9092').split(
+        ',',
+      );
 
       const kafkaConfig: KafkaConfig = {
         clientId: process.env.KAFKA_CLIENT_ID || 'assistant-worker',
@@ -90,10 +97,9 @@ export class KafkaProducerAdapter implements OnModuleInit, OnModuleDestroy {
    */
   async publish(message: KafkaMessage): Promise<void> {
     if (!this.isConnected || !this.producer) {
-      this.logger.warn(
-        'Kafka producer not connected, message not sent',
-        { topic: message.topic },
-      );
+      this.logger.warn('Kafka producer not connected, message not sent', {
+        topic: message.topic,
+      });
       return;
     }
 
@@ -132,15 +138,13 @@ export class KafkaProducerAdapter implements OnModuleInit, OnModuleDestroy {
   /**
    * Publish a command to scheduling-worker
    */
-  async publishToSchedulingWorker(
-    command: {
-      taskId: string;
-      taskType: string;
-      payload: Record<string, unknown>;
-      userId?: string;
-      timestamp?: string;
-    },
-  ): Promise<void> {
+  async publishToSchedulingWorker(command: {
+    taskId: string;
+    taskType: string;
+    payload: Record<string, unknown>;
+    userId?: string;
+    timestamp?: string;
+  }): Promise<void> {
     const topic = process.env.KAFKA_SCHEDULING_TOPIC || 'scheduling-commands';
 
     await this.publish({

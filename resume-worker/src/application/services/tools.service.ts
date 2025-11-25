@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ExperienceBankItemSchema } from '../../infrastructure/database/schemas/experience-bank-item.schema';
-import { ExperienceBankService, ExperienceBankItemMetadata } from './experience-bank.service';
+import {
+  ExperienceBankService,
+  ExperienceBankItemMetadata,
+} from './experience-bank.service';
 import { BulletEvaluatorService } from './bullet-evaluator.service';
 import { CoverLetterService } from './cover-letter.service';
 import { ConfigService } from '@nestjs/config';
@@ -94,7 +97,8 @@ export class ToolsService {
             .filter(([, check]: [string, any]) => !check.passed)
             .map(([key]) => key)
         : [],
-      suggestions: evaluation.suggestedFixes?.map(fix => fix.description) || [],
+      suggestions:
+        evaluation.suggestedFixes?.map((fix) => fix.description) || [],
     };
   }
 
@@ -215,7 +219,7 @@ export class ToolsService {
 
     return {
       success: true,
-      bullets: bullets.map(bullet => ({
+      bullets: bullets.map((bullet) => ({
         id: bullet._id.toString(),
         text: bullet.bulletText,
         metadata: bullet.metadata,
@@ -246,8 +250,8 @@ export class ToolsService {
     return {
       success: true,
       bullets: bullets
-        .filter(bullet => bullet.metadata.needsEditing)
-        .map(bullet => ({
+        .filter((bullet) => bullet.metadata.needsEditing)
+        .map((bullet) => ({
           id: bullet._id.toString(),
           text: bullet.bulletText,
           comment: bullet.metadata.flagComment || '',
@@ -391,8 +395,19 @@ export class ToolsService {
       const undefinedCommandMatch = line.match(/\\([a-zA-Z]+)\{/);
       if (undefinedCommandMatch) {
         const command = undefinedCommandMatch[1];
-        const commonCommands = ['documentclass', 'begin', 'end', 'section', 'item', 'textbf', 'textit'];
-        if (!commonCommands.includes(command) && !line.includes(`\\usepackage{${command}}`)) {
+        const commonCommands = [
+          'documentclass',
+          'begin',
+          'end',
+          'section',
+          'item',
+          'textbf',
+          'textit',
+        ];
+        if (
+          !commonCommands.includes(command) &&
+          !line.includes(`\\usepackage{${command}}`)
+        ) {
           errors.push({
             line: i + 1,
             column: undefinedCommandMatch.index || 0,

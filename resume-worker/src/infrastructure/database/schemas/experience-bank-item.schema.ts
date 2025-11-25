@@ -37,11 +37,13 @@ export class ExperienceBankItemSchema extends Document {
       flagComment: String,
       flagReason: String,
       flaggedAt: Date,
-      scoreHistory: [{
-        impact: Number,
-        ats: Number,
-        evaluatedAt: Date,
-      }],
+      scoreHistory: [
+        {
+          impact: Number,
+          ats: Number,
+          evaluatedAt: Date,
+        },
+      ],
     },
     required: true,
   })

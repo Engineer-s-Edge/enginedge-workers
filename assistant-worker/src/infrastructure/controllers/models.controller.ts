@@ -153,11 +153,17 @@ export class ModelsController {
 
       if (normalizedCapability === 'vision') {
         models = this.modelsService.getModelsWithCapability('vision');
-      } else if (normalizedCapability === 'functioncalling' || normalizedCapability === 'functioncalling') {
+      } else if (
+        normalizedCapability === 'functioncalling' ||
+        normalizedCapability === 'functioncalling'
+      ) {
         models = this.modelsService.getModelsWithCapability('functionCalling');
       } else if (normalizedCapability === 'multilingual') {
         models = this.modelsService.getModelsWithCapability('multilingual');
-      } else if (normalizedCapability === 'extendedthinking' || normalizedCapability === 'extendedthinking') {
+      } else if (
+        normalizedCapability === 'extendedthinking' ||
+        normalizedCapability === 'extendedthinking'
+      ) {
         models = this.modelsService.getModelsWithCapability('extendedThinking');
       }
 
@@ -193,12 +199,14 @@ export class ModelsController {
 
     try {
       const query = name.toLowerCase();
-      const models = this.modelsService.getAllModels().filter(
-        (m) =>
-          m.name.toLowerCase().includes(query) ||
-          m.description?.toLowerCase().includes(query) ||
-          m.provider.toLowerCase().includes(query),
-      );
+      const models = this.modelsService
+        .getAllModels()
+        .filter(
+          (m) =>
+            m.name.toLowerCase().includes(query) ||
+            m.description?.toLowerCase().includes(query) ||
+            m.provider.toLowerCase().includes(query),
+        );
       return {
         success: true,
         models,

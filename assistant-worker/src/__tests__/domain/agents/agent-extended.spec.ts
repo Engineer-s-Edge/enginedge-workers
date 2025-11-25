@@ -583,7 +583,7 @@ describe('Graph Agent - Extended Coverage', () => {
       await graphAgent.execute(JSON.stringify(graph));
       const graphState = graphAgent.getGraphState();
 
-  expect(graphState.executedNodes?.length ?? 0).toBeGreaterThan(0);
+      expect(graphState.executedNodes?.length ?? 0).toBeGreaterThan(0);
       expect(graphState.graphDefinition).toBeDefined();
     });
 

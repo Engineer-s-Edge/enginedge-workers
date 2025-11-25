@@ -96,10 +96,7 @@ export class ModelsService {
   /**
    * Get models by cost range
    */
-  getModelsByCostRange(
-    minCost?: number,
-    maxCost?: number,
-  ): Model[] {
+  getModelsByCostRange(minCost?: number, maxCost?: number): Model[] {
     this.loadModels();
     return this.models.filter((m) => {
       if (!m.inputCostPer1M && !m.outputCostPer1M) return false;
@@ -154,7 +151,8 @@ export class ModelsService {
       this.models.find(
         (m) =>
           m.provider.toLowerCase() === provider.toLowerCase() &&
-          (m.name === modelName || m.name.toLowerCase() === modelName.toLowerCase()),
+          (m.name === modelName ||
+            m.name.toLowerCase() === modelName.toLowerCase()),
       ) || null
     );
   }

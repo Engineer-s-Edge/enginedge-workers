@@ -38,7 +38,10 @@ export interface ExpertRuntimeSnapshot {
 }
 
 export type ExpertRuntimeUpdate = Partial<
-  Omit<ExpertRuntimeSnapshot, 'agentId' | 'expertId' | 'metrics' | 'assignedTopics'>
+  Omit<
+    ExpertRuntimeSnapshot,
+    'agentId' | 'expertId' | 'metrics' | 'assignedTopics'
+  >
 > & {
   assignedTopics?: ExpertTopicAssignment[];
   metrics?: Partial<ExpertRuntimeSnapshot['metrics']>;
@@ -47,7 +50,10 @@ export type ExpertRuntimeUpdate = Partial<
 
 @Injectable()
 export class GeniusExpertRuntimeService {
-  private readonly agentExperts = new Map<string, Map<string, ExpertRuntimeSnapshot>>();
+  private readonly agentExperts = new Map<
+    string,
+    Map<string, ExpertRuntimeSnapshot>
+  >();
 
   registerExpert(
     agentId: string,
@@ -88,7 +94,10 @@ export class GeniusExpertRuntimeService {
     return Array.from(this.getAgentMap(agentId).values());
   }
 
-  getExpert(agentId: string, expertId: string): ExpertRuntimeSnapshot | undefined {
+  getExpert(
+    agentId: string,
+    expertId: string,
+  ): ExpertRuntimeSnapshot | undefined {
     return this.getAgentMap(agentId).get(expertId);
   }
 
@@ -110,7 +119,11 @@ export class GeniusExpertRuntimeService {
     });
   }
 
-  pauseExpert(agentId: string, expertId: string, note?: string): ExpertRuntimeSnapshot {
+  pauseExpert(
+    agentId: string,
+    expertId: string,
+    note?: string,
+  ): ExpertRuntimeSnapshot {
     const snapshot = this.ensureExpert(agentId, expertId);
     const assignedTopics = snapshot.assignedTopics.map((topic) => ({
       ...topic,
@@ -126,7 +139,11 @@ export class GeniusExpertRuntimeService {
     });
   }
 
-  resumeExpert(agentId: string, expertId: string, note?: string): ExpertRuntimeSnapshot {
+  resumeExpert(
+    agentId: string,
+    expertId: string,
+    note?: string,
+  ): ExpertRuntimeSnapshot {
     const snapshot = this.ensureExpert(agentId, expertId);
     const assignedTopics = snapshot.assignedTopics.map((topic) => ({
       ...topic,
@@ -186,7 +203,10 @@ export class GeniusExpertRuntimeService {
     this.agentExperts.delete(agentId);
   }
 
-  private ensureExpert(agentId: string, expertId: string): ExpertRuntimeSnapshot {
+  private ensureExpert(
+    agentId: string,
+    expertId: string,
+  ): ExpertRuntimeSnapshot {
     const existing = this.getExpert(agentId, expertId);
     if (existing) {
       return existing;

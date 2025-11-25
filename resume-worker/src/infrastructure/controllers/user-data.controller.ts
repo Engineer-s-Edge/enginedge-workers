@@ -22,7 +22,8 @@ export class UserDataController {
   @Patch()
   @HttpCode(HttpStatus.OK)
   async updateUserData(
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       data: {
         name?: string;

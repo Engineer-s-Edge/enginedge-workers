@@ -158,7 +158,10 @@ interface NormalizedTrainingTopic {
   complexity: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
 }
 
-type SerializedLearningHistoryEntry = Omit<LearningHistoryEntry, 'timestamp'> & {
+type SerializedLearningHistoryEntry = Omit<
+  LearningHistoryEntry,
+  'timestamp'
+> & {
   timestamp: string;
 };
 
@@ -226,7 +229,9 @@ export class GeniusAgentController {
     @Body() body: TrainingRequestBody,
   ) {
     if (!Array.isArray(body.trainingData) || body.trainingData.length === 0) {
-      throw new BadRequestException('trainingData must include at least one sample');
+      throw new BadRequestException(
+        'trainingData must include at least one sample',
+      );
     }
 
     const mode = this.mapLearningMode(body.mode);
@@ -313,7 +318,7 @@ export class GeniusAgentController {
       }
 
       const runtime = runtimeMap.get(expertId);
-  const execution = executionMap.get(expertId as AgentId);
+      const execution = executionMap.get(expertId as AgentId);
       const workLog = this.expertPoolManager.getExpertWorkLog(
         expertId as AgentId,
       );
@@ -342,15 +347,12 @@ export class GeniusAgentController {
         specialization: baseExpert.specialization,
         complexity: baseExpert.complexity,
         availability: baseExpert.availability,
-        status: runtime?.paused
-          ? 'paused'
-          : execution
-            ? 'active'
-            : 'available',
+        status: runtime?.paused ? 'paused' : execution ? 'active' : 'available',
         assignedTopics,
         researchProgress,
         validationStatus: runtime?.validationStatus || 'not-started',
-        aimShootSkinStage: stage.toUpperCase() as ExpertResponse['aimShootSkinStage'],
+        aimShootSkinStage:
+          stage.toUpperCase() as ExpertResponse['aimShootSkinStage'],
         metrics: {
           sourcesUsed,
           avgConfidence:
@@ -485,12 +487,19 @@ export class GeniusAgentController {
     @Body()
     body: {
       userId: string;
-      testData: Array<{ topic?: string; sources?: string[]; findings?: string[]; confidence?: number }>;
+      testData: Array<{
+        topic?: string;
+        sources?: string[];
+        findings?: string[];
+        confidence?: number;
+      }>;
       integrate?: boolean;
     },
   ) {
     if (!Array.isArray(body.testData) || body.testData.length === 0) {
-      throw new BadRequestException('testData must include at least one report');
+      throw new BadRequestException(
+        'testData must include at least one report',
+      );
     }
 
     await this.agentService.getAgent(agentId, body.userId);
@@ -502,9 +511,8 @@ export class GeniusAgentController {
       confidence: report.confidence ?? 0.7,
     }));
 
-    const validation = await this.geniusOrchestrator.validateResearchReports(
-      reports,
-    );
+    const validation =
+      await this.geniusOrchestrator.validateResearchReports(reports);
 
     let integration: Record<string, unknown> | null = null;
     if (body.integrate) {
@@ -517,8 +525,7 @@ export class GeniusAgentController {
       (validation.results as ValidationResultEntry[]) || [];
     const summaryScore =
       validation.totalReports > 0
-        ?
-          validationResults.reduce(
+        ? validationResults.reduce(
             (sum: number, entry: ValidationResultEntry) => {
               const score =
                 entry.validation?.score ?? entry.validationScore ?? 0;
@@ -637,16 +644,13 @@ export class GeniusAgentController {
       this.agentService
         .getAgent(agentId, userId)
         .then(() => {
-          subscription = this.validationWorkflow.subscribe(
-            agentId,
-            (event) => {
-              subscriber.next(
-                new MessageEvent(event.type, {
-                  data: event.payload,
-                }),
-              );
-            },
-          );
+          subscription = this.validationWorkflow.subscribe(agentId, (event) => {
+            subscriber.next(
+              new MessageEvent(event.type, {
+                data: event.payload,
+              }),
+            );
+          });
         })
         .catch((error) => {
           subscriber.error(error);
@@ -664,10 +668,7 @@ export class GeniusAgentController {
    * GET /agents/genius/:id/validators - list validator agents
    */
   @Get(':id/validators')
-  async listValidators(
-    @Param('id') agentId: string,
-    @UserId() userId: string,
-  ) {
+  async listValidators(@Param('id') agentId: string, @UserId() userId: string) {
     await this.agentService.getAgent(agentId, userId);
     return {
       agentId,
@@ -923,7 +924,8 @@ export class GeniusAgentController {
           .addTopic(assignment.title, {
             description:
               assignment.summary || `Assignment for expert ${expertId}`,
-            complexity: `L${assignment.priority ?? 3}` as NormalizedTrainingTopic['complexity'],
+            complexity:
+              `L${assignment.priority ?? 3}` as NormalizedTrainingTopic['complexity'],
             relatedTopics: [],
             lastResearched: new Date(),
             researchCount: 1,
@@ -1132,8 +1134,9 @@ export class GeniusAgentController {
   ): string {
     const preview = trainingData
       .slice(0, 3)
-      .map((sample, index) =>
-        `Sample ${index + 1}: ${JSON.stringify(sample).substring(0, 200)}`,
+      .map(
+        (sample, index) =>
+          `Sample ${index + 1}: ${JSON.stringify(sample).substring(0, 200)}`,
       )
       .join('\n');
 
@@ -1146,7 +1149,8 @@ export class GeniusAgentController {
     const topics = trainingData.map((sample) => {
       const topic =
         sample.topic || sample.label || sample.title || 'General Research';
-      const complexity = (sample.complexity || 'L3') as NormalizedTrainingTopic['complexity'];
+      const complexity = (sample.complexity ||
+        'L3') as NormalizedTrainingTopic['complexity'];
       return { topic: String(topic), complexity };
     });
 
@@ -1285,8 +1289,9 @@ export class GeniusAgentController {
       averagePerformance: Number(averagePerformance.toFixed(2)),
       totalIterations: state.learningHistory.length,
       lastUpdated:
-        state.learningHistory[state.learningHistory.length - 1]?.timestamp.toISOString() ||
-        null,
+        state.learningHistory[
+          state.learningHistory.length - 1
+        ]?.timestamp.toISOString() || null,
     };
   }
 

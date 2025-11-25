@@ -214,7 +214,9 @@ export class ExpertAgentController {
     }
 
     const state = await this.getExpertState(agentId, userId);
-    const evidence = state.evidence.map((entry) => this.serializeEvidence(entry));
+    const evidence = state.evidence.map((entry) =>
+      this.serializeEvidence(entry),
+    );
 
     return {
       agentId,
@@ -452,9 +454,7 @@ export class ExpertAgentController {
       title: source.title,
       url: source.url,
       author: source.author ?? null,
-      publishDate: source.publishDate
-        ? source.publishDate.toISOString()
-        : null,
+      publishDate: source.publishDate ? source.publishDate.toISOString() : null,
       credibility: source.credibilityScore ?? null,
       evaluationNotes: source.evaluationNotes ?? null,
       contentPreview: this.trimContent(source.content),
@@ -494,9 +494,7 @@ export class ExpertAgentController {
 
     return {
       total: state.sources.length,
-      averageCredibility: Number(
-        (sum / state.sources.length || 0).toFixed(2),
-      ),
+      averageCredibility: Number((sum / state.sources.length || 0).toFixed(2)),
       credibilityDistribution: distribution,
       topicsExplored: state.topics.length,
     };
@@ -656,14 +654,10 @@ export class ExpertAgentController {
     if (!content) {
       return '';
     }
-    return content.length > limit
-      ? `${content.substring(0, limit)}…`
-      : content;
+    return content.length > limit ? `${content.substring(0, limit)}…` : content;
   }
 
-  private detectPhaseFromChunk(
-    chunk: string,
-  ): ResearchPhase | 'lifecycle' {
+  private detectPhaseFromChunk(chunk: string): ResearchPhase | 'lifecycle' {
     const normalized = chunk.toLowerCase();
 
     if (

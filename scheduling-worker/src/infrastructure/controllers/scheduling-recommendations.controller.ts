@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Query,
-  Body,
-  Logger,
-} from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Logger } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -25,9 +18,13 @@ import { MLRecommendationService } from '../../application/services/ml-recommend
 @ApiTags('Scheduling Recommendations')
 @Controller('scheduling/recommendations')
 export class SchedulingRecommendationsController {
-  private readonly logger = new Logger(SchedulingRecommendationsController.name);
+  private readonly logger = new Logger(
+    SchedulingRecommendationsController.name,
+  );
 
-  constructor(private readonly mlRecommendationService: MLRecommendationService) {
+  constructor(
+    private readonly mlRecommendationService: MLRecommendationService,
+  ) {
     this.logger.log('SchedulingRecommendationsController initialized');
   }
 
@@ -88,7 +85,8 @@ export class SchedulingRecommendationsController {
   })
   @ApiResponse({ status: 200, description: 'Recommendations accepted' })
   async acceptRecommendations(
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       recommendationIds?: string[];
       allRecommendations: Array<{

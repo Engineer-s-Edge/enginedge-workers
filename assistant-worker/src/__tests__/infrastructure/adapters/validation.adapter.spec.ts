@@ -16,7 +16,9 @@ describe('ValidationAdapter', () => {
   let adapter: ValidationAdapter;
   let service: jest.Mocked<ValidationService>;
 
-  const createResult = (overrides: Partial<ValidationResult> = {}): ValidationResult => ({
+  const createResult = (
+    overrides: Partial<ValidationResult> = {},
+  ): ValidationResult => ({
     id: 'result-1',
     expertId: 'expert-1',
     reportId: 'report-1',
@@ -144,7 +146,9 @@ describe('ValidationAdapter', () => {
     const result = adapter.updateConfig({ autoFixEnabled: false });
 
     expect(result).toEqual(updated);
-    expect(service.updateConfig).toHaveBeenCalledWith({ autoFixEnabled: false });
+    expect(service.updateConfig).toHaveBeenCalledWith({
+      autoFixEnabled: false,
+    });
   });
 
   it('exposes validation statistics', () => {

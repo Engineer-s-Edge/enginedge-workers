@@ -6,7 +6,10 @@
 
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InterviewSession, Interview } from '../../domain/entities';
-import { IInterviewSessionRepository, IInterviewRepository } from '../ports/repositories.port';
+import {
+  IInterviewSessionRepository,
+  IInterviewRepository,
+} from '../ports/repositories.port';
 import { StartInterviewUseCase } from '../use-cases/start-interview.use-case';
 import { PauseInterviewUseCase } from '../use-cases/pause-interview.use-case';
 import { ResumeInterviewUseCase } from '../use-cases/resume-interview.use-case';
@@ -61,7 +64,9 @@ export class SessionService {
 
     // Start periodic phase transition checks
     setInterval(async () => {
-      await this.phaseTransitionService.checkAndTransitionPhase(session.sessionId);
+      await this.phaseTransitionService.checkAndTransitionPhase(
+        session.sessionId,
+      );
     }, 10000); // Check every 10 seconds
 
     return session;

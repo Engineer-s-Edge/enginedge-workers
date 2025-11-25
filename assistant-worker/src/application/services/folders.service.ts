@@ -11,11 +11,7 @@ export class FoldersService {
     private readonly conversationsRepo: IConversationsRepository,
   ) {}
 
-  async createFolder(
-    userId: string,
-    name: string,
-    description?: string,
-  ) {
+  async createFolder(userId: string, name: string, description?: string) {
     return this.foldersRepo.create({ userId, name, description });
   }
 
@@ -37,7 +33,10 @@ export class FoldersService {
   async deleteFolder(
     folderId: string,
     userId: string,
-    options: { moveConversationsToFolderId?: string; deleteConversations?: boolean } = {},
+    options: {
+      moveConversationsToFolderId?: string;
+      deleteConversations?: boolean;
+    } = {},
   ) {
     const folder = await this.foldersRepo.findById(folderId);
     if (!folder) {
@@ -50,7 +49,10 @@ export class FoldersService {
 
     // Get all conversations for user (we'll filter by folderId)
     // Note: This is a simplified approach - in production you'd want a direct query by folderId
-    const allConversations = await this.conversationsRepo.listByUser(userId, 10000);
+    const allConversations = await this.conversationsRepo.listByUser(
+      userId,
+      10000,
+    );
     const conversationsInFolder = allConversations.filter(
       (c) => c.folderId === folderId,
     );
@@ -81,7 +83,8 @@ export class FoldersService {
     conversationId: string,
     folderId: string | null,
   ) {
-    const oldFolderId = (await this.conversationsRepo.findById(conversationId))?.folderId;
+    const oldFolderId = (await this.conversationsRepo.findById(conversationId))
+      ?.folderId;
 
     await this.conversationsRepo.updateFolder(conversationId, folderId);
 
@@ -94,10 +97,7 @@ export class FoldersService {
     }
   }
 
-  async bulkMoveToFolder(
-    conversationIds: string[],
-    folderId: string | null,
-  ) {
+  async bulkMoveToFolder(conversationIds: string[], folderId: string | null) {
     for (const conversationId of conversationIds) {
       await this.moveConversationToFolder(conversationId, folderId);
     }

@@ -42,7 +42,10 @@ export class BulletsService {
     referenceCommand: string;
   }> {
     // Check if bullet matches existing entry
-    const match = await this.experienceBankService.checkMatch(bulletText, userId);
+    const match = await this.experienceBankService.checkMatch(
+      bulletText,
+      userId,
+    );
 
     if (match.matches && match.bulletId) {
       return {
@@ -107,7 +110,9 @@ export class BulletsService {
     unresolvedReferences: string[];
   }> {
     // Find all bullet references
-    const refMatches = Array.from(latexContent.matchAll(/\\bulletref\{([^}]+)\}/g));
+    const refMatches = Array.from(
+      latexContent.matchAll(/\\bulletref\{([^}]+)\}/g),
+    );
     const references: Array<{
       referenceId: string;
       resolvedText: string;
@@ -126,10 +131,7 @@ export class BulletsService {
 
         if (bullet && bullet.userId === userId) {
           // Replace reference with actual text
-          resolvedLatex = resolvedLatex.replace(
-            match[0],
-            bullet.bulletText,
-          );
+          resolvedLatex = resolvedLatex.replace(match[0], bullet.bulletText);
           references.push({
             referenceId: bulletId,
             resolvedText: bullet.bulletText,

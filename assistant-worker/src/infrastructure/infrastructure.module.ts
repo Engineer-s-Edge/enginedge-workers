@@ -106,8 +106,8 @@ import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orch
   imports: [
     ApplicationModule,
     ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
-  AssistantsModule, // Assistants CRUD and execution
-  AdaptersModule,
+    AssistantsModule, // Assistants CRUD and execution
+    AdaptersModule,
     // Real LLM providers (default driven by env LLM_PROVIDER, defaults to openai)
     LLMProviderModule.register({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

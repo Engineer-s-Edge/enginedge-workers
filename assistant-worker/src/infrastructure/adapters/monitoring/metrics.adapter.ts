@@ -591,7 +591,9 @@ export class MetricsAdapter {
       metrics.find((m: any) => m.name === name);
 
     // Aggregate agent metrics
-    const agentExecutions = findMetric('assistant_worker_agent_executions_total');
+    const agentExecutions = findMetric(
+      'assistant_worker_agent_executions_total',
+    );
     const agentDurations = findMetric(
       'assistant_worker_agent_execution_duration_seconds',
     );
@@ -683,7 +685,9 @@ export class MetricsAdapter {
     };
 
     // Aggregate conversation metrics
-    const conversationsGauge = findMetric('assistant_worker_conversations_total');
+    const conversationsGauge = findMetric(
+      'assistant_worker_conversations_total',
+    );
     const conversationEvents = findMetric(
       'assistant_worker_conversation_events_total',
     );
@@ -692,7 +696,8 @@ export class MetricsAdapter {
     if (conversationEvents && conversationEvents.values) {
       for (const value of conversationEvents.values) {
         const type = value.labels?.type || 'unknown';
-        conversationEventsByType[type] = (conversationEventsByType[type] || 0) + (value.value || 0);
+        conversationEventsByType[type] =
+          (conversationEventsByType[type] || 0) + (value.value || 0);
       }
     }
 
@@ -737,7 +742,9 @@ export class MetricsAdapter {
     }
 
     // Aggregate expert pool metrics
-    const expertPoolActive = findMetric('assistant_worker_expert_pool_active_experts');
+    const expertPoolActive = findMetric(
+      'assistant_worker_expert_pool_active_experts',
+    );
     const expertPoolExecutions = findMetric(
       'assistant_worker_expert_pool_executions_total',
     );

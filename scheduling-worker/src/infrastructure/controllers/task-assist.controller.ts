@@ -1,15 +1,5 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Logger,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { LLMTaskAssistService } from '../../application/services/llm-task-assist.service';
 
 /**
@@ -32,7 +22,9 @@ export class TaskAssistController {
    * Extract structured task data from natural language
    */
   @Post('task-assist')
-  @ApiOperation({ summary: 'Extract structured task data from natural language' })
+  @ApiOperation({
+    summary: 'Extract structured task data from natural language',
+  })
   @ApiBody({
     schema: {
       type: 'object',
@@ -45,7 +37,9 @@ export class TaskAssistController {
   @ApiResponse({ status: 200, description: 'Task data extracted' })
   async taskAssist(@Body() body: { description: string }) {
     this.logger.log(`Extracting task data from description`);
-    const result = await this.llmTaskAssistService.extractTaskData(body.description);
+    const result = await this.llmTaskAssistService.extractTaskData(
+      body.description,
+    );
     return result;
   }
 }

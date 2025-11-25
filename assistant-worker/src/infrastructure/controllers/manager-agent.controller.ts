@@ -65,18 +65,16 @@ interface ManagerDecomposeBody {
         dependencies?: string[];
       };
   strategy?: DecompositionStrategy;
-  subtasks?: Array<
-    {
-      id?: string;
-      title: string;
-      description: string;
-      objective?: string;
-      priority?: 'critical' | 'high' | 'medium' | 'low';
-      dependencies?: string[];
-      requiredCapabilities?: string[];
-      estimatedDuration?: number;
-    }
-  >;
+  subtasks?: Array<{
+    id?: string;
+    title: string;
+    description: string;
+    objective?: string;
+    priority?: 'critical' | 'high' | 'medium' | 'low';
+    dependencies?: string[];
+    requiredCapabilities?: string[];
+    estimatedDuration?: number;
+  }>;
   hints?: string[];
   preferredAgents?: string[];
   metadata?: Record<string, unknown>;
@@ -314,14 +312,10 @@ export class ManagerAgentController {
     }
 
     await this.ensureManagerAgent(agentId, body.userId);
-    const summary = this.managerRuntime.aggregateResults(
-      agentId,
-      body.userId,
-      {
-        notes: body.notes,
-        summaryOverride: body.summaryOverride,
-      },
-    );
+    const summary = this.managerRuntime.aggregateResults(agentId, body.userId, {
+      notes: body.notes,
+      summaryOverride: body.summaryOverride,
+    });
 
     return {
       agentId,
@@ -423,7 +417,11 @@ export class ManagerAgentController {
 
     await this.ensureManagerAgent(agentId, userId);
 
-    const filter = this.buildAssignmentFilter(status, targetAgentId, includeCompleted);
+    const filter = this.buildAssignmentFilter(
+      status,
+      targetAgentId,
+      includeCompleted,
+    );
     const snapshot = this.managerRuntime.getAssignments(agentId, filter);
 
     return {
@@ -543,10 +541,7 @@ export class ManagerAgentController {
    * POST /agents/manager/:id/pause - pause manager coordination
    */
   @Post(':id/pause')
-  async pauseManager(
-    @Param('id') agentId: string,
-    @Body() body: PauseBody,
-  ) {
+  async pauseManager(@Param('id') agentId: string, @Body() body: PauseBody) {
     if (!body.userId) {
       throw new BadRequestException('userId is required to pause manager');
     }
@@ -566,10 +561,7 @@ export class ManagerAgentController {
    * POST /agents/manager/:id/resume - resume manager coordination
    */
   @Post(':id/resume')
-  async resumeManager(
-    @Param('id') agentId: string,
-    @Body() body: PauseBody,
-  ) {
+  async resumeManager(@Param('id') agentId: string, @Body() body: PauseBody) {
     if (!body.userId) {
       throw new BadRequestException('userId is required to resume manager');
     }
@@ -593,7 +585,9 @@ export class ManagerAgentController {
     @Body() body: AggregateBody,
   ) {
     if (!body.userId) {
-      throw new BadRequestException('userId is required to trigger aggregation');
+      throw new BadRequestException(
+        'userId is required to trigger aggregation',
+      );
     }
 
     await this.ensureManagerAgent(agentId, body.userId);
@@ -744,7 +738,9 @@ export class ManagerAgentController {
     };
   }
 
-  private serializeDomainState(state: ReturnType<ManagerAgent['getManagerState']> | null) {
+  private serializeDomainState(
+    state: ReturnType<ManagerAgent['getManagerState']> | null,
+  ) {
     if (!state) {
       return null;
     }
@@ -757,7 +753,9 @@ export class ManagerAgentController {
       completedAssignments: state.completedAssignments,
       failedAssignments: state.failedAssignments,
       aggregatedResult: state.aggregatedResult,
-      startTime: state.startTime ? new Date(state.startTime).toISOString() : null,
+      startTime: state.startTime
+        ? new Date(state.startTime).toISOString()
+        : null,
       endTime: state.endTime ? new Date(state.endTime).toISOString() : null,
     };
   }

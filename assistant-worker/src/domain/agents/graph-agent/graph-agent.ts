@@ -237,7 +237,9 @@ export class GraphAgent extends BaseAgent {
     this.graphState = {
       ...this.createEmptyGraphState(),
       graph,
-      pendingNodes: new Map(graph.nodes.map((node) => [node.id, node] as const)),
+      pendingNodes: new Map(
+        graph.nodes.map((node) => [node.id, node] as const),
+      ),
       currentNodeIds: graph.startNode ? [graph.startNode] : [],
       startTime: Date.now(),
       lastUpdated: Date.now(),
@@ -410,7 +412,7 @@ export class GraphAgent extends BaseAgent {
       yield 'Graph Agent Starting\n';
 
       const graph = this.parseGraphDefinition(input, context);
-  this.resetGraphState(graph);
+      this.resetGraphState(graph);
 
       yield `Executing workflow: ${graph.name}\n`;
       yield `Total nodes: ${graph.nodes.length}\n`;
@@ -457,7 +459,9 @@ export class GraphAgent extends BaseAgent {
     }
 
     // Check execution context overrides
-    const contextWorkflow = (context.config as Record<string, unknown> | undefined)?.workflow;
+    const contextWorkflow = (
+      context.config as Record<string, unknown> | undefined
+    )?.workflow;
     if (
       contextWorkflow &&
       typeof contextWorkflow === 'object' &&
@@ -539,8 +543,7 @@ export class GraphAgent extends BaseAgent {
       for (const nodeId of executionOrder) {
         const node = graph.nodes.find((n) => n.id === nodeId);
         if (!node) continue;
-        const { historyEntry, executionRecord } =
-          this.beginNodeExecution(node);
+        const { historyEntry, executionRecord } = this.beginNodeExecution(node);
 
         try {
           const executedNode = await this.executeNode(
@@ -908,7 +911,10 @@ export class GraphAgent extends BaseAgent {
         error: entry.error,
       }));
     const nodeExecutions: Record<string, GraphNodeExecutionDetail[]> = {};
-    for (const [nodeId, executions] of this.graphState.nodeExecutions.entries()) {
+    for (const [
+      nodeId,
+      executions,
+    ] of this.graphState.nodeExecutions.entries()) {
       nodeExecutions[nodeId] = executions.map((record) =>
         this.serializeExecutionRecord(record),
       );
@@ -976,7 +982,10 @@ export class GraphAgent extends BaseAgent {
     if (!groupId) {
       return null;
     }
-    return this.computeMemoryGroupStates().find((group) => group.id === groupId) || null;
+    return (
+      this.computeMemoryGroupStates().find((group) => group.id === groupId) ||
+      null
+    );
   }
 
   private computeMemoryGroupStates(): GraphMemoryGroupState[] {
@@ -1105,7 +1114,10 @@ export class GraphAgent extends BaseAgent {
 
     if (earliest !== undefined) {
       const iso = new Date(earliest).toISOString();
-      if (!group.firstAccessedAt || Date.parse(group.firstAccessedAt) > earliest) {
+      if (
+        !group.firstAccessedAt ||
+        Date.parse(group.firstAccessedAt) > earliest
+      ) {
         group.firstAccessedAt = iso;
       }
     }
@@ -1151,9 +1163,10 @@ export class GraphAgent extends BaseAgent {
     this.memoryRouter.ensureGroup(graphId, {
       id: groupId,
       name:
-        memoryConfig?.metadata?.name && typeof memoryConfig.metadata.name === 'string'
+        memoryConfig?.metadata?.name &&
+        typeof memoryConfig.metadata.name === 'string'
           ? memoryConfig.metadata.name
-          : node.name ?? groupId,
+          : (node.name ?? groupId),
       memoryType: memoryConfig?.memoryType,
       provider: memoryConfig?.provider,
       vectorStore: memoryConfig?.vectorStore,
@@ -1393,7 +1406,10 @@ export class GraphAgent extends BaseAgent {
     }
     const revived = new Map<string, GraphEdgeHistoryEntry[]>();
     for (const [edgeId, entries] of Object.entries(snapshot)) {
-      revived.set(edgeId, entries.map((entry) => ({ ...entry })));
+      revived.set(
+        edgeId,
+        entries.map((entry) => ({ ...entry })),
+      );
     }
     return revived;
   }
@@ -1406,7 +1422,10 @@ export class GraphAgent extends BaseAgent {
     }
     const revived = new Map<string, GraphEdgeDecisionEntry[]>();
     for (const [edgeId, entries] of Object.entries(snapshot)) {
-      revived.set(edgeId, entries.map((entry) => ({ ...entry })));
+      revived.set(
+        edgeId,
+        entries.map((entry) => ({ ...entry })),
+      );
     }
     return revived;
   }
@@ -1418,15 +1437,16 @@ export class GraphAgent extends BaseAgent {
     const revivedFailedNodes = (snapshot.failedNodes || []).map((node) =>
       this.reviveExecutedNode(node),
     );
-    const history: InternalHistoryEntry[] =
-      (snapshot.executionHistory || []).map((entry) => ({
-        nodeId: entry.nodeId,
-        nodeName: entry.nodeName,
-        status: entry.status,
-        startedAt: new Date(entry.startedAt),
-        completedAt: entry.completedAt ? new Date(entry.completedAt) : undefined,
-        error: entry.error,
-      }));
+    const history: InternalHistoryEntry[] = (
+      snapshot.executionHistory || []
+    ).map((entry) => ({
+      nodeId: entry.nodeId,
+      nodeName: entry.nodeName,
+      status: entry.status,
+      startedAt: new Date(entry.startedAt),
+      completedAt: entry.completedAt ? new Date(entry.completedAt) : undefined,
+      error: entry.error,
+    }));
     const nodeExecutions = new Map<string, InternalNodeExecutionRecord[]>();
     if (snapshot.nodeExecutions) {
       for (const [nodeId, records] of Object.entries(snapshot.nodeExecutions)) {
@@ -1457,13 +1477,11 @@ export class GraphAgent extends BaseAgent {
       failedNodes: revivedFailedNodes,
       pendingNodes,
       nodeResults: new Map(
-        (snapshot.nodeResults || []).map((entry) =>
-          [entry.nodeId, entry.output] as const,
+        (snapshot.nodeResults || []).map(
+          (entry) => [entry.nodeId, entry.output] as const,
         ),
       ),
-      retryAttempts: new Map(
-        Object.entries(snapshot.retryAttempts || {}),
-      ),
+      retryAttempts: new Map(Object.entries(snapshot.retryAttempts || {})),
       currentNodeIds: [...(snapshot.currentNodeIds || [])],
       startTime:
         snapshot.startTime ??
@@ -1472,14 +1490,9 @@ export class GraphAgent extends BaseAgent {
       lastUpdated: snapshot.lastUpdated || Date.now(),
       history,
       nodeExecutions,
-      edgeQueues: this.restoreEdgeQueues(
-        snapshot.edgeQueues,
-        graphDefinition,
-      ),
+      edgeQueues: this.restoreEdgeQueues(snapshot.edgeQueues, graphDefinition),
       runtimeCheckpoints: [],
-      convergenceState: this.reviveConvergenceState(
-        snapshot.convergenceState,
-      ),
+      convergenceState: this.reviveConvergenceState(snapshot.convergenceState),
       edgeHistory: this.reviveEdgeHistory(snapshot.edgeHistory),
       edgeDecisions: this.reviveEdgeDecisions(snapshot.edgeDecisions),
     };
@@ -1552,7 +1565,9 @@ export class GraphAgent extends BaseAgent {
       nodeName: record.nodeName,
       status: record.status,
       startedAt: new Date(record.startedAt),
-      completedAt: record.completedAt ? new Date(record.completedAt) : undefined,
+      completedAt: record.completedAt
+        ? new Date(record.completedAt)
+        : undefined,
       durationMs: record.durationMs,
       retryCount: record.retryCount,
       input: record.input,
@@ -1609,9 +1624,7 @@ export class GraphAgent extends BaseAgent {
     return cyclicEdges;
   }
 
-  private buildAdjacencyMap(
-    graph: WorkflowGraph,
-  ): Map<string, string[]> {
+  private buildAdjacencyMap(graph: WorkflowGraph): Map<string, string[]> {
     const adjacency = new Map<string, string[]>();
     for (const node of graph.nodes) {
       adjacency.set(node.id, []);
@@ -1867,9 +1880,8 @@ export class GraphAgent extends BaseAgent {
       options?.limit && options.limit > 0
         ? Math.min(options.limit, hardLimit)
         : hardLimit;
-    const direction:
-      | 'forward'
-      | 'backward' = options?.direction === 'forward' ? 'forward' : 'backward';
+    const direction: 'forward' | 'backward' =
+      options?.direction === 'forward' ? 'forward' : 'backward';
 
     const startBound = this.safeTimestamp(options?.start);
     const endBound = this.safeTimestamp(options?.end);
@@ -2051,7 +2063,10 @@ export class GraphAgent extends BaseAgent {
     }
 
     const incomingEdges = this.getIncomingEdges(node.id);
-    const convergenceConfig = this.normalizeConvergenceConfig(node, incomingEdges);
+    const convergenceConfig = this.normalizeConvergenceConfig(
+      node,
+      incomingEdges,
+    );
     const orderingConfig = this.normalizeDataOrdering(node);
 
     const availableInputs = this.collectConvergenceInputs(incomingEdges);
@@ -2063,9 +2078,17 @@ export class GraphAgent extends BaseAgent {
 
     switch (convergenceConfig.strategy) {
       case 'count':
-        return this.resolveCountStrategy(convergenceConfig, orderedInputs, incomingEdges);
+        return this.resolveCountStrategy(
+          convergenceConfig,
+          orderedInputs,
+          incomingEdges,
+        );
       case 'subset':
-        return this.resolveSubsetStrategy(convergenceConfig, orderedInputs, incomingEdges);
+        return this.resolveSubsetStrategy(
+          convergenceConfig,
+          orderedInputs,
+          incomingEdges,
+        );
       case 'all':
       default:
         return this.resolveAllStrategy(orderedInputs, incomingEdges);
@@ -2153,7 +2176,8 @@ export class GraphAgent extends BaseAgent {
     }
 
     const selected = orderedInputs.filter(
-      (input) => targetEdgeIds.has(input.edgeId) || targetNodeIds.has(input.nodeId),
+      (input) =>
+        targetEdgeIds.has(input.edgeId) || targetNodeIds.has(input.nodeId),
     );
 
     const missingSources: string[] = [];
@@ -2188,7 +2212,9 @@ export class GraphAgent extends BaseAgent {
     incomingEdges: WorkflowEdge[],
     availableInputs: ConvergenceInput[],
   ): string[] {
-    const availableEdgeIds = new Set(availableInputs.map((input) => input.edgeId));
+    const availableEdgeIds = new Set(
+      availableInputs.map((input) => input.edgeId),
+    );
     return incomingEdges
       .filter((edge) => !availableEdgeIds.has(edge.id))
       .map((edge) => this.describeEdgeSource(edge));
@@ -2230,7 +2256,9 @@ export class GraphAgent extends BaseAgent {
     incomingEdges: WorkflowEdge[],
     availableInputs: ConvergenceInput[],
   ): ConvergenceInput[] {
-    const byEdge = new Map(availableInputs.map((input) => [input.edgeId, input] as const));
+    const byEdge = new Map(
+      availableInputs.map((input) => [input.edgeId, input] as const),
+    );
     const ordered: ConvergenceInput[] = [];
     for (const edge of incomingEdges) {
       const input = byEdge.get(edge.id);
@@ -2628,9 +2656,7 @@ export class GraphAgent extends BaseAgent {
       limit > 0
         ? executions.slice(Math.max(executions.length - limit, 0))
         : [...executions];
-    return selected
-      .map((record) => this.toExecutionSummary(record))
-      .reverse();
+    return selected.map((record) => this.toExecutionSummary(record)).reverse();
   }
 
   getNodeExecutionDetail(
@@ -2638,7 +2664,9 @@ export class GraphAgent extends BaseAgent {
     executionId: string,
   ): GraphNodeExecutionDetail | null {
     const executions = this.graphState.nodeExecutions.get(nodeId) || [];
-    const record = executions.find((entry) => entry.executionId === executionId);
+    const record = executions.find(
+      (entry) => entry.executionId === executionId,
+    );
     return record ? this.serializeExecutionRecord(record) : null;
   }
 
@@ -2720,11 +2748,7 @@ export class GraphAgent extends BaseAgent {
       downstreamEdges.length > 0 &&
       this.nodeRequiresRuntimeConfig(node.type)
     ) {
-      this.assertNonEmptyRuntimeField(
-        previewConfig.provider,
-        'provider',
-        node,
-      );
+      this.assertNonEmptyRuntimeField(previewConfig.provider, 'provider', node);
       this.assertNonEmptyRuntimeField(previewConfig.model, 'model', node);
     }
   }

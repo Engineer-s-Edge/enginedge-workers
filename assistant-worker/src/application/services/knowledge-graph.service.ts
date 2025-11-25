@@ -23,7 +23,13 @@ import { GraphComponentService } from './graph-component.service';
  * Knowledge Graph Event
  */
 export interface KnowledgeGraphEvent {
-  type: 'node.created' | 'node.updated' | 'node.deleted' | 'edge.created' | 'edge.updated' | 'edge.deleted';
+  type:
+    | 'node.created'
+    | 'node.updated'
+    | 'node.deleted'
+    | 'edge.created'
+    | 'edge.updated'
+    | 'edge.deleted';
   timestamp: Date;
   payload: {
     node?: KGNode;
@@ -191,7 +197,12 @@ export class KnowledgeGraphService {
     properties: Record<string, any> = {},
     bidirectional?: boolean,
   ): Promise<KGEdge> {
-    this.logger.info('Creating relationship', { from, to, type, bidirectional });
+    this.logger.info('Creating relationship', {
+      from,
+      to,
+      type,
+      bidirectional,
+    });
     const edge = await this.createRelationshipInternal(
       from,
       to,
@@ -440,9 +451,7 @@ export class KnowledgeGraphService {
 
     // Find all L1 nodes with domains
     const l1Nodes = await this.getNodesByLayer(ICSLayer.L1_OBSERVATIONS);
-    const domainNodes = l1Nodes.filter(
-      (n) => n.domain && n.domainColor,
-    );
+    const domainNodes = l1Nodes.filter((n) => n.domain && n.domainColor);
 
     const connectedDomains: Array<{
       domainName: string;
@@ -467,7 +476,9 @@ export class KnowledgeGraphService {
     }
 
     // Sort by connection strength (strongest first)
-    connectedDomains.sort((a, b) => b.connectionStrength - a.connectionStrength);
+    connectedDomains.sort(
+      (a, b) => b.connectionStrength - a.connectionStrength,
+    );
 
     return connectedDomains;
   }
@@ -495,7 +506,12 @@ export class KnowledgeGraphService {
 
     // Mix colors proportionally based on connection strength
     let totalStrength = 0;
-    const colorComponents: Array<{ r: number; g: number; b: number; weight: number }> = [];
+    const colorComponents: Array<{
+      r: number;
+      g: number;
+      b: number;
+      weight: number;
+    }> = [];
 
     for (const domain of connectedDomains) {
       const hex = domain.color.replace('#', '');
@@ -540,7 +556,9 @@ export class KnowledgeGraphService {
       return [fromId];
     }
 
-    const queue: Array<{ id: string; path: string[] }> = [{ id: fromId, path: [fromId] }];
+    const queue: Array<{ id: string; path: string[] }> = [
+      { id: fromId, path: [fromId] },
+    ];
     const visited = new Set<string>([fromId]);
 
     while (queue.length > 0) {
@@ -778,8 +796,7 @@ export class KnowledgeGraphService {
             this.getLayerIndex(neighbor.layer) < this.getLayerIndex(node.layer),
         )
         .sort(
-          (a, b) =>
-            this.getLayerIndex(b.layer) - this.getLayerIndex(a.layer),
+          (a, b) => this.getLayerIndex(b.layer) - this.getLayerIndex(a.layer),
         );
 
       // Add lower-layer nodes to queue
@@ -903,8 +920,7 @@ export class KnowledgeGraphService {
     return neighbors
       .filter((candidate) => this.getLayerIndex(candidate.layer) > currentIndex)
       .sort(
-        (a, b) =>
-          this.getLayerIndex(a.layer) - this.getLayerIndex(b.layer),
+        (a, b) => this.getLayerIndex(a.layer) - this.getLayerIndex(b.layer),
       )[0];
   }
 
@@ -914,8 +930,7 @@ export class KnowledgeGraphService {
   ): ICSLayer[] {
     const uniqueLayers = Array.from(new Set(nodes.map((n) => n.layer)));
     return uniqueLayers.sort((a, b) => {
-      const comparison =
-        this.getLayerIndex(a) - this.getLayerIndex(b);
+      const comparison = this.getLayerIndex(a) - this.getLayerIndex(b);
       return direction === 'ascending' ? comparison : -comparison;
     });
   }

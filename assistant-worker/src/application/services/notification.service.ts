@@ -314,9 +314,7 @@ export class NotificationService {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(
-          `FCM push failed (${response.status}): ${errorBody}`,
-        );
+        throw new Error(`FCM push failed (${response.status}): ${errorBody}`);
       }
     }, options?.retryCount ?? 1);
   }
@@ -372,11 +370,7 @@ export class NotificationService {
     metadata?: Record<string, unknown>,
     options?: NotificationOptions,
   ): Promise<void> {
-    if (
-      !this.smsAccountSid ||
-      !this.smsAuthToken ||
-      !this.smsFromNumber
-    ) {
+    if (!this.smsAccountSid || !this.smsAuthToken || !this.smsFromNumber) {
       this.logger.warn('SMS provider not configured, skipping', { userId });
       return;
     }

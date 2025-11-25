@@ -350,18 +350,16 @@ export class MemoryController {
         let additionalData: any = {};
         if (memoryType === 'summary') {
           try {
-            additionalData.summary = await this.memoryService.getSummary(
-              conversationId,
-            );
+            additionalData.summary =
+              await this.memoryService.getSummary(conversationId);
           } catch (e) {
             // Summary not available, skip
           }
         }
         if (memoryType === 'entity') {
           try {
-            additionalData.entities = await this.memoryService.getEntities(
-              conversationId,
-            );
+            additionalData.entities =
+              await this.memoryService.getEntities(conversationId);
           } catch (e) {
             // Entities not available, skip
           }
@@ -442,18 +440,16 @@ export class MemoryController {
     let additionalData: any = {};
     if (type === 'summary') {
       try {
-        additionalData.summary = await this.memoryService.getSummary(
-          conversationId,
-        );
+        additionalData.summary =
+          await this.memoryService.getSummary(conversationId);
       } catch (e) {
         // Summary not available, skip
       }
     }
     if (type === 'entity') {
       try {
-        additionalData.entities = await this.memoryService.getEntities(
-          conversationId,
-        );
+        additionalData.entities =
+          await this.memoryService.getEntities(conversationId);
       } catch (e) {
         // Entities not available, skip
       }

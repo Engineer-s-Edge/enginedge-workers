@@ -65,7 +65,10 @@ export class JobPostingService implements OnModuleInit {
         pending.reject(new Error(response.error));
       } else if (response.result) {
         // Create JobPosting from parsed data
-        const checksum = crypto.createHash('sha256').update(response.result.rawText).digest('hex');
+        const checksum = crypto
+          .createHash('sha256')
+          .update(response.result.rawText)
+          .digest('hex');
         const jobPosting = new this.jobPostingModel({
           userId: response.result.userId,
           url: response.result.url,
@@ -116,10 +119,12 @@ export class JobPostingService implements OnModuleInit {
 
     // Check if posting already extracted (by checksum)
     const checksum = crypto.createHash('sha256').update(text).digest('hex');
-    const existing = await this.jobPostingModel.findOne({
-      userId,
-      'parsed.metadata.checksumSha256': checksum,
-    }).exec();
+    const existing = await this.jobPostingModel
+      .findOne({
+        userId,
+        'parsed.metadata.checksumSha256': checksum,
+      })
+      .exec();
 
     if (existing) {
       this.logger.log(`Job posting already extracted, returning existing`);
@@ -206,11 +211,9 @@ export class JobPostingService implements OnModuleInit {
       updateData.notes = updates.notes;
     }
 
-    const posting = await this.jobPostingModel.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true },
-    ).exec();
+    const posting = await this.jobPostingModel
+      .findByIdAndUpdate(id, { $set: updateData }, { new: true })
+      .exec();
 
     if (!posting) {
       throw new Error('Job posting not found');
@@ -249,7 +252,12 @@ export class JobPostingService implements OnModuleInit {
       query.$or = [
         { rawText: { $regex: options.search, $options: 'i' } },
         { 'parsed.role.titleRaw': { $regex: options.search, $options: 'i' } },
-        { 'parsed.company.hiringOrganization': { $regex: options.search, $options: 'i' } },
+        {
+          'parsed.company.hiringOrganization': {
+            $regex: options.search,
+            $options: 'i',
+          },
+        },
       ];
     }
 
@@ -260,7 +268,10 @@ export class JobPostingService implements OnModuleInit {
 
     // Filter by company
     if (options.company) {
-      query['parsed.company.hiringOrganization'] = { $regex: options.company, $options: 'i' };
+      query['parsed.company.hiringOrganization'] = {
+        $regex: options.company,
+        $options: 'i',
+      };
     }
 
     // Filter by role
@@ -291,7 +302,9 @@ export class JobPostingService implements OnModuleInit {
     mongoQuery = mongoQuery.sort({ [sortField]: sortOrder });
 
     // Paginate
-    mongoQuery = mongoQuery.skip(options.offset || 0).limit(options.limit || 50);
+    mongoQuery = mongoQuery
+      .skip(options.offset || 0)
+      .limit(options.limit || 50);
 
     const results = await mongoQuery.exec();
 
@@ -325,7 +338,7 @@ export class JobPostingService implements OnModuleInit {
       offset: query.offset || 0,
     });
 
-    const results = searchResult.results.map(posting => ({
+    const results = searchResult.results.map((posting) => ({
       _id: posting._id.toString(),
       position: posting.parsed?.role?.titleRaw || '',
       company: posting.parsed?.company?.hiringOrganization || '',

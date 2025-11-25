@@ -138,10 +138,7 @@ export class ConversationsController {
   }
 
   @Patch(':id/settings')
-  async updateSettings(
-    @Param('id') id: string,
-    @Body() body: any,
-  ) {
+  async updateSettings(@Param('id') id: string, @Body() body: any) {
     await this.service.updateSettings(id, body);
     return { success: true };
   }
@@ -229,9 +226,7 @@ export class ConversationsController {
     @Query('limit') limit?: string,
   ) {
     const results = await this.service.searchSnippets(userId, query, {
-      conversationIds: conversationIds
-        ? conversationIds.split(',')
-        : undefined,
+      conversationIds: conversationIds ? conversationIds.split(',') : undefined,
       contextLines: contextLines ? Number(contextLines) : undefined,
       limit: limit ? Number(limit) : undefined,
     });
@@ -239,7 +234,9 @@ export class ConversationsController {
   }
 
   @Post('bulk-delete')
-  async bulkDelete(@Body() body: { userId: string; conversationIds: string[] }) {
+  async bulkDelete(
+    @Body() body: { userId: string; conversationIds: string[] },
+  ) {
     const results = await this.service.bulkDelete(
       body.userId,
       body.conversationIds,
@@ -248,7 +245,9 @@ export class ConversationsController {
   }
 
   @Post('bulk-archive')
-  async bulkArchive(@Body() body: { userId: string; conversationIds: string[] }) {
+  async bulkArchive(
+    @Body() body: { userId: string; conversationIds: string[] },
+  ) {
     const results = await this.service.bulkArchive(
       body.userId,
       body.conversationIds,
@@ -350,10 +349,7 @@ export class ConversationsController {
     @Param('id') id: string,
     @Body() body: { userId?: string },
   ) {
-    const newConv = await this.service.duplicateConversation(
-      id,
-      body.userId,
-    );
+    const newConv = await this.service.duplicateConversation(id, body.userId);
     return { success: true, conversation: newConv };
   }
 
@@ -412,14 +408,19 @@ export class ConversationsController {
     if (!this.foldersService) {
       throw new Error('FoldersService not available');
     }
-    await this.foldersService.bulkMoveToFolder(body.conversationIds, body.folderId);
+    await this.foldersService.bulkMoveToFolder(
+      body.conversationIds,
+      body.folderId,
+    );
     return { success: true };
   }
 
   // Folder management endpoints
   @Post('folders')
   @HttpCode(HttpStatus.CREATED)
-  async createFolder(@Body() body: { userId: string; name: string; description?: string }) {
+  async createFolder(
+    @Body() body: { userId: string; name: string; description?: string },
+  ) {
     if (!this.foldersService) {
       throw new Error('FoldersService not available');
     }
@@ -456,7 +457,11 @@ export class ConversationsController {
   async deleteFolder(
     @Param('folderId') folderId: string,
     @Query('userId') userId: string,
-    @Body() body: { moveConversationsToFolderId?: string; deleteConversations?: boolean } = {},
+    @Body()
+    body: {
+      moveConversationsToFolderId?: string;
+      deleteConversations?: boolean;
+    } = {},
   ) {
     if (!this.foldersService) {
       throw new Error('FoldersService not available');
@@ -467,10 +472,7 @@ export class ConversationsController {
 
   // Tag management endpoints
   @Post(':id/tags')
-  async addTags(
-    @Param('id') id: string,
-    @Body() body: { tags: string[] },
-  ) {
+  async addTags(@Param('id') id: string, @Body() body: { tags: string[] }) {
     const conv = await this.service.getConversation(id);
     if (!conv) {
       throw new Error(`Conversation ${id} not found`);
@@ -482,10 +484,7 @@ export class ConversationsController {
   }
 
   @Delete(':id/tags/:tagId')
-  async removeTag(
-    @Param('id') id: string,
-    @Param('tagId') tagId: string,
-  ) {
+  async removeTag(@Param('id') id: string, @Param('tagId') tagId: string) {
     const conv = await this.service.getConversation(id);
     if (!conv) {
       throw new Error(`Conversation ${id} not found`);

@@ -95,7 +95,11 @@ export class MongoDayLockRepository {
     }
   }
 
-  async getLockedDays(userId: string, startDate: Date, endDate: Date): Promise<Date[]> {
+  async getLockedDays(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Date[]> {
     try {
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
@@ -110,15 +114,16 @@ export class MongoDayLockRepository {
       return docs.map((doc) => new Date(doc.date));
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(
-        `Failed to get locked days: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error(`Failed to get locked days: ${err.message}`, err.stack);
       throw error;
     }
   }
 
-  async getLockedDaysWithMetadata(userId: string, startDate: Date, endDate: Date): Promise<Array<{ date: Date; lockedAt: Date }>> {
+  async getLockedDaysWithMetadata(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Array<{ date: Date; lockedAt: Date }>> {
     try {
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];

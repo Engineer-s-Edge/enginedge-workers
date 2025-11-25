@@ -66,14 +66,11 @@ export class EvaluationController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.resumeEvaluatorService.getScoreHistory(
-      resumeId,
-      {
-        limit: limit ? parseInt(limit, 10) : 20,
-        startDate,
-        endDate,
-      },
-    );
+    return this.resumeEvaluatorService.getScoreHistory(resumeId, {
+      limit: limit ? parseInt(limit, 10) : 20,
+      startDate,
+      endDate,
+    });
   }
 
   @Get('compare/:reportId1/:reportId2')

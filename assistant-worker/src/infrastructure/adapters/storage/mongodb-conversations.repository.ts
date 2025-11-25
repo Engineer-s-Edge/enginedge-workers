@@ -105,9 +105,7 @@ export class MongoDBConversationsRepository
   }
 
   async updatePinned(id: string, isPinned: boolean): Promise<void> {
-    await this.convModel
-      .updateOne({ _id: id }, { $set: { isPinned } })
-      .exec();
+    await this.convModel.updateOne({ _id: id }, { $set: { isPinned } }).exec();
   }
 
   async updateFolder(id: string, folderId: string | null): Promise<void> {
@@ -274,19 +272,21 @@ export class MongoDBConversationsRepository
       .sort({ ts: -1 })
       .exec();
 
-    return events.map((event) => {
-      const payload = event.payload as any;
-      if (payload.kind === 'checkpoint' && payload.data) {
-        return {
-          checkpointId: payload.data.checkpointId,
-          name: payload.data.name,
-          description: payload.data.description,
-          snapshotRefId: payload.data.snapshotRefId,
-          conversationState: payload.data.conversationState,
-        } as CheckpointRecord;
-      }
-      return null;
-    }).filter((c): c is CheckpointRecord => c !== null);
+    return events
+      .map((event) => {
+        const payload = event.payload as any;
+        if (payload.kind === 'checkpoint' && payload.data) {
+          return {
+            checkpointId: payload.data.checkpointId,
+            name: payload.data.name,
+            description: payload.data.description,
+            snapshotRefId: payload.data.snapshotRefId,
+            conversationState: payload.data.conversationState,
+          } as CheckpointRecord;
+        }
+        return null;
+      })
+      .filter((c): c is CheckpointRecord => c !== null);
   }
 
   async getCheckpointById(
@@ -345,7 +345,9 @@ export class MongoDBConversationsRepository
     const conversationState = checkpoint.conversationState;
 
     if (!conversationState) {
-      throw new Error(`Checkpoint ${checkpointId} does not contain conversation state`);
+      throw new Error(
+        `Checkpoint ${checkpointId} does not contain conversation state`,
+      );
     }
 
     // Get the checkpoint timestamp to delete events after it

@@ -134,7 +134,15 @@ export class InterviewService {
     category?: string;
     difficulty?: 'easy' | 'medium' | 'hard';
     search?: string;
-  }): Promise<{ interviews: Interview[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+  }): Promise<{
+    interviews: Interview[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
     const result = await this.interviewRepository.findPublicInterviews(options);
     return {
       interviews: result.interviews,

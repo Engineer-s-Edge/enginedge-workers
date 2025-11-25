@@ -60,7 +60,7 @@ export class MessageQueueService {
       conversationId?: string;
       taskId?: string;
       replyToMessageId?: string;
-  metadata?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
     } = {},
   ): Promise<CollectiveMessage> {
     const priority = options.priority || MessagePriority.NORMAL;
@@ -86,7 +86,7 @@ export class MessageQueueService {
     // Store message
     this.messages.set(message.id, message);
 
-  this.publishMessage(message);
+    this.publishMessage(message);
 
     // Add to recipient's queue (priority-sorted)
     const queue = this.messageQueues.get(toAgentId) || [];
@@ -128,7 +128,7 @@ export class MessageQueueService {
       type?: MessageType;
       priority?: MessagePriority;
       excludeAgentIds?: string[];
-  metadata?: Record<string, unknown>;
+      metadata?: Record<string, unknown>;
     } = {},
   ): Promise<CollectiveMessage[]> {
     // Get all agent IDs in collective (this would come from collective registry)
@@ -489,9 +489,9 @@ export class MessageQueueService {
   }
 
   streamMessages(collectiveId: string): Observable<CollectiveMessage> {
-    return this.messageSubject.asObservable().pipe(
-      filter((message) => message.collectiveId === collectiveId),
-    );
+    return this.messageSubject
+      .asObservable()
+      .pipe(filter((message) => message.collectiveId === collectiveId));
   }
 
   private publishMessage(message: CollectiveMessage): void {

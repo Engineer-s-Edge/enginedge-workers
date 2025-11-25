@@ -18,7 +18,10 @@ export interface IFoldersRepository {
   create(input: CreateFolderInput): Promise<FolderRecord>;
   findById(id: string): Promise<FolderRecord | null>;
   findByUser(userId: string): Promise<FolderRecord[]>;
-  update(id: string, updates: { name?: string; description?: string }): Promise<void>;
+  update(
+    id: string,
+    updates: { name?: string; description?: string },
+  ): Promise<void>;
   delete(id: string): Promise<void>;
   incrementConversationCount(id: string): Promise<void>;
   decrementConversationCount(id: string): Promise<void>;

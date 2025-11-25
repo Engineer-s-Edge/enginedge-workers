@@ -145,7 +145,8 @@ export class Interview {
       phases: data.phases as InterviewPhase[],
       config: data.config as InterviewConfig,
       rubric: data.rubric as ScoringRubric,
-      visibility: (data.visibility as 'private' | 'public' | 'unlisted') || 'private',
+      visibility:
+        (data.visibility as 'private' | 'public' | 'unlisted') || 'private',
       publishedAt: data.publishedAt
         ? new Date(data.publishedAt as string)
         : undefined,

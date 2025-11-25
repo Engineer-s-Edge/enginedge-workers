@@ -31,7 +31,10 @@ interface Logger {
   warn(message: string, meta?: Record<string, unknown>): void;
   error(message: string, meta?: Record<string, unknown>): void;
 }
-import { ICSLayer, KGNode } from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
+import {
+  ICSLayer,
+  KGNode,
+} from '@infrastructure/adapters/knowledge-graph/neo4j.adapter';
 
 /**
  * Knowledge Graph Controller
@@ -723,9 +726,8 @@ export class KnowledgeGraphController {
 
     for (const nodeId of body.nodeIds) {
       try {
-        const color = await this.knowledgeGraphService.calculateNodeColor(
-          nodeId,
-        );
+        const color =
+          await this.knowledgeGraphService.calculateNodeColor(nodeId);
         colors[nodeId] = color;
       } catch (error) {
         this.logger.warn('Failed to calculate color for node', {

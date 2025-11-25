@@ -3,11 +3,7 @@ import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
 import { LoggingInterceptor } from './infrastructure/interceptors/logging.interceptor';
-import {
-  SwaggerModule,
-  DocumentBuilder,
-  OpenAPIObject,
-} from '@nestjs/swagger';
+import { SwaggerModule, DocumentBuilder, OpenAPIObject } from '@nestjs/swagger';
 import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
 import { createHash } from 'crypto';
@@ -25,9 +21,7 @@ async function syncOpenApiDocument(document: OpenAPIObject) {
       sortKeys: true,
       lineWidth: -1,
     });
-    const nextChecksum = createHash('sha256')
-      .update(nextContent)
-      .digest('hex');
+    const nextChecksum = createHash('sha256').update(nextContent).digest('hex');
 
     if (existsSync(targetPath)) {
       const currentContent = await readFile(targetPath, 'utf8');
@@ -75,7 +69,9 @@ async function bootstrap() {
     // Swagger/OpenAPI documentation
     const config = new DocumentBuilder()
       .setTitle('Data Processing Worker API')
-      .setDescription('Document processing, embedding, and vector store management')
+      .setDescription(
+        'Document processing, embedding, and vector store management',
+      )
       .setVersion('1.0.0')
       .addBearerAuth(
         { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -96,7 +92,10 @@ async function bootstrap() {
     const port = process.env.PORT || 3003;
     await app.listen(port);
     Logger.log(`Application running on port ${port}`, 'Bootstrap');
-    Logger.log(`Swagger documentation available at http://localhost:${port}/api/docs`, 'Bootstrap');
+    Logger.log(
+      `Swagger documentation available at http://localhost:${port}/api/docs`,
+      'Bootstrap',
+    );
 
     // Handle termination signals
     const signals = ['SIGTERM', 'SIGINT'];

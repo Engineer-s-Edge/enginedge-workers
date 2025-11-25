@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { importJWK, jwtVerify, JWTPayload } from 'jose';
 
@@ -40,7 +36,9 @@ export class AuthValidationService {
 
     const authHeader = request.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid authorization header');
+      throw new UnauthorizedException(
+        'Missing or invalid authorization header',
+      );
     }
 
     const token = authHeader.substring(7);
@@ -101,9 +99,12 @@ export class AuthValidationService {
 
     const identityWorkerUrl =
       process.env.IDENTITY_WORKER_URL || 'http://localhost:3000';
-    const jwksResponse = await fetch(`${identityWorkerUrl}/.well-known/jwks.json`, {
-      cache: 'no-store',
-    });
+    const jwksResponse = await fetch(
+      `${identityWorkerUrl}/.well-known/jwks.json`,
+      {
+        cache: 'no-store',
+      },
+    );
 
     if (!jwksResponse.ok) {
       throw new Error('Failed to fetch JWKS');

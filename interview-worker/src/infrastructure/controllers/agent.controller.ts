@@ -20,7 +20,10 @@ import { InterviewService } from '../../application/services/interview.service';
 import { CandidateProfileService } from '../../application/services/candidate-profile.service';
 import { MongoCodeExecutionRepository } from '../adapters/database/code-execution.repository';
 import { MongoWhiteboardRepository } from '../adapters/database/whiteboard.repository';
-import { IInterviewSessionRepository, IInterviewResponseRepository } from '../../application/ports/repositories.port';
+import {
+  IInterviewSessionRepository,
+  IInterviewResponseRepository,
+} from '../../application/ports/repositories.port';
 import axios from 'axios';
 
 @Controller('sessions/:sessionId/agent')
@@ -122,9 +125,7 @@ export class AgentController {
    * Get agent context (phase, questions, time)
    */
   @Get('context')
-  async getAgentContext(
-    @Param('sessionId') sessionId: string,
-  ): Promise<{
+  async getAgentContext(@Param('sessionId') sessionId: string): Promise<{
     sessionId: string;
     currentPhase?: {
       phaseId: string;
@@ -167,7 +168,8 @@ export class AgentController {
     // Get responses for this session
     const responses = await this.responseRepository.findBySessionId(sessionId);
     const questionsAnswered = responses.length;
-    const questionsRemaining = interview.getTotalQuestionCount() - questionsAnswered;
+    const questionsRemaining =
+      interview.getTotalQuestionCount() - questionsAnswered;
 
     return {
       sessionId,
@@ -198,14 +200,12 @@ export class AgentController {
     interview: any,
   ): Promise<any> {
     // Get code executions
-    const codeExecutions = await this.codeExecutionRepository.findBySessionId(
-      sessionId,
-    );
+    const codeExecutions =
+      await this.codeExecutionRepository.findBySessionId(sessionId);
 
     // Get whiteboard states
-    const whiteboardStates = await this.whiteboardRepository.findBySession(
-      sessionId,
-    );
+    const whiteboardStates =
+      await this.whiteboardRepository.findBySession(sessionId);
 
     // Get current phase by index
     const currentPhase = interview.phases[session.currentPhase || 0];
@@ -242,13 +242,13 @@ export class AgentController {
             version: w.metadata.version,
           }))
         : whiteboardStates
-        ? [
-            {
-              questionId: (whiteboardStates as any).questionId,
-              version: (whiteboardStates as any).metadata.version,
-            },
-          ]
-        : [],
+          ? [
+              {
+                questionId: (whiteboardStates as any).questionId,
+                version: (whiteboardStates as any).metadata.version,
+              },
+            ]
+          : [],
       interviewConfig: {
         allowPause: interview.config.allowPause,
         allowSkip: interview.config.allowSkip,

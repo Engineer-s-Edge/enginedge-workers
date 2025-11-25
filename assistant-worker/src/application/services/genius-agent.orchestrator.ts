@@ -409,9 +409,7 @@ export class GeniusAgentOrchestrator {
         passed: passCount,
         failed: failCount,
         successRate:
-          batchResult.total > 0
-            ? (passCount / batchResult.total) * 100
-            : 0,
+          batchResult.total > 0 ? (passCount / batchResult.total) * 100 : 0,
         results: enrichedResults,
       };
     } catch (error) {

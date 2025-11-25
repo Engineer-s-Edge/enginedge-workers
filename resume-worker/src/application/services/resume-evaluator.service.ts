@@ -756,7 +756,7 @@ export class ResumeEvaluatorService {
       .limit(options.limit || 20)
       .exec();
 
-    const history = reports.map(report => ({
+    const history = reports.map((report) => ({
       reportId: report._id.toString(),
       createdAt: report.createdAt,
       mode: report.mode,
@@ -820,7 +820,10 @@ export class ResumeEvaluatorService {
     // Calculate score changes
     const scoreChanges: any = {};
     for (const key in report2.scores) {
-      if (typeof report2.scores[key] === 'number' && typeof report1.scores[key] === 'number') {
+      if (
+        typeof report2.scores[key] === 'number' &&
+        typeof report1.scores[key] === 'number'
+      ) {
         const from = report1.scores[key] as number;
         const to = report2.scores[key] as number;
         const change = to - from;
@@ -828,23 +831,28 @@ export class ResumeEvaluatorService {
           from,
           to,
           change,
-          direction: change > 0 ? 'improved' : change < 0 ? 'degraded' : 'unchanged',
+          direction:
+            change > 0 ? 'improved' : change < 0 ? 'degraded' : 'unchanged',
         };
       }
     }
 
     // Compare findings
-    const findings1 = new Set((report1.findings || []).map((f: any) => f.code || JSON.stringify(f)));
-    const findings2 = new Set((report2.findings || []).map((f: any) => f.code || JSON.stringify(f)));
-
-    const newFindings = (report2.findings || []).filter((f: any) =>
-      !findings1.has(f.code || JSON.stringify(f))
+    const findings1 = new Set(
+      (report1.findings || []).map((f: any) => f.code || JSON.stringify(f)),
     );
-    const resolvedFindings = (report1.findings || []).filter((f: any) =>
-      !findings2.has(f.code || JSON.stringify(f))
+    const findings2 = new Set(
+      (report2.findings || []).map((f: any) => f.code || JSON.stringify(f)),
+    );
+
+    const newFindings = (report2.findings || []).filter(
+      (f: any) => !findings1.has(f.code || JSON.stringify(f)),
+    );
+    const resolvedFindings = (report1.findings || []).filter(
+      (f: any) => !findings2.has(f.code || JSON.stringify(f)),
     );
     const persistentFindings = (report1.findings || []).filter((f: any) =>
-      findings2.has(f.code || JSON.stringify(f))
+      findings2.has(f.code || JSON.stringify(f)),
     );
 
     return {

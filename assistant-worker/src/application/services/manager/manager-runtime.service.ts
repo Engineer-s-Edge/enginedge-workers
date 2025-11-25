@@ -209,7 +209,9 @@ export class ManagerRuntimeService {
 
     const state = this.ensureState(agentId);
     const strategy =
-      request.strategy || state.executionPlan?.strategy || DecompositionStrategy.HIERARCHICAL;
+      request.strategy ||
+      state.executionPlan?.strategy ||
+      DecompositionStrategy.HIERARCHICAL;
 
     const masterTask: MasterTask = {
       id: request.masterTask.id || this.createId('master-task'),
@@ -245,7 +247,10 @@ export class ManagerRuntimeService {
       confidence: 0.82,
     };
     state.executionPlan = executionPlan;
-    state.subtasks = this.bootstrapRuntimeSubtasks(subtasks, request.preferredAgents);
+    state.subtasks = this.bootstrapRuntimeSubtasks(
+      subtasks,
+      request.preferredAgents,
+    );
     state.assignments = this.bootstrapAssignments(state.subtasks);
     state.aggregatedResult = null;
     state.paused = false;
@@ -293,7 +298,8 @@ export class ManagerRuntimeService {
           description:
             options.orchestratedTask || 'Coordinate current workload',
         },
-        strategy: (options.strategy as DecompositionStrategy) ||
+        strategy:
+          (options.strategy as DecompositionStrategy) ||
           DecompositionStrategy.HIERARCHICAL,
       });
     }
@@ -350,7 +356,8 @@ export class ManagerRuntimeService {
           assignment.status = 'completed';
           assignment.completedAt = now;
           assignment.result =
-            assignment.result || this.synthesizeSubtaskResult(subtask, assignment);
+            assignment.result ||
+            this.synthesizeSubtaskResult(subtask, assignment);
         }
 
         this.recordStateEvent(state, userId, 'subtask_completed', {
@@ -488,7 +495,10 @@ export class ManagerRuntimeService {
     state.paused = true;
     state.pauseReason = reason || 'manual_pause';
     state.lastUpdated = new Date();
-    this.logger.info('Manager agent paused', { agentId, reason: state.pauseReason });
+    this.logger.info('Manager agent paused', {
+      agentId,
+      reason: state.pauseReason,
+    });
 
     this.recordStateEvent(state, userId, 'execution_paused', {
       reason: state.pauseReason,
@@ -572,14 +582,14 @@ export class ManagerRuntimeService {
         return false;
       }
 
-      if (
-        filter?.statuses &&
-        !filter.statuses.includes(assignment.status)
-      ) {
+      if (filter?.statuses && !filter.statuses.includes(assignment.status)) {
         return false;
       }
 
-      if (filter?.includeCompleted === false && assignment.status === 'completed') {
+      if (
+        filter?.includeCompleted === false &&
+        assignment.status === 'completed'
+      ) {
         return false;
       }
 
@@ -615,7 +625,9 @@ export class ManagerRuntimeService {
     targetAgentId: string,
   ) {
     const state = this.ensureState(agentId);
-    const assignment = state.assignments.find((item) => item.id === assignmentId);
+    const assignment = state.assignments.find(
+      (item) => item.id === assignmentId,
+    );
 
     if (!assignment) {
       throw new BadRequestException(
@@ -759,7 +771,10 @@ export class ManagerRuntimeService {
     return subtasks;
   }
 
-  private splitDescription(description: string, hints?: string[]): DescriptionSection[] {
+  private splitDescription(
+    description: string,
+    hints?: string[],
+  ): DescriptionSection[] {
     const lines = description
       .split(/\n|\.|\-|\*/)
       .map((line) => line.trim())
@@ -846,21 +861,27 @@ export class ManagerRuntimeService {
   private recomputeMetrics(state: ManagerRuntimeState) {
     const metrics: ManagerRuntimeMetrics = {
       totalSubtasks: state.subtasks.length,
-      completed: state.subtasks.filter((subtask) => subtask.status === 'completed').length,
-      inProgress: state.subtasks.filter((subtask) => subtask.status === 'in_progress').length,
-      pending: state.subtasks.filter((subtask) => subtask.status === 'pending').length,
-      failed: state.subtasks.filter((subtask) => subtask.status === 'failed').length,
-      blocked: state.subtasks.filter((subtask) => subtask.status === 'blocked').length,
+      completed: state.subtasks.filter(
+        (subtask) => subtask.status === 'completed',
+      ).length,
+      inProgress: state.subtasks.filter(
+        (subtask) => subtask.status === 'in_progress',
+      ).length,
+      pending: state.subtasks.filter((subtask) => subtask.status === 'pending')
+        .length,
+      failed: state.subtasks.filter((subtask) => subtask.status === 'failed')
+        .length,
+      blocked: state.subtasks.filter((subtask) => subtask.status === 'blocked')
+        .length,
       progressPercent: 0,
-      avgConfidence:
-        state.assignments.length
-          ? state.assignments.reduce((sum, assignment) => {
-              if (assignment.result?.confidence) {
-                return sum + assignment.result.confidence;
-              }
-              return sum + 0.7;
-            }, 0) / state.assignments.length
-          : 0,
+      avgConfidence: state.assignments.length
+        ? state.assignments.reduce((sum, assignment) => {
+            if (assignment.result?.confidence) {
+              return sum + assignment.result.confidence;
+            }
+            return sum + 0.7;
+          }, 0) / state.assignments.length
+        : 0,
       totalAssignments: state.assignments.length,
     };
 
@@ -876,11 +897,16 @@ export class ManagerRuntimeService {
     assignments: ManagerRuntimeAssignment[],
   ): ManagerWaitingDependency[] {
     const completed = new Set(
-      subtasks.filter((task) => task.status === 'completed').map((task) => task.id),
+      subtasks
+        .filter((task) => task.status === 'completed')
+        .map((task) => task.id),
     );
 
     const agentBySubtask = new Map(
-      assignments.map((assignment) => [assignment.subtaskId, assignment.agentId]),
+      assignments.map((assignment) => [
+        assignment.subtaskId,
+        assignment.agentId,
+      ]),
     );
 
     const waiting: ManagerWaitingDependency[] = [];
@@ -890,7 +916,9 @@ export class ManagerRuntimeService {
         return;
       }
 
-      const unresolved = subtask.dependencies.filter((dep) => !completed.has(dep));
+      const unresolved = subtask.dependencies.filter(
+        (dep) => !completed.has(dep),
+      );
 
       unresolved.forEach((dep) => {
         waiting.push({

@@ -58,11 +58,14 @@ export class InterviewWebSocketGateway
   private readonly pushToTalkActive = new Map<string, boolean>();
   private readonly mutedSessions = new Set<string>();
   private readonly agentTTSActive = new Map<string, boolean>();
-  private readonly responseTimeTracking = new Map<string, {
-    questionStartTime?: Date;
-    responseStartTime?: Date;
-    responseEndTime?: Date;
-  }>();
+  private readonly responseTimeTracking = new Map<
+    string,
+    {
+      questionStartTime?: Date;
+      responseStartTime?: Date;
+      responseEndTime?: Date;
+    }
+  >();
 
   constructor(
     private readonly configService: ConfigService,
@@ -638,7 +641,9 @@ export class InterviewWebSocketGateway
 
     // Calculate response time
     if (tracking.questionStartTime && tracking.responseStartTime) {
-      const responseTime = tracking.responseStartTime.getTime() - tracking.questionStartTime.getTime();
+      const responseTime =
+        tracking.responseStartTime.getTime() -
+        tracking.questionStartTime.getTime();
       // Store in candidate profile
       await this.profileService.appendObservation(
         sessionId,
@@ -654,10 +659,13 @@ export class InterviewWebSocketGateway
 
     // Process audio if provided
     if (data.audio) {
-      await this.handleAudio({
-        audio: data.audio,
-        sessionId,
-      }, client);
+      await this.handleAudio(
+        {
+          audio: data.audio,
+          sessionId,
+        },
+        client,
+      );
     }
 
     client.send(

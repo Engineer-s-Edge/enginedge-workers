@@ -18,13 +18,16 @@ export class ToolsController {
 
   @Post('create-bullet')
   @HttpCode(HttpStatus.CREATED)
-  async createDraftBullet(@Body() body: {
-    userId: string;
-    text: string;
-    role?: string;
-    company?: string;
-    metadata?: any;
-  }) {
+  async createDraftBullet(
+    @Body()
+    body: {
+      userId: string;
+      text: string;
+      role?: string;
+      company?: string;
+      metadata?: any;
+    },
+  ) {
     return this.toolsService.createDraftBullet(
       body.userId,
       body.text,
@@ -36,21 +39,21 @@ export class ToolsController {
 
   @Post('evaluate-bullet')
   @HttpCode(HttpStatus.OK)
-  async evaluateBullet(@Body() body: {
-    bulletText: string;
-    role?: string;
-  }) {
+  async evaluateBullet(@Body() body: { bulletText: string; role?: string }) {
     return this.toolsService.evaluateBullet(body.bulletText, body.role);
   }
 
   @Post('add-bullet-to-bank')
   @HttpCode(HttpStatus.CREATED)
-  async addBulletToBank(@Body() body: {
-    bulletId?: string;
-    bulletText: string;
-    metadata: any;
-    scores?: any;
-  }) {
+  async addBulletToBank(
+    @Body()
+    body: {
+      bulletId?: string;
+      bulletText: string;
+      metadata: any;
+      scores?: any;
+    },
+  ) {
     return this.toolsService.addBulletToBank(
       body.bulletId,
       body.bulletText,
@@ -61,11 +64,9 @@ export class ToolsController {
 
   @Post('flag-bullet')
   @HttpCode(HttpStatus.OK)
-  async flagBullet(@Body() body: {
-    bulletId: string;
-    comment: string;
-    reason?: string;
-  }) {
+  async flagBullet(
+    @Body() body: { bulletId: string; comment: string; reason?: string },
+  ) {
     return this.toolsService.flagBullet(
       body.bulletId,
       body.comment,
@@ -97,11 +98,9 @@ export class ToolsController {
 
   @Post('edit-cover-letter-latex')
   @HttpCode(HttpStatus.OK)
-  async editCoverLetterLatex(@Body() body: {
-    coverLetterId: string;
-    latex: string;
-    editType: string;
-  }) {
+  async editCoverLetterLatex(
+    @Body() body: { coverLetterId: string; latex: string; editType: string },
+  ) {
     return this.toolsService.editCoverLetterLatex(
       body.coverLetterId,
       body.latex,
@@ -111,10 +110,9 @@ export class ToolsController {
 
   @Post('build-cover-letter-latex')
   @HttpCode(HttpStatus.OK)
-  async buildCoverLetterLatex(@Body() body: {
-    coverLetterId: string;
-    latex?: string;
-  }) {
+  async buildCoverLetterLatex(
+    @Body() body: { coverLetterId: string; latex?: string },
+  ) {
     return this.toolsService.buildCoverLetterLatex(
       body.coverLetterId,
       body.latex,

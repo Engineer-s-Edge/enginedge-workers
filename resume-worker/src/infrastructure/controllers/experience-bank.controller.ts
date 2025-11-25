@@ -107,7 +107,8 @@ export class ExperienceBankController {
   @HttpCode(HttpStatus.OK)
   async updateBullet(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       bulletText?: string;
       metadata?: any;
       reEvaluate?: boolean;
@@ -121,12 +122,9 @@ export class ExperienceBankController {
 
   @Post('bulk-review')
   @HttpCode(HttpStatus.OK)
-  async bulkReview(@Body() body: {
-    bulletIds: string[];
-    reviewed: boolean;
-  }) {
+  async bulkReview(@Body() body: { bulletIds: string[]; reviewed: boolean }) {
     const results = await Promise.allSettled(
-      body.bulletIds.map(id =>
+      body.bulletIds.map((id) =>
         this.experienceBankService.markReviewed(
           new Types.ObjectId(id),
           body.reviewed,
@@ -134,8 +132,8 @@ export class ExperienceBankController {
       ),
     );
 
-    const updated = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const updated = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
       success: failed === 0,
@@ -150,18 +148,15 @@ export class ExperienceBankController {
 
   @Post('bulk-delete')
   @HttpCode(HttpStatus.OK)
-  async bulkDelete(@Body() body: {
-    bulletIds: string[];
-    force?: boolean;
-  }) {
+  async bulkDelete(@Body() body: { bulletIds: string[]; force?: boolean }) {
     const results = await Promise.allSettled(
-      body.bulletIds.map(id =>
+      body.bulletIds.map((id) =>
         this.experienceBankService.delete(new Types.ObjectId(id)),
       ),
     );
 
-    const deleted = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const deleted = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
       success: failed === 0,
@@ -173,11 +168,14 @@ export class ExperienceBankController {
 
   @Post('bulk-evaluate')
   @HttpCode(HttpStatus.OK)
-  async bulkEvaluate(@Body() body: {
-    bulletIds: string[];
-    useLlm?: boolean;
-    generateFixes?: boolean;
-  }) {
+  async bulkEvaluate(
+    @Body()
+    body: {
+      bulletIds: string[];
+      useLlm?: boolean;
+      generateFixes?: boolean;
+    },
+  ) {
     // This would need BulletEvaluatorService injected
     return {
       success: true,
@@ -191,8 +189,12 @@ export class ExperienceBankController {
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   async importBullets(
-    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string } | undefined,
-    @Body() body: {
+    @UploadedFile()
+    file:
+      | { buffer: Buffer; originalname: string; mimetype: string }
+      | undefined,
+    @Body()
+    body: {
       userId: string;
       format?: string;
       resumeId?: string;
@@ -211,7 +213,9 @@ export class ExperienceBankController {
 
     if (format === 'resume' && body.resumeId) {
       // Import from resume - extract bullets from resume LaTeX
-      const { ResumeService } = await import('../../application/services/resume.service');
+      const { ResumeService } = await import(
+        '../../application/services/resume.service'
+      );
       // This would need to be injected, but for now we'll parse directly
       // In production, inject ResumeService
       bullets = []; // Would parse resume LaTeX to extract bullets
@@ -344,13 +348,15 @@ export class ExperienceBankController {
     const ids = bulletIds ? bulletIds.split(',') : undefined;
     const bullets = ids
       ? await Promise.all(
-          ids.map(id => this.experienceBankService.findById(new Types.ObjectId(id))),
+          ids.map((id) =>
+            this.experienceBankService.findById(new Types.ObjectId(id)),
+          ),
         )
       : await this.experienceBankService.findByUser(userId);
 
     const data = bullets
-      .filter(b => b !== null)
-      .map(bullet => ({
+      .filter((b) => b !== null)
+      .map((bullet) => ({
         id: bullet!._id.toString(),
         bulletText: bullet!.bulletText,
         ...(includeMetadata === 'true' ? { metadata: bullet!.metadata } : {}),
@@ -368,7 +374,7 @@ export class ExperienceBankController {
       // Convert to CSV (simplified)
       const csv = [
         'id,bulletText,impactScore,atsScore',
-        ...data.map(d =>
+        ...data.map((d) =>
           [
             d.id,
             `"${d.bulletText.replace(/"/g, '""')}"`,
@@ -385,7 +391,9 @@ export class ExperienceBankController {
 
   @Get(':id/usage')
   async getUsage(@Param('id') id: string) {
-    const bullet = await this.experienceBankService.findById(new Types.ObjectId(id));
+    const bullet = await this.experienceBankService.findById(
+      new Types.ObjectId(id),
+    );
     if (!bullet) {
       throw new Error('Bullet not found');
     }
@@ -401,7 +409,9 @@ export class ExperienceBankController {
 
   @Get(':id/scores')
   async getScoreHistory(@Param('id') id: string) {
-    const bullet = await this.experienceBankService.findById(new Types.ObjectId(id));
+    const bullet = await this.experienceBankService.findById(
+      new Types.ObjectId(id),
+    );
     if (!bullet) {
       throw new Error('Bullet not found');
     }

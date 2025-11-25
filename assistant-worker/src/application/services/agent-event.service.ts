@@ -128,7 +128,10 @@ export class AgentEventService {
 
     const channel = `agent.${agentId}`;
     this.eventEmitter.on(channel, callback);
-    this.subscriptionHandlers.set(subscriptionId, { channel, listener: callback });
+    this.subscriptionHandlers.set(subscriptionId, {
+      channel,
+      listener: callback,
+    });
 
     this.logger.info('Agent instance subscription created', {
       subscriptionId,

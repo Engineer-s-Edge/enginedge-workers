@@ -68,9 +68,8 @@ export class SharedMemoryGroupService {
 
     try {
       // Check if conversation exists
-      const conversation = await this.conversationsService.getConversation(
-        conversationId,
-      );
+      const conversation =
+        await this.conversationsService.getConversation(conversationId);
 
       if (!conversation) {
         // Create conversation for the memory group
@@ -239,9 +238,8 @@ export class SharedMemoryGroupService {
     conversationId: string,
   ): Promise<MemoryType> {
     try {
-      const memories = await this.conversationsService.getMemories(
-        conversationId,
-      );
+      const memories =
+        await this.conversationsService.getMemories(conversationId);
       if (memories.length > 0) {
         return memories[0].type as MemoryType;
       }

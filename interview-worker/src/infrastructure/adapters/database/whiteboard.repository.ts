@@ -17,7 +17,10 @@ export class MongoWhiteboardRepository implements OnModuleInit {
 
   async onModuleInit() {
     this.collection = this.db.collection('whiteboard_states');
-    await this.collection.createIndex({ sessionId: 1, questionId: 1 }, { unique: true });
+    await this.collection.createIndex(
+      { sessionId: 1, questionId: 1 },
+      { unique: true },
+    );
     await this.collection.createIndex({ sessionId: 1 });
     await this.collection.createIndex({ 'metadata.updatedAt': -1 });
     this.logger.log('MongoWhiteboardRepository initialized');

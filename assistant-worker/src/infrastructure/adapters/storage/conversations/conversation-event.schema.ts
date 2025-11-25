@@ -44,7 +44,8 @@ class CheckpointPayloadSchema {
   @Prop() name?: string;
   @Prop() description?: string;
   @Prop() snapshotRefId?: string;
-  @Prop({ type: ConversationStateSnapshotSchema }) conversationState?: ConversationStateSnapshotSchema;
+  @Prop({ type: ConversationStateSnapshotSchema })
+  conversationState?: ConversationStateSnapshotSchema;
 }
 
 @Schema({ _id: false })

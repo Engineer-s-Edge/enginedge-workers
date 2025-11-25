@@ -23,12 +23,15 @@ export class CoverLetterController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createCoverLetter(@Body() body: {
-    userId: string;
-    resumeId: string;
-    jobPostingId?: string;
-    latexContent: string;
-  }) {
+  async createCoverLetter(
+    @Body()
+    body: {
+      userId: string;
+      resumeId: string;
+      jobPostingId?: string;
+      latexContent: string;
+    },
+  ) {
     return this.coverLetterService.create(
       body.userId,
       body.resumeId,
@@ -46,7 +49,8 @@ export class CoverLetterController {
   @HttpCode(HttpStatus.OK)
   async updateCoverLetter(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       latexContent?: string;
       version?: number;
     },
@@ -69,7 +73,10 @@ export class CoverLetterController {
   async exportTex(@Param('id') id: string, @Res() res: Response) {
     const result = await this.coverLetterService.exportTex(id);
     res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename="cover-letter.tex"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="cover-letter.tex"`,
+    );
     res.send(result.content);
   }
 
@@ -77,19 +84,27 @@ export class CoverLetterController {
   async exportPdf(@Param('id') id: string, @Res() res: Response) {
     const result = await this.coverLetterService.exportPdf(id);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="cover-letter.pdf"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="cover-letter.pdf"`,
+    );
     // In production, fetch PDF from URL and stream it
     res.send('PDF export - would fetch from URL');
   }
 
   @Post('generate')
   async generateCoverLetter(
-    @Body() body: { userId: string; resumeId: string; options: GenerateCoverLetterOptions },
+    @Body()
+    body: {
+      userId: string;
+      resumeId: string;
+      options: GenerateCoverLetterOptions;
+    },
   ) {
-    return this.coverLetterService.generateCoverLetter(
-      body.userId,
-      { ...body.options, resumeId: body.resumeId },
-    );
+    return this.coverLetterService.generateCoverLetter(body.userId, {
+      ...body.options,
+      resumeId: body.resumeId,
+    });
   }
 
   @Post(':id/regenerate')

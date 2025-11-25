@@ -1,5 +1,12 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Task, TaskCompletionStatus, TaskPriority, EventAttendee, EventReminder, EventRecurrence } from '../../domain/entities';
+import {
+  Task,
+  TaskCompletionStatus,
+  TaskPriority,
+  EventAttendee,
+  EventReminder,
+  EventRecurrence,
+} from '../../domain/entities';
 import { ITaskRepository } from '../ports/repositories.port';
 
 /**
@@ -104,19 +111,22 @@ export class TaskService {
   /**
    * Update a task
    */
-  async updateTask(id: string, updates: {
-    title?: string;
-    description?: string | null;
-    location?: string | null;
-    attendees?: EventAttendee[];
-    reminders?: EventReminder[];
-    recurrence?: EventRecurrence | null;
-    category?: string;
-    priority?: TaskPriority;
-    tags?: string[];
-    estimatedDuration?: number;
-    metadata?: Record<string, any>;
-  }): Promise<Task> {
+  async updateTask(
+    id: string,
+    updates: {
+      title?: string;
+      description?: string | null;
+      location?: string | null;
+      attendees?: EventAttendee[];
+      reminders?: EventReminder[];
+      recurrence?: EventRecurrence | null;
+      category?: string;
+      priority?: TaskPriority;
+      tags?: string[];
+      estimatedDuration?: number;
+      metadata?: Record<string, any>;
+    },
+  ): Promise<Task> {
     this.logger.log(`Updating task: ${id}`);
 
     const existing = await this.taskRepository.findById(id);
@@ -139,7 +149,11 @@ export class TaskService {
   /**
    * Defer task to different time
    */
-  async deferTask(id: string, deferType: 'same-day' | 'next-day' | 'next-3-days' | 'next-week', newTime?: Date): Promise<Task> {
+  async deferTask(
+    id: string,
+    deferType: 'same-day' | 'next-day' | 'next-3-days' | 'next-week',
+    newTime?: Date,
+  ): Promise<Task> {
     this.logger.log(`Deferring task: ${id}, type: ${deferType}`);
 
     const task = await this.taskRepository.findById(id);
@@ -171,7 +185,12 @@ export class TaskService {
 
       // Keep the same time of day
       newStartTime = new Date(targetDate);
-      newStartTime.setHours(task.startTime.getHours(), task.startTime.getMinutes(), 0, 0);
+      newStartTime.setHours(
+        task.startTime.getHours(),
+        task.startTime.getMinutes(),
+        0,
+        0,
+      );
       newEndTime = new Date(newStartTime.getTime() + duration * 60 * 1000);
     }
 
@@ -182,14 +201,19 @@ export class TaskService {
   /**
    * Split task into multiple tasks
    */
-  async splitTask(id: string, options: {
-    numberOfTasks: number;
-    splitEvenly: boolean;
-    durations?: number[];
-    scheduleParts?: boolean;
-    deferType?: 'next-day' | 'next-3-days' | 'next-week';
-  }): Promise<Task[]> {
-    this.logger.log(`Splitting task: ${id} into ${options.numberOfTasks} parts`);
+  async splitTask(
+    id: string,
+    options: {
+      numberOfTasks: number;
+      splitEvenly: boolean;
+      durations?: number[];
+      scheduleParts?: boolean;
+      deferType?: 'next-day' | 'next-3-days' | 'next-week';
+    },
+  ): Promise<Task[]> {
+    this.logger.log(
+      `Splitting task: ${id} into ${options.numberOfTasks} parts`,
+    );
 
     const task = await this.taskRepository.findById(id);
     if (!task) {
@@ -210,7 +234,10 @@ export class TaskService {
         durations[durations.length - 1] += remainder;
       }
     } else {
-      if (!options.durations || options.durations.length !== options.numberOfTasks) {
+      if (
+        !options.durations ||
+        options.durations.length !== options.numberOfTasks
+      ) {
         throw new Error('Durations array must match number of tasks');
       }
       durations.push(...options.durations);
@@ -241,7 +268,12 @@ export class TaskService {
         }
 
         partStartTime = new Date(targetDate);
-        partStartTime.setHours(task.startTime.getHours(), task.startTime.getMinutes(), 0, 0);
+        partStartTime.setHours(
+          task.startTime.getHours(),
+          task.startTime.getMinutes(),
+          0,
+          0,
+        );
       } else {
         // First part or not scheduling
         partStartTime = new Date(task.startTime);
@@ -251,7 +283,9 @@ export class TaskService {
         }
       }
 
-      partEndTime = new Date(partStartTime.getTime() + partDuration * 60 * 1000);
+      partEndTime = new Date(
+        partStartTime.getTime() + partDuration * 60 * 1000,
+      );
 
       const partTask = new Task(
         this.generateId(),
@@ -296,12 +330,15 @@ export class TaskService {
   /**
    * Complete a task
    */
-  async completeTask(id: string, options: {
-    completionType: 'fully' | 'partially';
-    completionPercentage?: number;
-    notes?: string;
-    actualDuration?: number;
-  }): Promise<Task> {
+  async completeTask(
+    id: string,
+    options: {
+      completionType: 'fully' | 'partially';
+      completionPercentage?: number;
+      notes?: string;
+      actualDuration?: number;
+    },
+  ): Promise<Task> {
     this.logger.log(`Completing task: ${id}`);
 
     const task = await this.taskRepository.findById(id);
@@ -315,7 +352,9 @@ export class TaskService {
       completed = task.markComplete(options.actualDuration, options.notes);
     } else {
       if (!options.completionPercentage) {
-        throw new Error('Completion percentage is required for partial completion');
+        throw new Error(
+          'Completion percentage is required for partial completion',
+        );
       }
       completed = task.markPartiallyComplete(
         options.completionPercentage,
@@ -330,7 +369,11 @@ export class TaskService {
   /**
    * Duplicate a task
    */
-  async duplicateTask(id: string, newStartTime?: Date, newEndTime?: Date): Promise<Task> {
+  async duplicateTask(
+    id: string,
+    newStartTime?: Date,
+    newEndTime?: Date,
+  ): Promise<Task> {
     this.logger.log(`Duplicating task: ${id}`);
 
     const task = await this.taskRepository.findById(id);
@@ -338,14 +381,21 @@ export class TaskService {
       throw new Error(`Task ${id} not found`);
     }
 
-    const duplicated = task.duplicate(this.generateId(), newStartTime, newEndTime);
+    const duplicated = task.duplicate(
+      this.generateId(),
+      newStartTime,
+      newEndTime,
+    );
     return await this.taskRepository.save(duplicated);
   }
 
   /**
    * Make task recurring
    */
-  async makeTaskRecurring(id: string, recurrence: EventRecurrence): Promise<Task> {
+  async makeTaskRecurring(
+    id: string,
+    recurrence: EventRecurrence,
+  ): Promise<Task> {
     this.logger.log(`Making task recurring: ${id}`);
 
     const task = await this.taskRepository.findById(id);

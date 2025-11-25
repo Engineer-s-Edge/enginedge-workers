@@ -97,7 +97,9 @@ export class CoverLetterService {
     const coverLetter = await this.coverLetterModel.create({
       userId,
       resumeId: new Types.ObjectId(options.resumeId),
-      jobPostingId: options.jobPostingId ? new Types.ObjectId(options.jobPostingId) : undefined,
+      jobPostingId: options.jobPostingId
+        ? new Types.ObjectId(options.jobPostingId)
+        : undefined,
       latexContent: `\\documentclass{letter}\n\\begin{document}\n${content}\n\\end{document}`,
       metadata: {
         company: jobPosting.parsed.company.hiringOrganization || 'Company',
@@ -580,11 +582,9 @@ Please write a compelling cover letter that:
       updateData.version = updates.version;
     }
 
-    const coverLetter = await this.coverLetterModel.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true },
-    ).exec();
+    const coverLetter = await this.coverLetterModel
+      .findByIdAndUpdate(id, { $set: updateData }, { new: true })
+      .exec();
 
     if (!coverLetter) {
       throw new Error('Cover letter not found');
@@ -602,7 +602,7 @@ Please write a compelling cover letter that:
       .sort({ createdAt: -1 })
       .exec();
 
-    return coverLetters.map(cl => this.toCoverLetter(cl));
+    return coverLetters.map((cl) => this.toCoverLetter(cl));
   }
 
   /**
@@ -638,7 +638,9 @@ Please write a compelling cover letter that:
     }
 
     // Compile LaTeX to PDF
-    const latexWorkerUrl = this.configService.get<string>('LATEX_WORKER_URL') || 'http://localhost:3005';
+    const latexWorkerUrl =
+      this.configService.get<string>('LATEX_WORKER_URL') ||
+      'http://localhost:3005';
     const response = await fetch(`${latexWorkerUrl}/latex/compile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -699,17 +701,23 @@ Please write a compelling cover letter that:
     const relevantExperiences = await this.findRelevantExperiences(
       existing.userId,
       jobPosting,
-      options.includeExperiences || existing.metadata.experiencesUsed.map(id => id.toString()),
+      options.includeExperiences ||
+        existing.metadata.experiencesUsed.map((id) => id.toString()),
     );
 
     // Merge options
     const mergedOptions: GenerateCoverLetterOptions = {
       resumeId: existing.resumeId.toString(),
       jobPostingId: existing.jobPostingId?.toString() || '',
-      tone: options.tone || (existing.metadata.tone as 'professional' | 'casual' | 'enthusiastic'),
-      length: options.length || (existing.metadata.length as 'short' | 'medium' | 'long'),
+      tone:
+        options.tone ||
+        (existing.metadata.tone as 'professional' | 'casual' | 'enthusiastic'),
+      length:
+        options.length ||
+        (existing.metadata.length as 'short' | 'medium' | 'long'),
       includeExperiences:
-        options.includeExperiences || existing.metadata.experiencesUsed.map(id => id.toString()),
+        options.includeExperiences ||
+        existing.metadata.experiencesUsed.map((id) => id.toString()),
       customInstructions: options.customInstructions,
     };
 
@@ -726,7 +734,8 @@ Please write a compelling cover letter that:
     existing.metadata.tone = mergedOptions.tone || existing.metadata.tone;
     existing.metadata.length = mergedOptions.length || existing.metadata.length;
     existing.metadata.experiencesUsed =
-      mergedOptions.includeExperiences?.map(id => new Types.ObjectId(id)) || existing.metadata.experiencesUsed;
+      mergedOptions.includeExperiences?.map((id) => new Types.ObjectId(id)) ||
+      existing.metadata.experiencesUsed;
     existing.version = (existing.version || 1) + 1;
 
     await existing.save();
@@ -770,7 +779,9 @@ Please write a compelling cover letter that:
         position: doc.metadata.position,
         tone: doc.metadata.tone as 'professional' | 'casual' | 'enthusiastic',
         length: doc.metadata.length as 'short' | 'medium' | 'long',
-        experiencesUsed: doc.metadata.experiencesUsed.map(id => id.toString()),
+        experiencesUsed: doc.metadata.experiencesUsed.map((id) =>
+          id.toString(),
+        ),
       },
       version: doc.version,
       createdAt: doc.createdAt,

@@ -177,7 +177,9 @@ export class TaskAssignmentService {
       totalAgentsTracked: agents.length,
       totalAssignments,
       averageLoadPerAgent:
-        agents.length > 0 ? Number((totalAssignments / agents.length).toFixed(2)) : 0,
+        agents.length > 0
+          ? Number((totalAssignments / agents.length).toFixed(2))
+          : 0,
       agents,
     };
   }
