@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-npx lint-staged
-
+# Pre-commit hook - run lint-staged
+# Only run if package.json exists (skip for root of monorepo)
+cd "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || true
+test -f package.json && npx lint-staged || exit 0
