@@ -117,7 +117,7 @@ Create a `.env` file:
 
 ```env
 # Server
-PORT=3003
+PORT=3002
 NODE_ENV=development
 LOG_LEVEL=debug
 
@@ -157,12 +157,12 @@ npm run start:prod
 npm run start
 ```
 
-The service will start on `http://localhost:3003` (or your configured PORT).
+The service will start on `http://localhost:3002` (or your configured PORT).
 
 ### Health Check
 
 ```bash
-curl http://localhost:3003/health
+curl http://localhost:3002/health
 ```
 
 Expected response:
@@ -199,7 +199,7 @@ Comprehensive documentation is available in the `documentation/` folder:
 ### Register a Tool
 
 ```bash
-curl -X POST http://localhost:3003/tools/register \
+curl -X POST http://localhost:3002/tools/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "web-search",
@@ -217,19 +217,19 @@ curl -X POST http://localhost:3003/tools/register \
 ### Get All Tools
 
 ```bash
-curl http://localhost:3003/tools
+curl http://localhost:3002/tools
 ```
 
 ### Get Tool by Name
 
 ```bash
-curl http://localhost:3003/tools/web-search
+curl http://localhost:3002/tools/web-search
 ```
 
 ### Execute Tool
 
 ```bash
-curl -X POST http://localhost:3003/tools/web-search/execute \
+curl -X POST http://localhost:3002/tools/web-search/execute \
   -H "Content-Type: application/json" \
   -d '{
     "input": {
@@ -243,7 +243,7 @@ curl -X POST http://localhost:3003/tools/web-search/execute \
 ### Batch Execute Tools
 
 ```bash
-curl -X POST http://localhost:3003/tools/batch-execute \
+curl -X POST http://localhost:3002/tools/batch-execute \
   -H "Content-Type: application/json" \
   -d '{
     "tasks": [
@@ -262,7 +262,7 @@ curl -X POST http://localhost:3003/tools/batch-execute \
 ### Update Tool Configuration
 
 ```bash
-curl -X PATCH http://localhost:3003/tools/web-search \
+curl -X PATCH http://localhost:3002/tools/web-search \
   -H "Content-Type: application/json" \
   -d '{
     "config": {
@@ -275,7 +275,7 @@ curl -X PATCH http://localhost:3003/tools/web-search \
 ### Get Tool Metrics
 
 ```bash
-curl http://localhost:3003/tools/web-search/metrics
+curl http://localhost:3002/tools/web-search/metrics
 ```
 
 ## 🏗️ Architecture
@@ -348,7 +348,7 @@ npm run test:unit
 The Agent Tool Worker exposes Prometheus-compatible metrics:
 
 ```bash
-curl http://localhost:3003/metrics
+curl http://localhost:3002/metrics
 ```
 
 **Key Metrics:**
@@ -412,8 +412,8 @@ curl http://localhost:3003/metrics
 docker build -t agent-tool-worker:latest .
 
 # Run container
-docker run -p 3003:3003 \
-  -e PORT=3003 \
+docker run -p 3002:3002 \
+  -e PORT=3002 \
   -e MONGODB_URI=mongodb://mongo:27017 \
   agent-tool-worker:latest
 ```

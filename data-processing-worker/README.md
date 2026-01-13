@@ -124,7 +124,7 @@ Create a `.env` file:
 
 ```env
 # Server
-PORT=3002
+PORT=3003
 NODE_ENV=development
 LOG_LEVEL=debug
 
@@ -164,12 +164,12 @@ npm run start:prod
 npm run start
 ```
 
-The service will start on `http://localhost:3002` (or your configured PORT).
+The service will start on `http://localhost:3003` (or your configured PORT).
 
 ### Health Check
 
 ```bash
-curl http://localhost:3002/health
+curl http://localhost:3003/health
 ```
 
 Expected response:
@@ -207,7 +207,7 @@ Comprehensive documentation is available in the `documentation/` folder:
 ### Upload Document
 
 ```bash
-curl -X POST http://localhost:3002/documents/upload \
+curl -X POST http://localhost:3003/documents/upload \
   -H "Content-Type: multipart/form-data" \
   -F "file=@document.pdf" \
   -F "split=true" \
@@ -217,7 +217,7 @@ curl -X POST http://localhost:3002/documents/upload \
 ### Process URL
 
 ```bash
-curl -X POST http://localhost:3002/documents/process-url \
+curl -X POST http://localhost:3003/documents/process-url \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com/article",
@@ -229,7 +229,7 @@ curl -X POST http://localhost:3002/documents/process-url \
 ### Search Documents
 
 ```bash
-curl -X POST http://localhost:3002/vector-store/search \
+curl -X POST http://localhost:3003/vector-store/search \
   -H "Content-Type: application/json" \
   -d '{
     "query": "machine learning concepts",
@@ -241,7 +241,7 @@ curl -X POST http://localhost:3002/vector-store/search \
 ### Hybrid Search
 
 ```bash
-curl -X POST http://localhost:3002/vector-store/hybrid-search \
+curl -X POST http://localhost:3003/vector-store/hybrid-search \
   -H "Content-Type: application/json" \
   -d '{
     "query": "artificial intelligence",
@@ -254,7 +254,7 @@ curl -X POST http://localhost:3002/vector-store/hybrid-search \
 ### Generate Embeddings
 
 ```bash
-curl -X POST http://localhost:3002/embedders/embed \
+curl -X POST http://localhost:3003/embedders/embed \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Sample text to embed",
@@ -330,7 +330,7 @@ npm run test:watch
 The Data Processing Worker exposes Prometheus-compatible metrics:
 
 ```bash
-curl http://localhost:3002/metrics
+curl http://localhost:3003/metrics
 ```
 
 **Key Metrics:**
@@ -397,8 +397,8 @@ curl http://localhost:3002/metrics
 docker build -t data-processing-worker:latest .
 
 # Run container
-docker run -p 3002:3002 \
-  -e PORT=3002 \
+docker run -p 3003:3003 \
+  -e PORT=3003 \
   -e MONGODB_URI=mongodb://mongo:27017 \
   -e OPENAI_API_KEY=your_key \
   data-processing-worker:latest

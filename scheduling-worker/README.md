@@ -119,10 +119,10 @@ npm run build
    # Google Calendar API
    GOOGLE_CLIENT_ID=your_client_id
    GOOGLE_CLIENT_SECRET=your_client_secret
-   GOOGLE_REDIRECT_URI=http://localhost:3003/auth/google/callback
+   GOOGLE_REDIRECT_URI=http://localhost:3007/auth/google/callback
 
    # Server
-   PORT=3003
+   PORT=3007
    NODE_ENV=development
    ```
 
@@ -139,12 +139,12 @@ npm run start:prod
 npm run start
 ```
 
-The service will start on `http://localhost:3003` (or your configured PORT).
+The service will start on `http://localhost:3007` (or your configured PORT).
 
 ### Health Check
 
 ```bash
-curl http://localhost:3003/health
+curl http://localhost:3007/health
 ```
 
 Expected response:
@@ -186,14 +186,14 @@ Comprehensive documentation is available in the `documentation/` folder:
 
 ```bash
 # Authenticate with Google
-curl http://localhost:3003/auth/google
+curl http://localhost:3007/auth/google
 
 # Get calendar list
-curl http://localhost:3003/calendars \
+curl http://localhost:3007/calendars \
   -H "Authorization: Bearer your_token"
 
 # Create calendar event
-curl -X POST http://localhost:3003/events \
+curl -X POST http://localhost:3007/events \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -214,7 +214,7 @@ curl -X POST http://localhost:3003/events \
 
 ```bash
 # Create a goal
-curl -X POST http://localhost:3003/goals \
+curl -X POST http://localhost:3007/goals \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -229,7 +229,7 @@ curl -X POST http://localhost:3003/goals \
   }'
 
 # Get goal progress
-curl http://localhost:3003/goals/project-alpha/progress \
+curl http://localhost:3007/goals/project-alpha/progress \
   -H "Authorization: Bearer your_token"
 ```
 
@@ -237,7 +237,7 @@ curl http://localhost:3003/goals/project-alpha/progress \
 
 ```bash
 # Create a habit
-curl -X POST http://localhost:3003/habits \
+curl -X POST http://localhost:3007/habits \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -249,7 +249,7 @@ curl -X POST http://localhost:3003/habits \
   }'
 
 # Mark habit as completed
-curl -X POST http://localhost:3003/habits/morning-exercise/complete \
+curl -X POST http://localhost:3007/habits/morning-exercise/complete \
   -H "Authorization: Bearer your_token" \
   -d '{"date": "2025-10-27"}'
 ```
@@ -258,7 +258,7 @@ curl -X POST http://localhost:3003/habits/morning-exercise/complete \
 
 ```bash
 # Get optimal meeting time
-curl -X POST http://localhost:3003/schedule/optimize \
+curl -X POST http://localhost:3007/schedule/optimize \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -333,7 +333,7 @@ npm run test:e2e
 The Scheduling Worker exposes Prometheus-compatible metrics:
 
 ```bash
-curl http://localhost:3003/metrics
+curl http://localhost:3007/metrics
 ```
 
 **Key Metrics:**
@@ -378,7 +378,7 @@ curl http://localhost:3003/metrics
 docker build -t scheduling-worker:latest .
 
 # Run container
-docker run -p 3003:3003 \
+docker run -p 3007:3007 \
   -e GOOGLE_CLIENT_ID=your_id \
   -e GOOGLE_CLIENT_SECRET=your_secret \
   scheduling-worker:latest

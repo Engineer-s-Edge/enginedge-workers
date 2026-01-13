@@ -106,7 +106,7 @@ Create a `.env` file:
 
 ```env
 # Server
-PORT=3004
+PORT=3005
 NODE_ENV=development
 
 # LaTeX Configuration
@@ -141,12 +141,12 @@ npm run start:prod
 npm run start
 ```
 
-The service will start on `http://localhost:3004` (or your configured PORT).
+The service will start on `http://localhost:3005` (or your configured PORT).
 
 ### Health Check
 
 ```bash
-curl http://localhost:3004/health
+curl http://localhost:3005/health
 ```
 
 Expected response:
@@ -185,7 +185,7 @@ Comprehensive documentation is available in the `documentation/` folder:
 ### Compile LaTeX Document
 
 ```bash
-curl -X POST http://localhost:3004/compile \
+curl -X POST http://localhost:3005/compile \
   -F "file=@document.tex" \
   -F "outputFormat=pdf" \
   -F "template=article"
@@ -195,13 +195,13 @@ curl -X POST http://localhost:3004/compile \
 
 ```bash
 # Upload document
-curl -X POST http://localhost:3004/documents/upload \
+curl -X POST http://localhost:3005/documents/upload \
   -F "file=@document.tex"
 
 # Response: { "documentId": "abc123" }
 
 # Compile uploaded document
-curl -X POST http://localhost:3004/documents/abc123/compile \
+curl -X POST http://localhost:3005/documents/abc123/compile \
   -H "Content-Type: application/json" \
   -d '{
     "outputFormat": "pdf",
@@ -216,7 +216,7 @@ curl -X POST http://localhost:3004/documents/abc123/compile \
 ### Get Compilation Status
 
 ```bash
-curl http://localhost:3004/documents/abc123/status
+curl http://localhost:3005/documents/abc123/status
 ```
 
 Response:
@@ -236,7 +236,7 @@ Response:
 ### Batch Compilation
 
 ```bash
-curl -X POST http://localhost:3004/batch/compile \
+curl -X POST http://localhost:3005/batch/compile \
   -H "Content-Type: application/json" \
   -d '{
     "documents": [
@@ -251,10 +251,10 @@ curl -X POST http://localhost:3004/batch/compile \
 
 ```bash
 # List available templates
-curl http://localhost:3004/templates
+curl http://localhost:3005/templates
 
 # Upload custom template
-curl -X POST http://localhost:3004/templates/upload \
+curl -X POST http://localhost:3005/templates/upload \
   -F "name=my-template" \
   -F "files=@template.sty" \
   -F "files=@template.cls"
@@ -313,7 +313,7 @@ npm run test:e2e
 The LaTeX Worker exposes Prometheus-compatible metrics:
 
 ```bash
-curl http://localhost:3004/metrics
+curl http://localhost:3005/metrics
 ```
 
 **Key Metrics:**
@@ -349,7 +349,7 @@ curl http://localhost:3004/metrics
 docker build -t latex-worker:latest .
 
 # Run container
-docker run -p 3004:3004 \
+docker run -p 3005:3005 \
   -v /tmp/latex-worker:/app/temp \
   latex-worker:latest
 ```

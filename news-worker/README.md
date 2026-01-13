@@ -98,7 +98,7 @@ Create a `.env` file:
 
 ```env
 # Server
-PORT=3004
+PORT=3009
 NODE_ENV=development
 
 # Redis Configuration
@@ -130,12 +130,12 @@ npm run start:prod
 npm run start
 ```
 
-The service will start on `http://localhost:3004` (or your configured PORT).
+The service will start on `http://localhost:3009` (or your configured PORT).
 
 ### Health Check
 
 ```bash
-curl http://localhost:3004/health
+curl http://localhost:3009/health
 ```
 
 Expected response:
@@ -380,9 +380,9 @@ docker build -t news-worker:latest .
 ### Run Container
 
 ```bash
-docker run -p 3004:3004 \
+docker run -p 3009:3009 \
   -e REDIS_URL=redis://redis:6379/0 \
-  -e PORT=3004 \
+  -e PORT=3009 \
   news-worker:latest
 ```
 
@@ -393,10 +393,10 @@ services:
   news-worker:
     build: ./news-worker
     ports:
-      - "3004:3004"
+      - "3009:3009"
     environment:
       REDIS_URL: redis://redis:6379/0
-      PORT: 3004
+      PORT: 3009
     depends_on:
       - redis
 ```

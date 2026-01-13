@@ -73,15 +73,16 @@ src/
 
 ## Worker Nodes
 
-### LLM Worker (Port 3001)
-**Domain**: Natural Language Processing & AI Model Inference
+### Assistant Worker (Port 3001)
+**Directory**: `assistant-worker/`
+**Domain**: AI Assistant & LLM Orchestration
 
 **Responsibilities:**
-- Handle LLM API calls (OpenAI, Anthropic, etc.)
-- Process natural language inputs/outputs
-- Manage model selection and parameters
-- Implement prompt engineering and templating
-- Handle token limits and cost optimization
+- Manage AI Assistant lifecycles and sessions
+- Orchestrate LLM interactions (OpenAI, Anthropic)
+- Handle prompt engineering and templating
+- Manage conversation context and memory
+- Coordinate multi-agent workflows
 
 **Key Features:**
 - Multi-provider support (OpenAI GPT, Claude, etc.)
@@ -91,6 +92,7 @@ src/
 - Rate limiting and quota management
 
 ### Agent Tool Worker (Port 3002)
+**Directory**: `agent-tool-worker/`
 **Domain**: External Tool Integration & Execution
 
 **Responsibilities:**
@@ -98,7 +100,7 @@ src/
 - Integrate with external APIs and services
 - Handle tool authentication and rate limiting
 - Process tool results and format responses
-- Manage tool configurations and dependencies
+- Manage tool configurations
 
 **Key Features:**
 - REST API and GraphQL client support
@@ -108,6 +110,7 @@ src/
 - Tool execution sandboxing
 
 ### Data Processing Worker (Port 3003)
+**Directory**: `data-processing-worker/`
 **Domain**: Heavy Data Processing & Extraction
 
 **Responsibilities:**
@@ -115,7 +118,7 @@ src/
 - Process large files and datasets
 - Extract structured data from unstructured sources
 - Handle batch processing and parallel tasks
-- Manage resource-intensive operations
+- Manage vector embeddings and retrieval
 
 **Key Features:**
 - Multiple OCR engines (Tesseract, Google Vision)
@@ -125,14 +128,15 @@ src/
 - Data validation and quality assurance
 
 ### Interview Worker (Port 3004)
-**Domain**: Interview Management & Media Processing
+**Directory**: `interview-worker/`
+**Domain**: Interview Management & Analysis
 
 **Responsibilities:**
 - Manage interview sessions and workflows
 - Process speech-to-text conversion
-- Handle video/audio stream processing
-- Generate interview questions and feedback
+- Handle interview question generation
 - Analyze interview responses and performance
+- Generate candidate feedback
 
 **Key Features:**
 - Real-time audio/video processing
@@ -142,6 +146,7 @@ src/
 - Session recording and playback
 
 ### LaTeX Worker (Port 3005)
+**Directory**: `latex-worker/`
 **Domain**: Document Generation & Typesetting
 
 **Responsibilities:**
@@ -158,8 +163,9 @@ src/
 - Bibliography processing (BibTeX)
 - Error reporting and debugging
 
-### resume Worker (Port 3006)
-**Domain**: Resume NLP Engine
+### Resume Worker (Port 3006)
+**Directory**: `resume-worker/`
+**Domain**: Resume Parsing & Matching
 
 **Responsibilities:**
 - Parse and extract information from resumes
@@ -174,6 +180,51 @@ src/
 - Job description parsing and analysis
 - Matching algorithms with confidence scores
 - Profile generation and enrichment
+
+### Scheduling Worker (Port 3007)
+**Directory**: `scheduling-worker/`
+**Domain**: Calendar & Task Scheduling
+
+**Responsibilities:**
+- Manage user calendars and availability
+- Schedule interviews and meetings
+- Integrate with external calendar providers (Google, Outlook)
+- Handle time zone conversions
+- Manage recurring events and reminders
+
+### Identity Worker (Port 3008)
+**Directory**: `identity-worker/`
+**Domain**: User Identity & Profile Enrichment
+
+**Responsibilities:**
+- Manage user profiles and identity data
+- Handle social graph integrations (LinkedIn, GitHub)
+- Enrich user profiles with external data
+- Verify user credentials and background
+- Manage privacy preferences and consent
+
+### News Worker (Port 3009)
+**Directory**: `news-worker/`
+**Domain**: Market Intelligence & News Aggregation
+
+**Responsibilities:**
+- Aggregate news from multiple sources
+- Filter and classify news articles
+- Extract relevant market signals
+- Generate news summaries and digests
+- Monitor industry trends and events
+
+### SpaCy Service (Port 8001)
+**Directory**: `spacy-service/`
+**Language**: Python (FastAPI)
+**Domain**: Advanced NLP & Linguistics
+
+**Responsibilities:**
+- Bullet point quality evaluation
+- Job posting information extraction
+- Complex text analysis (Grammar, Active Voice)
+- Topic categorization and clustering
+- Shared NLP utilities for other workers
 
 ## Shared Architecture
 
