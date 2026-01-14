@@ -11,13 +11,39 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeGraphAdapter } from '../../../infrastructure/adapters/implementations/knowledge-graph.adapter';
 import { ResearchFinding } from '../../../infrastructure/adapters/interfaces';
+import { ResearchService } from '../../../application/services/research.service';
 
 describe('KnowledgeGraphAdapter', () => {
   let adapter: KnowledgeGraphAdapter;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [KnowledgeGraphAdapter],
+      providers: [
+        KnowledgeGraphAdapter,
+        {
+          provide: ResearchService,
+          useValue: {
+            addResearchFinding: jest.fn().mockImplementation((data) => ({
+              success: true,
+              nodesAdded: (data.findings?.length || 0) + 1,
+            })),
+            getRecentResearchReports: jest.fn().mockResolvedValue([]),
+            getStatistics: jest.fn().mockResolvedValue({
+              topicCount: 5,
+              sourceCount: 2,
+              avgConfidence: 0.8,
+              nodeCount: 15,
+              edgeCount: 20,
+              lastUpdated: new Date(),
+            }),
+            searchTopics: jest.fn().mockResolvedValue(['AI', 'Machine Learning']),
+            getTopicDetails: jest.fn().mockImplementation((id) => ({
+              topic: id === 'test-topic' ? 'test-topic' : 'Machine Learning',
+              id: '123',
+            })),
+          },
+        },
+      ],
     }).compile();
 
     adapter = module.get<KnowledgeGraphAdapter>(KnowledgeGraphAdapter);

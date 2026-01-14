@@ -23,6 +23,7 @@ import { AgentConfig } from '../value-objects/agent-config.vo';
 import { AgentCapability } from '../value-objects/agent-capability.vo';
 import { ILLMProvider } from '../ports/llm-provider.port';
 import { ILogger } from '../ports/logger.port';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import {
   ExpertPoolConfig,
   ExpertPoolStats,
@@ -110,10 +111,10 @@ export class ExpertPoolManager {
   private completionTimes: number[] = [];
 
   constructor(
-    private readonly llmProvider: ILLMProvider,
-    private readonly logger: ILogger,
-    private readonly knowledgeGraph: KnowledgeGraphPort,
-    private readonly metrics?: any,
+    @Inject('ILLMProvider') private readonly llmProvider: ILLMProvider,
+    @Inject('ILogger') private readonly logger: ILogger,
+    @Inject('KnowledgeGraphPort') private readonly knowledgeGraph: KnowledgeGraphPort,
+    @Optional() @Inject('METRICS') private readonly metrics?: any,
   ) {
     // Initialize semaphores
     this.expertSemaphore = pLimit(this.config.maxConcurrentExperts);
@@ -286,7 +287,6 @@ export class ExpertPoolManager {
     this.logger.info(`Executing expert ${expertId} for topic: "${topic}"`, {});
 
     // Wait for available slot
-    this.stats.totalExpertsSpawned++;
     this.updateQueuedRequests();
 
     const startTime = new Date();
@@ -514,6 +514,8 @@ Your role is to conduct thorough research, analyze sources, and synthesize findi
       priority: complexityLevel,
       status: 'pending',
     });
+
+    this.stats.totalExpertsSpawned++;
 
     return {
       id: expertId,

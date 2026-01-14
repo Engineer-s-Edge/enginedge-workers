@@ -53,16 +53,23 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
     };
 
     const mockValidationAdapter = {
-      validateBatch: jest.fn().mockResolvedValue([
-        {
-          success: true,
-          checks: { format: true, content: true, references: true },
-          errors: [],
-          timestamp: new Date(),
-        },
-      ]),
+      validateBatch: jest.fn().mockResolvedValue({
+        total: 1,
+        passed: 1,
+        failed: 0,
+        elapsedMs: 10,
+        results: [
+          {
+            status: 'passed',
+            checks: { format: {passed:true}, content: {passed:true}, references: {passed:true} } as any,
+            issues: [],
+            issuesBySeverity: { info: 0, warning: 0, error: 0, critical: 0 },
+            validatedAt: new Date(),
+          }
+        ]
+      }),
       validate: jest.fn().mockResolvedValue({
-        success: true,
+        status: 'passed',
         checks: { format: true, content: true, references: true },
         errors: [],
         timestamp: new Date(),

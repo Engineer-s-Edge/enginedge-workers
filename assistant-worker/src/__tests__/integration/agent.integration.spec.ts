@@ -11,7 +11,7 @@ import {
   cleanupTestData,
   assertValidResponse,
 } from './test-utils';
-import * as request from 'supertest';
+import request from 'supertest';
 
 describe('Agent Integration Tests', () => {
   let app: INestApplication;

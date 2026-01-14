@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { ResumeEvaluatorService } from '../src/application/services/resume-evaluator.service';
 import { BulletEvaluatorService } from '../src/application/services/bullet-evaluator.service';
+import { ExperienceBankService } from '../src/application/services/experience-bank.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('ResumeEvaluatorService', () => {
   let service: ResumeEvaluatorService;
@@ -11,19 +13,29 @@ describe('ResumeEvaluatorService', () => {
   let mockBulletEvaluator: any;
 
   beforeEach(async () => {
-    mockReportModel = {
-      create: jest.fn(),
-      find: jest.fn(),
-      findById: jest.fn(),
-    };
+    class MockReportModel {
+      constructor(public data: any) {
+        Object.assign(this, data);
+      }
+      static create = jest.fn();
+      static find = jest.fn();
+      static findById = jest.fn();
+      save = jest.fn().mockResolvedValue(this);
+    }
 
-    mockResumeModel = {
-      findById: jest.fn(),
-    };
+    class MockResumeModel {
+      constructor(public data: any) {}
+      static findById = jest.fn();
+    }
 
-    mockJobPostingModel = {
-      findById: jest.fn(),
-    };
+    class MockJobPostingModel {
+      constructor(public data: any) {}
+      static findById = jest.fn();
+    }
+
+    mockReportModel = MockReportModel;
+    mockResumeModel = MockResumeModel;
+    mockJobPostingModel = MockJobPostingModel;
 
     mockBulletEvaluator = {
       evaluateBullet: jest.fn(),
@@ -49,10 +61,59 @@ describe('ResumeEvaluatorService', () => {
           provide: BulletEvaluatorService,
           useValue: mockBulletEvaluator,
         },
+        {
+          provide: ExperienceBankService,
+          useValue: {
+            search: jest.fn(),
+            add: jest.fn(),
+          },
+        },
+        {
+          provide: 'MessageBrokerPort',
+          useValue: {
+            publish: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<ResumeEvaluatorService>(ResumeEvaluatorService);
+    
+    // Mock internal methods to avoid external calls
+    jest.spyOn(service as any, 'parseResumePdf').mockResolvedValue({
+      text: 'Parsed content',
+      rawText: 'Parsed content',
+      sections: {
+        summary: 'Summary content',
+        experience: [{
+          bullets: ['Worked on things'],
+          role: 'Dev',
+          company: 'Co',
+          dateRange: '2020'
+        }]
+      },
+      metadata: {
+        fontsMinPt: 12,
+        pageCount: 1,
+        layout: 'single-column',
+        layoutFlags: {
+            tables: false,
+            columns: false,
+            images: false
+        }
+      }
+    });
+
+    jest.spyOn(service as any, 'performSpellcheck').mockResolvedValue({
+      issues: [],
+      score: 1.0
+    });
   });
 
   it('should be defined', () => {

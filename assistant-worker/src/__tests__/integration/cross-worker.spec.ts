@@ -8,6 +8,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { RAGServiceAdapter } from '../../infrastructure/adapters/implementations/rag-service.adapter';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 import {
   RAGDocument,
   RAGSearchRequest,
@@ -22,6 +23,16 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RAGServiceAdapter,
+        {
+          provide: MetricsAdapter,
+          useValue: {
+            incrementRAGDocsProcessed: jest.fn(),
+            incrementRAGValidationErrors: jest.fn(),
+            recordRAGProcessingTime: jest.fn(),
+            incrementRAGSearchOperations: jest.fn(),
+            recordRAGSearchLatency: jest.fn(),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -389,7 +400,7 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
     it('phase8-int-031: should validate method signatures', () => {
       expect(ragAdapter.processDocument.length).toBe(1);
       expect(ragAdapter.searchConversation.length).toBe(1);
-      expect(ragAdapter.getEmbeddingModels.length).toBe(0);
+      expect(ragAdapter.getEmbeddingModels.length).toBe(1);
     });
 
     it('phase8-int-032: should validate Phase 8 integration complete', () => {

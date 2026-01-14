@@ -6,7 +6,7 @@
 
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, testFixtures } from './test-utils';
-import * as request from 'supertest';
+import request from 'supertest';
 
 describe('Memory Integration Tests', () => {
   let app: INestApplication;
@@ -67,7 +67,7 @@ describe('Memory Integration Tests', () => {
     it('should clear memory', async () => {
       const clearResponse = await request(app.getHttpServer())
         .delete(`/memory/${conversationId}?memoryType=buffer`)
-        .expect(204);
+        .expect(200);
 
       expect(clearResponse.body.success).toBe(true);
     });

@@ -4,6 +4,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { MetricsAdapter } from '../../../infrastructure/adapters/monitoring/metrics.adapter';
 import { RAGServiceAdapter } from '../../../infrastructure/adapters/implementations/rag-service.adapter';
 import {
   RAGDocument,
@@ -53,6 +54,18 @@ describe('RAGServiceAdapter', () => {
             }),
           },
         },
+        {
+          provide: MetricsAdapter,
+          useValue: {
+            recordLatency: jest.fn(),
+            incrementCounter: jest.fn(),
+            observeGauge: jest.fn(),
+            recordRAGDocumentProcessing: jest.fn(),
+            recordRAGSearch: jest.fn(),
+            recordDataProcessingRequest: jest.fn(),
+            recordDataProcessingError: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -84,6 +97,18 @@ describe('RAGServiceAdapter', () => {
           {
             provide: ConfigService,
             useValue: emptyConfigService,
+          },
+          {
+            provide: MetricsAdapter,
+            useValue: {
+              recordLatency: jest.fn(),
+              incrementCounter: jest.fn(),
+              observeGauge: jest.fn(),
+              recordRAGDocumentProcessing: jest.fn(),
+              recordRAGSearch: jest.fn(),
+              recordDataProcessingRequest: jest.fn(),
+              recordDataProcessingError: jest.fn(),
+            },
           },
         ],
       }).compile();

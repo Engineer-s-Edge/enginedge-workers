@@ -1,236 +1,97 @@
-import { AgentBase, StateUpdate } from '../agent-base-legacy';
-import { Agent } from '../../../domain/entities/agent.entity';
-import { Message } from '../../../domain/value-objects/message.vo';
-import { AgentConfig } from '../../../domain/value-objects/agent-config.vo';
-import { AgentCapability } from '../../../domain/value-objects/agent-capability.vo';
-import { AgentType } from '../../../domain/enums/agent-type.enum';
+import { BaseAgent } from '../../../domain/agents/agent.base';
+import { ExecutionContext, ExecutionResult } from '../../../domain/entities';
+import { ILogger } from '../../../domain/ports/logger.port';
+import { ILLMProvider } from '../../../domain/ports/llm-provider.port';
 
-class TestAgent extends AgentBase {
-  async execute(input: unknown): Promise<unknown> {
-    return { success: true, input };
+// Create a concrete implementation for testing
+class TestAgent extends BaseAgent {
+  protected async run(input: string, context: ExecutionContext): Promise<ExecutionResult> {
+    return {
+      status: 'success',
+      output: 'test output',
+      metadata: {},
+    };
   }
-
-  async *executeStreaming(input: string): AsyncGenerator<StateUpdate> {
-    yield {
-      timestamp: new Date(),
-      state: 'processing',
-      agent_id: this.agent.id,
-      data: { phase: 'started', input },
-    };
-
-    await this.execute(input);
-
-    yield {
-      timestamp: new Date(),
-      state: 'complete',
-      agent_id: this.agent.id,
-      data: { phase: 'completed' },
-    };
+  
+  protected async *runStream(input: string, context: ExecutionContext): AsyncGenerator<string> {
+    yield 'test';
+    yield ' ';
+    yield 'output';
   }
 }
 
-describe('Agent Base - State Machine', () => {
-  let agent: Agent;
-  let testAgent: TestAgent;
+describe('BaseAgent', () => {
+  let agent: TestAgent;
+  let mockLogger: ILogger;
+  let mockLLM: ILLMProvider;
 
   beforeEach(() => {
-    const config = AgentConfig.create({
-      model: 'gpt-4',
-      temperature: 0.7,
-      maxTokens: 1000,
-      streamingEnabled: true,
-    });
-    const capability = AgentCapability.create({
-      executionModel: 'chain-of-thought',
-      canUseTools: true,
-      canStreamResults: true,
-      canPauseResume: false,
-      canCoordinate: false,
-      supportsParallelExecution: false,
-      maxInputTokens: 4096,
-      maxOutputTokens: 2048,
-      supportedMemoryTypes: ['buffer', 'buffer_window'],
-      timeoutMs: 30000,
-    });
+    mockLogger = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      fatal: jest.fn(),
+      setLevel: jest.fn(),
+      getLevel: jest.fn().mockReturnValue('info'),
+    } as unknown as ILogger;
 
-    agent = Agent.create('Test Agent', AgentType.REACT, config, capability);
-    testAgent = new TestAgent(agent);
+    mockLLM = {
+      generate: jest.fn(),
+      generateStream: jest.fn(),
+    } as unknown as ILLMProvider;
+
+    agent = new TestAgent(mockLLM, mockLogger);
   });
 
-  test('should initialize in idle state', () => {
-    expect(testAgent.getCurrentState()).toBe('idle');
-  });
-
-  test('should maintain valid state values', () => {
-    const validStates = ['idle', 'processing', 'waiting', 'complete', 'error'];
-    expect(validStates).toContain(testAgent.getCurrentState());
-  });
-});
-
-describe('Agent Base - Memory System', () => {
-  let agent: Agent;
-  let testAgent: TestAgent;
-
-  beforeEach(() => {
-    const config = AgentConfig.create({
-      model: 'gpt-4',
-      temperature: 0.7,
-      maxTokens: 1000,
-      streamingEnabled: true,
-    });
-    const capability = AgentCapability.create({
-      executionModel: 'chain-of-thought',
-      canUseTools: true,
-      canStreamResults: true,
-      canPauseResume: false,
-      canCoordinate: false,
-      supportsParallelExecution: false,
-      maxInputTokens: 4096,
-      maxOutputTokens: 2048,
-      supportedMemoryTypes: ['buffer', 'buffer_window'],
-      timeoutMs: 30000,
+  describe('execute', () => {
+    it('should successfully execute and return result', async () => {
+      const result = await agent.execute('test input');
+      
+      expect(result.status).toBe('success');
+      expect(result.output).toBe('test output');
+      expect((agent as any).internalState.status).toBe('complete');
     });
 
-    agent = Agent.create('Test Agent', AgentType.REACT, config, capability);
-    testAgent = new TestAgent(agent);
-  });
-
-  test('should add and retrieve messages', () => {
-    const msg = Message.create('user', 'Hello!');
-    testAgent.addMessage(msg);
-
-    const messages = testAgent.getMemory().getMessages();
-    expect(messages.length).toBeGreaterThan(0);
-    expect(messages[messages.length - 1].content).toBe('Hello!');
-  });
-
-  test('should preserve message roles', () => {
-    testAgent.addMessage(Message.create('user', 'User msg'));
-    testAgent.addMessage(Message.create('assistant', 'Assistant msg'));
-
-    const messages = testAgent.getMemory().getMessages();
-    const roles = messages.map((m) => m.role);
-
-    expect(roles).toContain('user');
-    expect(roles).toContain('assistant');
-  });
-
-  test('should accumulate messages', () => {
-    const initialCount = testAgent.getMemory().getMessages().length;
-
-    for (let i = 0; i < 5; i++) {
-      testAgent.addMessage(Message.create('user', `Msg ${i}`));
-    }
-
-    expect(testAgent.getMemory().getMessages().length).toBe(initialCount + 5);
-  });
-});
-
-describe('Agent Base - Streaming', () => {
-  let agent: Agent;
-  let testAgent: TestAgent;
-
-  beforeEach(() => {
-    const config = AgentConfig.create({
-      model: 'gpt-4',
-      temperature: 0.7,
-      maxTokens: 1000,
-      streamingEnabled: true,
+    it('should emit events during execution', async () => {
+      const emitSpy = jest.spyOn((agent as any).eventEmitter, 'emit');
+      
+      await agent.execute('test input');
+      
+      expect(emitSpy).toHaveBeenCalledWith('agent:started', expect.any(Object));
+      expect(emitSpy).toHaveBeenCalledWith('agent:completed', expect.any(Object));
     });
-    const capability = AgentCapability.create({
-      executionModel: 'chain-of-thought',
-      canUseTools: true,
-      canStreamResults: true,
-      canPauseResume: false,
-      canCoordinate: false,
-      supportsParallelExecution: false,
-      maxInputTokens: 4096,
-      maxOutputTokens: 2048,
-      supportedMemoryTypes: ['buffer', 'buffer_window'],
-      timeoutMs: 30000,
-    });
-
-    agent = Agent.create('Test Agent', AgentType.REACT, config, capability);
-    testAgent = new TestAgent(agent);
   });
 
-  test('should emit state updates', async () => {
-    const updates: StateUpdate[] = [];
-
-    for await (const update of testAgent.executeStreaming('test')) {
-      updates.push(update);
-    }
-
-    expect(updates.length).toBeGreaterThan(0);
-  });
-
-  test('should include agent_id in updates', async () => {
-    const agentId = testAgent.getAgent().id;
-
-    for await (const update of testAgent.executeStreaming('test')) {
-      expect(update.agent_id).toBe(agentId);
-    }
-  });
-
-  test('should include timestamp in updates', async () => {
-    for await (const update of testAgent.executeStreaming('test')) {
-      expect(update.timestamp).toBeInstanceOf(Date);
-    }
-  });
-});
-
-describe('Agent Base - Error Handling', () => {
-  let agent: Agent;
-  let testAgent: TestAgent;
-
-  beforeEach(() => {
-    const config = AgentConfig.create({
-      model: 'gpt-4',
-      temperature: 0.7,
-      maxTokens: 1000,
-      streamingEnabled: true,
-    });
-    const capability = AgentCapability.create({
-      executionModel: 'chain-of-thought',
-      canUseTools: true,
-      canStreamResults: true,
-      canPauseResume: false,
-      canCoordinate: false,
-      supportsParallelExecution: false,
-      maxInputTokens: 4096,
-      maxOutputTokens: 2048,
-      supportedMemoryTypes: ['buffer', 'buffer_window'],
-      timeoutMs: 30000,
-    });
-
-    agent = Agent.create('Test Agent', AgentType.REACT, config, capability);
-    testAgent = new TestAgent(agent);
-  });
-
-  test('should recover from errors gracefully', async () => {
-    let completedSuccessfully = false;
-
-    try {
-      for await (const update of testAgent.executeStreaming('test')) {
-        expect(update).toBeDefined();
+  describe('stream', () => {
+    it('should stream tokens', async () => {
+      const tokens: string[] = [];
+      
+      for await (const token of agent.stream('test input')) {
+        tokens.push(token);
       }
-      completedSuccessfully = true;
-    } catch {
-      // Error acceptable
-    }
+      
+      expect(tokens).toEqual(['test', ' ', 'output']);
+      expect((agent as any).internalState.status).toBe('complete');
+    });
 
-    expect(completedSuccessfully).toBe(true);
+    it('should emit streaming events', async () => {
+      const emitSpy = jest.spyOn((agent as any).eventEmitter, 'emit');
+      
+      const tokens: string[] = [];
+      for await (const token of agent.stream('test input')) {
+        tokens.push(token);
+      }
+      
+      expect(emitSpy).toHaveBeenCalledWith('agent:stream_started', expect.any(Object));
+      expect(emitSpy).toHaveBeenCalledWith('agent:stream_completed', expect.any(Object));
+    });
   });
 
-  test('should maintain agent integrity after error', async () => {
-    try {
-      await testAgent.execute({ error: true });
-    } catch {
-      // Expected
-    }
-
-    const state = testAgent.getCurrentState();
-    const validStates = ['idle', 'processing', 'complete', 'error', 'waiting'];
-    expect(validStates).toContain(state);
+  describe('abort', () => {
+    it('should abort execution', () => {
+      agent.abort();
+      expect((agent as any).internalState.status).toBe('aborted');
+    });
   });
 });

@@ -238,7 +238,7 @@ pytest --cov=src --cov-report=html
 pytest tests/test_bullet_evaluator.py -v
 ```
 
-**Test Coverage:** 90%+ with gold dataset validation
+**Test Coverage:** Unknown with gold dataset validation
 
 ### Gold Dataset
 

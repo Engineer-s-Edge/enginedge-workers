@@ -4,7 +4,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)
-![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-unknown-lightgrey.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-5.0-blue.svg)
 ![NestJS](https://img.shields.io/badge/nestjs-10.0-red.svg)
@@ -306,7 +306,7 @@ curl -X POST http://localhost:3006/cover-letter/generate \
 
 <div align="center">
 
-![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-unknown-lightgrey.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
 ![Unit](https://img.shields.io/badge/unit-passing-brightgreen.svg)
 
@@ -326,7 +326,7 @@ npm run test:watch
 npm run test:e2e
 ```
 
-**Test Coverage:** 90%+ with gold dataset validation
+**Test Coverage:** Unknown with gold dataset validation
 
 ## 📊 Metrics & Monitoring
 

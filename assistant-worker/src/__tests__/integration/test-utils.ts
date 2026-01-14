@@ -6,7 +6,64 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../../app.module';
+
+// Mock Redis before other imports
+jest.mock('ioredis', () => {
+  return class MockRedis {
+    on = jest.fn();
+    publish = jest.fn();
+    subscribe = jest.fn();
+    set = jest.fn();
+    get = jest.fn();
+    expire = jest.fn();
+    del = jest.fn();
+    quit = jest.fn();
+    disconnect = jest.fn();
+    connect = jest.fn().mockResolvedValue('OK');
+    duplicate = jest.fn().mockReturnThis();
+    status = 'ready';
+  };
+});
+
+// Mock MongooseModule to prevent connection
+jest.mock('@nestjs/mongoose', () => {
+  const original = jest.requireActual('@nestjs/mongoose');
+  return {
+    ...original,
+    MongooseModule: {
+      ...original.MongooseModule,
+      forRoot: jest.fn().mockImplementation(() => ({
+        module: class FakeMongooseModule {},
+        providers: [],
+        exports: [],
+      })),
+      forFeature: jest.fn().mockImplementation((models) => {
+        const providers = models.map((model: any) => ({
+          provide: original.getModelToken(model.name),
+          useValue: {
+            find: jest.fn().mockReturnThis(),
+            findOne: jest.fn().mockReturnThis(),
+            findById: jest.fn().mockReturnThis(),
+            create: jest.fn(),
+            updateOne: jest.fn().mockReturnThis(),
+            deleteOne: jest.fn().mockReturnThis(),
+            exec: jest.fn(),
+            save: jest.fn(),
+            constructor: jest.fn(),
+          },
+        }));
+        return {
+          module: class FakeMongooseFeatureModule {},
+          providers: providers,
+          exports: providers.map((p: any) => p.provide),
+        };
+      }),
+    },
+  };
+});
+
+import { AppModule } from '../../app.module'; // Adjust path if needed
+import { MongooseModule } from '@nestjs/mongoose';
 
 /**
  * Create a test application instance
@@ -14,10 +71,22 @@ import { AppModule } from '../../app.module';
 export async function createTestApp(): Promise<INestApplication> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
-  }).compile();
+  })
+    .overrideProvider(MongooseModule)
+    .useValue({
+      forRoot: jest.fn(),
+      forFeature: jest.fn(),
+    })
+    .compile();
 
   const app = moduleFixture.createNestApplication();
-  await app.init();
+  // Avoid app.init() if it connects to DB, or ensure mocks prevent connection
+  // But usually we need init.
+  // If we can't mock MongooseModule easily (it's dynamic), we might need to override the config
+  // to point to something else or trust that compiled module mocks work.
+  // Actually, overriding MongooseModule class won't work for dynamic imports.
+  // Better to override the DbConnection token or similar.
+  await app.init(); 
 
   return app;
 }

@@ -4,17 +4,38 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { LearningModeAdapter } from '../../../infrastructure/adapters/implementations/learning-mode.adapter';
-import {
-  LearningModeConfig,
-  LearningMode,
-} from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
+import { LearningModeService } from '../../../application/services/learning-mode.service';
+import { LearningMode, LearningModeConfig } from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
 
 describe('LearningModeAdapter', () => {
   let adapter: LearningModeAdapter;
+  let mockService: any;
 
   beforeEach(async () => {
+    mockService = {
+      getModeStatistics: jest.fn().mockResolvedValue({
+        mode: 'user-directed',
+        usageCount: 1,
+        successRate: 1,
+      }),
+      isLearning: jest.fn().mockResolvedValue(false),
+      switchMode: jest.fn().mockResolvedValue(true),
+      cancelLearning: jest.fn().mockResolvedValue(true),
+      executeLearningMode: jest.fn().mockImplementation((config) => ({
+        success: true,
+        mode: config.mode,
+        topicsProcessed: ['topic1'],
+        duration: 123,
+        timestamp: new Date(),
+      })),
+      getCurrentMode: jest.fn().mockResolvedValue('user-directed'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [LearningModeAdapter],
+      providers: [
+        LearningModeAdapter,
+        { provide: LearningModeService, useValue: mockService },
+      ],
     }).compile();
 
     adapter = module.get<LearningModeAdapter>(LearningModeAdapter);

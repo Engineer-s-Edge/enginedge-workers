@@ -4,13 +4,100 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { TopicCatalogAdapter } from '../../../infrastructure/adapters/implementations/topic-catalog.adapter';
+import { TopicCatalogService } from '../../../application/services/topic-catalog.service';
+import { GetTopicsForResearchUseCase } from '../../../application/use-cases/get-topics-for-research.use-case';
 
 describe('TopicCatalogAdapter', () => {
   let adapter: TopicCatalogAdapter;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [TopicCatalogAdapter],
+      providers: [
+        TopicCatalogAdapter,
+        {
+          provide: TopicCatalogService,
+          useFactory: () => {
+            const topics = new Map();
+            // Pre-seed topics for tests that assume existence
+            ['Machine Learning', 'Data Science', 'AI Ethics', 'Statistics', 'Topic'].forEach(name => {
+              topics.set(name, {
+                 id: 'seeded-' + name,
+                 name: name,
+                 description: 'Seeded topic',
+                 estimatedComplexity: 1,
+                 categorizationConfidence: 0.9,
+                 relatedCategories: [],
+                 lastUpdated: new Date()
+              });
+            });
+            // Pre-seed numbered topics for concurrent tests
+            for(let i=0; i<20; i++) {
+              const name = `Topic${i}`;
+              topics.set(name, {
+                 id: 'seeded-' + name,
+                 name: name,
+                 description: 'Seeded topic',
+                 estimatedComplexity: 1,
+                 categorizationConfidence: 0.9,
+                 relatedCategories: [],
+                 lastUpdated: new Date()
+              });
+            }
+
+            return {
+              addTopic: jest.fn().mockImplementation((input: any) => {
+                const t = {
+                  id: '123',
+                  name: input.name,
+                  description: input.description,
+                  estimatedComplexity: input.estimatedComplexity || 1,
+                  categorizationConfidence: 0.9,
+                  relatedCategories: [],
+                  lastUpdated: new Date(),
+                };
+                topics.set(input.name, t);
+                topics.set('123', t);
+                return { topic: t };
+              }),
+              getTopicByName: jest
+                .fn()
+                .mockImplementation((name) => topics.get(name) || null),
+              searchTopics: jest.fn().mockResolvedValue([]),
+              updateTopicStatus: jest.fn().mockImplementation((id, status) => {
+                // Find topic by ID manually since we use ID as key sometimes but primary key is name in this mock map logic?
+                // Actually the map above keys by NAME.
+                // The original code tried \`topics.get('123')\`.
+                // Let's improve this. We iterate values or just return a dummy if found.
+                // For simplicity, find by ID from values
+                let found: any = null;
+                for(const t of topics.values()) {
+                  if(t.id === id) { found = t; break; }
+                }
+                
+                // If not found by ID (because getTopicByName returned ID seeded-...), return that.
+                if (!found && topics.has('123')) found = topics.get('123'); // Fallback for addTopic's hardcoded ID
+
+                const t = found || {
+                  id,
+                  name: 'Updated',
+                  description: '',
+                  estimatedComplexity: 1,
+                };
+                return { ...t, status };
+              }),
+              getTopicsByPriority: jest.fn().mockResolvedValue([]),
+              linkToKnowledgeNode: jest.fn().mockResolvedValue(true),
+              deleteTopic: jest.fn().mockResolvedValue(true),
+            };
+          },
+        },
+        {
+          provide: GetTopicsForResearchUseCase,
+          useValue: {
+            execute: jest.fn().mockResolvedValue([]),
+          },
+        },
+      ],
     }).compile();
 
     adapter = module.get<TopicCatalogAdapter>(TopicCatalogAdapter);

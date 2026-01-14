@@ -149,7 +149,7 @@ export class MemoryController {
    * DELETE /memory/:conversationId - Clear conversation memory
    */
   @Delete(':conversationId')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async clearMemory(
     @Param('conversationId') conversationId: string,
     @Query('memoryType') memoryType?: MemoryType,

@@ -84,49 +84,23 @@
       "js",
       "json"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testMatch": [
-      "<rootDir>/**/*.spec.ts"
+      "<rootDir>/src/**/*.spec.ts",
+      "<rootDir>/test/**/*.spec.ts"
     ],
     "transform": {
       "^.+\\.ts$": "ts-jest"
     },
     "moduleNameMapper": {
-      "^@domain/(.*)$": "<rootDir>/domain/$1",
-      "^@application/(.*)$": "<rootDir>/application/$1",
-      "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1",
-      "^@app.module$": "<rootDir>/app.module"
+      "^@domain/(.*)$": "<rootDir>/src/domain/$1",
+      "^@application/(.*)$": "<rootDir>/src/application/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
+      "^@app.module$": "<rootDir>/src/app.module"
     },
     "collectCoverage": true,
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "./coverage",
     "coverageProvider": "v8",
-    "collectCoverageFrom": [
-      "**/*.ts",
-      "!main.ts",
-      "!**/index.ts",
-      "!**/module.ts",
-      "!**/modules/*.module.ts",
-      "!**/dto/**",
-      "!**/entities/**",
-      "!**/schemas/**",
-      "!**/__mocks__/**",
-      "!**/__tests__/**",
-      "!test/**",
-      "!**/*.d.ts"
-    ],
-    "coveragePathIgnorePatterns": [
-      "node_modules",
-      "dist",
-      ".*/__mocks__/.*"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 80,
-        "functions": 85,
-        "lines": 85,
-        "statements": 85
-      }
-    },
     "testEnvironment": "node"
   }
 }

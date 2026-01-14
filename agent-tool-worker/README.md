@@ -4,7 +4,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)
-![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-unknown-lightgrey.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-5.0-blue.svg)
 ![NestJS](https://img.shields.io/badge/nestjs-10.0-red.svg)
@@ -311,7 +311,7 @@ curl http://localhost:3002/tools/web-search/metrics
 
 <div align="center">
 
-![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-unknown-lightgrey.svg)
 ![Tests](https://img.shields.io/badge/tests-500%2B-brightgreen.svg)
 ![Unit](https://img.shields.io/badge/unit-passing-brightgreen.svg)
 ![Integration](https://img.shields.io/badge/integration-passing-brightgreen.svg)

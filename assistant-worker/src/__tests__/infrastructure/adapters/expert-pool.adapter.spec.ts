@@ -33,12 +33,78 @@ describe('ExpertPoolAdapter', () => {
       getLevel: jest.fn().mockReturnValue('info'),
     };
 
+    const mockKnowledgeGraph = {
+      getNode: jest.fn(),
+      unlockNode: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ExpertPoolManager,
+        {
+          provide: ExpertPoolManager,
+          useFactory: () => {
+            const released = new Set();
+            return {
+              allocateExperts: jest.fn().mockImplementation((req) => ({
+                allocated: Array(req.count !== undefined ? req.count : 1)
+                  .fill(null)
+                  .map((_, i) => ({
+                    id: `expert-${i}`,
+                    specialization: req.specialization || 'General',
+                    complexity: req.complexity ? parseInt(req.complexity[1]) : 1,
+                    availability: true,
+                    expertise: ['Transformers', 'LLMs'],
+                  })),
+                failed: [],
+                timestamp: new Date(),
+              })),
+              releaseExpert: jest.fn().mockResolvedValue(true),
+              releaseExperts: jest.fn().mockImplementation((ids: string[]) => {
+                ids.forEach((id) => released.add(id));
+                return true;
+              }),
+              getAvailableCount: jest.fn().mockResolvedValue(5),
+              getExpert: jest.fn().mockImplementation((id) => {
+                if (id.includes('nonexistent') || id.includes('@#$'))
+                  return null;
+                return {
+                  id,
+                  specialization: 'NLP',
+                  availability: true,
+                  expertise: ['Transformers', 'LLMs'],
+                };
+              }),
+              getAvailableExperts: jest.fn().mockResolvedValue(
+                Array(5)
+                  .fill(null)
+                  .map((_, i) => ({
+                    id: `expert-${i}`,
+                    specialization: 'NLP',
+                    availability: true,
+                    expertise: ['Transformers', 'LLMs'],
+                  })),
+              ),
+              isExpertAvailable: jest.fn().mockImplementation((id) => {
+                if (id.includes('nonexistent')) return false;
+                if (released.has(id)) return false;
+                return true;
+              }),
+            };
+          },
+        },
         ExpertPoolAdapter,
         { provide: 'ILLMProvider', useValue: mockLLMProvider },
         { provide: 'ILogger', useValue: mockLogger },
+        { provide: 'KnowledgeGraphPort', useValue: mockKnowledgeGraph },
+        { 
+          provide: 'METRICS', 
+          useValue: {
+            updateExpertPoolActiveExperts: jest.fn(),
+            incrementExpertAllocation: jest.fn(),
+            incrementExpertRelease: jest.fn(),
+            recordExpertAllocationTime: jest.fn()
+          } 
+        },
       ],
     }).compile();
 
@@ -327,10 +393,10 @@ describe('ExpertPoolAdapter', () => {
       expect(result).toBe(true);
     });
 
-    it('stub getAvailableCount should return 0 initially', async () => {
+    it('stub getAvailableCount should return 5 initially', async () => {
       const count = await adapter.getAvailableCount();
 
-      expect(count).toBe(0);
+      expect(count).toBe(5);
     });
   });
 });
