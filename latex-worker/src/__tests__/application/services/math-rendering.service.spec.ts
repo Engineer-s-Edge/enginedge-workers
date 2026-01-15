@@ -1,4 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+// Mock sharp before importing the service to prevent dependency errors
+jest.mock('sharp', () => {
+  const mockSharp = () => ({
+    resize: jest.fn().mockReturnThis(),
+    flatten: jest.fn().mockReturnThis(),
+    png: jest.fn().mockReturnThis(),
+    toFormat: jest.fn().mockReturnThis(),
+    toBuffer: jest.fn().mockResolvedValue(Buffer.from('mock-image')),
+    metadata: jest.fn().mockResolvedValue({ width: 100, height: 100 }),
+  });
+  return mockSharp;
+});
+
 import { MathRenderingService } from '../../../application/services/math-rendering.service';
 
 describe('MathRenderingService', () => {

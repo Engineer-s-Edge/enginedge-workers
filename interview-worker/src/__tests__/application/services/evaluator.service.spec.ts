@@ -4,6 +4,8 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { EvaluatorService } from '../../../application/services/evaluator.service';
+import { WebhookService } from '../../../application/services/webhook.service';
+import { NotificationService } from '../../../application/services/notification.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import {
@@ -61,6 +63,8 @@ describe('EvaluatorService', () => {
           useValue: mockReportRepository,
         },
         { provide: 'IInterviewRepository', useValue: mockInterviewRepository },
+        { provide: WebhookService, useValue: mock<WebhookService>() },
+        { provide: NotificationService, useValue: mock<NotificationService>() },
       ],
     }).compile();
 
@@ -80,6 +84,7 @@ describe('EvaluatorService', () => {
 
     const mockInterview = new Interview({
       id: 'i1',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -127,7 +132,8 @@ describe('EvaluatorService', () => {
     mockedAxios.post.mockResolvedValue({
       data: {
         content: JSON.stringify({
-          score: { overall: 85, byPhase: { technical: 85 } },
+          overall: 85,
+          byPhase: { technical: 85 },
           feedback: 'Strong candidate',
         }),
       },

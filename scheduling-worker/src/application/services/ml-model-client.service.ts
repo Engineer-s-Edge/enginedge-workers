@@ -234,8 +234,13 @@ export class MLModelClient {
       const results: DeliverableMapResponse[] = [];
 
       for (const task of tasks) {
-        const result = await this.mapDeliverable(task.text, task.context || {});
-        results.push(result);
+        try {
+          const result = await this.mapDeliverable(task.text, task.context || {});
+          results.push(result);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          this.logger.warn(`Skipping task due to mapping failure: ${message}`);
+        }
       }
 
       return results;

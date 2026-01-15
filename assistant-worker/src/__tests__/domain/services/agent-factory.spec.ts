@@ -54,6 +54,13 @@ describe('Domain Services - AgentFactory', () => {
       memoryManager,
       responseParser,
       promptBuilder,
+      {} as any, // messageQueue
+      {} as any, // communication
+      {} as any, // sharedMemory
+      {} as any, // artifactLocking
+      {} as any, // taskAssignment
+      {} as any, // deadlockDetection
+      {} as any, // coordinationValidator
     );
   });
 

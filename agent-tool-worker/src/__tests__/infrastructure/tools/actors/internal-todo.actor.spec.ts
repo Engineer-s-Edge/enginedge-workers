@@ -46,15 +46,25 @@ const createMockDb = () => {
         return todos.find(t => t.id === query.id) || null;
       }),
       find: jest.fn().mockImplementation((query) => {
-        const results = todos.filter(item => matchQuery(item, query));
-        return {
-          sort: jest.fn().mockReturnThis(),
-          skip: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockImplementation((limit) => ({
-             toArray: jest.fn().mockResolvedValue(results.slice(0, limit))
-          })),
-          toArray: jest.fn().mockResolvedValue(results)
+        let results = todos.filter(item => matchQuery(item, query));
+        const cursor = {
+          sort: jest.fn().mockImplementation((criteria) => {
+            if (criteria.createdAt === -1) {
+              results = results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            }
+            return cursor;
+          }),
+          skip: jest.fn().mockImplementation((n) => {
+            results = results.slice(n);
+            return cursor;
+          }),
+          limit: jest.fn().mockImplementation((n) => {
+            results = results.slice(0, n);
+            return cursor;
+          }),
+          toArray: jest.fn().mockImplementation(() => Promise.resolve(results))
         };
+        return cursor;
       })
     })
   };

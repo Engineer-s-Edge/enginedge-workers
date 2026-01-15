@@ -3,6 +3,32 @@ import { TimeSlotService } from '../time-slot.service';
 import { TimeSlot } from '../../../domain/value-objects/time-slot.value-object';
 import { CalendarEvent } from '../../../domain/entities/calendar-event.entity';
 
+// Helper to create valid CalendarEvent with default values
+function createMockEvent(
+  id: string,
+  calendarId: string,
+  title: string,
+  startTime: Date,
+  endTime: Date,
+): CalendarEvent {
+  return new CalendarEvent(
+    id,
+    calendarId,
+    title,
+    null, // description
+    startTime,
+    endTime,
+    null, // location
+    [], // attendees
+    [], // reminders
+    null, // recurrence
+    new Date(), // createdAt
+    new Date(), // updatedAt
+    'google', // source
+    {}, // metadata
+  );
+}
+
 describe('TimeSlotService', () => {
   let service: TimeSlotService;
 
@@ -34,7 +60,7 @@ describe('TimeSlotService', () => {
       const startDate = new Date('2025-10-27T09:00:00Z');
       const endDate = new Date('2025-10-27T17:00:00Z');
 
-      const busyEvent = new CalendarEvent(
+      const busyEvent = createMockEvent(
         'event1',
         'primary',
         'Meeting',
@@ -56,7 +82,7 @@ describe('TimeSlotService', () => {
       const startDate = new Date('2025-10-27T09:00:00Z');
       const endDate = new Date('2025-10-27T17:00:00Z');
 
-      const event = new CalendarEvent(
+      const event = createMockEvent(
         'event1',
         'primary',
         'Meeting',
@@ -98,8 +124,8 @@ describe('TimeSlotService', () => {
 
       // All slots should be within 9am-5pm
       slots.forEach((slot) => {
-        expect(slot.startTime.getHours()).toBeGreaterThanOrEqual(9);
-        expect(slot.endTime.getHours()).toBeLessThanOrEqual(17);
+        expect(slot.startTime.getUTCHours()).toBeGreaterThanOrEqual(9);
+        expect(slot.endTime.getUTCHours()).toBeLessThanOrEqual(17);
       });
     });
 
@@ -121,7 +147,7 @@ describe('TimeSlotService', () => {
       const startDate = new Date('2025-10-27T09:00:00Z');
       const endDate = new Date('2025-10-27T17:00:00Z');
 
-      const event1 = new CalendarEvent(
+      const event1 = createMockEvent(
         'event1',
         'primary',
         'Meeting 1',
@@ -129,7 +155,7 @@ describe('TimeSlotService', () => {
         new Date('2025-10-27T11:00:00Z'),
       );
 
-      const event2 = new CalendarEvent(
+      const event2 = createMockEvent(
         'event2',
         'primary',
         'Meeting 2',
@@ -199,11 +225,11 @@ describe('TimeSlotService', () => {
     });
 
     it('should return null if no slot available', () => {
-      // Fill up entire 30 day window
+      // Fill up blocked days beyond the lookahead window (30 days)
       const events: CalendarEvent[] = [];
       const startFrom = new Date('2025-10-27T09:00:00Z');
 
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 35; i++) {
         const dayStart = new Date(startFrom);
         dayStart.setDate(dayStart.getDate() + i);
         dayStart.setHours(0, 0, 0, 0);
@@ -212,7 +238,7 @@ describe('TimeSlotService', () => {
         dayEnd.setHours(23, 59, 59, 999);
 
         events.push(
-          new CalendarEvent(
+          createMockEvent(
             `all-day-${i}`,
             'primary',
             'Blocked',
@@ -254,7 +280,7 @@ describe('TimeSlotService', () => {
       const startDate = new Date('2025-10-27T09:00:00Z');
       const endDate = new Date('2025-10-27T17:00:00Z');
 
-      const busyEvent = new CalendarEvent(
+      const busyEvent = createMockEvent(
         'meeting',
         'primary',
         'Meeting',
@@ -287,7 +313,7 @@ describe('TimeSlotService', () => {
       );
 
       const events = [
-        new CalendarEvent(
+        createMockEvent(
           'meeting',
           'primary',
           'Meeting',
@@ -306,7 +332,7 @@ describe('TimeSlotService', () => {
       );
 
       const events = [
-        new CalendarEvent(
+        createMockEvent(
           'meeting',
           'primary',
           'Meeting',

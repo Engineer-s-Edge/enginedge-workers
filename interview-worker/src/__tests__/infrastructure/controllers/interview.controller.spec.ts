@@ -3,9 +3,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { InterviewController } from '../../../../infrastructure/controllers/interview.controller';
-import { InterviewService } from '../../../../application/services/interview.service';
-import { Interview } from '../../../../domain/entities';
+import { InterviewController } from '../../../infrastructure/controllers/interview.controller';
+import { InterviewService } from '../../../application/services/interview.service';
+import { Interview } from '../../../domain/entities';
 
 describe('InterviewController', () => {
   let controller: InterviewController;
@@ -36,6 +36,7 @@ describe('InterviewController', () => {
   it('should create interview', async () => {
     const mockInterview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -50,6 +51,7 @@ describe('InterviewController', () => {
     mockInterviewService.createInterview.mockResolvedValue(mockInterview);
 
     const result = await controller.createInterview({
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -69,6 +71,7 @@ describe('InterviewController', () => {
     const mockInterviews = [
       new Interview({
         id: 'i1',
+        userId: 'test-user',
         title: 'Interview 1',
         phases: [],
         config: {
@@ -92,6 +95,7 @@ describe('InterviewController', () => {
   it('should get interview by ID', async () => {
     const mockInterview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -114,6 +118,7 @@ describe('InterviewController', () => {
   it('should update interview', async () => {
     const updatedInterview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Updated Title',
       phases: [],
       config: {

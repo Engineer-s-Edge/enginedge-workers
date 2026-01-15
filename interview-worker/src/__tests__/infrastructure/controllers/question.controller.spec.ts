@@ -3,9 +3,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { QuestionController } from '../../../../infrastructure/controllers/question.controller';
-import { QuestionService } from '../../../../application/services/question.service';
-import { InterviewQuestion } from '../../../../domain/entities';
+import { QuestionController } from '../../../infrastructure/controllers/question.controller';
+import { QuestionService } from '../../../application/services/question.service';
+import { InterviewQuestion } from '../../../domain/entities';
 
 describe('QuestionController', () => {
   let controller: QuestionController;

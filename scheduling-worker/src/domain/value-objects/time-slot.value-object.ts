@@ -38,10 +38,7 @@ export class TimeSlot {
    * Check if this slot overlaps with another slot
    */
   overlapsWith(other: TimeSlot): boolean {
-    return (
-      (this.startTime < other.endTime && this.endTime > other.startTime) ||
-      (other.startTime < this.endTime && other.endTime > other.startTime)
-    );
+    return this.startTime < other.endTime && this.endTime > other.startTime;
   }
 
   /**

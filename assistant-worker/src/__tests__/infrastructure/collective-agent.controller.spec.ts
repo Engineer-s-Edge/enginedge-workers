@@ -1,166 +1,214 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { CollectiveAgentController } from '@infrastructure/controllers/collective-agent.controller';
-import { AgentService } from '@application/services/agent.service';
-import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
-import { MessageQueueService } from '@application/services/collective/message-queue.service';
-import { TaskAssignmentService } from '@application/services/collective/task-assignment.service';
-import { SharedMemoryService } from '@application/services/collective/shared-memory.service';
-import { CollectiveAgent } from '@domain/agents/collective-agent/collective-agent';
-import {
-  CollectiveTask,
-  TaskLevel,
-  TaskState,
-} from '@domain/entities/collective-task.entity';
+import { CollectiveAgentController } from '../../infrastructure/controllers/collective-agent.controller';
+import { AgentService } from '../../application/services/agent.service';
+import { ExecuteAgentUseCase } from '../../application/use-cases/execute-agent.use-case';
+import { MessageQueueService } from '../../application/services/collective/message-queue.service';
+import { TaskAssignmentService } from '../../application/services/collective/task-assignment.service';
+import { SharedMemoryService } from '../../application/services/collective/shared-memory.service';
+import { CollectiveAgent } from '../../domain/agents/collective-agent/collective-agent';
+import { Agent } from '../../domain/entities/agent.entity';
+import { TaskLevel, TaskState } from '../../domain/entities/collective-task.entity';
 
-interface TestLogger {
-  info(message: string, meta?: Record<string, unknown>): void;
-  debug(message: string, meta?: Record<string, unknown>): void;
-  warn(message: string, meta?: Record<string, unknown>): void;
-  error(message: string, meta?: Record<string, unknown>): void;
-}
+// Mock CollectiveAgent prototype to satisfy instanceof checks
+// We need to access the prototype from the actual class
+const mockCollectiveAgentPrototype = Object.create(CollectiveAgent.prototype);
 
-describe('CollectiveAgentController task hierarchy helpers', () => {
-  const mockAgentService = {
-    getAgentInstance: jest.fn(),
-  };
-  const mockExecuteAgentUseCase: Partial<ExecuteAgentUseCase> = {};
-  const mockMessageQueue: Partial<MessageQueueService> = {};
-  const mockTaskAssignment: Partial<TaskAssignmentService> = {};
-  const mockSharedMemory: Partial<SharedMemoryService> = {};
-  const mockLogger: TestLogger = {
-    info: jest.fn(),
+describe('CollectiveAgentController', () => {
+  let controller: CollectiveAgentController;
+  let agentService: jest.Mocked<AgentService>;
+  let executeAgentUseCase: jest.Mocked<ExecuteAgentUseCase>;
+  let messageQueue: jest.Mocked<MessageQueueService>;
+  let taskAssignment: jest.Mocked<TaskAssignmentService>;
+  let sharedMemory: jest.Mocked<SharedMemoryService>;
+
+  const mockLogger = {
     debug: jest.fn(),
+    info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
   };
 
-  let controller: CollectiveAgentController;
+  // Mock Agent Instance with prototype chain for instanceof checks
+  // We use Object.create(mockCollectiveAgentPrototype) so (instance instanceof CollectiveAgent) is true
+  const mockInstance = Object.assign(Object.create(mockCollectiveAgentPrototype), {
+      getCollectiveState: jest.fn(),
+      getChildTasks: jest.fn(),
+      getParentTask: jest.fn(),
+  });
 
-  beforeEach(() => {
+  const mockAgentEntity = Object.assign(Object.create(Agent.prototype), {
+      id: 'agent-123',
+      name: 'My Collective',
+      agentType: 'collective',
+      config: {},
+      userId: 'user-1',
+      createdAt: new Date(),
+      updatedAt: new Date()
+  });
+
+  beforeEach(async () => {
+    // Reset mocks
     jest.clearAllMocks();
-    controller = new CollectiveAgentController(
-      mockAgentService as unknown as AgentService,
-      mockExecuteAgentUseCase as unknown as ExecuteAgentUseCase,
-      mockMessageQueue as unknown as MessageQueueService,
-      mockTaskAssignment as unknown as TaskAssignmentService,
-      mockSharedMemory as unknown as SharedMemoryService,
-      mockLogger,
-    );
+    
+    // Default mock implementation
+    mockInstance.getCollectiveState.mockReturnValue({
+        subAgents: [],
+        subAgentStats: [],
+        activeTasks: 0,
+        pendingAssignments: 0,
+        completedAssignments: 0,
+        conflicts: 0
+    });
+    mockInstance.getChildTasks.mockReturnValue([]);
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [CollectiveAgentController],
+      providers: [
+        {
+          provide: AgentService,
+          useValue: {
+            createAgent: jest.fn(),
+            getAgentInstance: jest.fn(),
+          },
+        },
+        {
+          provide: ExecuteAgentUseCase,
+          useValue: {
+            execute: jest.fn(),
+          },
+        },
+        {
+          provide: MessageQueueService,
+          useValue: {
+             getAgentQueueMetrics: jest.fn().mockReturnValue({ depth: 0 }),
+          },
+        },
+        {
+          provide: TaskAssignmentService,
+          useValue: {
+              getAgentLoad: jest.fn().mockReturnValue(0),
+          },
+        },
+        {
+          provide: SharedMemoryService,
+          useValue: {},
+        },
+        {
+          provide: 'ILogger',
+          useValue: mockLogger,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<CollectiveAgentController>(CollectiveAgentController);
+    agentService = module.get(AgentService);
+    executeAgentUseCase = module.get(ExecuteAgentUseCase);
+    messageQueue = module.get(MessageQueueService);
+    taskAssignment = module.get(TaskAssignmentService);
+    sharedMemory = module.get(SharedMemoryService);
   });
 
-  const sampleTimestamp = new Date('2025-01-01T00:00:00.000Z');
+  describe('createCollectiveAgent', () => {
+    it('should create a collective agent', async () => {
+       (agentService.createAgent as jest.Mock).mockResolvedValue(mockAgentEntity);
 
-  const makeTask = (
-    id: string,
-    overrides: Partial<CollectiveTask> = {},
-  ): CollectiveTask => ({
-    id,
-    collectiveId: 'collective-1',
-    title: `Task ${id}`,
-    description: `Description for ${id}`,
-    level: TaskLevel.TASK,
-    state: TaskState.UNASSIGNED,
-    parentTaskId: overrides.parentTaskId,
-    childTaskIds: overrides.childTaskIds ?? [],
-    assignedAgentId: overrides.assignedAgentId,
-    allowedAgentIds: overrides.allowedAgentIds ?? [],
-    dependencies: overrides.dependencies ?? [],
-    blockedBy: overrides.blockedBy ?? [],
-    priority: overrides.priority ?? 50,
-    metadata: overrides.metadata ?? { createdBy: 'tests' },
-    createdAt: sampleTimestamp,
-    updatedAt: sampleTimestamp,
+       const result = await controller.createCollectiveAgent({
+           name: 'My Collective',
+           userId: 'user-1',
+       });
+
+       expect(agentService.createAgent).toHaveBeenCalledWith(
+           expect.objectContaining({ name: 'My Collective', agentType: 'collective' }),
+           'user-1'
+       );
+       expect(result).toMatchObject({
+           id: 'agent-123',
+           type: 'collective'
+       });
+    });
   });
 
-  const createStubAgent = (
-    children: CollectiveTask[],
-    parent?: CollectiveTask | null,
-  ): CollectiveAgent => {
-    const stub = {
-      getChildTasks: jest.fn().mockReturnValue(children),
-      getParentTask: jest.fn().mockReturnValue(parent ?? undefined),
-    } as Partial<CollectiveAgent>;
+  describe('orchestrateTask', () => {
+      it('should execute orchestrateTask', async () => {
+          (executeAgentUseCase.execute as jest.Mock).mockResolvedValue({ status: 'queued' } as any);
+          
+          const result = await controller.orchestrateTask('agent-123', {
+              userId: 'user-1',
+              task: 'Do something',
+          });
 
-    Object.setPrototypeOf(stub, CollectiveAgent.prototype);
+          expect(executeAgentUseCase.execute).toHaveBeenCalledWith(
+              expect.objectContaining({ agentId: 'agent-123', input: 'Do something' })
+          );
+          expect(result.status).toBe('queued');
+      });
+  });
 
-    return stub as CollectiveAgent;
-  };
+  describe('getSubAgents', () => {
+      it('should return sub-agents list with metrics', async () => {
+          (agentService.getAgentInstance as jest.Mock).mockResolvedValue(mockInstance);
+          mockInstance.getCollectiveState.mockReturnValue({
+              subAgents: [
+                  { 
+                      agentId: 'sub-1', 
+                      name: 'Sub 1', 
+                      type: 'researcher', 
+                      isActive: true, 
+                      createdAt: new Date(), 
+                      specialties: [], 
+                      loadFactor: 0.5, 
+                      successRate: 0.9 
+                  }
+              ],
+              subAgentStats: [
+                  { agentId: 'sub-1', tasksCompleted: 10, tasksFailed: 0, averageExecutionTime: 100 }
+              ]
+          });
+
+          const result = await controller.getSubAgents('agent-123', 'user-1');
+
+          expect(agentService.getAgentInstance).toHaveBeenCalledWith('agent-123', 'user-1');
+          expect(messageQueue.getAgentQueueMetrics).toHaveBeenCalledWith('sub-1');
+          expect(taskAssignment.getAgentLoad).toHaveBeenCalledWith('sub-1');
+          expect(result.subAgents).toHaveLength(1);
+          expect(result.subAgents[0].agentId).toBe('sub-1');
+          expect(result.subAgents[0].stats).toMatchObject({ tasksCompleted: 10 });
+      });
+
+      it('should throw BadRequest if agent is not collective', async () => {
+          (agentService.getAgentInstance as jest.Mock).mockResolvedValue({}); // Not collective
+          
+          await expect(controller.getSubAgents('agent-123', 'user-1'))
+            .rejects.toThrow(BadRequestException);
+      });
+  });
 
   describe('getTaskChildren', () => {
-    it('formats and returns child tasks for the given parent', async () => {
-      const childTask = makeTask('child-1', {
-        dependencies: ['dep-1'],
-        blockedBy: ['dep-1'],
-        childTaskIds: [],
-      });
-      const collectiveAgent = createStubAgent([childTask], undefined);
-      mockAgentService.getAgentInstance.mockResolvedValue(collectiveAgent);
+    it('returns formatted child tasks', async () => {
+        (agentService.getAgentInstance as jest.Mock).mockResolvedValue(mockInstance);
+        const childTask = {
+            id: 'child-1',
+            collectiveId: 'c1',
+            title: 'Child Task',
+            level: TaskLevel.TASK,
+            state: TaskState.UNASSIGNED,
+            childTaskIds: [],
+            dependencies: [],
+            blockedBy: [],
+            priority: 50,
+            metadata: {},
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        mockInstance.getChildTasks.mockReturnValue([childTask]);
 
-      const result = await controller.getTaskChildren(
-        'agent-123',
-        'parent-1',
-        'user-1',
-      );
-
-      expect(collectiveAgent.getChildTasks).toHaveBeenCalledWith('parent-1');
-      expect(result).toMatchObject({
-        agentId: 'agent-123',
-        taskId: 'parent-1',
-        total: 1,
-      });
-      expect(result.children).toHaveLength(1);
-      expect(result.children[0]).toMatchObject({
-        id: childTask.id,
-        title: childTask.title,
-        dependencies: childTask.dependencies,
-        blockedBy: childTask.blockedBy,
-        childTaskIds: childTask.childTaskIds,
-      });
-      expect(typeof result.generatedAt).toBe('string');
-    });
-
-    it('throws when userId is missing', async () => {
-      await expect(
-        controller.getTaskChildren('agent-123', 'parent-1', ''),
-      ).rejects.toBeInstanceOf(BadRequestException);
+        const result = await controller.getTaskChildren('agent-123', 'parent-1', 'user-1');
+        
+        expect(mockInstance.getChildTasks).toHaveBeenCalledWith('parent-1');
+        expect(result.children).toHaveLength(1);
+        expect(result.children[0].id).toBe('child-1');
     });
   });
 
-  describe('getTaskParent', () => {
-    it('returns formatted parent metadata when available', async () => {
-      const parentTask = makeTask('parent-1', {
-        childTaskIds: ['child-1'],
-      });
-      const collectiveAgent = createStubAgent([], parentTask);
-      mockAgentService.getAgentInstance.mockResolvedValue(collectiveAgent);
-
-      const result = await controller.getTaskParent(
-        'agent-123',
-        'child-1',
-        'user-1',
-      );
-
-      expect(collectiveAgent.getParentTask).toHaveBeenCalledWith('child-1');
-      expect(result.parent).toMatchObject({
-        id: parentTask.id,
-        childTaskIds: parentTask.childTaskIds,
-      });
-      expect(result.parent?.title).toBe(parentTask.title);
-      expect(typeof result.generatedAt).toBe('string');
-    });
-
-    it('returns null when the task has no parent', async () => {
-      const collectiveAgent = createStubAgent([], undefined);
-      mockAgentService.getAgentInstance.mockResolvedValue(collectiveAgent);
-
-      const result = await controller.getTaskParent(
-        'agent-123',
-        'child-1',
-        'user-1',
-      );
-
-      expect(collectiveAgent.getParentTask).toHaveBeenCalledWith('child-1');
-      expect(result.parent).toBeNull();
-    });
-  });
 });

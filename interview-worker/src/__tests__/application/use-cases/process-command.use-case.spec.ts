@@ -43,21 +43,21 @@ describe('ProcessCommandUseCase', () => {
   it('should process command and publish result', async () => {
     const mockCommand: Command = {
       taskId: 'task-1',
-      type: 'test-command',
+      taskType: 'test-command',
       payload: {},
     };
 
     const mockResult: CommandResult = {
       taskId: 'task-1',
-      success: true,
-      data: {},
+      status: 'SUCCESS',
+      result: {},
     };
 
     mockCommandProcessor.processCommand.mockResolvedValue(mockResult);
 
     const result = await useCase.execute(mockCommand);
 
-    expect(result.success).toBe(true);
+    expect(result.status).toBe('SUCCESS');
     expect(mockCommandProcessor.processCommand).toHaveBeenCalledWith(
       mockCommand,
     );
@@ -67,7 +67,7 @@ describe('ProcessCommandUseCase', () => {
   it('should handle errors gracefully', async () => {
     const mockCommand: Command = {
       taskId: 'task-1',
-      type: 'test-command',
+      taskType: 'test-command',
       payload: {},
     };
 

@@ -17,6 +17,11 @@ import {
   NewsIntegrationAdapter,
 } from '../../../infrastructure/adapters/implementations';
 import { ExpertPoolManager } from '../../../domain/services/expert-pool-manager.service';
+import { LearningModeService } from '../../../application/services/learning-mode.service';
+import { ResearchService } from '../../../application/services/research.service';
+import { ValidationService } from '../../../application/services/validation.service';
+import { TopicCatalogService } from '../../../application/services/topic-catalog.service';
+import { GetTopicsForResearchUseCase } from '../../../application/use-cases/get-topics-for-research.use-case';
 
 describe('Adapter Coordination Tests', () => {
   let orchestrator: GeniusAgentOrchestrator;
@@ -55,6 +60,56 @@ describe('Adapter Coordination Tests', () => {
       info: jest.fn(),
     };
 
+    const mockResearchService = {
+      addResearchFinding: jest.fn().mockResolvedValue({ success: true, nodesAdded: 1 }),
+      getRecentResearchReports: jest.fn().mockResolvedValue([]),
+      getStatistics: jest.fn().mockResolvedValue({
+        topicCount: 5,
+        sourceCount: 15,
+        avgConfidence: 0.9,
+        nodeCount: 10,
+        edgeCount: 20,
+        lastUpdated: new Date(),
+      }),
+    };
+
+    const mockValidationService = {
+      validate: jest.fn().mockResolvedValue({ isValid: true, score: 0.9, notes: [] }),
+      validateBatch: jest.fn().mockResolvedValue({
+        batchId: 'batch-1',
+        totalItems: 0,
+        validCount: 0,
+        invalidCount: 0,
+        results: [],
+      }),
+    };
+
+    const mockTopicCatalogService = {
+      addTopic: jest.fn().mockResolvedValue({
+        topic: {
+          id: '123',
+          name: 'test-topic',
+          description: 'test description',
+          estimatedComplexity: 1,
+        },
+      }),
+      updateTopicStatus: jest.fn().mockResolvedValue(true),
+      getTopicByName: jest.fn().mockResolvedValue({ id: '123', name: 'test-topic' }),
+      getTopicsByPriority: jest.fn().mockResolvedValue([
+        { id: '1', name: 'trending-topic-1', priority: 10 },
+        { id: '2', name: 'trending-topic-2', priority: 8 },
+      ]),
+    };
+
+    const mockGetTopicsUseCase = {
+      execute: jest.fn().mockResolvedValue([]),
+    };
+
+    const mockKnowledgeGraphPort = {
+      getNode: jest.fn().mockResolvedValue(null),
+      unlockNode: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GeniusAgentOrchestrator,
@@ -75,6 +130,27 @@ describe('Adapter Coordination Tests', () => {
           useValue: mockLogger,
         },
         ExpertPoolManager,
+        LearningModeService,
+        {
+          provide: ResearchService,
+          useValue: mockResearchService,
+        },
+        {
+          provide: ValidationService,
+          useValue: mockValidationService,
+        },
+        {
+          provide: TopicCatalogService,
+          useValue: mockTopicCatalogService,
+        },
+        {
+          provide: GetTopicsForResearchUseCase,
+          useValue: mockGetTopicsUseCase,
+        },
+        {
+          provide: 'KnowledgeGraphPort',
+          useValue: mockKnowledgeGraphPort,
+        },
       ],
     }).compile();
 

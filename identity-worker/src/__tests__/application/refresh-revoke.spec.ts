@@ -14,7 +14,11 @@ describe('Refresh/Revoke', () => {
     revoke: jest.fn(),
     record: jest.fn(),
   };
-  const jwt = new JwtIssuerService({} as any);
+  const mockKeys: any = {
+    getActiveKey: jest.fn().mockResolvedValue(null),
+    saveKey: jest.fn().mockResolvedValue(undefined),
+  };
+  const jwt = new JwtIssuerService(mockKeys);
   let service: IdentityService;
 
   beforeAll(async () => {
@@ -24,7 +28,7 @@ describe('Refresh/Revoke', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     service = new IdentityService(
-      {} as any,
+      mockUsers,
       jwt,
       mockRoles,
       mockTenants,

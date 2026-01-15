@@ -5,6 +5,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommandApplicationService } from '../../../application/services/command-application.service';
 import { ProcessCommandUseCase } from '../../../application/use-cases/process-command.use-case';
+import { Command, CommandResult } from '../../../domain/entities/command.entities';
 
 describe('CommandApplicationService', () => {
   let service: CommandApplicationService;

@@ -3,13 +3,18 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { SessionController } from '../../../../infrastructure/controllers/session.controller';
-import { SessionService } from '../../../../application/services/session.service';
-import { InterviewSession } from '../../../../domain/entities';
+import { SessionController } from '../../../infrastructure/controllers/session.controller';
+import { SessionService } from '../../../application/services/session.service';
+import { InterviewSession } from '../../../domain/entities';
+
+import { MongoWhiteboardRepository } from '../../../infrastructure/adapters/database/whiteboard.repository';
+import { MongoUserTestCaseRepository } from '../../../infrastructure/adapters/database/user-test-case.repository';
 
 describe('SessionController', () => {
   let controller: SessionController;
   let mockSessionService: any;
+  let mockWhiteboardRepository: any;
+  let mockUserTestCaseRepository: any;
 
   beforeEach(async () => {
     mockSessionService = {
@@ -21,12 +26,30 @@ describe('SessionController', () => {
       submitResponse: jest.fn(),
     };
 
+    mockWhiteboardRepository = {
+      findBySessionId: jest.fn(),
+      save: jest.fn(),
+    };
+
+    mockUserTestCaseRepository = {
+      findBySessionId: jest.fn(),
+      save: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SessionController],
       providers: [
         {
           provide: SessionService,
           useValue: mockSessionService,
+        },
+        {
+          provide: MongoWhiteboardRepository,
+          useValue: mockWhiteboardRepository,
+        },
+        {
+          provide: MongoUserTestCaseRepository,
+          useValue: mockUserTestCaseRepository,
         },
       ],
     }).compile();
@@ -72,7 +95,7 @@ describe('SessionController', () => {
 
     const result = await controller.getSession('test-session');
 
-    expect(result.sessionId).toBe('test-session');
+    expect(result?.sessionId).toBe('test-session');
     expect(mockSessionService.getSession).toHaveBeenCalledWith('test-session');
   });
 
@@ -125,14 +148,13 @@ describe('SessionController', () => {
     };
 
     mockSessionService.submitResponse.mockResolvedValue(mockResponse);
+    mockSessionService.getSession.mockResolvedValue({ status: 'in-progress' });
 
     const result = await controller.submitResponse('test-session', {
       questionId: 'q1',
       candidateResponse: 'My answer',
-      communicationMode: 'text',
     });
 
-    expect(result.sessionId).toBe('test-session');
-    expect(result.questionId).toBe('q1');
+    expect(result.success).toBe(true);
   });
 });

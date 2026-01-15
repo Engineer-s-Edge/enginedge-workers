@@ -195,6 +195,11 @@ export class AgentFactory {
       );
     }
 
+    // Validate that collective agent has children
+    if (!agent.childAgents || agent.childAgents.length === 0) {
+      throw new Error('Collective agents must have at least one child agent');
+    }
+
     const config = {
       collectiveId: `collective_${agent.id || Date.now()}`,
       maxSubAgents: 10,

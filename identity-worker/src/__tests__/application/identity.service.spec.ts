@@ -16,9 +16,13 @@ const mockRefresh: any = {
   revoke: jest.fn(),
   record: jest.fn(),
 };
+const mockKeys: any = {
+  getActiveKey: jest.fn().mockResolvedValue(null),
+  saveKey: jest.fn().mockResolvedValue(undefined),
+};
 
 describe('IdentityService', () => {
-  const jwt = new JwtIssuerService({} as any);
+  const jwt = new JwtIssuerService(mockKeys);
   let service: IdentityService;
 
   beforeAll(async () => {

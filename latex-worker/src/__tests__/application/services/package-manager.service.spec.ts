@@ -2,6 +2,29 @@ import { PackageManagerService } from '../../../application/services/package-man
 import { ILogger, IPackageCacheRepository } from '../../../domain/ports';
 import { LaTeXPackage } from '../../../domain/entities';
 
+// Mock child_process to avoid executing real commands
+jest.mock('child_process', () => ({
+  spawn: jest.fn().mockImplementation(() => {
+    const mockProcess: any = {
+      stdout: { on: jest.fn() },
+      stderr: { on: jest.fn() },
+      on: jest.fn().mockImplementation((event, callback) => {
+        if (event === 'close') {
+          // Simulate successful installation
+          callback(0);
+        }
+      }),
+    };
+    // Simulate stdout data for version extraction
+    setTimeout(() => {
+      mockProcess.stdout.on.mock.calls.forEach((call: any) => {
+        if (call[0] === 'data') call[1](Buffer.from('version 1.2.3'));
+      });
+    }, 0);
+    return mockProcess;
+  }),
+}));
+
 describe('PackageManagerService', () => {
   let service: PackageManagerService;
   let mockCacheRepo: jest.Mocked<IPackageCacheRepository>;

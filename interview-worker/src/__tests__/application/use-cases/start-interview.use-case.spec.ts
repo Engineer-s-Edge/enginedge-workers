@@ -59,6 +59,7 @@ describe('StartInterviewUseCase', () => {
   it('should create and return session successfully', async () => {
     const mockInterview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -111,6 +112,7 @@ describe('StartInterviewUseCase', () => {
   it('should create session with voice communication mode', async () => {
     const mockInterview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {

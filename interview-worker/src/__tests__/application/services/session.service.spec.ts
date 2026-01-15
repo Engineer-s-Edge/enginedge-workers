@@ -9,9 +9,14 @@ import { PauseInterviewUseCase } from '../../../application/use-cases/pause-inte
 import { ResumeInterviewUseCase } from '../../../application/use-cases/resume-interview.use-case';
 import { SkipQuestionUseCase } from '../../../application/use-cases/skip-question.use-case';
 import { SubmitResponseUseCase } from '../../../application/use-cases/submit-response.use-case';
+import { WebhookService } from '../../../application/services/webhook.service';
+import { CodeExecutionService } from '../../../application/services/code-execution.service';
+import { MongoTestCaseRepository } from '../../../infrastructure/adapters/database/test-case.repository';
+import { PhaseTransitionService } from '../../../application/services/phase-transition.service';
+import { TimeLimitService } from '../../../application/services/time-limit.service';
 import { InterviewSession } from '../../../domain/entities';
 import { mock } from 'jest-mock-extended';
-import { IInterviewSessionRepository } from '../../../application/ports/repositories.port';
+import { IInterviewSessionRepository, IInterviewRepository } from '../../../application/ports/repositories.port';
 
 describe('SessionService', () => {
   let service: SessionService;
@@ -44,6 +49,12 @@ describe('SessionService', () => {
         },
         { provide: SkipQuestionUseCase, useValue: mockSkipQuestionUseCase },
         { provide: SubmitResponseUseCase, useValue: mockSubmitResponseUseCase },
+        { provide: 'IInterviewRepository', useValue: mock<IInterviewRepository>() },
+        { provide: WebhookService, useValue: mock<WebhookService>() },
+        { provide: CodeExecutionService, useValue: mock<CodeExecutionService>() },
+        { provide: MongoTestCaseRepository, useValue: mock<MongoTestCaseRepository>() },
+        { provide: PhaseTransitionService, useValue: mock<PhaseTransitionService>() },
+        { provide: TimeLimitService, useValue: mock<TimeLimitService>() },
       ],
     }).compile();
 
@@ -142,10 +153,10 @@ describe('SessionService', () => {
     const result = await service.skipQuestion('test-session', 'q1');
 
     expect(result.skippedQuestions).toContain('q1');
-    expect(mockSkipQuestionUseCase.execute).toHaveBeenCalledWith({
-      sessionId: 'test-session',
-      questionId: 'q1',
-    });
+    expect(mockSkipQuestionUseCase.execute).toHaveBeenCalledWith(
+      'test-session',
+      'q1',
+    );
   });
 
   it('should submit response', async () => {

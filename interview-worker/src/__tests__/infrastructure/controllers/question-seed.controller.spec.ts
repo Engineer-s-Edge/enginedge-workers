@@ -3,8 +3,8 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { QuestionSeedController } from '../../../../infrastructure/controllers/question-seed.controller';
-import { QuestionService } from '../../../../application/services/question.service';
+import { QuestionSeedController } from '../../../infrastructure/controllers/question-seed.controller';
+import { QuestionService } from '../../../application/services/question.service';
 
 describe('QuestionSeedController', () => {
   let controller: QuestionSeedController;

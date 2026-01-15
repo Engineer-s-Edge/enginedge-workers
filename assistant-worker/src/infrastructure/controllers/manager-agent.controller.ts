@@ -95,6 +95,7 @@ interface AggregateBody {
 
 interface ReassignBody {
   userId: string;
+  assignmentId: string;
   targetAgentId: string;
   reason?: string;
 }
@@ -450,6 +451,47 @@ export class ManagerAgentController {
     const assignment = this.managerRuntime.getAssignment(agentId, assignmentId);
 
     return this.serializeAssignment(assignment);
+  }
+
+  /**
+   * POST /agents/manager/:id/reassign - Reassign an assignment to another agent
+   */
+  @Post(':id/reassign')
+  @HttpCode(HttpStatus.OK)
+  async reassignTask(
+    @Param('id') agentId: string,
+    @Body() body: ReassignBody,
+  ) {
+    this.logger.info('Reassigning task', { agentId, assignmentId: body.assignmentId, targetAgentId: body.targetAgentId });
+
+    if (!body.userId) {
+      throw new BadRequestException('userId is required');
+    }
+
+    if (!body.assignmentId) {
+      throw new BadRequestException('assignmentId is required');
+    }
+
+    if (!body.targetAgentId) {
+      throw new BadRequestException('targetAgentId is required');
+    }
+
+    await this.ensureManagerAgent(agentId, body.userId);
+
+    this.managerRuntime.reassignAssignment(
+      agentId,
+      body.userId,
+      body.assignmentId,
+      body.targetAgentId,
+    );
+
+    return {
+      success: true,
+      agentId,
+      assignmentId: body.assignmentId,
+      targetAgentId: body.targetAgentId,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   /**

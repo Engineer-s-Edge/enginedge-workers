@@ -12,6 +12,11 @@ import { QuestionService } from '@application/services/question.service';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
 
+let uuidCounter = 0;
+jest.mock('uuid', () => ({
+  v4: () => `test-uuid-${++uuidCounter}`,
+}));
+
 describe('Session Flow Integration', () => {
   let app: TestingModule;
   let sessionService: SessionService;
@@ -37,12 +42,15 @@ describe('Session Flow Integration', () => {
       imports: [AppModule],
     }).compile();
 
+    await app.init(); // Initialize module to run onModuleInit hooks
+
     sessionService = app.get<SessionService>(SessionService);
     interviewService = app.get<InterviewService>(InterviewService);
     questionService = app.get<QuestionService>(QuestionService);
 
     // Create test interview
     await interviewService.createInterview({
+      userId: 'test-user',
       title: 'Integration Test Interview',
       description: 'Test interview for integration tests',
       phases: [
@@ -155,6 +163,7 @@ describe('Session Flow Integration', () => {
     ]);
 
     expect(sessions).toHaveLength(3);
+    console.log('SessionIDs:', sessions.map((s) => s.sessionId));
     expect(new Set(sessions.map((s) => s.sessionId)).size).toBe(3); // All unique
 
     // Verify each can be retrieved independently

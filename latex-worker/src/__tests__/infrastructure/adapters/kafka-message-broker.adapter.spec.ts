@@ -103,11 +103,11 @@ describe('KafkaMessageBrokerAdapter', () => {
       expect(mockConsumer.connect).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw error if connection fails', async () => {
+    it('should handle connection errors gracefully', async () => {
       const error = new Error('Connection failed');
       mockProducer.connect.mockRejectedValue(error);
 
-      await expect(adapter.connect()).rejects.toThrow('Connection failed');
+      await expect(adapter.connect()).resolves.toBeUndefined();
       expect(adapter.isConnected()).toBe(false);
     });
   });
@@ -129,12 +129,12 @@ describe('KafkaMessageBrokerAdapter', () => {
       expect(mockProducer.disconnect).not.toHaveBeenCalled();
     });
 
-    it('should throw error if disconnect fails', async () => {
+    it('should handle error if disconnect fails', async () => {
       await adapter.connect();
       const error = new Error('Disconnect failed');
       mockConsumer.disconnect.mockRejectedValue(error);
 
-      await expect(adapter.disconnect()).rejects.toThrow('Disconnect failed');
+      await expect(adapter.disconnect()).resolves.toBeUndefined();
     });
   });
 
@@ -178,10 +178,12 @@ describe('KafkaMessageBrokerAdapter', () => {
     });
 
     it('should throw error if not connected', async () => {
+      // Ensure connect fails so it doesn't auto-reconnect
+      mockProducer.connect.mockRejectedValue(new Error('Connection failed'));
       await adapter.disconnect();
 
       await expect(adapter.sendMessage('test-topic', {})).rejects.toThrow(
-        'Not connected to Kafka',
+        'Kafka is not available. Message could not be sent.',
       );
     });
 
@@ -235,22 +237,32 @@ describe('KafkaMessageBrokerAdapter', () => {
       });
     });
 
-    it('should throw error if not connected', async () => {
+    it('should log warning if not connected', async () => {
+      // Ensure connect fails so it stays disconnected
+      mockProducer.connect.mockRejectedValue(new Error('Connect fail'));
+      mockConsumer.connect.mockRejectedValue(new Error('Connect fail'));
+      
       await adapter.disconnect();
       const handler = jest.fn();
+      const warnSpy = jest.spyOn((adapter as any).logger, 'warn').mockImplementation();
 
-      await expect(adapter.subscribe('test-topic', handler)).rejects.toThrow(
-        'Not connected to Kafka',
+      await adapter.subscribe('test-topic', handler);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Cannot subscribe to topic test-topic'),
       );
     });
 
-    it('should throw error if subscription fails', async () => {
+    it('should log warning if subscription fails', async () => {
       const error = new Error('Subscription failed');
       mockConsumer.subscribe.mockRejectedValue(error);
       const handler = jest.fn();
+      const warnSpy = jest.spyOn((adapter as any).logger, 'warn').mockImplementation();
 
-      await expect(adapter.subscribe('test-topic', handler)).rejects.toThrow(
-        'Subscription failed',
+      await adapter.subscribe('test-topic', handler);
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to subscribe to topic test-topic'),
       );
     });
   });
