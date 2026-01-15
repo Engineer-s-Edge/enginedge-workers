@@ -22,11 +22,13 @@ describe('Agent Integration Tests', () => {
   });
 
   afterAll(async () => {
+    // Final cleanup if any remains
     await cleanupTestData(app, createdAgentIds);
     await app.close();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await cleanupTestData(app, createdAgentIds);
     createdAgentIds = [];
   });
 
@@ -109,7 +111,7 @@ describe('Agent Integration Tests', () => {
       // Verify deletion
       await request(app.getHttpServer())
         .get(`/agents/${agentId}?userId=${testFixtures.userId}`)
-        .expect(500); // Should throw error
+        .expect(404);
     });
   });
 
@@ -175,6 +177,12 @@ describe('Agent Integration Tests', () => {
 
       const agentId = createResponse.body.id;
       createdAgentIds.push(agentId);
+
+      // Start execution to ensure instance exists
+      await request(app.getHttpServer())
+        .post(`/agents/${agentId}/execute?userId=${testFixtures.userId}`)
+        .send({ input: { messages: [{ role: 'user', content: 'test' }] }, userId: testFixtures.userId })
+        .expect(200);
 
       const response = await request(app.getHttpServer())
         .post(`/agents/${agentId}/abort?userId=${testFixtures.userId}`)

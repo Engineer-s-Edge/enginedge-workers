@@ -3,6 +3,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import {
   LocalDBRetriever,
   LocalDBArgs,
@@ -13,7 +14,15 @@ describe('LocalDBRetriever', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [LocalDBRetriever],
+      providers: [
+        LocalDBRetriever,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('mock://data'),
+          },
+        },
+      ],
     }).compile();
 
     retriever = module.get<LocalDBRetriever>(LocalDBRetriever);

@@ -472,7 +472,10 @@ export class FilesystemRetriever extends BaseRetriever<
 
     // Check against blocked paths
     for (const blockedPath of this.blockedPaths) {
-      if (normalizedPath.startsWith(blockedPath)) {
+      if (
+        normalizedPath.startsWith(blockedPath) ||
+        filePath.startsWith(blockedPath)
+      ) {
         throw Object.assign(
           new Error(`Access denied: Path ${filePath} is in a restricted area`),
           {

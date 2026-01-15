@@ -14,10 +14,13 @@ describe('VectorStoreService Advanced (Phase 6 - Vector Stores Extended - Simula
     getDefaultEmbedder: jest.fn().mockReturnValue(mockEmbedder),
     getEmbedderByProvider: jest.fn().mockReturnValue(mockEmbedder),
   };
+  const mockSimilarityService: any = {
+    calculateSimilarity: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new EmbedderService(mockFactory);
+    service = new EmbedderService(mockFactory, mockSimilarityService);
   });
 
   it('vstore-adv-001: stores single vector successfully', async () => {

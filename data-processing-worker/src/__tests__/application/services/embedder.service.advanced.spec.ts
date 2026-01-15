@@ -14,10 +14,13 @@ describe('EmbedderService Advanced (Phase 5 - Embedders Extended)', () => {
     getDefaultEmbedder: jest.fn().mockReturnValue(mockEmbedder),
     getEmbedderByProvider: jest.fn().mockReturnValue(mockEmbedder),
   };
+  const mockSimilarityService: any = {
+    calculateSimilarity: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new EmbedderService(mockFactory);
+    service = new EmbedderService(mockFactory, mockSimilarityService);
   });
 
   it('emb-adv-001: embeds single text successfully', async () => {

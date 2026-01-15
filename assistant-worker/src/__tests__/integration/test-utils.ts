@@ -25,9 +25,62 @@ jest.mock('ioredis', () => {
   };
 });
 
-// Mock MongooseModule to prevent connection
+// Mock Kafka
+jest.mock('kafkajs', () => {
+  return {
+    Kafka: jest.fn().mockImplementation(() => ({
+      producer: jest.fn().mockImplementation(() => ({
+        connect: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn().mockResolvedValue(undefined),
+        send: jest.fn().mockResolvedValue([{ errorCode: 0 }]),
+        on: jest.fn(),
+      })),
+      consumer: jest.fn().mockImplementation(() => ({
+        connect: jest.fn().mockResolvedValue(undefined),
+        disconnect: jest.fn().mockResolvedValue(undefined),
+        subscribe: jest.fn().mockResolvedValue(undefined),
+        run: jest.fn().mockResolvedValue(undefined),
+        on: jest.fn(),
+      })),
+      admin: jest.fn().mockImplementation(() => ({
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        listTopics: jest.fn().mockResolvedValue([]),
+        createTopics: jest.fn(),
+      })),
+    })),
+    Partitioners: {
+      LegacyPartitioner: jest.fn(),
+      DefaultPartitioner: jest.fn(),
+    },
+  };
+});
+
+// Global store for in-memory DB
+const globalStore = new Map<string, Map<string, any>>();
+
+const getCollection = (modelName: string) => {
+  if (!globalStore.has(modelName)) {
+    globalStore.set(modelName, new Map());
+  }
+  return globalStore.get(modelName)!;
+};
+
+// Mock MongooseModule to prevent connection and provide in-memory storage
 jest.mock('@nestjs/mongoose', () => {
   const original = jest.requireActual('@nestjs/mongoose');
+  
+  // Helper to create a chainable query object
+  const createQuery = (result: any) => ({
+    exec: jest.fn().mockResolvedValue(result),
+    sort: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    select: jest.fn().mockReturnThis(),
+    populate: jest.fn().mockReturnThis(),
+    then: (resolve: any) => Promise.resolve(result).then(resolve),
+  });
+
   return {
     ...original,
     MongooseModule: {
@@ -38,20 +91,116 @@ jest.mock('@nestjs/mongoose', () => {
         exports: [],
       })),
       forFeature: jest.fn().mockImplementation((models) => {
-        const providers = models.map((model: any) => ({
-          provide: original.getModelToken(model.name),
-          useValue: {
-            find: jest.fn().mockReturnThis(),
-            findOne: jest.fn().mockReturnThis(),
-            findById: jest.fn().mockReturnThis(),
-            create: jest.fn(),
-            updateOne: jest.fn().mockReturnThis(),
-            deleteOne: jest.fn().mockReturnThis(),
-            exec: jest.fn(),
-            save: jest.fn(),
+        const providers = models.map((model: any) => {
+          const modelName = model.name;
+          
+          const mockModel = {
+            // Create
+            create: jest.fn().mockImplementation((dto) => {
+              // Ensure _id exists
+              const id = dto._id || dto.id || Math.random().toString(36).substring(7);
+              const doc = { ...dto, _id: id, id };
+              // Add to store
+              getCollection(modelName).set(id, doc);
+              return Promise.resolve(doc);
+            }),
+            
+            // Find By ID
+            findById: jest.fn().mockImplementation((id) => {
+              const doc = getCollection(modelName).get(id);
+              return createQuery(doc || null);
+            }),
+            
+            // Find One
+            findOne: jest.fn().mockImplementation((query) => {
+              const collection = getCollection(modelName);
+              let found = null;
+              
+              if (!query || Object.keys(query).length === 0) {
+                 found = collection.values().next().value;
+              } else {
+                for (const item of collection.values()) {
+                  let match = true;
+                  for (const [key, value] of Object.entries(query)) {
+                    if (item[key] !== value) {
+                       match = false; 
+                       break;
+                    }
+                  }
+                  if (match) {
+                    found = item;
+                    break;
+                  }
+                }
+              }
+              return createQuery(found);
+            }),
+            
+            // Find (All or filter)
+            find: jest.fn().mockImplementation((query) => {
+               const collection = getCollection(modelName);
+               let results: any[] = [];
+               
+               if (!query || Object.keys(query).length === 0) {
+                 results = Array.from(collection.values());
+               } else {
+                 for (const item of collection.values()) {
+                    let match = true;
+                    for (const [key, value] of Object.entries(query)) {
+                      // Basic exact match support
+                      if (item[key] !== value) {
+                         match = false; 
+                         break;
+                      }
+                    }
+                    if (match) results.push(item);
+                 }
+               }
+               return createQuery(results);
+            }),
+
+            // Update One
+            updateOne: jest.fn().mockImplementation((query, update) => {
+               // Simple implementation - find one and update
+               // This is a bit tricky without real query parsing
+               return createQuery({ modifiedCount: 1 });
+            }),
+
+            // Delete One
+            deleteOne: jest.fn().mockImplementation((query) => {
+               // Assuming query is { _id: ... } or similar
+               const collection = getCollection(modelName);
+               if (query._id) {
+                 const existed = collection.delete(query._id);
+                 return createQuery({ deletedCount: existed ? 1 : 0 });
+               } else if (query.id) {
+                 const existed = collection.delete(query.id);
+                 return createQuery({ deletedCount: existed ? 1 : 0 });
+               }
+               
+               // Fallback: iterate
+               for (const [id, item] of collection.entries()) {
+                  let match = true;
+                  for (const [key, value] of Object.entries(query)) {
+                     if (item[key] !== value) { match = false; break; }
+                  }
+                  if (match) {
+                    collection.delete(id);
+                    return createQuery({ deletedCount: 1 });
+                  }
+               }
+               return createQuery({ deletedCount: 0 });
+            }),
+            
             constructor: jest.fn(),
-          },
-        }));
+          };
+
+          return {
+            provide: original.getModelToken(modelName),
+            useValue: mockModel,
+          };
+        });
+
         return {
           module: class FakeMongooseFeatureModule {},
           providers: providers,
@@ -64,6 +213,7 @@ jest.mock('@nestjs/mongoose', () => {
 
 import { AppModule } from '../../app.module'; // Adjust path if needed
 import { MongooseModule } from '@nestjs/mongoose';
+import { AgentService } from '../../application/services/agent.service';
 
 /**
  * Create a test application instance
@@ -184,10 +334,12 @@ export async function cleanupTestData(
   agentIds: string[],
 ): Promise<void> {
   // Clean up agents
+  const agentService = app.get(AgentService);
   for (const agentId of agentIds) {
     try {
-      await app.get('AgentService').deleteAgent(agentId, testFixtures.userId);
+      await agentService.deleteAgent(agentId, testFixtures.userId);
     } catch (error) {
+      // console.error(`Failed to cleanup agent ${agentId}:`, error);
       // Ignore errors during cleanup
     }
   }
