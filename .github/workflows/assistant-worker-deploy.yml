@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: assistant-worker
-      DOCKERFILE_PATH: enginedge-workers/assistant-worker
+      DOCKERFILE_PATH: ./assistant-worker
       DEPLOYMENT_NAME: assistant-worker
       CONTAINER_NAME: assistant-worker
       GITHUB_USER: chris-alexander-pop

@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: news-worker
-      DOCKERFILE_PATH: enginedge-workers/news-worker
+      DOCKERFILE_PATH: ./news-worker
       DEPLOYMENT_NAME: news-worker
       CONTAINER_NAME: news-worker
       GITHUB_USER: chris-alexander-pop

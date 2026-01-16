@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: identity-worker
-      DOCKERFILE_PATH: enginedge-workers/identity-worker
+      DOCKERFILE_PATH: ./identity-worker
       DEPLOYMENT_NAME: identity-worker
       CONTAINER_NAME: identity-worker
       GITHUB_USER: chris-alexander-pop
