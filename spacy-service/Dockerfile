@@ -25,8 +25,8 @@ ENV NLTK_DATA=/usr/share/nltk_data
 # Copy application code
 COPY . .
 
-# Expose port
-EXPOSE 8001
+# Expose port (default 3008, but can be overridden via PORT env var)
+EXPOSE 3008
 
-# Run FastAPI server
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Run FastAPI server - use PORT env var if set, otherwise default to 3008
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-3008}"]

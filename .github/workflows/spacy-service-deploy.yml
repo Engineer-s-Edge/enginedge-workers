@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: spacy-service
-      DOCKERFILE_PATH: ./spacy-service
+      DOCKERFILE_PATH: enginedge-workers/spacy-service
       DEPLOYMENT_NAME: spacy-service
       CONTAINER_NAME: spacy-service
       GITHUB_USER: chris-alexander-pop

@@ -71,7 +71,7 @@ jobs:
   node-workers:
     needs: changes
     runs-on: ubuntu-latest
-    if: ${{ fromJson(needs.changes.outputs['workers-matrix']).include != null && contains(needs.changes.outputs['workers-matrix'], 'worker') }}
+    if: ${{ fromJson(needs.changes.outputs['workers-matrix']).include != null && fromJson(needs.changes.outputs['workers-matrix']).include[0] != null }}
     strategy:
       matrix: ${{ fromJson(needs.changes.outputs['workers-matrix']) }}
     steps:
@@ -107,14 +107,14 @@ jobs:
           docker build -t $IMAGE .
           docker push $IMAGE
       - name: Helm deploy
-        if: github.ref == 'refs/heads/main' && secrets.KUBECONFIG_B64 != ''
+        if: github.ref == 'refs/heads/main' && secrets.KUBECONFIG_B64
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
         run: |
           echo "$KUBECONFIG_B64" | base64 -d > kubeconfig
           export KUBECONFIG=$PWD/kubeconfig
           IMAGE=ghcr.io/${{ github.repository_owner }}/${{ matrix.worker }}:${{ github.sha }}
-          helm upgrade --install ${{ matrix.worker }} ../enginedge-core/platform/k8s/dev/charts/worker-generic \
+          helm upgrade --install ${{ matrix.worker }} ../../enginedge-core/platform/k8s/dev/charts/worker-generic \
             --namespace default \
             --set image.repository=${IMAGE%:*} \
             --set image.tag=${IMAGE##*:} \

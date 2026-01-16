@@ -430,7 +430,21 @@ export class KafkaDataProcessingAdapter
     this.logger.log(`OCR processing task: ${data.taskId}`);
 
     try {
-      // This is a placeholder - full OCR implementation would use Tesseract
+      /**
+       * PLACEHOLDER IMPLEMENTATION: OCR Processing
+       * 
+       * This is an intentional placeholder for OCR functionality.
+       * A full implementation would integrate with Tesseract OCR or similar library
+       * to extract text from images. The placeholder returns a mock result to allow
+       * the system to function while OCR capabilities are developed.
+       * 
+       * Future implementation should:
+       * - Install and configure Tesseract OCR library
+       * - Process image data from imagePath or imageData
+       * - Extract text with confidence scores
+       * - Support multiple languages via language parameter
+       * - Handle various image formats (PNG, JPEG, PDF, etc.)
+       */
       await this.publishResult('ocr.complete', {
         taskId: data.taskId,
         status: 'SUCCESS',

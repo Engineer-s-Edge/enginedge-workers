@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: resume-worker
-      DOCKERFILE_PATH: ./resume-worker
+      DOCKERFILE_PATH: enginedge-workers/resume-worker
       DEPLOYMENT_NAME: resume-worker
       CONTAINER_NAME: resume-worker
       GITHUB_USER: chris-alexander-pop

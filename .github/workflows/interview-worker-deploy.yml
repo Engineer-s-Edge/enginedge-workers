@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: interview-worker
-      DOCKERFILE_PATH: ./interview-worker
+      DOCKERFILE_PATH: enginedge-workers/interview-worker
       DEPLOYMENT_NAME: interview-worker
       CONTAINER_NAME: interview-worker
       GITHUB_USER: chris-alexander-pop

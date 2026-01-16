@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: latex-worker
-      DOCKERFILE_PATH: ./latex-worker
+      DOCKERFILE_PATH: enginedge-workers/latex-worker
       DEPLOYMENT_NAME: latex-worker
       CONTAINER_NAME: latex-worker
       GITHUB_USER: chris-alexander-pop

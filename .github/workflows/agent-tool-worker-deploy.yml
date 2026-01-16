@@ -10,7 +10,7 @@ jobs:
     runs-on: self-hosted
     env:
       SERVICE_NAME: agent-tool-worker
-      DOCKERFILE_PATH: ./agent-tool-worker
+      DOCKERFILE_PATH: enginedge-workers/agent-tool-worker
       DEPLOYMENT_NAME: agent-tool-worker
       CONTAINER_NAME: agent-tool-worker
       GITHUB_USER: chris-alexander-pop

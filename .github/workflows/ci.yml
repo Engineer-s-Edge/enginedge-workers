@@ -23,26 +23,26 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: ${{ matrix.worker }}/package-lock.json
+        cache-dependency-path: enginedge-workers/${{ matrix.worker }}/package-lock.json
 
     - name: Install dependencies
       run: |
-        cd ${{ matrix.worker }}
+        cd enginedge-workers/${{ matrix.worker }}
         npm ci
 
     - name: Run linter
       run: |
-        cd ${{ matrix.worker }}
+        cd enginedge-workers/${{ matrix.worker }}
         npm run lint
 
     - name: Run tests
       run: |
-        cd ${{ matrix.worker }}
+        cd enginedge-workers/${{ matrix.worker }}
         npm test -- --coverage --watchAll=false
 
     - name: Build
       run: |
-        cd ${{ matrix.worker }}
+        cd enginedge-workers/${{ matrix.worker }}
         npm run build
 
   docker-build:
@@ -59,10 +59,10 @@ jobs:
 
     - name: Build Docker image
       run: |
-        cd ${{ matrix.worker }}
+        cd enginedge-workers/${{ matrix.worker }}
         docker build -t enginedge/${{ matrix.worker }}:latest .
 
     - name: Test Docker image
       run: |
-        cd ${{ matrix.worker }}
+        cd enginedge-workers/${{ matrix.worker }}
         docker run --rm enginedge/${{ matrix.worker }}:latest npm test -- --watchAll=false || true

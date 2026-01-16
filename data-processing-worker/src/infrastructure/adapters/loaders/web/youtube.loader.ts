@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { WebLoaderPort } from '@domain/ports/loader.port';
 import { Document } from '@domain/entities/document.entity';
 import axios from 'axios';
@@ -11,6 +11,7 @@ import * as crypto from 'crypto';
  */
 @Injectable()
 export class YoutubeLoaderAdapter extends WebLoaderPort {
+  private readonly logger = new Logger(YoutubeLoaderAdapter.name);
   readonly name = 'youtube';
   readonly supportedProtocols = ['https'];
 
@@ -69,7 +70,7 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
     try {
       const key = apiKey || process.env.YOUTUBE_API_KEY;
       if (!key) {
-        console.warn('YouTube API key not provided. Skipping metadata.');
+        this.logger.warn('YouTube API key not provided. Skipping metadata.');
         return null;
       }
 
@@ -113,24 +114,34 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
         timestamp: new Date().toISOString(),
       });
     } catch (error: any) {
-      console.warn(`Failed to load YouTube metadata: ${error.message}`);
+      this.logger.warn(`Failed to load YouTube metadata: ${error.message}`);
       return null;
     }
   }
 
   /**
    * Load video transcript/captions
-   * Note: This is a simplified implementation
-   * For production, consider using youtube-transcript or similar library
+   * 
+   * PLACEHOLDER IMPLEMENTATION: YouTube Transcript Loading
+   * 
+   * This is an intentional placeholder for transcript functionality.
+   * A full implementation would integrate with youtube-transcript package or YouTube Data API
+   * to extract captions/subtitles from videos. The placeholder returns null to allow
+   * the system to function while transcript capabilities are developed.
+   * 
+   * Future implementation should:
+   * - Install youtube-transcript package: npm install youtube-transcript
+   * - Use YoutubeTranscript.fetchTranscript() to get captions
+   * - Support multiple languages via language parameter
+   * - Handle cases where transcripts are not available
+   * - Return Document with transcript content and metadata
    */
   private async _loadTranscript(
     videoId: string,
     language: string,
   ): Promise<Document | null> {
     try {
-      // Placeholder for transcript loading
-      // In production, use youtube-transcript package or YouTube API
-      console.warn(
+      this.logger.warn(
         'Transcript loading not fully implemented. Consider installing youtube-transcript package.',
       );
 
@@ -158,7 +169,7 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
 
       return null;
     } catch (error: any) {
-      console.warn(`Failed to load YouTube transcript: ${error.message}`);
+      this.logger.warn(`Failed to load YouTube transcript: ${error.message}`);
       return null;
     }
   }
