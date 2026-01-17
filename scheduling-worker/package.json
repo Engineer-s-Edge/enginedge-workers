@@ -16,7 +16,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint --config .eslintrc.js src --fix",
-    "test": "jest --passWithNoTests",
+    "test": "jest --passWithNoTests --forceExit",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:unit": "jest --coverage=false --testPathPattern=unit",
