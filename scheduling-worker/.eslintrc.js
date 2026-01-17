@@ -24,5 +24,6 @@ module.exports = {
     '@typescript-eslint/no-require-imports': 'warn',
     '@typescript-eslint/no-this-alias': 'warn',
     '@typescript-eslint/no-var-requires': 'warn',
+    'prefer-const': 'warn',
   },
 };
