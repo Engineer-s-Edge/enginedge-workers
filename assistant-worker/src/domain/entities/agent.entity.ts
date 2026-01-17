@@ -9,7 +9,7 @@ export type AgentId = string & { readonly __brand: 'AgentId' };
 
 /**
  * Agent Entity - Core domain object representing an AI agent
- * 
+ *
  * Immutable by design - all mutations create new instances
  * Supports all agent types: ReAct, Graph, Expert, Genius, Collective
  * Factory pattern for creation with validation
@@ -196,7 +196,7 @@ export class Agent {
       },
       state: this.state.toPlainObject(),
       memory: this.memory.toPlainObject(),
-      childAgents: this.childAgents.map(ca => ca.toPlain()),
+      childAgents: this.childAgents.map((ca) => ca.toPlain()),
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

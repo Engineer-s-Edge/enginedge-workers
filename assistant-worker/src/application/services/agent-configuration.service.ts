@@ -1,164 +1,216 @@
-/**
- * Agent Configuration Service
- * 
- * Manages agent configurations, defaults, and config merging.
- */
-
-import { Injectable } from '@nestjs/common';
-
-export interface AgentConfig {
-  name: string;
-  type: string;
-  userId: string;
-  model?: string;
-  provider?: string;
-  temperature?: number;
-  maxTokens?: number;
-  systemPrompt?: string;
-  memory?: Record<string, unknown>;
-  tools?: string[];
-  [key: string]: unknown;
-}
+import { Injectable, Inject } from '@nestjs/common';
+import { ConversationSettingsOverrides } from '@domain/conversations/conversation.types';
+import { ILogger } from '../ports/logger.port';
+import { Agent } from '@domain/entities/agent.entity';
 
 /**
- * Service for managing agent configurations
+ * Service to merge conversation settings overrides with base agent configuration
  */
 @Injectable()
 export class AgentConfigurationService {
-  /**
-   * Create default configuration for agent type
-   */
-  createDefaultConfig(type: string): Partial<AgentConfig> {
-    const base = {
-      model: 'gpt-4',
-      provider: 'openai',
-      temperature: 0.7,
-      maxTokens: 2000,
-    };
-
-    switch (type) {
-      case 'react':
-        return {
-          ...base,
-          systemPrompt: 'You are a helpful AI agent that uses tools to accomplish tasks.',
-          maxIterations: 10,
-          tools: [],
-        };
-
-      case 'graph':
-        return {
-          ...base,
-          systemPrompt: 'You are a workflow execution agent.',
-          workflow: { nodes: [], edges: [] },
-        };
-
-      case 'expert':
-        return {
-          ...base,
-          systemPrompt: 'You are an expert research agent that conducts thorough investigations.',
-          maxSources: 10,
-          researchDepth: 'medium',
-        };
-
-      case 'genius':
-        return {
-          ...base,
-          systemPrompt: 'You are a learning agent that improves over time.',
-          learningMode: 'user-directed',
-          expertPoolSize: 5,
-        };
-
-      case 'collective':
-        return {
-          ...base,
-          systemPrompt: 'You are a project manager coordinating multiple agents.',
-          maxAgents: 10,
-          coordinationStrategy: 'hierarchical',
-        };
-
-      case 'manager':
-        return {
-          ...base,
-          systemPrompt: 'You are a task decomposition agent.',
-          decompositionStrategy: 'functional',
-          maxSubAgents: 5,
-        };
-
-      default:
-        return base;
-    }
-  }
+  constructor(@Inject('ILogger') private readonly logger: ILogger) {}
 
   /**
-   * Merge configurations (user config overrides defaults)
+   * Merge conversation settings overrides with base agent configuration
+   * Overrides take precedence, but base config provides defaults for missing fields
    */
-  mergeConfigs(defaultConfig: Partial<AgentConfig>, userConfig?: Partial<AgentConfig>): AgentConfig {
-    if (!userConfig) {
-      return defaultConfig as AgentConfig;
+  mergeSettings(
+    baseAgent: Agent,
+    overrides?: ConversationSettingsOverrides,
+  ): Record<string, unknown> {
+    if (!overrides) {
+      return this.agentToConfig(baseAgent);
     }
 
-    // Deep merge with user config taking precedence
-    const merged = { ...defaultConfig };
+    const baseConfig = this.agentToConfig(baseAgent);
+    const merged: Record<string, unknown> = { ...baseConfig };
 
-    for (const key in userConfig) {
-      if (userConfig[key] !== undefined) {
-        if (typeof userConfig[key] === 'object' && !Array.isArray(userConfig[key])) {
-          // Deep merge objects
-          merged[key] = {
-            ...(merged[key] as object || {}),
-            ...(userConfig[key] as object),
-          };
-        } else {
-          // Replace primitives and arrays
-          merged[key] = userConfig[key];
-        }
+    // Merge LLM configuration
+    if (
+      overrides.llm ||
+      overrides.model ||
+      overrides.temperature ||
+      overrides.maxTokens
+    ) {
+      merged.llm = {
+        ...((baseConfig.llm as Record<string, unknown>) || {}),
+        ...(overrides.llm || {}),
+      };
+
+      // Handle legacy fields
+      if (overrides.model && !overrides.llm?.model) {
+        (merged.llm as Record<string, unknown>).model = overrides.model;
+      }
+      if (
+        overrides.temperature !== undefined &&
+        overrides.llm?.temperature === undefined
+      ) {
+        (merged.llm as Record<string, unknown>).temperature =
+          overrides.temperature;
+      }
+      if (
+        overrides.maxTokens !== undefined &&
+        overrides.llm?.maxTokens === undefined
+      ) {
+        (merged.llm as Record<string, unknown>).maxTokens = overrides.maxTokens;
       }
     }
 
-    return merged as AgentConfig;
+    // Merge memory configuration
+    if (overrides.memories || overrides.memoryType) {
+      if (overrides.memories) {
+        merged.memories = overrides.memories;
+      } else if (overrides.memoryType) {
+        // Legacy: convert single memoryType to memories array
+        merged.memories = [
+          {
+            type: overrides.memoryType,
+          },
+        ];
+      }
+    }
+
+    // Merge tools configuration
+    if (overrides.tools) {
+      merged.tools = {
+        ...((baseConfig.tools as Record<string, unknown>) || {}),
+        ...overrides.tools,
+      };
+
+      // Handle legacy allowList/denyList
+      if (overrides.tools.allowList && !overrides.tools.enabled) {
+        (merged.tools as Record<string, unknown>).enabled =
+          overrides.tools.allowList;
+      }
+      if (overrides.tools.denyList && !overrides.tools.disabled) {
+        (merged.tools as Record<string, unknown>).disabled =
+          overrides.tools.denyList;
+      }
+    }
+
+    // Merge streaming configuration
+    if (overrides.streaming) {
+      merged.streaming = {
+        ...((baseConfig.streaming as Record<string, unknown>) || {}),
+        ...overrides.streaming,
+      };
+    }
+
+    // Merge reasoning configuration
+    if (overrides.reasoning) {
+      merged.reasoning = {
+        ...((baseConfig.reasoning as Record<string, unknown>) || {}),
+        ...overrides.reasoning,
+      };
+
+      // Handle legacy steps property
+      if (
+        overrides.reasoning.steps !== undefined &&
+        overrides.reasoning.maxSteps === undefined
+      ) {
+        (merged.reasoning as Record<string, unknown>).maxSteps =
+          overrides.reasoning.steps;
+      }
+    }
+
+    // Merge checkpoints configuration
+    if (overrides.checkpoints) {
+      merged.checkpoints = {
+        ...((baseConfig.checkpoints as Record<string, unknown>) || {}),
+        ...overrides.checkpoints,
+      };
+    }
+
+    // Merge custom settings
+    if (overrides.custom) {
+      merged.custom = {
+        ...((baseConfig.custom as Record<string, unknown>) || {}),
+        ...overrides.custom,
+      };
+    }
+
+    return merged;
   }
 
   /**
-   * Validate configuration completeness
+   * Convert agent to configuration object
    */
-  validateConfiguration(config: Partial<AgentConfig>): { valid: boolean; missing: string[] } {
-    const required = ['name', 'type', 'userId'];
-    const missing: string[] = [];
+  private agentToConfig(agent: Agent): Record<string, unknown> {
+    const config: Record<string, unknown> = {};
 
-    for (const field of required) {
-      if (!config[field]) {
-        missing.push(field);
+    // Extract LLM config from agent
+    if (agent.config) {
+      const agentConfig = agent.config as any;
+      if (agentConfig.model || agentConfig.provider) {
+        config.llm = {
+          provider: agentConfig.provider,
+          model: agentConfig.model,
+          temperature: agentConfig.temperature,
+          maxTokens: agentConfig.maxTokens,
+        };
       }
+
+      // Extract other config
+      if (agentConfig.memory) {
+        config.memory = agentConfig.memory;
+      }
+      if (agentConfig.tools) {
+        config.tools = agentConfig.tools;
+      }
+      if (agentConfig.streaming) {
+        config.streaming = agentConfig.streaming;
+      }
+    }
+
+    return config;
+  }
+
+  /**
+   * Check if streaming is enabled in settings
+   */
+  isStreamingEnabled(overrides?: ConversationSettingsOverrides): boolean {
+    if (!overrides) {
+      return false;
+    }
+
+    // Check streaming.enabled flag
+    if (overrides.streaming?.enabled !== undefined) {
+      return overrides.streaming.enabled;
+    }
+
+    // If any streaming sub-options are enabled, consider streaming enabled
+    return !!(
+      overrides.streaming?.streamTokens ||
+      overrides.streaming?.streamThoughts ||
+      overrides.streaming?.streamToolCalls ||
+      overrides.streaming?.streamEvents
+    );
+  }
+
+  /**
+   * Get streaming configuration from settings
+   */
+  getStreamingConfig(overrides?: ConversationSettingsOverrides): {
+    enabled: boolean;
+    streamTokens?: boolean;
+    streamThoughts?: boolean;
+    streamToolCalls?: boolean;
+    streamEvents?: boolean;
+    bufferSize?: number;
+    chunkSize?: number;
+  } {
+    if (!overrides?.streaming) {
+      return { enabled: false };
     }
 
     return {
-      valid: missing.length === 0,
-      missing,
+      enabled: overrides.streaming.enabled ?? false,
+      streamTokens: overrides.streaming.streamTokens,
+      streamThoughts: overrides.streaming.streamThoughts,
+      streamToolCalls: overrides.streaming.streamToolCalls,
+      streamEvents: overrides.streaming.streamEvents,
+      bufferSize: overrides.streaming.bufferSize,
+      chunkSize: overrides.streaming.chunkSize,
     };
   }
-
-  /**
-   * Update configuration with new values
-   */
-  updateConfig(
-    existingConfig: AgentConfig,
-    updates: Partial<AgentConfig>,
-  ): AgentConfig {
-    return this.mergeConfigs(existingConfig, updates);
-  }
-
-  /**
-   * Extract configuration for serialization
-   */
-  toPlainObject(config: AgentConfig): Record<string, unknown> {
-    return { ...config };
-  }
-
-  /**
-   * Create configuration from plain object
-   */
-  fromPlainObject(obj: Record<string, unknown>): AgentConfig {
-    return obj as AgentConfig;
-  }
 }
-

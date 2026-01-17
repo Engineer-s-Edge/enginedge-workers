@@ -1,6 +1,6 @@
 /**
  * Scheduled Learning Adapter Interface
- * 
+ *
  * Port interface for cron-based learning scheduling
  * Abstracts external ScheduledLearningManager implementation
  */
@@ -11,6 +11,7 @@ export interface ScheduleConfig {
   cronExpression: string;
   maxRunsPerDay?: number;
   enabled?: boolean;
+  timezone?: string; // IANA timezone (e.g., 'America/New_York', 'Europe/London')
 }
 
 export interface ScheduleInfo {
@@ -48,7 +49,10 @@ export interface IScheduledLearningAdapter {
   /**
    * Update schedule
    */
-  updateSchedule(scheduleId: string, config: Partial<ScheduleConfig>): Promise<ScheduleInfo>;
+  updateSchedule(
+    scheduleId: string,
+    config: Partial<ScheduleConfig>,
+  ): Promise<ScheduleInfo>;
 
   /**
    * Get next scheduled runs

@@ -1,11 +1,13 @@
 /**
  * Vector Memory Adapter
- * 
+ *
  * Semantic memory that stores messages as embeddings for similarity search.
  * Retrieves relevant past messages based on semantic similarity to current context.
  */
 
 import { Injectable, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios, { AxiosInstance } from 'axios';
 import { Message } from '@domain/value-objects/message.vo';
 import { IMemoryAdapter } from './buffer-memory.adapter';
 import { ILLMProvider } from '@application/ports/llm-provider.port';
@@ -23,11 +25,27 @@ interface VectorMessage {
 export class VectorMemoryAdapter implements IMemoryAdapter {
   private memory: Map<string, VectorMessage[]> = new Map();
   private readonly topK = 5; // Retrieve top 5 most relevant messages
+  private readonly httpClient: AxiosInstance;
+  private readonly embedderBaseUrl: string;
 
   constructor(
     @Inject('ILLMProvider')
     private readonly llmProvider: ILLMProvider,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    // Use data-processing-worker embedder service
+    this.embedderBaseUrl =
+      this.configService.get<string>('DATA_PROCESSING_WORKER_URL') ||
+      'http://data-processing-worker:3003';
+
+    this.httpClient = axios.create({
+      baseURL: this.embedderBaseUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
 
   /**
    * Add a message and generate its embedding
@@ -52,7 +70,10 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
   /**
    * Get messages (returns all messages, use searchSimilar for semantic retrieval)
    */
-  async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     const vectorMessages = this.memory.get(conversationId) || [];
     const messages = vectorMessages.map((vm) => vm.message);
 
@@ -69,7 +90,7 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
   async searchSimilar(
     conversationId: string,
     query: string,
-    topK?: number
+    topK?: number,
   ): Promise<Message[]> {
     const vectorMessages = this.memory.get(conversationId);
 
@@ -120,14 +141,32 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
 
   /**
    * Generate embedding for text
+   * Uses data-processing-worker embedder service for real embeddings
    */
   private async generateEmbedding(text: string): Promise<number[]> {
     try {
-      // Use LLM provider to generate embeddings
-      // For now, return a mock embedding (in production, use actual embedding model)
+      // Call data-processing-worker embedder service
+      const response = await this.httpClient.post<{
+        embedding: number[];
+        dimensions: number;
+      }>('/embedders/embed', {
+        text,
+        provider: 'openai', // Default to OpenAI, can be configured
+        model: 'text-embedding-ada-002', // Default embedding model
+      });
+
+      if (response.data && response.data.embedding) {
+        return response.data.embedding;
+      }
+
+      // Fallback to mock if service unavailable
       return this.mockEmbedding(text);
     } catch (error) {
-      console.error('Failed to generate embedding:', error);
+      // Log error but don't fail - fallback to mock embedding
+      console.warn(
+        'Failed to generate embedding from embedder service, using mock:',
+        error instanceof Error ? error.message : String(error),
+      );
       return this.mockEmbedding(text);
     }
   }
@@ -190,4 +229,3 @@ export class VectorMemoryAdapter implements IMemoryAdapter {
     return dotProduct / (normA * normB);
   }
 }
-

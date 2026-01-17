@@ -1,11 +1,15 @@
 /**
  * InterviewQuestion Entity
- * 
+ *
  * Represents a question in the question bank that can be used in interviews.
  * Questions are tagged by category, difficulty, and subcategory for selection.
  */
 
-export type QuestionCategory = 'tech-trivia' | 'system-design' | 'behavioral' | 'coding';
+export type QuestionCategory =
+  | 'tech-trivia'
+  | 'system-design'
+  | 'behavioral'
+  | 'coding';
 
 export class InterviewQuestion {
   questionId: string;
@@ -15,6 +19,12 @@ export class InterviewQuestion {
   tags: string[]; // Additional tags for filtering
   question: string; // The actual question text
   expectedDuration?: number; // minutes
+  starterCode?: string; // Starter code template for coding questions
+  correctWorkingCode?: string; // Correct solution for test case validation
+  usageCount: number; // How many times this question has been used
+  lastUsedAt?: Date; // When this question was last used
+  createdAt: Date; // When this question was created
+  updatedAt: Date; // When this question was last updated
 
   constructor(data: {
     questionId: string;
@@ -24,6 +34,12 @@ export class InterviewQuestion {
     tags?: string[];
     question: string;
     expectedDuration?: number;
+    starterCode?: string;
+    correctWorkingCode?: string;
+    usageCount?: number;
+    lastUsedAt?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
   }) {
     this.questionId = data.questionId;
     this.category = data.category;
@@ -32,6 +48,12 @@ export class InterviewQuestion {
     this.tags = data.tags || [];
     this.question = data.question;
     this.expectedDuration = data.expectedDuration;
+    this.starterCode = data.starterCode;
+    this.correctWorkingCode = data.correctWorkingCode;
+    this.usageCount = data.usageCount || 0;
+    this.lastUsedAt = data.lastUsedAt;
+    this.createdAt = data.createdAt || new Date();
+    this.updatedAt = data.updatedAt || new Date();
   }
 
   /**
@@ -65,6 +87,12 @@ export class InterviewQuestion {
       tags: this.tags,
       question: this.question,
       expectedDuration: this.expectedDuration,
+      starterCode: this.starterCode,
+      correctWorkingCode: this.correctWorkingCode,
+      usageCount: this.usageCount,
+      lastUsedAt: this.lastUsedAt,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 
@@ -80,7 +108,18 @@ export class InterviewQuestion {
       tags: (data.tags as string[]) || [],
       question: data.question as string,
       expectedDuration: data.expectedDuration as number | undefined,
+      starterCode: data.starterCode as string | undefined,
+      correctWorkingCode: data.correctWorkingCode as string | undefined,
+      usageCount: (data.usageCount as number) || 0,
+      lastUsedAt: data.lastUsedAt
+        ? new Date(data.lastUsedAt as string)
+        : undefined,
+      createdAt: data.createdAt
+        ? new Date(data.createdAt as string)
+        : new Date(),
+      updatedAt: data.updatedAt
+        ? new Date(data.updatedAt as string)
+        : new Date(),
     });
   }
 }
-

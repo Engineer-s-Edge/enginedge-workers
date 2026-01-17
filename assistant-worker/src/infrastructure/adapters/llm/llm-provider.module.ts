@@ -8,21 +8,27 @@ import { XAILLMAdapter } from './xai-llm.adapter';
 import { ILLMProvider } from '@application/ports/llm-provider.port';
 
 export interface LLMModuleOptions {
-  defaultProvider?: 'openai' | 'anthropic' | 'google' | 'groq' | 'nvidia' | 'xai';
+  defaultProvider?:
+    | 'openai'
+    | 'anthropic'
+    | 'google'
+    | 'groq'
+    | 'nvidia'
+    | 'xai';
   enableAll?: boolean;
 }
 
 /**
  * LLM Provider Module
- * 
+ *
  * Provides all LLM provider adapters with dependency injection.
  * Supports dynamic provider selection and optional multi-provider setup.
- * 
+ *
  * Usage:
  * - Static: `imports: [LLMProviderModule.register()]` - Registers default provider
  * - Dynamic: `imports: [LLMProviderModule.register({ defaultProvider: 'anthropic' })]`
  * - All: `imports: [LLMProviderModule.register({ enableAll: true })]` - All providers available
- * 
+ *
  * Injection:
  * - Single: `@Inject('ILLMProvider') llmProvider: ILLMProvider`
  * - Specific: `@Inject('OpenAI_ILLMProvider') openaiProvider: ILLMProvider`
@@ -59,7 +65,8 @@ export class LLMProviderModule {
     ]);
 
     // Default provider binding
-    const defaultProviderClass = providerMap.get(defaultProvider) || OpenAILLMAdapter;
+    const defaultProviderClass =
+      providerMap.get(defaultProvider) || OpenAILLMAdapter;
     providers.push({
       provide: 'ILLMProvider',
       useClass: defaultProviderClass,
@@ -134,9 +141,9 @@ export class LLMProviderModule {
 
   /**
    * Register all providers
-   * 
+   *
    * Usage: `imports: [LLMProviderModule.registerAll()]`
-   * 
+   *
    * Provides:
    * - 'ILLMProvider': Default provider (OpenAI)
    * - 'AllLLMProviders': Array of all providers

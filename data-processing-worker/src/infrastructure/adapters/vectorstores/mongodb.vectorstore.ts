@@ -7,7 +7,7 @@ import { Document } from '@domain/entities/document.entity';
 
 /**
  * MongoDB Vector Store Adapter (Infrastructure Layer)
- * 
+ *
  * Stores document embeddings in MongoDB with vector search support.
  * Requires MongoDB Atlas with vector search enabled for similarity search.
  */
@@ -30,7 +30,9 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
     this.logger.log(`Storing ${documents.length} documents with embeddings`);
 
     if (documents.length !== embeddings.length) {
-      throw new Error('Documents and embeddings arrays must have the same length');
+      throw new Error(
+        'Documents and embeddings arrays must have the same length',
+      );
     }
 
     const documentIds: string[] = [];
@@ -87,12 +89,19 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
         },
       ];
 
-      // Add filter if provided
+      // Add filter if provided (handle access control)
       if (filter) {
-        pipeline.push({ $match: filter } as any);
+        // Handle $or for access control separately
+        if (filter.$or) {
+          pipeline.push({ $match: filter } as any);
+        } else {
+          pipeline.push({ $match: filter } as any);
+        }
       }
 
-      const results = await this.documentModel.aggregate(pipeline as any).exec();
+      const results = await this.documentModel
+        .aggregate(pipeline as any)
+        .exec();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mappedResults = results.map((result: any) => ({
@@ -107,18 +116,25 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
       this.logger.log(`Found ${mappedResults.length} similar documents`);
       return mappedResults;
     } catch (error) {
-      this.logger.error(`Vector search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
+      this.logger.error(
+        `Vector search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+
       // Fallback to text search if vector search is not available
-      this.logger.warn('Falling back to text search (vector search may not be configured)');
-      return this.textSearch(filter?.query as string || '', limit);
+      this.logger.warn(
+        'Falling back to text search (vector search may not be configured)',
+      );
+      return this.textSearch((filter?.query as string) || '', limit);
     }
   }
 
   /**
    * Fallback text search using MongoDB text index
    */
-  private async textSearch(query: string, limit: number): Promise<Array<{ document: Document; score: number }>> {
+  private async textSearch(
+    query: string,
+    limit: number,
+  ): Promise<Array<{ document: Document; score: number }>> {
     const results = await this.documentModel
       .find({ $text: { $search: query } })
       .limit(limit)
@@ -141,7 +157,7 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
 
   async getDocument(id: string): Promise<Document | null> {
     const result = await this.documentModel.findOne({ documentId: id }).exec();
-    
+
     if (!result) {
       return null;
     }
@@ -174,10 +190,9 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
       updateData.metadata = { ...updates.metadata, updatedAt: new Date() };
     }
 
-    const result = await this.documentModel.updateOne(
-      { documentId: id },
-      updateData,
-    ).exec();
+    const result = await this.documentModel
+      .updateOne({ documentId: id }, updateData)
+      .exec();
 
     if (result.matchedCount === 0) {
       throw new Error(`Document not found: ${id}`);
@@ -199,7 +214,11 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
 
     try {
       // Get vector search results
-      const vectorResults = await this.similaritySearch(queryEmbedding, limit * 2, filter);
+      const vectorResults = await this.similaritySearch(
+        queryEmbedding,
+        limit * 2,
+        filter,
+      );
 
       // Get text search results
       let textResults: Array<{ document: Document; score: number }> = [];
@@ -210,7 +229,10 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
       }
 
       // Combine and deduplicate results
-      const combinedMap = new Map<string, { document: Document; vectorScore: number; textScore: number }>();
+      const combinedMap = new Map<
+        string,
+        { document: Document; vectorScore: number; textScore: number }
+      >();
 
       // Add vector results
       for (const result of vectorResults) {
@@ -237,9 +259,9 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
 
       // Calculate hybrid scores (weighted average: 60% vector, 40% text)
       const hybridResults = Array.from(combinedMap.values())
-        .map(item => ({
+        .map((item) => ({
           document: item.document,
-          score: (item.vectorScore * 0.6) + (item.textScore * 0.4),
+          score: item.vectorScore * 0.6 + item.textScore * 0.4,
         }))
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
@@ -247,7 +269,9 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
       this.logger.log(`Hybrid search found ${hybridResults.length} results`);
       return hybridResults;
     } catch (error) {
-      this.logger.error(`Hybrid search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Hybrid search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       // Fallback to vector search only
       return this.similaritySearch(queryEmbedding, limit, filter);
     }
@@ -324,7 +348,11 @@ export class MongoDBVectorStoreAdapter implements VectorStorePort {
     const results: Array<Array<{ document: Document; score: number }>> = [];
 
     for (const embedding of queryEmbeddings) {
-      const searchResult = await this.similaritySearch(embedding, limit, filter);
+      const searchResult = await this.similaritySearch(
+        embedding,
+        limit,
+        filter,
+      );
       results.push(searchResult);
     }
 

@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Phase 1: Core compilation infrastructure ⏳
  */
 
@@ -16,10 +16,11 @@ import { MathRenderingService } from './services/math-rendering.service';
 import { ErrorRecoveryService } from './services/error-recovery.service';
 import { BibliographyService } from './services/bibliography.service';
 import { FontService } from './services/font.service';
+import { SimpleFileSystemAdapter } from './adapters/simple-filesystem.adapter';
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers are
  * automatically available to all modules.
  */
@@ -30,6 +31,9 @@ import { FontService } from './services/font.service';
   providers: [
     LaTeXCompilerService,
     PackageManagerService,
+    { provide: 'IPackageManager', useClass: PackageManagerService },
+    // Local fallback for IFileSystem to satisfy DI within ApplicationModule
+    { provide: 'IFileSystem', useClass: SimpleFileSystemAdapter },
     MultiFileService,
     MathRenderingService,
     ErrorRecoveryService,
@@ -40,6 +44,7 @@ import { FontService } from './services/font.service';
     DomainModule,
     LaTeXCompilerService,
     PackageManagerService,
+    'IPackageManager',
     MultiFileService,
     MathRenderingService,
     ErrorRecoveryService,

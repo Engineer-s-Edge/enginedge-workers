@@ -4,7 +4,11 @@
 
 import { Injectable, Inject } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { InterviewResponse, InterviewSession, TranscriptMessage } from '../../domain/entities';
+import {
+  InterviewResponse,
+  InterviewSession,
+  TranscriptMessage,
+} from '../../domain/entities';
 import {
   IInterviewSessionRepository,
   IInterviewResponseRepository,
@@ -108,4 +112,3 @@ export class SubmitResponseUseCase {
     return response;
   }
 }
-

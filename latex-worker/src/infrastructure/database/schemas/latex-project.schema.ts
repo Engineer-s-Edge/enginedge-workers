@@ -66,7 +66,8 @@ export class LaTeXProjectSchema {
   templateCategory?: string;
 }
 
-export const LaTeXProjectSchemaFactory = SchemaFactory.createForClass(LaTeXProjectSchema);
+export const LaTeXProjectSchemaFactory =
+  SchemaFactory.createForClass(LaTeXProjectSchema);
 
 // Create compound indexes
 LaTeXProjectSchemaFactory.index({ userId: 1, projectId: 1 }, { unique: true });

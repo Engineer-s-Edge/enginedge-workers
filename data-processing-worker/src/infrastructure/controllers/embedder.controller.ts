@@ -4,7 +4,7 @@ import { EmbedderFactoryService } from '../../application/services/embedder-fact
 
 /**
  * Embedder Controller
- * 
+ *
  * REST API endpoints for embedder operations:
  * - Embed text
  * - Batch embed
@@ -157,7 +157,7 @@ export class EmbedderController {
     return {
       models,
       count: models.length,
-      availableCount: models.filter(m => m.available).length,
+      availableCount: models.filter((m) => m.available).length,
     };
   }
 

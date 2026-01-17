@@ -17,8 +17,15 @@
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import { BaseRetriever } from '../../../domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '../../../domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '../../../domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '../../../domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '../../../domain/entities/tool.entities';
 
 export interface GoogleDriveArgs extends Record<string, unknown> {
   query?: string;
@@ -104,72 +111,82 @@ export interface GoogleDriveOutput extends ToolOutput {
 }
 
 @Injectable()
-export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleDriveOutput> {
+export class GoogleDriveRetriever extends BaseRetriever<
+  GoogleDriveArgs,
+  GoogleDriveOutput
+> {
   readonly inputSchema = {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'Search query for file names, descriptions, or content'
+        description: 'Search query for file names, descriptions, or content',
       },
       folder_id: {
         type: 'string',
         description: 'Folder ID to search within (defaults to root)',
-        default: 'root'
+        default: 'root',
       },
       file_types: {
         type: 'array',
         items: { type: 'string' },
-        description: 'MIME types to filter by (e.g., "application/pdf", "text/plain")'
+        description:
+          'MIME types to filter by (e.g., "application/pdf", "text/plain")',
       },
       owner: {
         type: 'string',
-        description: 'Email address of file owner'
+        description: 'Email address of file owner',
       },
       modified_after: {
         type: 'string',
         description: 'ISO 8601 date-time for minimum modification time',
-        format: 'date-time'
+        format: 'date-time',
       },
       modified_before: {
         type: 'string',
         description: 'ISO 8601 date-time for maximum modification time',
-        format: 'date-time'
+        format: 'date-time',
       },
       min_size: {
         type: 'number',
         description: 'Minimum file size in bytes',
-        minimum: 0
+        minimum: 0,
       },
       max_size: {
         type: 'number',
         description: 'Maximum file size in bytes',
-        minimum: 0
+        minimum: 0,
       },
       max_results: {
         type: 'number',
         description: 'Maximum files to return',
         minimum: 1,
         maximum: 1000,
-        default: 10
+        default: 10,
       },
       page_token: {
         type: 'string',
-        description: 'Token for pagination'
+        description: 'Token for pagination',
       },
       order_by: {
         type: 'string',
         description: 'Order results by field',
-        enum: ['name', 'modifiedTime', 'createdTime', 'starred', 'sharedWithMe'],
-        default: 'modifiedTime'
+        enum: [
+          'name',
+          'modifiedTime',
+          'createdTime',
+          'starred',
+          'sharedWithMe',
+        ],
+        default: 'modifiedTime',
       },
       trash: {
         type: 'boolean',
         description: 'Include trashed files',
-        default: false
-      }
+        default: false,
+      },
     },
-    required: []
+    required: [],
   };
 
   readonly outputSchema = {
@@ -202,16 +219,17 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
             is_trashed: { type: 'boolean' },
             is_starred: { type: 'boolean' },
             is_shared: { type: 'boolean' },
-            viewed_by_me: { type: 'boolean' }
-          }
-        }
-      }
+            viewed_by_me: { type: 'boolean' },
+          },
+        },
+      },
     },
-    required: ['success', 'total_files', 'incomplete_search', 'files']
+    required: ['success', 'total_files', 'incomplete_search', 'files'],
   };
 
   readonly name = 'google-drive-retriever';
-  readonly description = 'Search Google Drive for files, folders, and documents with comprehensive filtering and metadata';
+  readonly description =
+    'Search Google Drive for files, folders, and documents with comprehensive filtering and metadata';
   readonly retrievalType: RetrievalType = RetrievalType.API_DATA;
 
   readonly metadata = new RetrieverConfig(
@@ -223,31 +241,60 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
-    new ErrorEvent('google-drive-auth-failed', 'Google Drive authentication failed', false),
-    new ErrorEvent('google-drive-api-error', 'Google Drive API request failed', true),
-    new ErrorEvent('google-drive-invalid-folder', 'Invalid folder ID provided', false),
-    new ErrorEvent('google-drive-network-error', 'Network connectivity issue with Google Drive API', true),
-    new ErrorEvent('google-drive-quota-exceeded', 'Google Drive API quota exceeded', true)
+    new ErrorEvent(
+      'google-drive-auth-failed',
+      'Google Drive authentication failed',
+      false,
+    ),
+    new ErrorEvent(
+      'google-drive-api-error',
+      'Google Drive API request failed',
+      true,
+    ),
+    new ErrorEvent(
+      'google-drive-invalid-folder',
+      'Invalid folder ID provided',
+      false,
+    ),
+    new ErrorEvent(
+      'google-drive-network-error',
+      'Network connectivity issue with Google Drive API',
+      true,
+    ),
+    new ErrorEvent(
+      'google-drive-quota-exceeded',
+      'Google Drive API quota exceeded',
+      true,
+    ),
   ];
 
   public get caching(): boolean {
     return false; // Drive contents change frequently
   }
 
-  protected async retrieve(args: GoogleDriveArgs & { ragConfig: RAGConfig }): Promise<GoogleDriveOutput> {
+  protected async retrieve(
+    args: GoogleDriveArgs & { ragConfig: RAGConfig },
+  ): Promise<GoogleDriveOutput> {
     // Manual input validation
-    if (args.max_results !== undefined && (args.max_results < 1 || args.max_results > 1000)) {
+    if (
+      args.max_results !== undefined &&
+      (args.max_results < 1 || args.max_results > 1000)
+    ) {
       throw new Error('max_results must be between 1 and 1000');
     }
     if (args.modified_after && !this.isValidISODate(args.modified_after)) {
-      throw new Error('Invalid modified_after format - must be ISO 8601 date-time');
+      throw new Error(
+        'Invalid modified_after format - must be ISO 8601 date-time',
+      );
     }
     if (args.modified_before && !this.isValidISODate(args.modified_before)) {
-      throw new Error('Invalid modified_before format - must be ISO 8601 date-time');
+      throw new Error(
+        'Invalid modified_before format - must be ISO 8601 date-time',
+      );
     }
 
     const folderId = args.folder_id || 'root';
@@ -262,14 +309,17 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
         total_files: response.data.files?.length || 0,
         next_page_token: response.data.nextPageToken,
         incomplete_search: response.data.incompleteSearch || false,
-        files: this.transformFiles(response.data.files || [])
+        files: this.transformFiles(response.data.files || []),
       };
     } catch (error: unknown) {
       return this.handleGoogleDriveError(error);
     }
   }
 
-  private async sendGoogleDriveRequest(args: GoogleDriveArgs, folderId: string): Promise<AxiosResponse<GoogleDriveApiResponse>> {
+  private async sendGoogleDriveRequest(
+    args: GoogleDriveArgs,
+    folderId: string,
+  ): Promise<AxiosResponse<GoogleDriveApiResponse>> {
     const accessToken = process.env.GOOGLE_ACCESS_TOKEN;
     if (!accessToken) {
       throw new Error('Google access token not configured');
@@ -287,7 +337,9 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
     }
 
     if (args.file_types && args.file_types.length > 0) {
-      const mimeQueries = args.file_types.map(type => `mimeType='${type}'`).join(' or ');
+      const mimeQueries = args.file_types
+        .map((type) => `mimeType='${type}'`)
+        .join(' or ');
       queryParts.push(`(${mimeQueries})`);
     }
 
@@ -304,7 +356,7 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
     }
 
     if (!args.trash) {
-      queryParts.push("trashed=false");
+      queryParts.push('trashed=false');
     }
 
     const query = queryParts.join(' and ');
@@ -312,8 +364,9 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
     const params: Record<string, unknown> = {
       key: process.env.GOOGLE_API_KEY || '',
       pageSize: Math.min(args.max_results || 10, 1000),
-      fields: 'nextPageToken,incompleteSearch,files(id,name,mimeType,description,size,createdTime,modifiedTime,parents,owners,lastModifyingUser,webViewLink,webContentLink,sharingUser,fileExtension,fullFileExtension,md5Checksum,viewedByMe,trashed,starred,shared)',
-      orderBy: args.order_by || 'modifiedTime desc'
+      fields:
+        'nextPageToken,incompleteSearch,files(id,name,mimeType,description,size,createdTime,modifiedTime,parents,owners,lastModifyingUser,webViewLink,webContentLink,sharingUser,fileExtension,fullFileExtension,md5Checksum,viewedByMe,trashed,starred,shared)',
+      orderBy: args.order_by || 'modifiedTime desc',
     };
 
     if (query) {
@@ -328,17 +381,17 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
       'https://www.googleapis.com/drive/v3/files',
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
         },
         params,
-        timeout: 30000
-      }
+        timeout: 30000,
+      },
     );
   }
 
   private transformFiles(files: GoogleDriveFile[]): GoogleDriveOutput['files'] {
-    return files.map(file => ({
+    return files.map((file) => ({
       file_id: file.id,
       name: file.name,
       mime_type: file.mimeType,
@@ -355,22 +408,29 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
       is_trashed: file.trashed || false,
       is_starred: file.starred || false,
       is_shared: file.shared || false,
-      viewed_by_me: file.viewedByMe || false
+      viewed_by_me: file.viewedByMe || false,
     }));
   }
 
   private handleGoogleDriveError(error: unknown): never {
-    let errorMessage = 'Unknown error occurred while accessing Google Drive API';
-    
+    let errorMessage =
+      'Unknown error occurred while accessing Google Drive API';
+
     // Check for axios-like error structure (works with mocks and real axios errors)
-    const axiosLikeError = error as { isAxiosError?: boolean; response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
-    
+    const axiosLikeError = error as {
+      isAxiosError?: boolean;
+      response?: { status?: number; data?: { error?: { message?: string } } };
+      message?: string;
+    };
+
     if (axios.isAxiosError(error) || axiosLikeError.isAxiosError) {
       const status = axiosLikeError.response?.status;
-      const message = axiosLikeError.response?.data?.error?.message || axiosLikeError.message;
+      const message =
+        axiosLikeError.response?.data?.error?.message || axiosLikeError.message;
 
       if (status === 401 || status === 403) {
-        errorMessage = 'Google Drive authentication failed - check access token';
+        errorMessage =
+          'Google Drive authentication failed - check access token';
       } else if (status === 404) {
         errorMessage = 'Folder not found - check folder ID and permissions';
       } else if (status === 429) {
@@ -381,11 +441,19 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
     } else if (error instanceof Error) {
       if (error.message.includes('timeout')) {
         errorMessage = 'Google Drive API request timeout';
-      } else if (error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+      } else if (
+        error.message.includes('network') ||
+        error.message.includes('ECONNREFUSED')
+      ) {
         errorMessage = 'Network connectivity issue with Google Drive API';
       } else if (error.message.includes('token not configured')) {
         errorMessage = error.message;
-      } else if (error.message.includes('max_results') || error.message.includes('min_size') || error.message.includes('max_size') || error.message.includes('modified')) {
+      } else if (
+        error.message.includes('max_results') ||
+        error.message.includes('min_size') ||
+        error.message.includes('max_size') ||
+        error.message.includes('modified')
+      ) {
         errorMessage = error.message;
       }
     }
@@ -397,7 +465,10 @@ export class GoogleDriveRetriever extends BaseRetriever<GoogleDriveArgs, GoogleD
     try {
       const date = new Date(dateString);
       // Check if date is valid and the string is in ISO 8601 format
-      return !isNaN(date.getTime()) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(dateString);
+      return (
+        !isNaN(date.getTime()) &&
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(dateString)
+      );
     } catch {
       return false;
     }

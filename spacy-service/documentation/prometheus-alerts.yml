@@ -1,0 +1,20 @@
+groups:
+  - name: spacy-service.alerts
+    rules:
+      - alert: SpacyServiceDown
+        expr: up{job="spacy-service"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: spacy-service
+        annotations:
+          summary: "spaCy Service is down"
+
+      - alert: SpacyServiceHighErrorRate
+        expr: rate(http_requests_total{code=~"5..",job="spacy-service"}[5m]) / rate(http_requests_total{job="spacy-service"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: spacy-service
+        annotations:
+          summary: "High HTTP error rate"

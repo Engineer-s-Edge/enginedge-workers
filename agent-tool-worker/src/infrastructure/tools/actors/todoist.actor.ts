@@ -6,10 +6,21 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type TodoistOperation = 'create-task' | 'update-task' | 'complete-task' | 'delete-task' | 'get-task' | 'list-tasks' | 'create-project' | 'get-projects';
+export type TodoistOperation =
+  | 'create-task'
+  | 'update-task'
+  | 'complete-task'
+  | 'delete-task'
+  | 'get-task'
+  | 'list-tasks'
+  | 'create-project'
+  | 'get-projects';
 
 export interface TodoistArgs {
   operation: TodoistOperation;
@@ -52,7 +63,8 @@ export interface TodoistOutput extends ToolOutput {
 @Injectable()
 export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
   readonly name = 'todoist-actor';
-  readonly description = 'Provides integration with Todoist API for task management';
+  readonly description =
+    'Provides integration with Todoist API for task management';
 
   readonly errorEvents: ErrorEvent[];
 
@@ -68,7 +80,11 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('AuthenticationError', 'Invalid or expired API token', false),
+      new ErrorEvent(
+        'AuthenticationError',
+        'Invalid or expired API token',
+        false,
+      ),
       new ErrorEvent('RateLimitError', 'API rate limit exceeded', true),
       new ErrorEvent('NetworkError', 'Network connectivity issue', true),
       new ErrorEvent('ValidationError', 'Invalid request parameters', false),
@@ -84,7 +100,16 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
         properties: {
           operation: {
             type: 'string',
-            enum: ['create-task', 'update-task', 'complete-task', 'delete-task', 'get-task', 'list-tasks', 'create-project', 'get-projects']
+            enum: [
+              'create-task',
+              'update-task',
+              'complete-task',
+              'delete-task',
+              'get-task',
+              'list-tasks',
+              'create-project',
+              'get-projects',
+            ],
           },
           apiToken: { type: 'string' },
           taskId: { type: 'string' },
@@ -98,9 +123,9 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
           limit: { type: 'number', minimum: 1, maximum: 200 },
           projectName: { type: 'string' },
           parentId: { type: 'string' },
-          color: { type: 'number', minimum: 0, maximum: 49 }
+          color: { type: 'number', minimum: 0, maximum: 49 },
         },
-        required: ['operation']
+        required: ['operation'],
       },
       {
         type: 'object',
@@ -108,20 +133,29 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
           success: { type: 'boolean' },
           operation: {
             type: 'string',
-            enum: ['create-task', 'update-task', 'complete-task', 'delete-task', 'get-task', 'list-tasks', 'create-project', 'get-projects']
+            enum: [
+              'create-task',
+              'update-task',
+              'complete-task',
+              'delete-task',
+              'get-task',
+              'list-tasks',
+              'create-project',
+              'get-projects',
+            ],
           },
           id: { type: 'string' },
           task: { type: 'object' },
           tasks: { type: 'array', items: { type: 'object' } },
           projects: { type: 'array', items: { type: 'object' } },
           updated: { type: 'boolean' },
-          deleted: { type: 'boolean' }
+          deleted: { type: 'boolean' },
         },
-        required: ['success', 'operation']
+        required: ['success', 'operation'],
       },
       [],
       ActorCategory.EXTERNAL_PRODUCTIVITY,
-      true
+      true,
     );
 
     super(metadata, errorEvents);
@@ -134,7 +168,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
     // Validate authentication
     if (!args.apiToken) {
       throw Object.assign(new Error('Todoist API token is required'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
@@ -156,16 +190,19 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
       case 'get-projects':
         return this.getProjects(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
   private async createTask(args: TodoistArgs): Promise<TodoistOutput> {
     if (!args.content) {
       throw Object.assign(new Error('Task content is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -176,7 +213,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
       return {
         success: true,
         operation: 'create-task',
-        id: taskId
+        id: taskId,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -186,7 +223,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
   private async updateTask(args: TodoistArgs): Promise<TodoistOutput> {
     if (!args.taskId) {
       throw Object.assign(new Error('Task ID is required for task update'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -195,7 +232,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
       return {
         success: true,
         operation: 'update-task',
-        updated: true
+        updated: true,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -204,9 +241,12 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
 
   private async completeTask(args: TodoistArgs): Promise<TodoistOutput> {
     if (!args.taskId) {
-      throw Object.assign(new Error('Task ID is required for task completion'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Task ID is required for task completion'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -214,7 +254,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
       return {
         success: true,
         operation: 'complete-task',
-        updated: true
+        updated: true,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -224,7 +264,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
   private async deleteTask(args: TodoistArgs): Promise<TodoistOutput> {
     if (!args.taskId) {
       throw Object.assign(new Error('Task ID is required for task deletion'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -233,7 +273,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
       return {
         success: true,
         operation: 'delete-task',
-        deleted: true
+        deleted: true,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -243,7 +283,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
   private async getTask(args: TodoistArgs): Promise<TodoistOutput> {
     if (!args.taskId) {
       throw Object.assign(new Error('Task ID is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -257,13 +297,13 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
         priority: 3,
         due: { date: '2024-01-15' },
         labels: ['work', 'urgent'],
-        completed: false
+        completed: false,
       };
 
       return {
         success: true,
         operation: 'get-task',
-        task: mockTask
+        task: mockTask,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -281,7 +321,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
           project_id: 'project-123',
           priority: 4,
           due: { date: '2024-01-15' },
-          labels: ['work']
+          labels: ['work'],
         },
         {
           id: 'task-2',
@@ -289,14 +329,14 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
           project_id: 'project-123',
           priority: 2,
           due: { date: '2024-01-16' },
-          labels: ['documentation']
-        }
+          labels: ['documentation'],
+        },
       ];
 
       return {
         success: true,
         operation: 'list-tasks',
-        tasks: mockTasks
+        tasks: mockTasks,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -306,7 +346,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
   private async createProject(args: TodoistArgs): Promise<TodoistOutput> {
     if (!args.projectName) {
       throw Object.assign(new Error('Project name is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -317,7 +357,7 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
       return {
         success: true,
         operation: 'create-project',
-        id: projectId
+        id: projectId,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -333,20 +373,20 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
           id: 'project-1',
           name: 'Work',
           color: 30,
-          parent_id: null
+          parent_id: null,
         },
         {
           id: 'project-2',
           name: 'Personal',
           color: 40,
-          parent_id: null
-        }
+          parent_id: null,
+        },
       ];
 
       return {
         success: true,
         operation: 'get-projects',
-        projects: mockProjects
+        projects: mockProjects,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -355,34 +395,38 @@ export class TodoistActor extends BaseActor<TodoistArgs, TodoistOutput> {
 
   private handleApiError(error: unknown): Error {
     // In a real implementation, this would parse Todoist API errors
-    const errorMessage = error instanceof Error ? error.message : 'Unknown API error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown API error';
 
     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
       return Object.assign(new Error('Invalid or expired API token'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
-    if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests')) {
+    if (
+      errorMessage.includes('429') ||
+      errorMessage.includes('Too Many Requests')
+    ) {
       return Object.assign(new Error('API rate limit exceeded'), {
-        name: 'RateLimitError'
+        name: 'RateLimitError',
       });
     }
 
     if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
       return Object.assign(new Error('Task or project not found'), {
-        name: 'NotFoundError'
+        name: 'NotFoundError',
       });
     }
 
     if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       return Object.assign(new Error('Network connectivity issue'), {
-        name: 'NetworkError'
+        name: 'NetworkError',
       });
     }
 
     return Object.assign(new Error(`Todoist API error: ${errorMessage}`), {
-      name: 'ApiError'
+      name: 'ApiError',
     });
   }
 }

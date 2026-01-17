@@ -14,17 +14,24 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
-import { CompileCommandUseCase, CompileCommand, CompileResult } from '../application/use-cases/compile-command.use-case';
+import {
+  CompileCommandUseCase,
+  CompileCommand,
+  CompileResult,
+} from '../application/use-cases/compile-command.use-case';
 import { ProjectService } from '../application/services/project.service';
 import { TemplateService } from '../application/services/template.service';
 import { MessageBrokerPort } from '../application/ports/message-broker.port';
 import { LaTeXProject } from '../domain/entities/latex-project.entity';
-import { LaTeXTemplate, TemplateCategory } from '../domain/entities/latex-template.entity';
+import {
+  LaTeXTemplate,
+  TemplateCategory,
+} from '../domain/entities/latex-template.entity';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
  * LaTeX Worker Controller
- * 
+ *
  * REST API for LaTeX compilation, project management, and templates.
  */
 @Controller('latex')
@@ -35,7 +42,8 @@ export class LaTeXController {
     private readonly compileCommandUseCase: CompileCommandUseCase,
     private readonly projectService: ProjectService,
     private readonly templateService: TemplateService,
-    @Inject('MessageBrokerPort') private readonly messageBroker: MessageBrokerPort,
+    @Inject('MessageBrokerPort')
+    private readonly messageBroker: MessageBrokerPort,
   ) {}
 
   /**
@@ -44,7 +52,8 @@ export class LaTeXController {
   @Post('compile')
   @HttpCode(HttpStatus.OK)
   async compile(
-    @Body() body: {
+    @Body()
+    body: {
       content: string;
       userId: string;
       settings?: {
@@ -56,7 +65,9 @@ export class LaTeXController {
       metadata?: Record<string, unknown>;
     },
   ): Promise<CompileResult> {
-    this.logger.log(`Received sync compilation request for user ${body.userId}`);
+    this.logger.log(
+      `Received sync compilation request for user ${body.userId}`,
+    );
 
     const command: CompileCommand = {
       jobId: uuidv4(),
@@ -75,7 +86,8 @@ export class LaTeXController {
   @Post('compile-async')
   @HttpCode(HttpStatus.ACCEPTED)
   async compileAsync(
-    @Body() body: {
+    @Body()
+    body: {
       content: string;
       userId: string;
       settings?: {
@@ -88,7 +100,9 @@ export class LaTeXController {
     },
   ): Promise<{ jobId: string; message: string }> {
     const jobId = uuidv4();
-    this.logger.log(`Received async compilation request for user ${body.userId} (job: ${jobId})`);
+    this.logger.log(
+      `Received async compilation request for user ${body.userId} (job: ${jobId})`,
+    );
 
     // Publish compile request to Kafka
     await this.messageBroker.sendMessage('latex.compile.request', {
@@ -133,11 +147,16 @@ export class LaTeXController {
   @Post('projects')
   @HttpCode(HttpStatus.CREATED)
   async createProject(
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       name: string;
       content?: string;
-      files?: Array<{ path: string; content: string; type: 'tex' | 'bib' | 'image' | 'style' | 'other' }>;
+      files?: Array<{
+        path: string;
+        content: string;
+        type: 'tex' | 'bib' | 'image' | 'style' | 'other';
+      }>;
       mainFile?: string;
     },
   ): Promise<LaTeXProject> {
@@ -157,7 +176,9 @@ export class LaTeXController {
       );
     } else {
       // Single-file project
-      const content = body.content || '\\documentclass{article}\\begin{document}\\end{document}';
+      const content =
+        body.content ||
+        '\\documentclass{article}\\begin{document}\\end{document}';
       return await this.projectService.createProject(
         projectId,
         body.name,
@@ -189,7 +210,8 @@ export class LaTeXController {
   @Put('projects/:id')
   async updateProject(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       name?: string;
       mainFile?: string;
     },
@@ -232,7 +254,8 @@ export class LaTeXController {
   @HttpCode(HttpStatus.CREATED)
   async addProjectFile(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       path: string;
       content: string;
       type: 'tex' | 'bib' | 'image' | 'style' | 'other';
@@ -254,7 +277,8 @@ export class LaTeXController {
   async updateProjectFile(
     @Param('id') id: string,
     @Param('fileName') fileName: string,
-    @Body() body: {
+    @Body()
+    body: {
       content: string;
     },
   ): Promise<LaTeXProject> {
@@ -285,7 +309,9 @@ export class LaTeXController {
     @Query('userId') userId?: string,
     @Query('publicOnly') publicOnly: boolean = true,
   ): Promise<LaTeXTemplate[]> {
-    this.logger.log(`Listing templates (category: ${category}, userId: ${userId}, publicOnly: ${publicOnly})`);
+    this.logger.log(
+      `Listing templates (category: ${category}, userId: ${userId}, publicOnly: ${publicOnly})`,
+    );
 
     if (category) {
       return await this.templateService.listByCategory(category);
@@ -302,24 +328,31 @@ export class LaTeXController {
   @Post('templates')
   @HttpCode(HttpStatus.CREATED)
   async createTemplate(
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       name: string;
       content: string;
       category: TemplateCategory;
-      variables?: Array<{ name: string; description: string; defaultValue?: string; required?: boolean; type?: 'string' | 'text' | 'date' | 'boolean' | 'list' }>;
+      variables?: Array<{
+        name: string;
+        description: string;
+        defaultValue?: string;
+        required?: boolean;
+        type?: 'string' | 'text' | 'date' | 'boolean' | 'list';
+      }>;
       isPublic?: boolean;
     },
   ): Promise<LaTeXTemplate> {
     this.logger.log(`Creating template "${body.name}" for user ${body.userId}`);
 
     const templateId = uuidv4();
-    const variables = (body.variables || []).map(v => ({
+    const variables = (body.variables || []).map((v) => ({
       name: v.name,
       description: v.description,
       defaultValue: v.defaultValue,
       required: v.required || false,
-      type: v.type || 'string' as const,
+      type: v.type || ('string' as const),
     }));
 
     return await this.templateService.createTemplate(
@@ -355,13 +388,16 @@ export class LaTeXController {
   @HttpCode(HttpStatus.CREATED)
   async cloneTemplate(
     @Param('id') id: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
       projectName: string;
       variables?: Record<string, string>;
     },
   ): Promise<LaTeXProject> {
-    this.logger.log(`Cloning template ${id} to project "${body.projectName}" for user ${body.userId}`);
+    this.logger.log(
+      `Cloning template ${id} to project "${body.projectName}" for user ${body.userId}`,
+    );
 
     return await this.templateService.cloneToProject(
       id,
@@ -391,9 +427,7 @@ export class LaTeXController {
    * GET /latex/jobs/:jobId/pdf - Download compiled PDF
    */
   @Get('jobs/:jobId/pdf')
-  async downloadPdf(
-    @Param('jobId') jobId: string,
-  ): Promise<void> {
+  async downloadPdf(@Param('jobId') jobId: string): Promise<void> {
     this.logger.log(`Downloading PDF for job ${jobId}`);
 
     // In real implementation, would fetch from GridFS or filesystem

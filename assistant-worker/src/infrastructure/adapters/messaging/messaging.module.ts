@@ -6,7 +6,7 @@ import { ProcessCommandUseCase } from '../../../application/use-cases/process-co
 
 /**
  * Messaging Module (Infrastructure Layer)
- * 
+ *
  * Provides message broker implementations (Kafka) as infrastructure adapters.
  */
 @Module({
@@ -19,11 +19,6 @@ import { ProcessCommandUseCase } from '../../../application/use-cases/process-co
     WorkerKafkaService,
     ProcessCommandUseCase,
   ],
-  exports: [
-    MESSAGE_BROKER_PORT,
-    KafkaMessageBrokerAdapter,
-    WorkerKafkaService,
-  ],
+  exports: [MESSAGE_BROKER_PORT, KafkaMessageBrokerAdapter, WorkerKafkaService],
 })
 export class MessagingModule {}
-

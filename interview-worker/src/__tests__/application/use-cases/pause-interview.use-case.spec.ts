@@ -16,7 +16,10 @@ describe('PauseInterviewUseCase', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PauseInterviewUseCase,
-        { provide: 'IInterviewSessionRepository', useValue: mockSessionRepository },
+        {
+          provide: 'IInterviewSessionRepository',
+          useValue: mockSessionRepository,
+        },
       ],
     }).compile();
 
@@ -47,7 +50,9 @@ describe('PauseInterviewUseCase', () => {
   it('should throw error if session not found', async () => {
     mockSessionRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute('non-existent')).rejects.toThrow('Session not found');
+    await expect(useCase.execute('non-existent')).rejects.toThrow(
+      'Session not found',
+    );
   });
 
   it('should throw error if session cannot be paused', async () => {
@@ -61,6 +66,8 @@ describe('PauseInterviewUseCase', () => {
 
     mockSessionRepository.findById.mockResolvedValue(completedSession);
 
-    await expect(useCase.execute('test-session')).rejects.toThrow('Cannot pause session');
+    await expect(useCase.execute('test-session')).rejects.toThrow(
+      'Cannot pause session',
+    );
   });
 });

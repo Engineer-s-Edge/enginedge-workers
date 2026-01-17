@@ -16,7 +16,10 @@ describe('CandidateProfileService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CandidateProfileService,
-        { provide: 'ICandidateProfileRepository', useValue: mockProfileRepository },
+        {
+          provide: 'ICandidateProfileRepository',
+          useValue: mockProfileRepository,
+        },
       ],
     }).compile();
 
@@ -114,7 +117,11 @@ describe('CandidateProfileService', () => {
     mockProfileRepository.findBySessionId.mockResolvedValue(mockProfile);
     mockProfileRepository.save.mockImplementation(async (p: any) => p);
 
-    const result = await service.appendObservation('s1', 'strengths', 'New strength');
+    const result = await service.appendObservation(
+      's1',
+      'strengths',
+      'New strength',
+    );
 
     expect(result.observations.strengths).toContain('New strength');
     expect(mockProfileRepository.save).toHaveBeenCalled();
@@ -146,10 +153,15 @@ describe('CandidateProfileService', () => {
     mockProfileRepository.findBySessionId.mockResolvedValue(mockProfile);
     mockProfileRepository.save.mockImplementation(async (p: any) => p);
 
-    const result = await service.updateResumeFindings('s1', 'verified', 'Node.js proficiency');
+    const result = await service.updateResumeFindings(
+      's1',
+      'verified',
+      'Node.js proficiency',
+    );
 
-    expect(result.observations.resumeFindings.verified).toContain('Node.js proficiency');
+    expect(result.observations.resumeFindings.verified).toContain(
+      'Node.js proficiency',
+    );
     expect(mockProfileRepository.save).toHaveBeenCalled();
   });
 });
-

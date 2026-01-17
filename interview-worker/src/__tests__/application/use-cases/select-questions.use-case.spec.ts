@@ -144,4 +144,3 @@ describe('SelectQuestionsUseCase', () => {
     expect(result.length).toBeGreaterThanOrEqual(0);
   });
 });
-

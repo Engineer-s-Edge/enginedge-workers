@@ -1,6 +1,6 @@
 /**
  * Document Entity - Core domain entity for loaded documents
- * 
+ *
  * Represents a document that has been loaded from various sources
  * (filesystem, web, etc.) with its content and metadata.
  */
@@ -24,23 +24,23 @@ export interface DocumentMetadata {
 }
 
 export class Document {
+  public readonly embedding?: number[] | Embedding; // Optional embedding vector
+
   constructor(
     public readonly id: string,
     public readonly content: string,
     public readonly metadata: DocumentMetadata,
     public readonly createdAt: Date = new Date(),
-  ) {}
+    embedding?: number[] | Embedding,
+  ) {
+    this.embedding = embedding;
+  }
 
   /**
    * Create a new document with updated content
    */
   withContent(newContent: string): Document {
-    return new Document(
-      this.id,
-      newContent,
-      this.metadata,
-      this.createdAt,
-    );
+    return new Document(this.id, newContent, this.metadata, this.createdAt);
   }
 
   /**
@@ -66,7 +66,7 @@ export class Document {
    * Get document word count
    */
   get wordCount(): number {
-    return this.content.split(/\s+/).filter(word => word.length > 0).length;
+    return this.content.split(/\s+/).filter((word) => word.length > 0).length;
   }
 
   /**
@@ -111,9 +111,20 @@ export class EmbeddedDocument extends Document {
     id: string,
     content: string,
     metadata: DocumentMetadata,
-    public readonly embedding: Embedding,
+    embedding: Embedding,
     createdAt: Date = new Date(),
   ) {
-    super(id, content, metadata, createdAt);
+    super(id, content, metadata, createdAt, embedding);
+  }
+
+  get embeddingVector(): number[] {
+    if (
+      this.embedding &&
+      typeof this.embedding === 'object' &&
+      'vector' in this.embedding
+    ) {
+      return (this.embedding as Embedding).vector;
+    }
+    return [];
   }
 }

@@ -23,9 +23,24 @@ describe('Multi-Agent - Agent Registration', () => {
     const config = AgentConfig.create({ model: 'gpt-4', temperature: 0.5 });
     const capability = defaultCapability();
 
-    const reactAgent = Agent.create('React Agent', AgentType.REACT, config, capability);
-    const expertAgent = Agent.create('Expert Agent', AgentType.EXPERT, config, capability);
-    const geniusAgent = Agent.create('Genius Agent', AgentType.GENIUS, config, capability);
+    const reactAgent = Agent.create(
+      'React Agent',
+      AgentType.REACT,
+      config,
+      capability,
+    );
+    const expertAgent = Agent.create(
+      'Expert Agent',
+      AgentType.EXPERT,
+      config,
+      capability,
+    );
+    const geniusAgent = Agent.create(
+      'Genius Agent',
+      AgentType.GENIUS,
+      config,
+      capability,
+    );
 
     expect(reactAgent).toBeInstanceOf(Agent);
     expect(expertAgent).toBeInstanceOf(Agent);
@@ -47,8 +62,18 @@ describe('Multi-Agent - Agent Registration', () => {
       timeoutMs: 60000,
     });
 
-    const graphAgent = Agent.create('Graph', AgentType.GRAPH, config, capability);
-    const collectiveAgent = Agent.create('Collective', AgentType.COLLECTIVE, config, capability);
+    const graphAgent = Agent.create(
+      'Graph',
+      AgentType.GRAPH,
+      config,
+      capability,
+    );
+    const collectiveAgent = Agent.create(
+      'Collective',
+      AgentType.COLLECTIVE,
+      config,
+      capability,
+    );
 
     expect(graphAgent.agentType).toBe(AgentType.GRAPH);
     expect(collectiveAgent.agentType).toBe(AgentType.COLLECTIVE);
@@ -68,7 +93,12 @@ describe('Multi-Agent - Agent Registration', () => {
     const config = AgentConfig.create({ model: 'gpt-4', temperature: 0.7 });
     const capability = defaultCapability();
 
-    const agent = Agent.create('Metadata Agent', AgentType.EXPERT, config, capability);
+    const agent = Agent.create(
+      'Metadata Agent',
+      AgentType.EXPERT,
+      config,
+      capability,
+    );
     expect(agent.name).toBe('Metadata Agent');
     expect(agent.config).toBeDefined();
     expect(agent.capability).toBeDefined();
@@ -78,7 +108,9 @@ describe('Multi-Agent - Agent Registration', () => {
     const config = AgentConfig.create({ model: 'gpt-4' });
     const capability = defaultCapability();
 
-    expect(() => Agent.create('', AgentType.REACT, config, capability)).toThrow();
+    expect(() =>
+      Agent.create('', AgentType.REACT, config, capability),
+    ).toThrow();
   });
 
   test('should reject very long agent names', () => {
@@ -86,7 +118,9 @@ describe('Multi-Agent - Agent Registration', () => {
     const capability = defaultCapability();
     const longName = 'a'.repeat(101);
 
-    expect(() => Agent.create(longName, AgentType.REACT, config, capability)).toThrow();
+    expect(() =>
+      Agent.create(longName, AgentType.REACT, config, capability),
+    ).toThrow();
   });
 });
 
@@ -144,7 +178,10 @@ describe('Multi-Agent - Memory Communication', () => {
     let sourceMem = sourceAgent.getMemory().addMessage(fromSource);
     sourceAgent = sourceAgent.withMemory(sourceMem);
 
-    const targetMem = targetAgent.getMemory().addMessage(fromSource).addMessage(fromTarget);
+    const targetMem = targetAgent
+      .getMemory()
+      .addMessage(fromSource)
+      .addMessage(fromTarget);
     targetAgent = targetAgent.withMemory(targetMem);
 
     sourceMem = sourceAgent.getMemory().addMessage(fromTarget);
@@ -183,7 +220,12 @@ describe('Multi-Agent - State Coordination', () => {
       timeoutMs: 120000,
     });
 
-    coordinatorAgent = Agent.create('Coordinator', AgentType.COLLECTIVE, config, capability);
+    coordinatorAgent = Agent.create(
+      'Coordinator',
+      AgentType.COLLECTIVE,
+      config,
+      capability,
+    );
     workerAgent = Agent.create('Worker', AgentType.REACT, config, capability);
   });
 
@@ -213,9 +255,24 @@ describe('Multi-Agent - State Coordination', () => {
     });
     const workerCapability = defaultCapability();
 
-    const coord = Agent.create('Coordinator', AgentType.COLLECTIVE, config, collectiveCapability);
-    const w1 = Agent.create('Worker1', AgentType.REACT, config, workerCapability);
-    const w2 = Agent.create('Worker2', AgentType.EXPERT, config, workerCapability);
+    const coord = Agent.create(
+      'Coordinator',
+      AgentType.COLLECTIVE,
+      config,
+      collectiveCapability,
+    );
+    const w1 = Agent.create(
+      'Worker1',
+      AgentType.REACT,
+      config,
+      workerCapability,
+    );
+    const w2 = Agent.create(
+      'Worker2',
+      AgentType.EXPERT,
+      config,
+      workerCapability,
+    );
 
     expect(coord.agentType).toBe(AgentType.COLLECTIVE);
     expect(w1.agentType).toBe(AgentType.REACT);
@@ -280,7 +337,11 @@ describe('Multi-Agent - Memory Management', () => {
     const msg2 = Message.assistant('Second');
     const msg3 = Message.user('Third');
 
-    const memory = agent1.getMemory().addMessage(msg1).addMessage(msg2).addMessage(msg3);
+    const memory = agent1
+      .getMemory()
+      .addMessage(msg1)
+      .addMessage(msg2)
+      .addMessage(msg3);
     agent1 = agent1.withMemory(memory);
 
     const messages = agent1.getMemory().getMessages();
@@ -290,7 +351,11 @@ describe('Multi-Agent - Memory Management', () => {
   });
 
   test('should filter messages by role', () => {
-    const messages = [Message.user('Q1'), Message.assistant('A1'), Message.user('Q2')];
+    const messages = [
+      Message.user('Q1'),
+      Message.assistant('A1'),
+      Message.user('Q2'),
+    ];
 
     let memory = agent1.getMemory();
     for (const msg of messages) {
@@ -337,7 +402,9 @@ describe('Multi-Agent - Error Handling', () => {
     const config = AgentConfig.create({ model: 'gpt-4' });
     const capability = defaultCapability();
 
-    expect(() => Agent.create('', AgentType.REACT, config, capability)).toThrow('Agent name is required');
+    expect(() => Agent.create('', AgentType.REACT, config, capability)).toThrow(
+      'Agent name is required',
+    );
   });
 
   test('should maintain state integrity', () => {
@@ -378,7 +445,9 @@ describe('Multi-Agent - Performance Patterns', () => {
     for (let i = 0; i < 10; i++) {
       const config = AgentConfig.create({ model: 'gpt-4' });
       const capability = defaultCapability();
-      agents.push(Agent.create(`Agent-${i}`, AgentType.REACT, config, capability));
+      agents.push(
+        Agent.create(`Agent-${i}`, AgentType.REACT, config, capability),
+      );
     }
 
     const endTime = Date.now();
@@ -393,7 +462,10 @@ describe('Multi-Agent - Performance Patterns', () => {
 
     let memory = agent.getMemory();
     for (let i = 0; i < 20; i++) {
-      const msg = i % 2 === 0 ? Message.user(`Message ${i}`) : Message.assistant(`Message ${i}`);
+      const msg =
+        i % 2 === 0
+          ? Message.user(`Message ${i}`)
+          : Message.assistant(`Message ${i}`);
       memory = memory.addMessage(msg);
     }
     agent = agent.withMemory(memory);
@@ -407,7 +479,7 @@ describe('Multi-Agent - Performance Patterns', () => {
       const capability = defaultCapability();
 
       return Array.from({ length: 3 }, (_, i) =>
-        Agent.create(`Team-Agent-${i}`, AgentType.REACT, config, capability)
+        Agent.create(`Team-Agent-${i}`, AgentType.REACT, config, capability),
       );
     });
 
@@ -450,7 +522,12 @@ describe('Multi-Agent - Coordination Patterns', () => {
       timeoutMs: 60000,
     });
 
-    const supervisor = Agent.create('Supervisor', AgentType.COLLECTIVE, config, supervisorCapability);
+    const supervisor = Agent.create(
+      'Supervisor',
+      AgentType.COLLECTIVE,
+      config,
+      supervisorCapability,
+    );
 
     const workerCapability = AgentCapability.create({
       executionModel: 'dag',
@@ -465,7 +542,7 @@ describe('Multi-Agent - Coordination Patterns', () => {
       timeoutMs: 60000,
     });
     const workers = Array.from({ length: 3 }, (_, i) =>
-      Agent.create(`Worker-${i}`, AgentType.REACT, config, workerCapability)
+      Agent.create(`Worker-${i}`, AgentType.REACT, config, workerCapability),
     );
 
     expect(supervisor.agentType).toBe(AgentType.COLLECTIVE);
@@ -520,7 +597,12 @@ describe('Multi-Agent - Coordination Patterns', () => {
       timeoutMs: 60000,
     });
 
-    const distributor = Agent.create('Distributor', AgentType.COLLECTIVE, config, distributorCapability);
+    const distributor = Agent.create(
+      'Distributor',
+      AgentType.COLLECTIVE,
+      config,
+      distributorCapability,
+    );
 
     const workerCapability = AgentCapability.create({
       executionModel: 'dag',
@@ -535,10 +617,15 @@ describe('Multi-Agent - Coordination Patterns', () => {
       timeoutMs: 60000,
     });
     const workers = Array.from({ length: 4 }, (_, i) =>
-      Agent.create(`FanOut-${i}`, AgentType.REACT, config, workerCapability)
+      Agent.create(`FanOut-${i}`, AgentType.REACT, config, workerCapability),
     );
 
-    const aggregator = Agent.create('Aggregator', AgentType.EXPERT, config, workerCapability);
+    const aggregator = Agent.create(
+      'Aggregator',
+      AgentType.EXPERT,
+      config,
+      workerCapability,
+    );
 
     expect(distributor.agentType).toBe(AgentType.COLLECTIVE);
     expect(workers.length).toBe(4);

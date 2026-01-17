@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 
 /**
  * Recursive Character Text Splitter (Infrastructure Layer)
- * 
+ *
  * Splits text recursively by trying different separators in order.
  * Default separators: ["\n\n", "\n", " ", ""]
  */
@@ -14,11 +14,16 @@ import * as crypto from 'crypto';
 export class RecursiveCharacterSplitterAdapter extends TextSplitterPort {
   private readonly logger = new Logger(RecursiveCharacterSplitterAdapter.name);
 
-  async splitDocuments(documents: Document[], options?: Record<string, unknown>): Promise<Document[]> {
+  async splitDocuments(
+    documents: Document[],
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     const chunkSize = (options?.chunkSize as number) || 1000;
     const chunkOverlap = (options?.chunkOverlap as number) || 200;
 
-    this.logger.log(`Splitting ${documents.length} documents (chunkSize: ${chunkSize}, overlap: ${chunkOverlap})`);
+    this.logger.log(
+      `Splitting ${documents.length} documents (chunkSize: ${chunkSize}, overlap: ${chunkOverlap})`,
+    );
 
     const splitter = new RecursiveCharacterTextSplitter({
       chunkSize,
@@ -29,13 +34,17 @@ export class RecursiveCharacterSplitterAdapter extends TextSplitterPort {
 
     for (const doc of documents) {
       const textChunks = await splitter.splitText(doc.content);
-      
+
       textChunks.forEach((chunk: string, index: number) => {
         const chunkId = this.generateChunkId(doc.id, index);
         const documentChunk = new DocumentChunk(
           chunkId,
           chunk,
-          { ...doc.metadata, chunkIndex: index, totalChunks: textChunks.length },
+          {
+            ...doc.metadata,
+            chunkIndex: index,
+            totalChunks: textChunks.length,
+          },
           doc.id,
           index,
           textChunks.length,
@@ -48,7 +57,10 @@ export class RecursiveCharacterSplitterAdapter extends TextSplitterPort {
     return allChunks;
   }
 
-  async splitText(text: string, options?: Record<string, unknown>): Promise<string[]> {
+  async splitText(
+    text: string,
+    options?: Record<string, unknown>,
+  ): Promise<string[]> {
     const chunkSize = (options?.chunkSize as number) || 1000;
     const chunkOverlap = (options?.chunkOverlap as number) || 200;
 

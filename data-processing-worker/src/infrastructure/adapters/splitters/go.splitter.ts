@@ -38,7 +38,7 @@ export class GoSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -64,7 +64,11 @@ export class GoSplitterAdapter extends TextSplitterPort {
       // Check for func/type/interface definition
       const isDefinition = /^(func|type|interface|struct)\s+/.test(line.trim());
 
-      if (currentSize + lineSize > chunkSize && currentChunk.length > 0 && braceDepth === 0) {
+      if (
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0 &&
+        braceDepth === 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -78,6 +82,6 @@ export class GoSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

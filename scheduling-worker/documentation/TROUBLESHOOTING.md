@@ -499,6 +499,145 @@ export class HeavyProcessor {
 }
 ```
 
+### Activity Model Service Issues
+
+#### Activity Tracking Not Working
+
+**Symptoms:**
+- Activity events not being tracked
+- Activity patterns not updating
+- No productivity insights available
+
+**Solutions:**
+
+1. **Check Activity Model Service Status**
+```bash
+# Check if activity model is enabled
+echo $ACTIVITY_MODEL_ENABLED
+
+# Test activity tracking endpoint
+curl -X POST http://localhost:3007/activity/events/event_123/complete \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user_123",
+    "scheduledTime": "2025-01-10T09:00:00Z",
+    "actualStartTime": "2025-01-10T09:05:00Z",
+    "actualEndTime": "2025-01-10T11:00:00Z",
+    "productivityScore": 0.85
+  }'
+```
+
+2. **Verify MongoDB Collections**
+```bash
+# Check if collections exist
+mongosh $MONGODB_URI --eval "db.getCollectionNames()"
+
+# Check activity events
+mongosh $MONGODB_URI --eval "db.activity_events.countDocuments()"
+
+# Check activity patterns
+mongosh $MONGODB_URI --eval "db.activity_patterns.countDocuments()"
+```
+
+3. **Check Pattern Update Interval**
+```env
+# Ensure pattern update is configured
+ACTIVITY_MODEL_ENABLED=true
+ACTIVITY_PATTERN_UPDATE_INTERVAL=3600  # Update every hour
+```
+
+#### Pattern Analysis Failures
+
+**Symptoms:**
+- Patterns not being generated
+- Pattern analysis errors
+- Default patterns always returned
+
+**Solutions:**
+
+1. **Verify Event Data**
+```typescript
+// Check if events exist for pattern analysis
+const events = await eventRepository.findCompletedByUserId(userId);
+if (events.length === 0) {
+  // No events to analyze - this is expected for new users
+  return createDefaultPattern(userId);
+}
+```
+
+2. **Check Pattern Analyzer Service**
+```bash
+# Check logs for pattern analyzer errors
+grep "PatternAnalyzerService" logs/application.log | grep ERROR
+```
+
+3. **Validate Event Data Quality**
+- Ensure events have required fields (scheduledTime, completed, etc.)
+- Check for null or invalid dates
+- Verify productivity scores are in valid range (0-1)
+
+#### ML Prediction Failures
+
+**Symptoms:**
+- Predictions always return default values
+- ML service connection errors
+- High prediction latency
+
+**Solutions:**
+
+1. **Check ML Service Health**
+```bash
+# Test ML service health
+curl http://localhost:8000/health
+
+# Check ML service logs
+docker logs scheduling-model-api
+```
+
+2. **Verify ML Service Configuration**
+```env
+# Ensure ML service URL is correct
+ML_SERVICE_URL=http://scheduling-model:8000
+ML_SERVICE_TIMEOUT=10000
+```
+
+3. **Check Feature Extraction**
+- Verify all required features are being extracted
+- Check feature data types and ranges
+- Ensure user patterns are available
+
+#### Efficiency Metrics Calculation Errors
+
+**Symptoms:**
+- Efficiency metrics return zeros
+- Calculation timeouts
+- Invalid metric values
+
+**Solutions:**
+
+1. **Verify Date Range**
+```typescript
+// Ensure valid date range
+const startDate = new Date('2025-01-01');
+const endDate = new Date('2025-01-31');
+if (endDate <= startDate) {
+  throw new Error('Invalid date range');
+}
+```
+
+2. **Check Event Data Completeness**
+- Ensure events have completion data
+- Verify actual start/end times are recorded
+- Check for missing productivity scores
+
+3. **Handle Edge Cases**
+```typescript
+// Handle division by zero
+const completionRate = events.length > 0
+  ? completedEvents.length / events.length
+  : 0;
+```
+
 ### Application Startup Issues
 
 #### Dependency Injection Failures

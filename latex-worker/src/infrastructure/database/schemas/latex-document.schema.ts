@@ -54,8 +54,12 @@ export class LaTeXDocumentSchema {
   version!: number;
 }
 
-export const LaTeXDocumentSchemaFactory = SchemaFactory.createForClass(LaTeXDocumentSchema);
+export const LaTeXDocumentSchemaFactory =
+  SchemaFactory.createForClass(LaTeXDocumentSchema);
 
 // Create compound indexes
-LaTeXDocumentSchemaFactory.index({ userId: 1, documentId: 1 }, { unique: true });
+LaTeXDocumentSchemaFactory.index(
+  { userId: 1, documentId: 1 },
+  { unique: true },
+);
 LaTeXDocumentSchemaFactory.index({ userId: 1, lastCompiledAt: -1 });

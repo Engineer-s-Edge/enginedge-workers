@@ -1,6 +1,6 @@
 /**
  * Buffer Memory Adapter
- * 
+ *
  * Simple short-term memory that stores all messages in a buffer.
  * No summarization or compression - just raw message history.
  */
@@ -29,7 +29,7 @@ export class BufferMemoryAdapter implements IMemoryAdapter {
     if (!this.memory.has(conversationId)) {
       this.memory.set(conversationId, []);
     }
-    
+
     const messages = this.memory.get(conversationId)!;
     messages.push(message);
   }
@@ -37,13 +37,16 @@ export class BufferMemoryAdapter implements IMemoryAdapter {
   /**
    * Get all messages (or last N messages)
    */
-  async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     const messages = this.memory.get(conversationId) || [];
-    
+
     if (limit && limit > 0) {
       return messages.slice(-limit);
     }
-    
+
     return messages;
   }
 
@@ -59,10 +62,8 @@ export class BufferMemoryAdapter implements IMemoryAdapter {
    */
   async getContext(conversationId: string): Promise<string> {
     const messages = await this.getMessages(conversationId);
-    
-    return messages
-      .map((msg) => `${msg.role}: ${msg.content}`)
-      .join('\n');
+
+    return messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
   }
 
   /**
@@ -84,4 +85,3 @@ export class BufferMemoryAdapter implements IMemoryAdapter {
     };
   }
 }
-

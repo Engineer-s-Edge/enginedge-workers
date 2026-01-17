@@ -161,7 +161,9 @@ export interface ManagerStateUpdate {
     | 'subtask_failed'
     | 'aggregation_started'
     | 'aggregation_completed'
-    | 'execution_completed';
+    | 'execution_completed'
+    | 'execution_paused'
+    | 'execution_resumed';
   timestamp: Date;
   taskId?: string;
   subtaskId?: string;

@@ -1,13 +1,33 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { IGoogleAuthService, IGoogleCalendarApiService } from '../../application/ports/google-calendar.port';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Logger,
+  Inject,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import {
+  IGoogleAuthService,
+  IGoogleCalendarApiService,
+} from '../../application/ports/google-calendar.port';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
 
 /**
  * Calendar Controller
- * 
+ *
  * REST API endpoints for Google Calendar integration
- * 
+ *
  * Infrastructure Layer - HTTP adapter
  */
 @ApiTags('calendar')
@@ -16,7 +36,9 @@ export class CalendarController {
   private readonly logger = new Logger(CalendarController.name);
 
   constructor(
+    @Inject('IGoogleAuthService')
     private readonly googleAuthService: IGoogleAuthService,
+    @Inject('IGoogleCalendarApiService')
     private readonly googleCalendarService: IGoogleCalendarApiService,
   ) {
     this.logger.log('CalendarController initialized');
@@ -36,15 +58,37 @@ export class CalendarController {
 
   /**
    * Handle OAuth callback
+   * Normalized to accept code via query parameter or body (for compatibility)
    */
   @Post('auth/callback')
   @ApiOperation({ summary: 'Handle OAuth callback' })
   @ApiResponse({ status: 200, description: 'Tokens retrieved' })
-  async handleCallback(@Body('code') code: string) {
+  async handleCallback(
+    @Body('code') code?: string,
+    @Query('code') queryCode?: string,
+    @Query('state') state?: string,
+  ) {
     this.logger.log('Handling OAuth callback');
-    const tokens = await this.googleAuthService.getTokenFromCode(code);
+    const authCode = code || queryCode;
+    if (!authCode) {
+      throw new Error('Authorization code is required');
+    }
+    const tokens = await this.googleAuthService.getTokenFromCode(authCode);
     this.googleAuthService.setCredentials(tokens);
-    return { success: true, tokens };
+    return { success: true, tokens, state };
+  }
+
+  /**
+   * Handle OAuth callback (GET method for redirect compatibility)
+   */
+  @Get('auth/callback')
+  @ApiOperation({ summary: 'Handle OAuth callback (GET)' })
+  @ApiResponse({ status: 200, description: 'Tokens retrieved' })
+  async handleCallbackGet(
+    @Query('code') code: string,
+    @Query('state') state?: string,
+  ) {
+    return this.handleCallback(undefined, code, state);
   }
 
   /**
@@ -65,11 +109,16 @@ export class CalendarController {
   ) {
     this.logger.log(`Listing events for calendar: ${calendarId}`);
 
-    const options: { maxResults?: number; timeMin?: Date; timeMax?: Date } = { maxResults };
+    const options: { maxResults?: number; timeMin?: Date; timeMax?: Date } = {
+      maxResults,
+    };
     if (timeMin) options.timeMin = new Date(timeMin);
     if (timeMax) options.timeMax = new Date(timeMax);
 
-    const events = await this.googleCalendarService.listEvents(calendarId, options);
+    const events = await this.googleCalendarService.listEvents(
+      calendarId,
+      options,
+    );
     return { events };
   }
 
@@ -86,7 +135,10 @@ export class CalendarController {
     @Query('calendarId') calendarId = 'primary',
   ) {
     this.logger.log(`Getting event: ${eventId}`);
-    const event = await this.googleCalendarService.getEvent(calendarId, eventId);
+    const event = await this.googleCalendarService.getEvent(
+      calendarId,
+      eventId,
+    );
     return { event };
   }
 
@@ -101,7 +153,10 @@ export class CalendarController {
     @Query('calendarId') calendarId = 'primary',
   ) {
     this.logger.log(`Creating event in calendar: ${calendarId}`);
-    const event = await this.googleCalendarService.createEvent(calendarId, eventData);
+    const event = await this.googleCalendarService.createEvent(
+      calendarId,
+      eventData,
+    );
     return { event };
   }
 
@@ -156,7 +211,9 @@ export class CalendarController {
       timeMax: string;
     },
   ) {
-    this.logger.log(`Querying free/busy for ${data.calendarIds.length} calendars`);
+    this.logger.log(
+      `Querying free/busy for ${data.calendarIds.length} calendars`,
+    );
 
     const result = await this.googleCalendarService.queryFreeBusy(
       data.calendarIds,
@@ -165,5 +222,60 @@ export class CalendarController {
     );
 
     return { result };
+  }
+
+  /**
+   * Create a locked time block (immutable event)
+   */
+  @Post('events/locked-block')
+  @ApiOperation({ summary: 'Create a locked time block' })
+  @ApiResponse({ status: 201, description: 'Locked block created' })
+  async createLockedBlock(
+    @Body()
+    blockData: {
+      summary: string;
+      startDateTime: string;
+      endDateTime: string;
+      description?: string;
+    },
+    @Query('calendarId') calendarId = 'primary',
+  ) {
+    this.logger.log(`Creating locked block in calendar: ${calendarId}`);
+    const event = await this.googleCalendarService.createLockedBlock(
+      calendarId,
+      blockData.summary,
+      blockData.startDateTime,
+      blockData.endDateTime,
+      blockData.description,
+    );
+    return { event };
+  }
+
+  /**
+   * Enhanced update with time validation and overlap checking
+   */
+  @Post('events/:eventId/enhanced')
+  @ApiOperation({ summary: 'Enhanced event update with validation' })
+  @ApiParam({ name: 'eventId', description: 'Event ID' })
+  @ApiResponse({ status: 200, description: 'Event updated' })
+  async updateEventEnhanced(
+    @Param('eventId') eventId: string,
+    @Body()
+    updateData: {
+      eventData?: Partial<CalendarEvent>;
+      newStartTime?: string;
+      newEndTime?: string;
+    },
+    @Query('calendarId') calendarId = 'primary',
+  ) {
+    this.logger.log(`Updating event enhanced: ${eventId}`);
+    const event = await this.googleCalendarService.updateEventEnhanced(
+      calendarId,
+      eventId,
+      updateData.eventData || {},
+      updateData.newStartTime,
+      updateData.newEndTime,
+    );
+    return { event };
   }
 }

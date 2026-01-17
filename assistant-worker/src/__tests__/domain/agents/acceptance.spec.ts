@@ -26,7 +26,12 @@ describe('End-to-End - Complete Workflows', () => {
       maxTokens: 2000,
     });
     const capability = fullCapability();
-    const agent = Agent.create('E2E Agent', AgentType.REACT, config, capability);
+    const agent = Agent.create(
+      'E2E Agent',
+      AgentType.REACT,
+      config,
+      capability,
+    );
 
     expect(agent).toBeInstanceOf(Agent);
     expect(agent.isReady()).toBe(true);
@@ -36,7 +41,12 @@ describe('End-to-End - Complete Workflows', () => {
   test('should handle multi-step conversation workflow', () => {
     const config = AgentConfig.create({ model: 'gpt-4', temperature: 0.6 });
     const capability = fullCapability();
-    let agent = Agent.create('Conversational', AgentType.EXPERT, config, capability);
+    let agent = Agent.create(
+      'Conversational',
+      AgentType.EXPERT,
+      config,
+      capability,
+    );
 
     const step1 = Message.user('What is machine learning?');
     const step2 = Message.assistant('Machine learning is a subset of AI...');
@@ -58,9 +68,16 @@ describe('End-to-End - Complete Workflows', () => {
   test('should support context preservation across turns', () => {
     const config = AgentConfig.create({ model: 'gpt-4' });
     const capability = fullCapability();
-    let agent = Agent.create('Context Agent', AgentType.GENIUS, config, capability);
+    let agent = Agent.create(
+      'Context Agent',
+      AgentType.GENIUS,
+      config,
+      capability,
+    );
 
-    const systemContext = Message.system('You are a helpful research assistant');
+    const systemContext = Message.system(
+      'You are a helpful research assistant',
+    );
     let memory = agent.getMemory().addMessage(systemContext);
 
     for (let i = 0; i < 5; i++) {
@@ -82,7 +99,9 @@ describe('End-to-End - Complete Workflows', () => {
     let memory = agent.getMemory().addMessage(topic);
 
     const q1 = Message.user('What causes climate change?');
-    const a1 = Message.assistant('Primary causes include greenhouse gas emissions...');
+    const a1 = Message.assistant(
+      'Primary causes include greenhouse gas emissions...',
+    );
     memory = memory.addMessage(q1).addMessage(a1);
 
     const q2 = Message.user('What are the consequences?');
@@ -103,7 +122,12 @@ describe('End-to-End - Business Logic Validation', () => {
       maxTokens: 4096,
     });
     const capability = fullCapability();
-    const agent = Agent.create('Constrained', AgentType.REACT, config, capability);
+    const agent = Agent.create(
+      'Constrained',
+      AgentType.REACT,
+      config,
+      capability,
+    );
 
     expect(agent.config).toBeDefined();
     expect(agent.capability).toBeDefined();
@@ -126,7 +150,12 @@ describe('End-to-End - Business Logic Validation', () => {
       timeoutMs: 5000,
     });
 
-    const agent = Agent.create('Quick', AgentType.REACT, config, quickCapability);
+    const agent = Agent.create(
+      'Quick',
+      AgentType.REACT,
+      config,
+      quickCapability,
+    );
     expect(agent.capability.timeoutMs).toBe(5000);
   });
 
@@ -145,7 +174,12 @@ describe('End-to-End - Business Logic Validation', () => {
       timeoutMs: 60000,
     });
 
-    const agent = Agent.create('Streamer', AgentType.REACT, config, streamingCapability);
+    const agent = Agent.create(
+      'Streamer',
+      AgentType.REACT,
+      config,
+      streamingCapability,
+    );
     expect(agent.capability.canStreamResults).toBe(true);
   });
 
@@ -169,11 +203,17 @@ describe('End-to-End - System Stability', () => {
   test('should handle large conversation history', () => {
     const config = AgentConfig.create({ model: 'gpt-4' });
     const capability = fullCapability();
-    let agent = Agent.create('LargeHistory', AgentType.EXPERT, config, capability);
+    let agent = Agent.create(
+      'LargeHistory',
+      AgentType.EXPERT,
+      config,
+      capability,
+    );
 
     let memory = agent.getMemory();
     for (let i = 0; i < 100; i++) {
-      const msg = i % 2 === 0 ? Message.user(`Q${i}`) : Message.assistant(`A${i}`);
+      const msg =
+        i % 2 === 0 ? Message.user(`Q${i}`) : Message.assistant(`A${i}`);
       memory = memory.addMessage(msg);
     }
     agent = agent.withMemory(memory);
@@ -208,13 +248,14 @@ describe('End-to-End - System Stability', () => {
     const config = AgentConfig.create({ model: 'gpt-4' });
     const capability = fullCapability();
     let agents = Array.from({ length: 10 }, (_, i) =>
-      Agent.create(`StressAgent${i}`, AgentType.REACT, config, capability)
+      Agent.create(`StressAgent${i}`, AgentType.REACT, config, capability),
     );
 
     agents = agents.map((agent) => {
       let memory = agent.getMemory();
       for (let j = 0; j < 20; j++) {
-        const msg = j % 2 === 0 ? Message.user(`Q${j}`) : Message.assistant(`A${j}`);
+        const msg =
+          j % 2 === 0 ? Message.user(`Q${j}`) : Message.assistant(`A${j}`);
         memory = memory.addMessage(msg);
       }
       return agent.withMemory(memory);
@@ -250,7 +291,12 @@ describe('End-to-End - System Stability', () => {
   test('should handle agent configuration updates', () => {
     const config1 = AgentConfig.create({ model: 'gpt-4', temperature: 0.5 });
     const capability = fullCapability();
-    let agent = Agent.create('ConfigUpdate', AgentType.REACT, config1, capability);
+    let agent = Agent.create(
+      'ConfigUpdate',
+      AgentType.REACT,
+      config1,
+      capability,
+    );
 
     expect(agent.config).toBeDefined();
 
@@ -280,7 +326,9 @@ describe('End-to-End - Agent Type Workflows', () => {
     let agent = Agent.create('React', AgentType.REACT, config, capability);
     expect(agent.agentType).toBe(AgentType.REACT);
 
-    const memory = agent.getMemory().addMessage(Message.user('Analyze this problem'));
+    const memory = agent
+      .getMemory()
+      .addMessage(Message.user('Analyze this problem'));
     agent = agent.withMemory(memory);
     expect(agent.getMemory().getMessageCount()).toBe(1);
   });
@@ -293,7 +341,9 @@ describe('End-to-End - Agent Type Workflows', () => {
 
     let memory = agent.getMemory();
     memory = memory.addMessage(Message.user('Research topic X'));
-    memory = memory.addMessage(Message.assistant('Here is my research on topic X...'));
+    memory = memory.addMessage(
+      Message.assistant('Here is my research on topic X...'),
+    );
     agent = agent.withMemory(memory);
 
     expect(agent.getMemory().getMessageCount()).toBe(2);
@@ -307,7 +357,9 @@ describe('End-to-End - Agent Type Workflows', () => {
 
     let memory = agent.getMemory();
     memory = memory.addMessage(Message.user('Learn this pattern'));
-    memory = memory.addMessage(Message.assistant('Pattern learned and generalized'));
+    memory = memory.addMessage(
+      Message.assistant('Pattern learned and generalized'),
+    );
     agent = agent.withMemory(memory);
 
     expect(agent.getMemory().getMessageCount()).toBe(2);
@@ -353,12 +405,19 @@ describe('End-to-End - Agent Type Workflows', () => {
       timeoutMs: 120000,
     });
 
-    let agent = Agent.create('Collective', AgentType.COLLECTIVE, config, collectiveCapability);
+    let agent = Agent.create(
+      'Collective',
+      AgentType.COLLECTIVE,
+      config,
+      collectiveCapability,
+    );
     expect(agent.agentType).toBe(AgentType.COLLECTIVE);
 
     const memory = agent.getMemory();
     const memory2 = memory.addMessage(Message.user('Coordinate subtasks'));
-    const memory3 = memory2.addMessage(Message.assistant('Coordinating workers...'));
+    const memory3 = memory2.addMessage(
+      Message.assistant('Coordinating workers...'),
+    );
     agent = agent.withMemory(memory3);
 
     expect(agent.getMemory().getMessageCount()).toBe(2);
@@ -374,7 +433,10 @@ describe('End-to-End - Message Semantics', () => {
     const userMsg = Message.user('Original question');
     const assistantMsg = Message.assistant('Original answer');
 
-    const memory = agent.getMemory().addMessage(userMsg).addMessage(assistantMsg);
+    const memory = agent
+      .getMemory()
+      .addMessage(userMsg)
+      .addMessage(assistantMsg);
     agent = agent.withMemory(memory);
 
     const retrieved = agent.getMemory().getMessages();
@@ -398,7 +460,9 @@ describe('End-to-End - Message Semantics', () => {
     const messages = agent.getMemory().getMessages();
     expect(messages[0].timestamp).toBeInstanceOf(Date);
     expect(messages[1].timestamp).toBeInstanceOf(Date);
-    expect(messages[0].timestamp.getTime()).toBeLessThanOrEqual(messages[1].timestamp.getTime());
+    expect(messages[0].timestamp.getTime()).toBeLessThanOrEqual(
+      messages[1].timestamp.getTime(),
+    );
   });
 
   test('should support message metadata', () => {
@@ -406,7 +470,10 @@ describe('End-to-End - Message Semantics', () => {
     const capability = fullCapability();
     let agent = Agent.create('Metadata', AgentType.REACT, config, capability);
 
-    const msgWithMeta = Message.user('Query with context', { source: 'api', userId: '123' });
+    const msgWithMeta = Message.user('Query with context', {
+      source: 'api',
+      userId: '123',
+    });
 
     const memory = agent.getMemory().addMessage(msgWithMeta);
     agent = agent.withMemory(memory);
@@ -425,7 +492,7 @@ describe('End-to-End - Performance Acceptance', () => {
     const config = AgentConfig.create({ model: 'gpt-4' });
     const capability = fullCapability();
     const agents = Array.from({ length: 5 }, (_, i) =>
-      Agent.create(`PerfAgent${i}`, AgentType.REACT, config, capability)
+      Agent.create(`PerfAgent${i}`, AgentType.REACT, config, capability),
     );
 
     const endTime = performance.now();
@@ -442,7 +509,8 @@ describe('End-to-End - Performance Acceptance', () => {
 
     let memory = agent.getMemory();
     for (let i = 0; i < 50; i++) {
-      const msg = i % 2 === 0 ? Message.user(`Q${i}`) : Message.assistant(`A${i}`);
+      const msg =
+        i % 2 === 0 ? Message.user(`Q${i}`) : Message.assistant(`A${i}`);
       memory = memory.addMessage(msg);
     }
     agent = agent.withMemory(memory);

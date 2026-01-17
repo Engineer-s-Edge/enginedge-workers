@@ -1,1554 +1,259 @@
-openapi: 3.0.3
+components:
+  schemas: {}
+  securitySchemes:
+    jwt:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
 info:
+  contact: {}
+  description: Document processing, embedding, and vector store management
   title: Data Processing Worker API
-  description: |
-    Comprehensive document processing platform with advanced RAG capabilities.
-    
-    **Features:**
-    - Multi-format document loading (23+ loaders)
-    - Intelligent text splitting (13+ language-aware splitters)
-    - Multiple embedding providers (OpenAI, Google, Cohere, HuggingFace, Local)
-    - Vector store operations (MongoDB, Pinecone, Weaviate, PgVector, Qdrant, ChromaDB)
-    - Hybrid search (semantic + keyword)
-    - Real-time document processing
-    - Metadata filtering and access control
-    - Batch operations for high throughput
   version: 1.0.0
-  contact:
-    name: API Support
-    email: support@yourdomain.com
-  license:
-    name: Proprietary
-    
-servers:
-  - url: http://localhost:3002
-    description: Development server
-  - url: https://data-processing.yourdomain.com
-    description: Production server
-
-tags:
-  - name: Health
-    description: Health check and service status
-  - name: Commands
-    description: Command processing operations
-  - name: Documents
-    description: Document processing and management
-  - name: Embedders
-    description: Text embedding operations
-  - name: Vector Store
-    description: Vector storage and similarity search
-
+openapi: 3.0.0
 paths:
-  /health:
-    get:
-      summary: Health check
-      description: Check service health and readiness
-      tags:
-        - Health
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                  timestamp:
-                    type: string
-                    format: date-time
-                  uptime:
-                    type: number
-                    description: Uptime in seconds
-                  memory:
-                    type: object
-                    properties:
-                      used:
-                        type: number
-                        description: Memory used in bytes
-                      total:
-                        type: number
-                        description: Total memory in bytes
-                  services:
-                    type: object
-                    properties:
-                      loaders:
-                        type: boolean
-                      embedders:
-                        type: boolean
-                      vectorStore:
-                        type: boolean
-
-  /command/process:
-    post:
-      summary: Process command
-      description: |
-        Process a document processing command. Supports various actions including document loading, 
-        text splitting, embedding generation, vector storage, search operations, and OCR processing.
-        
-        **Supported Actions:**
-        - `load`: Load document from file or URL
-        - `split`: Split text into chunks
-        - `embed`: Generate embeddings
-        - `store`: Store vectors in database
-        - `search`: Search vectors by similarity
-        - `ocr`: Optical Character Recognition on images/PDFs
-        
-        **OCR Processing:**
-        The OCR action is used by the Agent Tool Worker's OCR Retriever to extract text from images 
-        and scanned PDFs. It processes the image data and returns structured text content.
-      tags:
-        - Commands
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Command'
-            examples:
-              ocrCommand:
-                summary: OCR Processing Example
-                description: Extract text from an image file
-                value:
-                  action: "ocr"
-                  payload:
-                    imageData: "base64_encoded_image_data"
-                    format: "png"
-                    language: "eng"
-                  options:
-                    enhanceImage: true
-                    detectOrientation: true
-              loadCommand:
-                summary: Load Document Example
-                value:
-                  action: "load"
-                  payload:
-                    source: "https://example.com/document.pdf"
-                    type: "url"
-              searchCommand:
-                summary: Vector Search Example
-                value:
-                  action: "search"
-                  payload:
-                    query: "machine learning algorithms"
-                    topK: 10
-                    filters:
-                      userId: "user-123"
-      responses:
-        '200':
-          description: Command processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommandResult'
-              examples:
-                ocrSuccess:
-                  summary: OCR Processing Success
-                  value:
-                    success: true
-                    action: "ocr"
-                    result:
-                      text: "Extracted text content from the image..."
-                      confidence: 0.95
-                      words: 1234
-                      language: "eng"
-                    metadata:
-                      executionTime: 2500
-                      timestamp: "2025-10-27T10:30:00Z"
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          description: OCR processing failed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: false
-                  error:
-                    type: string
-                    example: "OCR processing failed: Invalid image format"
-                  action:
-                    type: string
-                    example: "ocr"
-
-  /documents/upload:
-    post:
-      summary: Upload document
-      description: Upload and process a document file with optional splitting, embedding, and storage
-      tags:
-        - Documents
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Document file to upload
-                split:
-                  type: string
-                  enum: ['true', 'false']
-                  default: 'true'
-                  description: Whether to split the document
-                embed:
-                  type: string
-                  enum: ['true', 'false']
-                  default: 'true'
-                  description: Whether to generate embeddings
-                store:
-                  type: string
-                  enum: ['true', 'false']
-                  default: 'true'
-                  description: Whether to store in vector database
-                metadata:
-                  type: string
-                  description: JSON string of additional metadata
-      responses:
-        '201':
-          description: Document uploaded and processed
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  fileName:
-                    type: string
-                  documentId:
-                    type: string
-                  chunks:
-                    type: integer
-                    description: Number of chunks created
-                  embeddings:
-                    type: integer
-                    description: Number of embeddings generated
-                  stored:
-                    type: boolean
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /documents/process-url:
-    post:
-      summary: Process URL
-      description: Load and process a document from a URL
-      tags:
-        - Documents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - url
-              properties:
-                url:
-                  type: string
-                  format: uri
-                  example: https://example.com/document.pdf
-                split:
-                  type: boolean
-                  default: true
-                embed:
-                  type: boolean
-                  default: true
-                store:
-                  type: boolean
-                  default: true
-                metadata:
-                  type: object
-                  additionalProperties: true
-      responses:
-        '201':
-          description: Document processed from URL
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  url:
-                    type: string
-                  documentId:
-                    type: string
-                  chunks:
-                    type: integer
-                  embeddings:
-                    type: integer
-                  stored:
-                    type: boolean
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /documents/process-for-rag:
-    post:
-      summary: Process document for RAG
-      description: Process a document with RAG-optimized chunking, embedding, and storage
-      tags:
-        - Documents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - content
-                - userId
-              properties:
-                content:
-                  type: string
-                  description: Document content to process
-                  example: "This is a sample document about quantum computing..."
-                userId:
-                  type: string
-                  description: User ID for access control
-                  example: "user-123"
-                conversationId:
-                  type: string
-                  description: Optional conversation ID for scoping
-                  example: "conv-456"
-                metadata:
-                  type: object
-                  description: Additional metadata to attach to document
-                  properties:
-                    fileName:
-                      type: string
-                      example: "quantum-computing.pdf"
-                    mimeType:
-                      type: string
-                      example: "application/pdf"
-                    title:
-                      type: string
-                      example: "Introduction to Quantum Computing"
-                  additionalProperties: true
-                chunkingStrategy:
-                  type: object
-                  description: RAG-optimized chunking configuration
-                  properties:
-                    method:
-                      type: string
-                      enum: [semantic, fixed, recursive]
-                      default: semantic
-                      description: Chunking method (semantic for RAG)
-                    chunkSize:
-                      type: integer
-                      default: 1000
-                      description: Target chunk size in characters
-                    overlap:
-                      type: integer
-                      default: 200
-                      description: Overlap between chunks
-                embeddingConfig:
-                  type: object
-                  description: Embedding generation configuration
-                  properties:
-                    model:
-                      type: string
-                      default: "text-embedding-3-small"
-                      example: "text-embedding-3-small"
-                    batchSize:
-                      type: integer
-                      default: 100
-                      description: Batch size for embedding generation
-      responses:
-        '201':
-          description: Document processed for RAG successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  documentId:
-                    type: string
-                    example: "doc-789"
-                  chunks:
-                    type: integer
-                    description: Number of chunks created
-                    example: 15
-                  embeddings:
-                    type: integer
-                    description: Number of embeddings generated
-                    example: 15
-                  stored:
-                    type: boolean
-                    description: Whether vectors were stored
-                    example: true
-                  metadata:
-                    type: object
-                    properties:
-                      processingTime:
-                        type: number
-                        description: Processing time in milliseconds
-                        example: 1234.56
-                      embeddingModel:
-                        type: string
-                        example: "text-embedding-3-small"
-                      chunkingMethod:
-                        type: string
-                        example: "semantic"
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /documents/search:
-    post:
-      summary: Search documents
-      description: Search for similar documents using semantic search
-      tags:
-        - Documents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - query
-              properties:
-                query:
-                  type: string
-                  description: Search query text
-                  example: quantum computing applications
-                limit:
-                  type: integer
-                  minimum: 1
-                  maximum: 100
-                  default: 5
-                filter:
-                  type: object
-                  additionalProperties: true
-                  description: Metadata filters
-      responses:
-        '200':
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  query:
-                    type: string
-                  results:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        documentId:
-                          type: string
-                        content:
-                          type: string
-                          description: Truncated content (first 500 chars)
-                        metadata:
-                          type: object
-                        score:
-                          type: number
-                          description: Similarity score (0-1)
-
-  /documents/{id}:
-    get:
-      summary: Get document
-      description: Retrieve a document by ID
-      tags:
-        - Documents
-      parameters:
-        - $ref: '#/components/parameters/DocumentId'
-      responses:
-        '200':
-          description: Document details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  document:
-                    $ref: '#/components/schemas/Document'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /documents/by-conversation/{conversationId}:
-    get:
-      summary: Get documents by conversation
-      description: Retrieve all documents associated with a specific conversation
-      tags:
-        - Documents
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Conversation ID to retrieve documents for
-          example: "conv-456"
-        - name: userId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User ID for access control
-          example: "user-123"
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 50
-          description: Maximum number of documents to return
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            minimum: 0
-            default: 0
-          description: Number of documents to skip (for pagination)
-      responses:
-        '200':
-          description: Documents for conversation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  conversationId:
-                    type: string
-                    example: "conv-456"
-                  count:
-                    type: integer
-                    description: Number of documents returned
-                    example: 5
-                  total:
-                    type: integer
-                    description: Total documents in conversation
-                    example: 12
-                  documents:
-                    type: array
-                    items:
-                      allOf:
-                        - $ref: '#/components/schemas/Document'
-                        - type: object
-                          properties:
-                            chunkCount:
-                              type: integer
-                              description: Number of chunks for this document
-                              example: 8
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          description: Forbidden - user does not have access to this conversation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
   /documents:
     delete:
-      summary: Delete documents
-      description: Delete multiple documents by IDs
-      tags:
-        - Documents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - ids
-              properties:
-                ids:
-                  type: array
-                  items:
-                    type: string
-                  minItems: 1
+      operationId: DocumentController_deleteDocuments
+      parameters: []
       responses:
         '204':
-          description: Documents deleted successfully
-
-  /documents/info/supported-types:
-    get:
-      summary: Get supported types
-      description: Get list of supported document file types
+          description: ''
       tags:
-        - Documents
+        - Document
+  /documents/by-conversation/{conversationId}:
+    get:
+      operationId: DocumentController_getDocumentsByConversation
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Supported file types
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  supportedTypes:
-                    type: array
-                    items:
-                      type: string
-                    example: [pdf, docx, txt, md, html, csv, json, xml, epub, ppt, xlsx, zip, eml, msg, odt, rtf]
-                  count:
-                    type: integer
-
+          description: ''
+      tags:
+        - Document
   /documents/info/loaders:
     get:
-      summary: Get loaders
-      description: Get information about all registered document loaders
-      tags:
-        - Documents
+      operationId: DocumentController_getLoaders
+      parameters: []
       responses:
         '200':
-          description: Loader information
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  loaders:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          example: PDFLoader
-                        supportedTypes:
-                          type: array
-                          items:
-                            type: string
-                  count:
-                    type: integer
-
-  /embedders/embed:
+          description: ''
+      tags:
+        - Document
+  /documents/info/supported-types:
+    get:
+      operationId: DocumentController_getSupportedTypes
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Document
+  /documents/process-for-rag:
     post:
-      summary: Embed text
-      description: Generate embedding vector for a single text
-      tags:
-        - Embedders
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - text
-              properties:
-                text:
-                  type: string
-                  description: Text to embed
-                  example: This is a sample text for embedding
-                provider:
-                  type: string
-                  enum: [openai, google, cohere, huggingface, local]
-                  description: Optional embedding provider (uses default if not specified)
+      operationId: DocumentController_processForRAG
+      parameters: []
       responses:
-        '200':
-          description: Embedding generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  text:
-                    type: string
-                    description: Truncated input text (first 100 chars)
-                  embedding:
-                    type: array
-                    items:
-                      type: number
-                    description: Embedding vector
-                  dimensions:
-                    type: integer
-                    description: Vector dimensionality
-                    example: 1536
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /embedders/batch:
+        '201':
+          description: ''
+      tags:
+        - Document
+  /documents/process-url:
     post:
-      summary: Batch embed
-      description: Generate embeddings for multiple texts in a single request
+      operationId: DocumentController_processUrl
+      parameters: []
+      responses:
+        '201':
+          description: ''
       tags:
-        - Embedders
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - texts
-              properties:
-                texts:
-                  type: array
-                  items:
-                    type: string
-                  minItems: 1
-                  example: ["First text", "Second text", "Third text"]
-                provider:
-                  type: string
-                  enum: [openai, google, cohere, huggingface, local]
+        - Document
+  /documents/search:
+    post:
+      operationId: DocumentController_searchDocuments
+      parameters: []
       responses:
         '200':
-          description: Batch embeddings generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count:
-                    type: integer
-                    description: Number of texts embedded
-                  embeddings:
-                    type: array
-                    items:
-                      type: array
-                      items:
-                        type: number
-                  dimensions:
-                    type: integer
-                    description: Vector dimensionality
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
+          description: ''
+      tags:
+        - Document
+  /documents/upload:
+    post:
+      operationId: DocumentController_uploadDocument
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Document
+  /documents/{id}:
+    get:
+      operationId: DocumentController_getDocument
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Document
   /embedders/available:
     get:
-      summary: Get available embedders
-      description: List all available embedding providers
-      tags:
-        - Embedders
+      operationId: EmbedderController_getAvailableEmbedders
+      parameters: []
       responses:
         '200':
-          description: Available embedders
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count:
-                    type: integer
-                  embedders:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                          example: openai
-                        dimensions:
-                          type: integer
-                          example: 1536
-                        maxBatchSize:
-                          type: integer
-                          example: 100
-
+          description: ''
+      tags:
+        - Embedder
+  /embedders/batch:
+    post:
+      operationId: EmbedderController_batchEmbed
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Embedder
+  /embedders/embed:
+    post:
+      operationId: EmbedderController_embedText
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Embedder
   /embedders/models:
     get:
-      summary: Get available embedding models
-      description: List all available embedding models with their specifications and capabilities
-      tags:
-        - Embedders
-      parameters:
-        - name: provider
-          in: query
-          schema:
-            type: string
-            enum: [openai, google, cohere, huggingface, local, all]
-            default: all
-          description: Filter models by provider (default returns all)
+      operationId: EmbedderController_getEmbeddingModels
+      parameters: []
       responses:
         '200':
-          description: Available embedding models
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count:
-                    type: integer
-                    description: Number of available models
-                    example: 5
-                  models:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          description: Model identifier
-                          example: "text-embedding-3-small"
-                        provider:
-                          type: string
-                          description: Provider name
-                          example: "openai"
-                        displayName:
-                          type: string
-                          description: Human-readable model name
-                          example: "OpenAI Text Embedding 3 Small"
-                        dimensions:
-                          type: integer
-                          description: Embedding vector dimensions
-                          example: 1536
-                        maxTokens:
-                          type: integer
-                          description: Maximum input tokens
-                          example: 8192
-                        maxBatchSize:
-                          type: integer
-                          description: Maximum texts per batch request
-                          example: 100
-                        costPer1kTokens:
-                          type: number
-                          description: Cost in USD per 1,000 tokens
-                          example: 0.00002
-                        capabilities:
-                          type: array
-                          items:
-                            type: string
-                          description: Model capabilities
-                          example: ["semantic-search", "clustering", "classification"]
-                        performance:
-                          type: object
-                          properties:
-                            avgLatency:
-                              type: number
-                              description: Average latency in milliseconds
-                              example: 150.5
-                            throughput:
-                              type: integer
-                              description: Tokens per second
-                              example: 5000
-                        recommended:
-                          type: boolean
-                          description: Whether this is the recommended default model
-                          example: true
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
+          description: ''
+      tags:
+        - Embedder
   /embedders/stats:
     get:
-      summary: Get embedder statistics
-      description: Get embedder service statistics and cache information
-      tags:
-        - Embedders
+      operationId: EmbedderController_getStats
+      parameters: []
       responses:
         '200':
-          description: Embedder statistics
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  totalEmbeddings:
-                    type: integer
-                    description: Total embeddings generated
-                  cacheHits:
-                    type: integer
-                  cacheMisses:
-                    type: integer
-                  cacheHitRate:
-                    type: number
-                    description: Cache hit rate (0-1)
-                  cacheSizeBytes:
-                    type: integer
-                  cacheSizeMB:
-                    type: string
-                    description: Cache size in MB (formatted)
-
-  /vector-store/search:
-    post:
-      summary: Similarity search
-      description: Search for similar vectors using cosine similarity
+          description: ''
       tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - queryEmbedding
-              properties:
-                queryEmbedding:
-                  type: array
-                  items:
-                    type: number
-                  description: Query embedding vector
-                limit:
-                  type: integer
-                  minimum: 1
-                  maximum: 100
-                  default: 5
-                filter:
-                  type: object
-                  additionalProperties: true
-                  description: Metadata filter conditions
+        - Embedder
+  /health:
+    get:
+      operationId: HealthController_check
+      parameters: []
       responses:
         '200':
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/VectorSearchResult'
-                  count:
-                    type: integer
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /vector-store/hybrid-search:
-    post:
-      summary: Hybrid search
-      description: Search combining vector similarity and text matching
+          description: ''
       tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - queryEmbedding
-                - queryText
-              properties:
-                queryEmbedding:
-                  type: array
-                  items:
-                    type: number
-                queryText:
-                  type: string
-                  description: Text query for keyword matching
-                limit:
-                  type: integer
-                  default: 5
-                filter:
-                  type: object
-                  additionalProperties: true
-      responses:
-        '200':
-          description: Hybrid search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/VectorSearchResult'
-                  count:
-                    type: integer
-
-  /vector-store/search-with-access:
-    post:
-      summary: Search with access control
-      description: Search with user and conversation-level access control
-      tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - queryEmbedding
-                - userId
-              properties:
-                queryEmbedding:
-                  type: array
-                  items:
-                    type: number
-                userId:
-                  type: string
-                  description: User ID for access control
-                conversationId:
-                  type: string
-                  description: Optional conversation ID for filtering
-                limit:
-                  type: integer
-                  default: 5
-      responses:
-        '200':
-          description: Access-controlled search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/VectorSearchResult'
-                  count:
-                    type: integer
-
-  /vector-store/search-conversations:
-    post:
-      summary: Conversation-scoped vector search
-      description: Search for similar vectors within a specific conversation context
-      tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - queryEmbedding
-                - userId
-                - conversationId
-              properties:
-                queryEmbedding:
-                  type: array
-                  items:
-                    type: number
-                  description: Query embedding vector
-                  example: [0.123, -0.456, 0.789]
-                userId:
-                  type: string
-                  description: User ID for access control
-                  example: "user-123"
-                conversationId:
-                  type: string
-                  description: Conversation ID to scope the search
-                  example: "conv-456"
-                limit:
-                  type: integer
-                  minimum: 1
-                  maximum: 100
-                  default: 5
-                  description: Maximum number of results to return
-                similarityThreshold:
-                  type: number
-                  minimum: 0
-                  maximum: 1
-                  default: 0.7
-                  description: Minimum similarity score (0-1)
-                includeMetadata:
-                  type: boolean
-                  default: true
-                  description: Include document metadata in results
-                filters:
-                  type: object
-                  additionalProperties: true
-                  description: Additional metadata filters
-                  example:
-                    documentType: "pdf"
-                    tags: ["technical", "research"]
-      responses:
-        '200':
-          description: Conversation-scoped search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  conversationId:
-                    type: string
-                    example: "conv-456"
-                  query:
-                    type: object
-                    properties:
-                      userId:
-                        type: string
-                      limit:
-                        type: integer
-                      similarityThreshold:
-                        type: number
-                  results:
-                    type: array
-                    items:
-                      allOf:
-                        - $ref: '#/components/schemas/VectorSearchResult'
-                        - type: object
-                          properties:
-                            documentId:
-                              type: string
-                              description: Parent document ID
-                            chunkIndex:
-                              type: integer
-                              description: Chunk index within document
-                            conversationId:
-                              type: string
-                              description: Conversation ID
-                  count:
-                    type: integer
-                    description: Number of results returned
-                    example: 5
-                  totalMatches:
-                    type: integer
-                    description: Total matching chunks (before limit)
-                    example: 12
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          description: Forbidden - user does not have access to this conversation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Conversation not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /vector-store/search-metadata:
-    post:
-      summary: Metadata-filtered search
-      description: Search with advanced metadata filtering
-      tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - queryEmbedding
-              properties:
-                queryEmbedding:
-                  type: array
-                  items:
-                    type: number
-                limit:
-                  type: integer
-                  default: 5
-                sourceType:
-                  type: string
-                  description: Filter by source type
-                  example: pdf
-                mimeType:
-                  type: string
-                  description: Filter by MIME type
-                  example: application/pdf
-                createdAfter:
-                  type: string
-                  format: date-time
-                  description: Filter by creation date (after)
-                createdBefore:
-                  type: string
-                  format: date-time
-                  description: Filter by creation date (before)
-      responses:
-        '200':
-          description: Filtered search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/VectorSearchResult'
-                  count:
-                    type: integer
-
+        - Health
   /vector-store/batch-search:
     post:
-      summary: Batch search
-      description: Search for multiple query vectors in a single request
-      tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - queryEmbeddings
-              properties:
-                queryEmbeddings:
-                  type: array
-                  items:
-                    type: array
-                    items:
-                      type: number
-                  description: Array of query embedding vectors
-                limit:
-                  type: integer
-                  default: 5
-                filter:
-                  type: object
-                  additionalProperties: true
+      operationId: VectorStoreController_batchSearch
+      parameters: []
       responses:
-        '200':
-          description: Batch search results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/VectorSearchResult'
-                    description: Array of result arrays (one per query)
-                  queriesCount:
-                    type: integer
-                  totalResults:
-                    type: integer
-
+        '201':
+          description: ''
+      tags:
+        - VectorStore
   /vector-store/document/{id}:
     get:
-      summary: Get document
-      description: Retrieve a document from vector store by ID
-      tags:
-        - Vector Store
+      operationId: VectorStoreController_getDocument
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Document found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  document:
-                    $ref: '#/components/schemas/VectorDocument'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    
+          description: ''
+      tags:
+        - VectorStore
     post:
-      summary: Update document
-      description: Update document content or metadata
-      tags:
-        - Vector Store
+      operationId: VectorStoreController_updateDocument
       parameters:
-        - name: id
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  type: string
-                  description: Updated document content
-                metadata:
-                  type: object
-                  additionalProperties: true
-                  description: Updated metadata
       responses:
-        '200':
-          description: Document updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  id:
-                    type: string
-
+        '201':
+          description: ''
+      tags:
+        - VectorStore
   /vector-store/documents:
     delete:
-      summary: Delete documents
-      description: Delete multiple documents from vector store
-      tags:
-        - Vector Store
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - ids
-              properties:
-                ids:
-                  type: array
-                  items:
-                    type: string
-                  minItems: 1
+      operationId: VectorStoreController_deleteDocuments
+      parameters: []
       responses:
         '200':
-          description: Documents deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  deletedCount:
-                    type: integer
-
-components:
-  parameters:
-    DocumentId:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-      description: Document identifier
-
-  schemas:
-    Command:
-      type: object
-      required:
-        - action
-      properties:
-        action:
-          type: string
-          enum: [load, split, embed, store, search, ocr]
-          description: |
-            Action to perform:
-            - `load`: Load document from file or URL
-            - `split`: Split text into chunks using language-aware splitters
-            - `embed`: Generate embeddings using configured provider
-            - `store`: Store vector embeddings in database
-            - `search`: Perform similarity search
-            - `ocr`: Optical Character Recognition on images/PDFs
-        payload:
-          type: object
-          additionalProperties: true
-          description: |
-            Action-specific payload data.
-            
-            **For OCR action:**
-            - `imageData` (string): Base64-encoded image data
-            - `format` (string): Image format (png, jpg, pdf, etc.)
-            - `language` (string): OCR language code (default: 'eng')
-            
-            **For load action:**
-            - `source` (string): File path or URL
-            - `type` (string): Source type ('file' or 'url')
-            
-            **For search action:**
-            - `query` (string): Search query text
-            - `topK` (number): Number of results to return
-            - `filters` (object): Metadata filters
-        options:
-          type: object
-          additionalProperties: true
-          description: |
-            Optional processing parameters.
-            
-            **For OCR:**
-            - `enhanceImage` (boolean): Apply image enhancement
-            - `detectOrientation` (boolean): Auto-detect and correct orientation
-            - `preserveLayout` (boolean): Maintain document layout in output
-
-    CommandResult:
-      type: object
-      properties:
-        success:
-          type: boolean
-        action:
-          type: string
-        result:
-          type: object
-          additionalProperties: true
-        metadata:
-          type: object
-          properties:
-            executionTime:
-              type: number
-              description: Execution time in milliseconds
-            timestamp:
-              type: string
-              format: date-time
-
-    Document:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        content:
-          type: string
-          description: Document content
-        metadata:
-          type: object
-          properties:
-            fileName:
-              type: string
-            mimeType:
-              type: string
-            sourceType:
-              type: string
-            size:
-              type: integer
-            language:
-              type: string
-            userId:
-              type: string
-            conversationId:
-              type: string
-          additionalProperties: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    VectorDocument:
-      type: object
-      properties:
-        id:
-          type: string
-        content:
-          type: string
-        embedding:
-          type: array
-          items:
-            type: number
-        metadata:
-          type: object
-          additionalProperties: true
-        createdAt:
-          type: string
-          format: date-time
-
-    VectorSearchResult:
-      type: object
-      properties:
-        id:
-          type: string
-        content:
-          type: string
-        score:
-          type: number
-          description: Similarity score (0-1, higher is more similar)
-          minimum: 0
-          maximum: 1
-        metadata:
-          type: object
-          additionalProperties: true
-        distance:
-          type: number
-          description: Vector distance metric
-
-    Error:
-      type: object
-      properties:
-        statusCode:
-          type: integer
-        message:
-          type: string
-        error:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        path:
-          type: string
-
-  responses:
-    BadRequest:
-      description: Bad request - invalid parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-          example:
-            statusCode: 400
-            message: Invalid request parameters
-            error: Bad Request
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-          example:
-            statusCode: 404
-            message: Document not found
-            error: Not Found
-
-    ValidationError:
-      description: Validation error
-      content:
-        application/json:
-          schema:
-            allOf:
-              - $ref: '#/components/schemas/Error'
-              - type: object
-                properties:
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        field:
-                          type: string
-                        message:
-                          type: string
-                        value:
-                          type: string
-
-  securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: API key for authentication
-    
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token for authentication
-
-security:
-  - ApiKeyAuth: []
-  - BearerAuth: []
+          description: ''
+      tags:
+        - VectorStore
+  /vector-store/hybrid-search:
+    post:
+      operationId: VectorStoreController_hybridSearch
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - VectorStore
+  /vector-store/search:
+    post:
+      operationId: VectorStoreController_search
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - VectorStore
+  /vector-store/search-conversations:
+    post:
+      operationId: VectorStoreController_searchConversations
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - VectorStore
+  /vector-store/search-metadata:
+    post:
+      operationId: VectorStoreController_searchWithMetadata
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - VectorStore
+  /vector-store/search-with-access:
+    post:
+      operationId: VectorStoreController_searchWithAccess
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - VectorStore
+servers: []
+tags:
+  - description: Document processing and management
+    name: Documents
+  - description: Vector store operations
+    name: Vector Store
+  - description: Embedding generation
+    name: Embedders
+  - description: Health checks
+    name: Health

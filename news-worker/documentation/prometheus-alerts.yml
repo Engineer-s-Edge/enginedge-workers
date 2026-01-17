@@ -1,0 +1,20 @@
+groups:
+  - name: news-worker.alerts
+    rules:
+      - alert: NewsWorkerDown
+        expr: up{job="news-worker"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: news-worker
+        annotations:
+          summary: "News Worker is down"
+
+      - alert: NewsWorkerHighErrorRate
+        expr: rate(news_worker_requests_total{code=~"5..",job="news-worker"}[5m]) / rate(news_worker_requests_total{job="news-worker"}[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: news-worker
+        annotations:
+          summary: "High HTTP error rate"

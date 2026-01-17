@@ -13,24 +13,26 @@ describe('Kafka Integration', () => {
 
   beforeEach(() => {
     publishedMessages = [];
-    
+
     // Mock Kafka Producer
     mockProducer = {
       connect: jest.fn().mockResolvedValue(undefined),
       disconnect: jest.fn().mockResolvedValue(undefined),
-      send: jest.fn().mockImplementation(async (config: Record<string, any>) => {
-        const result = {
-          partition: 0,
-          offset: publishedMessages.length,
-          timestamp: Date.now().toString(),
-        };
-        publishedMessages.push({
-          topic: config.topic,
-          messages: config.messages,
-          result,
-        });
-        return [result];
-      }),
+      send: jest
+        .fn()
+        .mockImplementation(async (config: Record<string, any>) => {
+          const result = {
+            partition: 0,
+            offset: publishedMessages.length,
+            timestamp: Date.now().toString(),
+          };
+          publishedMessages.push({
+            topic: config.topic,
+            messages: config.messages,
+            result,
+          });
+          return [result];
+        }),
       sendBatch: jest.fn().mockResolvedValue([]),
     };
 
@@ -57,7 +59,7 @@ describe('Kafka Integration', () => {
 
     it('should successfully publish message to topic', async () => {
       const message = { id: '123', type: 'test', data: 'hello' };
-      
+
       const result = await mockProducer.send({
         topic: 'test-topic',
         messages: [{ value: JSON.stringify(message) }],
@@ -71,7 +73,7 @@ describe('Kafka Integration', () => {
 
     it('should validate message format before publishing', async () => {
       const invalidMessage = { id: 123 }; // id should be string
-      
+
       expect(() => {
         if (typeof invalidMessage.id !== 'string') {
           throw new Error('Invalid message format: id must be string');
@@ -116,7 +118,9 @@ describe('Kafka Integration', () => {
           .mockResolvedValueOnce(undefined),
       };
 
-      await expect(retryProducer.connect()).rejects.toThrow('Connection failed');
+      await expect(retryProducer.connect()).rejects.toThrow(
+        'Connection failed',
+      );
       await retryProducer.connect();
       expect(retryProducer.connect).toHaveBeenCalledTimes(2);
     });
@@ -132,7 +136,7 @@ describe('Kafka Integration', () => {
       };
 
       await expect(
-        failingProducer.send({ topic: 'test', messages: [] })
+        failingProducer.send({ topic: 'test', messages: [] }),
       ).rejects.toThrow('Send failed');
     });
   });
@@ -146,12 +150,14 @@ describe('Kafka Integration', () => {
 
     it('should subscribe to topic', async () => {
       await mockConsumer.subscribe({ topic: 'test-topic' });
-      expect(mockConsumer.subscribe).toHaveBeenCalledWith({ topic: 'test-topic' });
+      expect(mockConsumer.subscribe).toHaveBeenCalledWith({
+        topic: 'test-topic',
+      });
     });
 
     it('should consume messages from topic', async () => {
       const consumedMessages: Array<Record<string, unknown>> = [];
-      
+
       interface EachMessageArgs {
         message: Record<string, unknown>;
         partition: number;
@@ -160,16 +166,26 @@ describe('Kafka Integration', () => {
 
       const consumer = {
         subscribe: jest.fn().mockResolvedValue(undefined),
-        run: jest.fn().mockImplementation(async (args: { eachMessage: (msg: EachMessageArgs) => Promise<void> }) => {
-          const message = {
-            topic: 'test-topic',
-            partition: 0,
-            offset: 0,
-            value: JSON.stringify({ id: '123' }),
-          };
-          consumedMessages.push(message);
-          await args.eachMessage({ message, partition: 0, topic: 'test-topic' });
-        }),
+        run: jest
+          .fn()
+          .mockImplementation(
+            async (args: {
+              eachMessage: (msg: EachMessageArgs) => Promise<void>;
+            }) => {
+              const message = {
+                topic: 'test-topic',
+                partition: 0,
+                offset: 0,
+                value: JSON.stringify({ id: '123' }),
+              };
+              consumedMessages.push(message);
+              await args.eachMessage({
+                message,
+                partition: 0,
+                topic: 'test-topic',
+              });
+            },
+          ),
       };
 
       await consumer.subscribe({ topic: 'test-topic' });
@@ -195,7 +211,10 @@ describe('Kafka Integration', () => {
         subscribe: jest.fn().mockResolvedValue(undefined),
       };
 
-      await groupConsumer.subscribe({ topic: 'test-topic', groupId: 'test-group' });
+      await groupConsumer.subscribe({
+        topic: 'test-topic',
+        groupId: 'test-group',
+      });
 
       expect(groupConsumer.subscribe).toHaveBeenCalled();
     });
@@ -224,9 +243,7 @@ describe('Kafka Integration', () => {
 
     it('should handle session timeout', async () => {
       const timedOutConsumer = {
-        run: jest
-          .fn()
-          .mockRejectedValue(new Error('Session timeout')),
+        run: jest.fn().mockRejectedValue(new Error('Session timeout')),
       };
 
       await expect(timedOutConsumer.run({})).rejects.toThrow('Session timeout');
@@ -259,12 +276,14 @@ describe('Kafka Integration', () => {
 
     it('should handle missing required fields', () => {
       const incompleteMessage = { type: 'test' }; // missing id
-      
+
       const validate = (msg: Record<string, any>): void => {
         if (!msg.id) throw new Error('Missing required field: id');
       };
 
-      expect(() => validate(incompleteMessage)).toThrow('Missing required field');
+      expect(() => validate(incompleteMessage)).toThrow(
+        'Missing required field',
+      );
     });
 
     it('should handle extra fields in message', () => {
@@ -327,25 +346,21 @@ describe('Kafka Integration', () => {
   describe('Error Handling', () => {
     it('should handle broker unavailable error', async () => {
       const failingProducer = {
-        send: jest
-          .fn()
-          .mockRejectedValue(new Error('Broker unavailable')),
+        send: jest.fn().mockRejectedValue(new Error('Broker unavailable')),
       };
 
       await expect(
-        failingProducer.send({ topic: 'test', messages: [] })
+        failingProducer.send({ topic: 'test', messages: [] }),
       ).rejects.toThrow('Broker unavailable');
     });
 
     it('should handle topic not found error', async () => {
       const failingProducer = {
-        send: jest
-          .fn()
-          .mockRejectedValue(new Error('Topic not found')),
+        send: jest.fn().mockRejectedValue(new Error('Topic not found')),
       };
 
       await expect(
-        failingProducer.send({ topic: 'nonexistent', messages: [] })
+        failingProducer.send({ topic: 'nonexistent', messages: [] }),
       ).rejects.toThrow('Topic not found');
     });
 
@@ -364,12 +379,12 @@ describe('Kafka Integration', () => {
 
     it('should handle offset out of range error', async () => {
       const failingConsumer = {
-        run: jest
-          .fn()
-          .mockRejectedValue(new Error('Offset out of range')),
+        run: jest.fn().mockRejectedValue(new Error('Offset out of range')),
       };
 
-      await expect(failingConsumer.run({})).rejects.toThrow('Offset out of range');
+      await expect(failingConsumer.run({})).rejects.toThrow(
+        'Offset out of range',
+      );
     });
 
     it('should handle authentication failure', async () => {
@@ -379,18 +394,18 @@ describe('Kafka Integration', () => {
           .mockRejectedValue(new Error('Authentication failed')),
       };
 
-      await expect(failingProducer.connect()).rejects.toThrow('Authentication failed');
+      await expect(failingProducer.connect()).rejects.toThrow(
+        'Authentication failed',
+      );
     });
 
     it('should handle network timeout', async () => {
       const timeoutProducer = {
-        send: jest
-          .fn()
-          .mockRejectedValue(new Error('Network timeout')),
+        send: jest.fn().mockRejectedValue(new Error('Network timeout')),
       };
 
       await expect(
-        timeoutProducer.send({ topic: 'test', messages: [] })
+        timeoutProducer.send({ topic: 'test', messages: [] }),
       ).rejects.toThrow('Network timeout');
     });
 
@@ -409,9 +424,7 @@ describe('Kafka Integration', () => {
       };
 
       for (let i = 0; i < 3; i++) {
-        await expect(
-          circuitBreaker.send()
-        ).rejects.toThrow();
+        await expect(circuitBreaker.send()).rejects.toThrow();
       }
 
       expect(circuitBreaker.state).toBe('open');
@@ -483,7 +496,7 @@ describe('Kafka Integration', () => {
 
     it('should support exactly-once delivery semantics', async () => {
       const deliveryTracker: Set<string> = new Set();
-      
+
       const trackingProducer = {
         send: jest.fn(async (config) => {
           const msgId = config.messages[0].key;
@@ -505,7 +518,7 @@ describe('Kafka Integration', () => {
         trackingProducer.send({
           topic: 'test-topic',
           messages: [{ key: msgId, value: 'test' }],
-        })
+        }),
       ).rejects.toThrow('Message already delivered');
     });
 
@@ -528,7 +541,7 @@ describe('Kafka Integration', () => {
 
     it('should support topic creation dynamically', async () => {
       const topics: string[] = [];
-      
+
       const dynamicProducer = {
         createTopic: jest.fn(async (topicName) => {
           topics.push(topicName);
@@ -546,13 +559,18 @@ describe('Kafka Integration', () => {
       const deadLetterQueue: Array<Record<string, any>> = [];
 
       const dlqProducer = {
-        sendToDLQ: jest.fn(async (message: Record<string, any>, error: Error) => {
-          deadLetterQueue.push({ message, error, timestamp: Date.now() });
-        }),
+        sendToDLQ: jest.fn(
+          async (message: Record<string, any>, error: Error) => {
+            deadLetterQueue.push({ message, error, timestamp: Date.now() });
+          },
+        ),
       };
 
       const failedMessage = { id: 'msg-1' };
-      await dlqProducer.sendToDLQ(failedMessage, new Error('Processing failed'));
+      await dlqProducer.sendToDLQ(
+        failedMessage,
+        new Error('Processing failed'),
+      );
 
       expect(deadLetterQueue).toHaveLength(1);
       expect(deadLetterQueue[0]).toHaveProperty('error');
@@ -581,13 +599,13 @@ describe('Kafka Integration', () => {
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           attemptTimestamps.push(Date.now());
-          
+
           try {
             await handler();
             return; // Success
           } catch (error) {
             lastError = error as Error;
-            
+
             if (attempt < maxRetries) {
               const delayMs = baseDelay * Math.pow(2, attempt);
               await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -597,7 +615,11 @@ describe('Kafka Integration', () => {
 
         // All retries exhausted
         if (lastError) {
-          dlqMessages.push({ message, error: lastError, retryCount: maxRetries });
+          dlqMessages.push({
+            message,
+            error: lastError,
+            retryCount: maxRetries,
+          });
         }
       };
 
@@ -619,7 +641,7 @@ describe('Kafka Integration', () => {
       // Verify exponential backoff delays
       const delay1 = attemptTimestamps[1] - attemptTimestamps[0];
       const delay2 = attemptTimestamps[2] - attemptTimestamps[1];
-      
+
       expect(delay1).toBeGreaterThanOrEqual(baseDelay * 1); // 100ms
       expect(delay2).toBeGreaterThanOrEqual(baseDelay * 2); // 200ms
     });
@@ -627,7 +649,7 @@ describe('Kafka Integration', () => {
     // Test ID: kafka-dlq-002
     it('should send message to DLQ after max retries exceeded', async () => {
       const maxRetries = 3;
-      
+
       const processWithRetry = async (
         message: Record<string, any>,
         handler: () => Promise<void>,
@@ -693,12 +715,15 @@ describe('Kafka Integration', () => {
 
       expect(dlqMessages).toHaveLength(1);
       const dlqMsg = dlqMessages[0];
-      
+
       expect(dlqMsg).toHaveProperty('originalTopic', 'tasks');
       expect(dlqMsg).toHaveProperty('originalMessage');
       expect(dlqMsg).toHaveProperty('error');
       expect(dlqMsg.error).toHaveProperty('name', 'Error');
-      expect(dlqMsg.error).toHaveProperty('message', 'Database connection failed');
+      expect(dlqMsg.error).toHaveProperty(
+        'message',
+        'Database connection failed',
+      );
       expect(dlqMsg.error).toHaveProperty('stack');
       expect(dlqMsg).toHaveProperty('retryCount', 3);
       expect(dlqMsg).toHaveProperty('timestamp');
@@ -749,8 +774,8 @@ describe('Kafka Integration', () => {
       // Process 3 messages concurrently: 2 succeed, 1 fails permanently
       await Promise.all([
         processWithRetry('msg-1', false), // Success immediately
-        processWithRetry('msg-2', true),  // Succeeds after retries
-        processWithRetry('msg-3', true),  // Succeeds after retries
+        processWithRetry('msg-2', true), // Succeeds after retries
+        processWithRetry('msg-3', true), // Succeeds after retries
       ]);
 
       expect(processedMessages).toHaveLength(3);
@@ -804,7 +829,7 @@ describe('Kafka Integration', () => {
       };
 
       const invalidJson = '{ "id": "test", invalid }';
-      
+
       try {
         JSON.parse(invalidJson);
       } catch (error) {
@@ -826,10 +851,10 @@ describe('Kafka Integration', () => {
 
       const recordDLQMetric = (topic: string, errorType: string): void => {
         metrics.dlqMessageCount++;
-        
+
         const topicCount = metrics.dlqMessagesByTopic.get(topic) || 0;
         metrics.dlqMessagesByTopic.set(topic, topicCount + 1);
-        
+
         const errorCount = metrics.dlqMessagesByError.get(errorType) || 0;
         metrics.dlqMessagesByError.set(errorType, errorCount + 1);
       };
@@ -855,7 +880,7 @@ describe('Kafka Integration', () => {
       ): Promise<void> => {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           totalAttempts++;
-          
+
           if (totalAttempts > 10) {
             throw new Error('Infinite loop detected');
           }
@@ -899,10 +924,14 @@ describe('Kafka Integration', () => {
       expect(dlqMessages[0].id).toBe('msg-1');
       expect(dlqMessages[1].id).toBe('msg-2');
       expect(dlqMessages[2].id).toBe('msg-3');
-      
+
       // Verify timestamps are increasing
-      expect(dlqMessages[1].dlqTimestamp).toBeGreaterThan(dlqMessages[0].dlqTimestamp);
-      expect(dlqMessages[2].dlqTimestamp).toBeGreaterThan(dlqMessages[1].dlqTimestamp);
+      expect(dlqMessages[1].dlqTimestamp).toBeGreaterThan(
+        dlqMessages[0].dlqTimestamp,
+      );
+      expect(dlqMessages[2].dlqTimestamp).toBeGreaterThan(
+        dlqMessages[1].dlqTimestamp,
+      );
     });
   });
 });

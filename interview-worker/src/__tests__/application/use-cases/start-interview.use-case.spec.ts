@@ -59,6 +59,7 @@ describe('StartInterviewUseCase', () => {
   it('should create and return session successfully', async () => {
     const mockInterview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -72,8 +73,12 @@ describe('StartInterviewUseCase', () => {
     });
 
     mockInterviewRepository.findById.mockResolvedValue(mockInterview);
-    mockSessionRepository.save.mockImplementation(async (session: any) => session);
-    mockProfileRepository.save.mockImplementation(async (profile: any) => profile);
+    mockSessionRepository.save.mockImplementation(
+      async (session: any) => session,
+    );
+    mockProfileRepository.save.mockImplementation(
+      async (profile: any) => profile,
+    );
     mockTranscriptRepository.save.mockResolvedValue(undefined);
 
     const result = await useCase.execute({
@@ -107,6 +112,7 @@ describe('StartInterviewUseCase', () => {
   it('should create session with voice communication mode', async () => {
     const mockInterview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -120,8 +126,12 @@ describe('StartInterviewUseCase', () => {
     });
 
     mockInterviewRepository.findById.mockResolvedValue(mockInterview);
-    mockSessionRepository.save.mockImplementation(async (session: any) => session);
-    mockProfileRepository.save.mockImplementation(async (profile: any) => profile);
+    mockSessionRepository.save.mockImplementation(
+      async (session: any) => session,
+    );
+    mockProfileRepository.save.mockImplementation(
+      async (profile: any) => profile,
+    );
     mockTranscriptRepository.save.mockResolvedValue(undefined);
 
     const result = await useCase.execute({
@@ -133,4 +143,3 @@ describe('StartInterviewUseCase', () => {
     expect(result.communicationMode).toBe('voice');
   });
 });
-

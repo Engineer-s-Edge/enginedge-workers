@@ -1,6 +1,6 @@
 /**
  * WebSocket Adapter
- * 
+ *
  * Provides bidirectional real-time communication for agent interactions.
  * Supports commands, updates, and interactive features.
  */
@@ -22,7 +22,8 @@ export interface WebSocketMessage {
 export class WebSocketAdapter {
   private wss: WebSocketServer | null = null;
   private clients: Map<string, WebSocket> = new Map();
-  private clientMetadata: Map<string, { userId: string; agentId?: string }> = new Map();
+  private clientMetadata: Map<string, { userId: string; agentId?: string }> =
+    new Map();
 
   /**
    * Initialize WebSocket server
@@ -249,4 +250,3 @@ export class WebSocketAdapter {
     }
   }
 }
-

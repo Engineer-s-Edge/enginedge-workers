@@ -9,15 +9,14 @@
 
 import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult } from '../../entities';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
-import { IRAGServiceAdapter } from '@infrastructure/adapters/interfaces';
+import { ILogger } from '../../ports/logger.port';
+import { ILLMProvider } from '../../ports/llm-provider.port';
+import { IRAGServicePort } from '../../ports/rag-service.port';
 import {
   ResearchPhase,
   ResearchTopic,
   ResearchSource,
   EvidenceEntry,
-  Contradiction,
   SourceCredibility,
   ExpertAgentState,
   ResearchReport,
@@ -35,7 +34,7 @@ export class ExpertAgent extends BaseAgent {
   constructor(
     llmProvider: ILLMProvider,
     logger: ILogger,
-    private ragAdapter?: IRAGServiceAdapter,
+    private ragAdapter?: IRAGServicePort,
     private config: {
       aim_iterations?: number;
       shoot_iterations?: number;
@@ -66,6 +65,24 @@ export class ExpertAgent extends BaseAgent {
   }
 
   /**
+   * Get latest research report snapshot if available
+   */
+  getResearchReport(): ResearchReport | null {
+    if (!this.researchState.finalReport) {
+      return null;
+    }
+
+    const report = this.researchState.finalReport;
+    return {
+      ...report,
+      topics: [...report.topics],
+      evidence: [...report.evidence],
+      contradictions: [...report.contradictions],
+      generatedAt: new Date(report.generatedAt),
+    };
+  }
+
+  /**
    * Add a research topic
    */
   addTopic(topic: ResearchTopic): void {
@@ -84,7 +101,10 @@ export class ExpertAgent extends BaseAgent {
       ...this.researchState,
       sources: [...this.researchState.sources, source],
     };
-    this.logger.info('Added research source', { url: source.url, title: source.title });
+    this.logger.info('Added research source', {
+      url: source.url,
+      title: source.title,
+    });
   }
 
   /**
@@ -106,7 +126,11 @@ export class ExpertAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<ExecutionResult> {
     try {
-      this.logger.info('ExpertAgent: Starting research', { input });
+      this.logger.info('ExpertAgent: Starting research', {
+        input,
+        userId: context.userId,
+        conversationId: context.conversationId,
+      });
 
       // Initialize research topic from input
       this.addTopic({
@@ -127,6 +151,12 @@ export class ExpertAgent extends BaseAgent {
 
       // Generate final report
       const report = this.generateReport();
+      this.researchState = {
+        ...this.researchState,
+        researchPhase: ResearchPhase.COMPLETE,
+        finalReport: report,
+        synthesisNotes: this.researchState.synthesisNotes || report.abstract,
+      };
 
       return {
         status: 'success',
@@ -136,14 +166,24 @@ export class ExpertAgent extends BaseAgent {
           report,
           sourcesFound: explorationResult.sourcesFound,
           evidenceExtracted: analysisResult.evidenceExtracted,
+          synthesis: {
+            argumentsBuilt: synthesisResult.argumentsBuilt,
+            duration: synthesisResult.duration,
+            conclusions: synthesisResult.conclusionsDrawn,
+          },
         },
       };
     } catch (error) {
-      this.logger.error('ExpertAgent: Research failed', error as Record<string, unknown>);
+      this.logger.error(
+        'ExpertAgent: Research failed',
+        error as Record<string, unknown>,
+      );
       return {
         status: 'error',
         output: `Research failed: ${error instanceof Error ? error.message : String(error)}`,
-        error: { message: error instanceof Error ? error.message : String(error) },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
       };
     }
   }
@@ -155,6 +195,11 @@ export class ExpertAgent extends BaseAgent {
     input: string,
     context: ExecutionContext,
   ): AsyncGenerator<string> {
+    this.logger.info('ExpertAgent: Streaming research', {
+      input,
+      userId: context.userId,
+      conversationId: context.conversationId,
+    });
     yield `🔬 Expert Agent: Starting research on "${input}"\n\n`;
 
     // Initialize research topic
@@ -178,10 +223,16 @@ export class ExpertAgent extends BaseAgent {
     // Phase 3: Synthesis
     yield `📝 Phase 3: SYNTHESIS (SKIN)\n`;
     const synthesisResult = await this.synthesizePhase();
-    yield `Generated synthesis\n\n`;
+    yield `Generated synthesis (~${synthesisResult.reportLength} tokens)\n\n`;
 
     // Generate report
     const report = this.generateReport();
+    this.researchState = {
+      ...this.researchState,
+      researchPhase: ResearchPhase.COMPLETE,
+      finalReport: report,
+      synthesisNotes: this.researchState.synthesisNotes || report.abstract,
+    };
     yield `\n## Research Report\n\n`;
     yield `${report.abstract}\n\n`;
     yield `### Key Findings\n`;
@@ -222,7 +273,7 @@ export class ExpertAgent extends BaseAgent {
     // Parse queries from response
     const queries = response.content
       .split('\n')
-      .filter((line) => line.trim().length > 0)
+      .filter((line: string) => line.trim().length > 0)
       .slice(0, iterations);
 
     const sources: ResearchSource[] = [];
@@ -251,7 +302,9 @@ export class ExpertAgent extends BaseAgent {
             sources.push({
               id: result.id || `source_${sources.length}`,
               url: `doc://${result.documentId}#chunk${result.chunkIndex}`,
-              title: result.metadata?.title as string || `Document ${result.documentId}`,
+              title:
+                (result.metadata?.title as string) ||
+                `Document ${result.documentId}`,
               content: result.content,
               credibilityScore: this.calculateCredibility(result.score),
               evaluationNotes: `Document ${result.documentId}, Chunk ${result.chunkIndex}, Similarity: ${result.score.toFixed(3)}`,
@@ -264,15 +317,20 @@ export class ExpertAgent extends BaseAgent {
           sourcesFound: sources.length,
         });
       } catch (error) {
-        this.logger.error('ExpertAgent: RAG search failed, falling back to simulation', {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        this.logger.error(
+          'ExpertAgent: RAG search failed, falling back to simulation',
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
         // Fall back to simulated sources if RAG fails
         this.addSimulatedSources(queries, sources);
       }
     } else {
       // Fallback: Simulate source discovery if RAG not available
-      this.logger.info('ExpertAgent: RAG not available, using simulated sources');
+      this.logger.info(
+        'ExpertAgent: RAG not available, using simulated sources',
+      );
       this.addSimulatedSources(queries, sources);
     }
 
@@ -300,7 +358,10 @@ export class ExpertAgent extends BaseAgent {
   /**
    * Add simulated sources (fallback when RAG is not available)
    */
-  private addSimulatedSources(queries: string[], sources: ResearchSource[]): void {
+  private addSimulatedSources(
+    queries: string[],
+    sources: ResearchSource[],
+  ): void {
     queries.forEach((q, idx) => {
       sources.push({
         id: `source_${idx}`,
@@ -335,7 +396,8 @@ export class ExpertAgent extends BaseAgent {
         messages: [
           {
             role: 'system',
-            content: 'You are a critical analyst. Extract key evidence and identify any contradictions.',
+            content:
+              'You are a critical analyst. Extract key evidence and identify any contradictions.',
           },
           {
             role: 'user',
@@ -364,7 +426,8 @@ export class ExpertAgent extends BaseAgent {
       sourcesEvaluated: this.researchState.sources.length,
       evidenceExtracted: evidenceList.length,
       contradictionsFound: 0,
-      averageQuality: evidenceList.length > 0 ? totalQuality / evidenceList.length : 0,
+      averageQuality:
+        evidenceList.length > 0 ? totalQuality / evidenceList.length : 0,
       duration: Date.now() - startTime,
     };
   }
@@ -390,7 +453,8 @@ export class ExpertAgent extends BaseAgent {
       messages: [
         {
           role: 'system',
-          content: 'You are a synthesis expert. Integrate research findings into a coherent narrative.',
+          content:
+            'You are a synthesis expert. Integrate research findings into a coherent narrative.',
         },
         {
           role: 'user',
@@ -401,11 +465,20 @@ export class ExpertAgent extends BaseAgent {
       maxTokens: 1000,
     });
 
+    const synthesisNarrative = response.content;
+    this.researchState = {
+      ...this.researchState,
+      synthesisNotes: synthesisNarrative,
+    };
+
     return {
       argumentsBuilt: 1,
-      conclusionsDrawn: ['Synthesis phase completed'],
+      conclusionsDrawn: [
+        'Synthesis phase completed',
+        synthesisNarrative.substring(0, 280),
+      ],
       reportGenerated: true,
-      reportLength: 500,
+      reportLength: synthesisNarrative.length,
       duration: Date.now() - startTime,
     };
   }

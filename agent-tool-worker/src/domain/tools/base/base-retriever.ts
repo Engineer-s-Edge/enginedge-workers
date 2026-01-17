@@ -7,11 +7,15 @@
 
 import { BaseTool } from './base-tool';
 import { ToolOutput, RAGConfig } from '../../entities/tool.entities';
-import { RetrieverConfig, ErrorEvent } from '../../value-objects/tool-config.value-objects';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '../../value-objects/tool-config.value-objects';
 
-export abstract class BaseRetriever<TArgs = unknown, TOutput extends ToolOutput = ToolOutput>
-  extends BaseTool<TArgs, TOutput>
-{
+export abstract class BaseRetriever<
+  TArgs = unknown,
+  TOutput extends ToolOutput = ToolOutput,
+> extends BaseTool<TArgs, TOutput> {
   /** Always 'retriever'; retrievers use RAG config */
   readonly type = 'retriever' as const;
 
@@ -25,12 +29,16 @@ export abstract class BaseRetriever<TArgs = unknown, TOutput extends ToolOutput 
   /**
    * Execute the concrete retriever logic with RAG parameters
    */
-  protected abstract retrieve(args: TArgs & { ragConfig: RAGConfig }): Promise<TOutput>;
+  protected abstract retrieve(
+    args: TArgs & { ragConfig: RAGConfig },
+  ): Promise<TOutput>;
 
   /**
    * Internal dispatch: merges provided ragConfig with defaults, then calls `retrieve`
    */
-  protected override async executeTool(args: TArgs & { ragConfig?: RAGConfig }): Promise<TOutput> {
+  protected override async executeTool(
+    args: TArgs & { ragConfig?: RAGConfig },
+  ): Promise<TOutput> {
     const ragConfig = { ...this.metadata.defaultRAGConfig, ...args.ragConfig };
     return await this.retrieve({ ...args, ragConfig });
   }

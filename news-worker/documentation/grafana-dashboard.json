@@ -1,0 +1,34 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "News Worker - Production Dashboard",
+    "tags": ["news", "production", "monitoring"],
+    "timezone": "UTC",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [{"expr": "up{job=\"news-worker\"}", "legendFormat": "Service Status"}],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [{"expr": "rate(news_worker_requests_total{job=\"news-worker\"}[5m])", "legendFormat": "Requests/sec"}],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 3,
+        "title": "Cache Performance",
+        "type": "graph",
+        "targets": [
+          {"expr": "rate(news_worker_cache_hits_total{job=\"news-worker\"}[5m])", "legendFormat": "Cache Hits"},
+          {"expr": "rate(news_worker_cache_misses_total{job=\"news-worker\"}[5m])", "legendFormat": "Cache Misses"}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      }
+    ]
+  }
+}

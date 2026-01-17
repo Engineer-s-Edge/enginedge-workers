@@ -14,7 +14,9 @@ describe('Expert Agent - Research Pipeline', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -147,7 +149,11 @@ describe('Expert Agent - Research Pipeline', () => {
   });
 
   test('should support method chaining', () => {
-    expertAgent.addTopic({ id: 't1', query: 'Topic 1', status: 'pending' as const });
+    expertAgent.addTopic({
+      id: 't1',
+      query: 'Topic 1',
+      status: 'pending' as const,
+    });
     expertAgent.addSource({
       id: 's1',
       title: 'Source 1',
@@ -185,7 +191,9 @@ describe('Expert Agent - Source Management', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -289,7 +297,9 @@ describe('Expert Agent - Evidence Quality', () => {
 
   beforeEach(() => {
     mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
       stream: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('mock-provider'),
       isAvailable: jest.fn().mockResolvedValue(true),
@@ -372,6 +382,10 @@ describe('Expert Agent - Evidence Quality', () => {
       });
     });
     const state = expertAgent.getResearchState();
-    expect(state.evidence.every((e) => e.qualityScore >= 70 && e.qualityScore <= 100)).toBe(true);
+    expect(
+      state.evidence.every(
+        (e) => e.qualityScore >= 70 && e.qualityScore <= 100,
+      ),
+    ).toBe(true);
   });
 });

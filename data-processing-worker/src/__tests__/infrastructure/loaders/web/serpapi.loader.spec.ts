@@ -14,7 +14,12 @@ describe('SerpApiLoaderAdapter (Phase 2 - SerpAPI Loader)', () => {
   });
 
   it('serpapi-002: load returns search results', async () => {
-    const docs = [new Document('d-serp', 'search result', { source: 'serpapi://query=python', sourceType: 'url' })];
+    const docs = [
+      new Document('d-serp', 'search result', {
+        source: 'serpapi://query=python',
+        sourceType: 'url',
+      }),
+    ];
     jest.spyOn(adapter as any, 'load').mockResolvedValue(docs);
     const res = await (adapter as any).load('python programming');
     expect(res).toBe(docs);
@@ -22,8 +27,18 @@ describe('SerpApiLoaderAdapter (Phase 2 - SerpAPI Loader)', () => {
 
   it('serpapi-003: extracts search result metadata', async () => {
     const docs = [
-      new Document('d1', 'result1', { source: 'https://result1.com', sourceType: 'url', position: 1, snippet: 'Python is...' }),
-      new Document('d2', 'result2', { source: 'https://result2.com', sourceType: 'url', position: 2, snippet: 'Learn Python...' })
+      new Document('d1', 'result1', {
+        source: 'https://result1.com',
+        sourceType: 'url',
+        position: 1,
+        snippet: 'Python is...',
+      }),
+      new Document('d2', 'result2', {
+        source: 'https://result2.com',
+        sourceType: 'url',
+        position: 2,
+        snippet: 'Learn Python...',
+      }),
     ];
     jest.spyOn(adapter as any, 'load').mockResolvedValue(docs);
     const res = await (adapter as any).load('python');
@@ -33,8 +48,16 @@ describe('SerpApiLoaderAdapter (Phase 2 - SerpAPI Loader)', () => {
 
   it('serpapi-004: handles different search engines', async () => {
     const docs = [
-      new Document('d1', 'google result', { source: 'google', sourceType: 'url', engine: 'google' }),
-      new Document('d2', 'bing result', { source: 'bing', sourceType: 'url', engine: 'bing' })
+      new Document('d1', 'google result', {
+        source: 'google',
+        sourceType: 'url',
+        engine: 'google',
+      }),
+      new Document('d2', 'bing result', {
+        source: 'bing',
+        sourceType: 'url',
+        engine: 'bing',
+      }),
     ];
     jest.spyOn(adapter as any, 'load').mockResolvedValue(docs);
     const res = await (adapter as any).load('query');
@@ -42,26 +65,30 @@ describe('SerpApiLoaderAdapter (Phase 2 - SerpAPI Loader)', () => {
   });
 
   it('serpapi-005: preserves knowledge panel information', async () => {
-    const docs = [new Document('d1', 'entity info', { 
-      source: 'serpapi',
-      sourceType: 'url',
-      knowledgePanel: true,
-      title: 'Python (programming language)',
-      description: 'High-level programming language'
-    })];
+    const docs = [
+      new Document('d1', 'entity info', {
+        source: 'serpapi',
+        sourceType: 'url',
+        knowledgePanel: true,
+        title: 'Python (programming language)',
+        description: 'High-level programming language',
+      }),
+    ];
     jest.spyOn(adapter as any, 'load').mockResolvedValue(docs);
     const res = await (adapter as any).load('python');
     expect(res[0].metadata.knowledgePanel).toBe(true);
   });
 
   it('serpapi-006: handles multiple result pages', async () => {
-    const docs = Array.from({ length: 100 }, (_, i) => 
-      new Document(`d${i}`, `result${i}`, { 
-        source: 'serpapi',
-        sourceType: 'url',
-        page: Math.floor(i / 10),
-        position: (i % 10) + 1
-      })
+    const docs = Array.from(
+      { length: 100 },
+      (_, i) =>
+        new Document(`d${i}`, `result${i}`, {
+          source: 'serpapi',
+          sourceType: 'url',
+          page: Math.floor(i / 10),
+          position: (i % 10) + 1,
+        }),
     );
     jest.spyOn(adapter as any, 'load').mockResolvedValue(docs);
     const res = await (adapter as any).load('query');
@@ -69,12 +96,18 @@ describe('SerpApiLoaderAdapter (Phase 2 - SerpAPI Loader)', () => {
   });
 
   it('serpapi-007: handles API rate limiting', async () => {
-    jest.spyOn(adapter as any, 'load').mockRejectedValue(new Error('API rate limit exceeded'));
+    jest
+      .spyOn(adapter as any, 'load')
+      .mockRejectedValue(new Error('API rate limit exceeded'));
     await expect((adapter as any).load('query')).rejects.toThrow('rate limit');
   });
 
   it('serpapi-008: handles no results for query', async () => {
-    jest.spyOn(adapter as any, 'load').mockRejectedValue(new Error('No results found'));
-    await expect((adapter as any).load('xyzabc12345notaquery')).rejects.toThrow('No results');
+    jest
+      .spyOn(adapter as any, 'load')
+      .mockRejectedValue(new Error('No results found'));
+    await expect((adapter as any).load('xyzabc12345notaquery')).rejects.toThrow(
+      'No results',
+    );
   });
 });

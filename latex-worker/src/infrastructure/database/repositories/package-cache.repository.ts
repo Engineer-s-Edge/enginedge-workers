@@ -47,7 +47,7 @@ export class MongoDBPackageCacheRepository implements IPackageCacheRepository {
 
   async findByName(name: string): Promise<LaTeXPackage | null> {
     const pkg = await this.packageModel.findOne({ packageName: name }).exec();
-    
+
     if (!pkg) {
       return null;
     }
@@ -62,22 +62,26 @@ export class MongoDBPackageCacheRepository implements IPackageCacheRepository {
   }
 
   async touch(name: string): Promise<void> {
-    await this.packageModel.updateOne(
-      { packageName: name },
-      {
-        $set: { lastUsedAt: new Date() },
-        $inc: { usageCount: 1 },
-      },
-    ).exec();
+    await this.packageModel
+      .updateOne(
+        { packageName: name },
+        {
+          $set: { lastUsedAt: new Date() },
+          $inc: { usageCount: 1 },
+        },
+      )
+      .exec();
   }
 
   async deleteStale(days: number): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
-    const result = await this.packageModel.deleteMany({
-      lastUsedAt: { $lt: cutoffDate },
-    }).exec();
+    const result = await this.packageModel
+      .deleteMany({
+        lastUsedAt: { $lt: cutoffDate },
+      })
+      .exec();
 
     return result.deletedCount || 0;
   }
@@ -88,7 +92,7 @@ export class MongoDBPackageCacheRepository implements IPackageCacheRepository {
       .sort({ usageCount: -1 })
       .exec();
 
-    return packages.map(pkg => {
+    return packages.map((pkg) => {
       const latexPkg = LaTeXPackage.create(pkg.packageName);
       return latexPkg.markInstalled({
         version: pkg.version,
@@ -99,4 +103,3 @@ export class MongoDBPackageCacheRepository implements IPackageCacheRepository {
     });
   }
 }
-

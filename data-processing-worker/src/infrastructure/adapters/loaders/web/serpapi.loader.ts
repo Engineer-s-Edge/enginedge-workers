@@ -31,7 +31,9 @@ export class SerpApiLoaderAdapter extends WebLoaderPort {
     try {
       const apiKey = options?.apiKey || process.env.SERPAPI_API_KEY;
       if (!apiKey) {
-        throw new Error('SerpAPI key required. Set SERPAPI_API_KEY env var or pass apiKey option.');
+        throw new Error(
+          'SerpAPI key required. Set SERPAPI_API_KEY env var or pass apiKey option.',
+        );
       }
 
       const engine = options?.engine || 'google';
@@ -94,7 +96,9 @@ export class SerpApiLoaderAdapter extends WebLoaderPort {
   private _extractQueryFromUrl(url: string): string {
     try {
       const urlObj = new URL(url);
-      return urlObj.searchParams.get('q') || urlObj.searchParams.get('query') || '';
+      return (
+        urlObj.searchParams.get('q') || urlObj.searchParams.get('query') || ''
+      );
     } catch {
       return '';
     }
@@ -122,8 +126,10 @@ export class SerpApiLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

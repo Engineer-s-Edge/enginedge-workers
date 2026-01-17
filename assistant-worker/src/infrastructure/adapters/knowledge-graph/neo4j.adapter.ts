@@ -1,6 +1,6 @@
 /**
  * Neo4j Knowledge Graph Adapter
- * 
+ *
  * Provides interface to Neo4j graph database for storing and querying knowledge.
  * Supports ICS (Integrated Concept Synthesis) methodology with 6 layers.
  */
@@ -11,12 +11,54 @@ import { Injectable } from '@nestjs/common';
  * ICS Layer enumeration (L1-L6)
  */
 export enum ICSLayer {
-  L1_OBSERVATIONS = 'L1_OBSERVATIONS',       // Raw data, observations
-  L2_PATTERNS = 'L2_PATTERNS',               // Patterns, correlations
-  L3_MODELS = 'L3_MODELS',                   // Conceptual models
-  L4_THEORIES = 'L4_THEORIES',               // Theories, frameworks
-  L5_PRINCIPLES = 'L5_PRINCIPLES',           // Universal principles
-  L6_SYNTHESIS = 'L6_SYNTHESIS',             // Integrated synthesis
+  L1_OBSERVATIONS = 'L1_OBSERVATIONS', // Raw data, observations
+  L2_PATTERNS = 'L2_PATTERNS', // Patterns, correlations
+  L3_MODELS = 'L3_MODELS', // Conceptual models
+  L4_THEORIES = 'L4_THEORIES', // Theories, frameworks
+  L5_PRINCIPLES = 'L5_PRINCIPLES', // Universal principles
+  L6_SYNTHESIS = 'L6_SYNTHESIS', // Integrated synthesis
+}
+
+/**
+ * Research status for knowledge graph nodes
+ */
+export enum ResearchStatus {
+  UNRESEARCHED = 'unresearched',
+  IN_PROGRESS = 'in_progress',
+  RESEARCHED = 'researched',
+  NEEDS_UPDATE = 'needs_update',
+  DUBIOUS = 'dubious',
+}
+
+/**
+ * Source citation for node information
+ */
+export interface SourceCitation {
+  url?: string;
+  title?: string;
+  author?: string;
+  retrievedAt: Date;
+  sourceType: 'web' | 'academic' | 'document' | 'user' | 'llm';
+}
+
+/**
+ * Research data gathered during research phase
+ */
+export interface ResearchData {
+  summary?: string;
+  keyPoints?: string[];
+  examples?: string[];
+  relatedConcepts?: string[];
+  equations?: string[];
+}
+
+/**
+ * Node lock information
+ */
+export interface NodeLock {
+  lockedBy: string; // Agent ID or user ID
+  lockedAt: Date;
+  reason: string;
 }
 
 /**
@@ -30,6 +72,17 @@ export interface KGNode {
   properties: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
+  lock?: NodeLock;
+  researchStatus?: ResearchStatus;
+  confidence?: number;
+  validationCount?: number;
+  validatedBy?: string[];
+  sources?: SourceCitation[];
+  researchData?: ResearchData;
+  graphComponentId?: string;
+  explorationStatus?: string; // Tracks how explored/researched the node is (e.g., "unexplored", "exploring", "explored", "fully_researched")
+  domain?: string; // Domain name for L1 observation nodes
+  domainColor?: string; // Color associated with the domain
 }
 
 /**
@@ -38,9 +91,14 @@ export interface KGNode {
 export interface KGEdge {
   id: string;
   from: string; // Source node ID
-  to: string;   // Target node ID
-  type: string; // Relationship type
+  to: string; // Target node ID
+  type: string; // Relationship type (one-word label: "inverse", "equation", "derives", "contains", etc.)
   properties: Record<string, any>;
+  weight?: number;
+  confidence?: number;
+  equation?: string;
+  rationale?: string;
+  bidirectional?: boolean; // If true, edge is bidirectional (source ↔ target)
   createdAt: Date;
 }
 
@@ -55,7 +113,7 @@ export interface QueryResult {
 
 /**
  * Neo4j Adapter for Knowledge Graph
- * 
+ *
  * Note: This is a mock implementation. In production, integrate with actual Neo4j driver.
  */
 @Injectable()
@@ -64,9 +122,8 @@ export class Neo4jAdapter {
   private nodes: Map<string, KGNode> = new Map();
   private edges: Map<string, KGEdge> = new Map();
 
-  constructor(
+  constructor() {
     // @Inject('NEO4J_DRIVER') private readonly driver: any,
-  ) {
     // Initialize Neo4j connection here
     // this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
   }
@@ -78,7 +135,7 @@ export class Neo4jAdapter {
     label: string,
     type: string,
     layer: ICSLayer,
-    properties: Record<string, any> = {}
+    properties: Record<string, any> = {},
   ): Promise<KGNode> {
     const node: KGNode = {
       id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -88,6 +145,12 @@ export class Neo4jAdapter {
       properties,
       createdAt: new Date(),
       updatedAt: new Date(),
+      researchStatus: ResearchStatus.UNRESEARCHED,
+      confidence: 0.5,
+      validationCount: 0,
+      validatedBy: [],
+      sources: [],
+      explorationStatus: 'unexplored',
     };
 
     // Mock storage (replace with actual Neo4j operation)
@@ -134,10 +197,10 @@ export class Neo4jAdapter {
    */
   async updateNode(
     nodeId: string,
-    updates: Partial<Omit<KGNode, 'id' | 'createdAt'>>
+    updates: Partial<Omit<KGNode, 'id' | 'createdAt'>>,
   ): Promise<KGNode | null> {
     const node = this.nodes.get(nodeId);
-    
+
     if (!node) {
       return null;
     }
@@ -199,8 +262,20 @@ export class Neo4jAdapter {
     from: string,
     to: string,
     type: string,
-    properties: Record<string, any> = {}
+    properties: Record<string, any> = {},
+    weight?: number,
+    confidence?: number,
+    equation?: string,
+    rationale?: string,
+    bidirectional?: boolean,
   ): Promise<KGEdge> {
+    // Validate relationship type is one word (for labels like "inverse", "equation", "derives", "contains")
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(type)) {
+      throw new Error(
+        `Relationship type must be a single word (alphanumeric and underscores only): "${type}"`,
+      );
+    }
+
     // Verify nodes exist
     if (!this.nodes.has(from) || !this.nodes.has(to)) {
       throw new Error('Source or target node does not exist');
@@ -212,18 +287,50 @@ export class Neo4jAdapter {
       to,
       type,
       properties,
+      weight: weight ?? 1.0,
+      confidence: confidence ?? 0.7,
+      equation,
+      rationale,
+      bidirectional: bidirectional ?? false,
       createdAt: new Date(),
     };
 
     this.edges.set(edge.id, edge);
 
+    // If bidirectional, create reverse edge
+    if (bidirectional) {
+      const reverseEdge: KGEdge = {
+        id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        from: to,
+        to: from,
+        type,
+        properties: { ...properties },
+        weight: weight ?? 1.0,
+        confidence: confidence ?? 0.7,
+        equation,
+        rationale,
+        bidirectional: true,
+        createdAt: new Date(),
+      };
+      this.edges.set(reverseEdge.id, reverseEdge);
+    }
+
     // In production:
     // const session = this.driver.session();
     // try {
-    //   const result = await session.run(
-    //     'MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[r:RELATIONSHIP {id: $id, type: $type, properties: $properties, createdAt: $createdAt}]->(b) RETURN r',
-    //     { from, to, id: edge.id, type, properties: JSON.stringify(properties), createdAt: edge.createdAt.toISOString() }
-    //   );
+    //   if (bidirectional) {
+    //     // Create bidirectional relationship in Neo4j
+    //     const result = await session.run(
+    //       'MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[r:RELATIONSHIP {id: $id, type: $type, properties: $properties, bidirectional: true, createdAt: $createdAt}]-(b) RETURN r',
+    //       { from, to, id: edge.id, type, properties: JSON.stringify(properties), createdAt: edge.createdAt.toISOString() }
+    //     );
+    //   } else {
+    //     // Create directed relationship
+    //     const result = await session.run(
+    //       'MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[r:RELATIONSHIP {id: $id, type: $type, properties: $properties, createdAt: $createdAt}]->(b) RETURN r',
+    //       { from, to, id: edge.id, type, properties: JSON.stringify(properties), createdAt: edge.createdAt.toISOString() }
+    //     );
+    //   }
     //   return result.records[0].get('r').properties;
     // } finally {
     //   await session.close();
@@ -237,6 +344,120 @@ export class Neo4jAdapter {
    */
   async getEdge(edgeId: string): Promise<KGEdge | null> {
     return this.edges.get(edgeId) || null;
+  }
+
+  /**
+   * Update an edge
+   */
+  async updateEdge(
+    edgeId: string,
+    updates: Partial<Omit<KGEdge, 'id' | 'createdAt'>>,
+  ): Promise<KGEdge | null> {
+    const edge = this.edges.get(edgeId);
+    if (!edge) {
+      return null;
+    }
+
+    // Validate relationship type if being updated
+    if (updates.type && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(updates.type)) {
+      throw new Error(
+        `Relationship type must be a single word (alphanumeric and underscores only): "${updates.type}"`,
+      );
+    }
+
+    const wasBidirectional = edge.bidirectional ?? false;
+    const willBeBidirectional = updates.bidirectional ?? wasBidirectional;
+
+    // Handle bidirectional flag changes
+    if (wasBidirectional !== willBeBidirectional) {
+      if (willBeBidirectional) {
+        // Changing from unidirectional to bidirectional: create reverse edge
+        const reverseEdge: KGEdge = {
+          id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          from: edge.to,
+          to: edge.from,
+          type: updates.type ?? edge.type,
+          properties: { ...(updates.properties ?? edge.properties) },
+          weight: updates.weight ?? edge.weight,
+          confidence: updates.confidence ?? edge.confidence,
+          equation: updates.equation ?? edge.equation,
+          rationale: updates.rationale ?? edge.rationale,
+          bidirectional: true,
+          createdAt: edge.createdAt,
+        };
+        this.edges.set(reverseEdge.id, reverseEdge);
+      } else {
+        // Changing from bidirectional to unidirectional: delete reverse edge
+        // Find and delete the reverse edge
+        for (const [id, e] of this.edges.entries()) {
+          if (
+            e.from === edge.to &&
+            e.to === edge.from &&
+            e.type === (updates.type ?? edge.type) &&
+            id !== edgeId
+          ) {
+            this.edges.delete(id);
+            break;
+          }
+        }
+      }
+    }
+
+    // Apply updates
+    Object.assign(edge, updates);
+
+    this.edges.set(edgeId, edge);
+
+    return edge;
+  }
+
+  /**
+   * Get all nodes with pagination and optional layer filter
+   */
+  async getAllNodes(
+    limit?: number,
+    offset?: number,
+    layers?: ICSLayer[],
+  ): Promise<{ nodes: KGNode[]; total: number }> {
+    let allNodes = Array.from(this.nodes.values());
+
+    // Filter by layers if specified
+    if (layers && layers.length > 0) {
+      allNodes = allNodes.filter((node) => layers.includes(node.layer));
+    }
+
+    const total = allNodes.length;
+
+    // Apply pagination
+    if (offset !== undefined) {
+      allNodes = allNodes.slice(offset);
+    }
+    if (limit !== undefined) {
+      allNodes = allNodes.slice(0, limit);
+    }
+
+    return { nodes: allNodes, total };
+  }
+
+  /**
+   * Get all edges with pagination
+   */
+  async getAllEdges(
+    limit?: number,
+    offset?: number,
+  ): Promise<{ edges: KGEdge[]; total: number }> {
+    let allEdges = Array.from(this.edges.values());
+    const total = allEdges.length;
+
+    // Apply pagination
+    if (offset !== undefined) {
+      allEdges = allEdges.slice(offset);
+    }
+    if (limit !== undefined) {
+      allEdges = allEdges.slice(0, limit);
+    }
+
+    return { edges: allEdges, total };
   }
 
   /**
@@ -262,7 +483,9 @@ export class Neo4jAdapter {
    * Get all nodes by layer
    */
   async getNodesByLayer(layer: ICSLayer): Promise<KGNode[]> {
-    return Array.from(this.nodes.values()).filter((node) => node.layer === layer);
+    return Array.from(this.nodes.values()).filter(
+      (node) => node.layer === layer,
+    );
 
     // In production:
     // const session = this.driver.session();
@@ -287,7 +510,10 @@ export class Neo4jAdapter {
   /**
    * Get neighbors of a node
    */
-  async getNeighbors(nodeId: string, direction: 'in' | 'out' | 'both' = 'both'): Promise<KGNode[]> {
+  async getNeighbors(
+    nodeId: string,
+    direction: 'in' | 'out' | 'both' = 'both',
+  ): Promise<KGNode[]> {
     const neighborIds = new Set<string>();
 
     for (const edge of this.edges.values()) {
@@ -334,7 +560,10 @@ export class Neo4jAdapter {
   /**
    * Execute a custom Cypher query
    */
-  async query(cypher: string, params: Record<string, any> = {}): Promise<QueryResult> {
+  async query(
+    cypher: string,
+    params: Record<string, any> = {},
+  ): Promise<QueryResult> {
     // Mock query execution (in production, execute actual Cypher)
     return {
       nodes: [],
@@ -362,7 +591,9 @@ export class Neo4jAdapter {
     const visited = new Set<string>();
 
     // BFS to collect nodes and edges up to specified depth
-    const queue: Array<{ id: string; currentDepth: number }> = [{ id: nodeId, currentDepth: 0 }];
+    const queue: Array<{ id: string; currentDepth: number }> = [
+      { id: nodeId, currentDepth: 0 },
+    ];
 
     while (queue.length > 0) {
       const { id, currentDepth } = queue.shift()!;
@@ -413,7 +644,7 @@ export class Neo4jAdapter {
    */
   async searchNodes(searchTerm: string): Promise<KGNode[]> {
     const lowerSearch = searchTerm.toLowerCase();
-    
+
     return Array.from(this.nodes.values()).filter((node) => {
       // Search in label
       if (node.label.toLowerCase().includes(lowerSearch)) {
@@ -422,7 +653,7 @@ export class Neo4jAdapter {
 
       // Search in properties
       return Object.values(node.properties).some((value) =>
-        String(value).toLowerCase().includes(lowerSearch)
+        String(value).toLowerCase().includes(lowerSearch),
       );
     });
 
@@ -437,6 +668,266 @@ export class Neo4jAdapter {
     // } finally {
     //   await session.close();
     // }
+  }
+
+  /**
+   * Lock a node for exclusive access
+   * @param nodeId Node to lock
+   * @param actorId ID of agent/user acquiring the lock
+   * @param reason Reason for locking
+   * @returns true if lock acquired, false if already locked
+   */
+  async lockNode(
+    nodeId: string,
+    actorId: string,
+    reason: string,
+  ): Promise<boolean> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return false;
+    }
+
+    // Check if already locked by someone else
+    if (node.lock && node.lock.lockedBy !== actorId) {
+      return false;
+    }
+
+    // Lock the node
+    node.lock = {
+      lockedBy: actorId,
+      lockedAt: new Date(),
+      reason,
+    };
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+
+    // In production:
+    // const session = this.driver.session();
+    // try {
+    //   const result = await session.run(
+    //     'MATCH (n:Node {id: $id}) WHERE NOT EXISTS(n.lock) OR n.lock.lockedBy = $actorId SET n.lock = {lockedBy: $actorId, lockedAt: $lockedAt, reason: $reason}, n.updatedAt = $updatedAt RETURN n',
+    //     { id: nodeId, actorId, lockedAt: new Date().toISOString(), reason, updatedAt: new Date().toISOString() }
+    //   );
+    //   return result.records.length > 0;
+    // } finally {
+    //   await session.close();
+    // }
+
+    return true;
+  }
+
+  /**
+   * Unlock a node
+   * @param nodeId Node to unlock
+   * @param actorId ID of agent/user releasing the lock (must match lock owner)
+   * @returns true if unlocked, false if not locked or wrong actor
+   */
+  async unlockNode(nodeId: string, actorId: string): Promise<boolean> {
+    const node = this.nodes.get(nodeId);
+    if (!node || !node.lock) {
+      return false;
+    }
+
+    // Check if actor owns the lock
+    if (node.lock.lockedBy !== actorId) {
+      return false;
+    }
+
+    // Unlock the node
+    delete node.lock;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+
+    // In production:
+    // const session = this.driver.session();
+    // try {
+    //   const result = await session.run(
+    //     'MATCH (n:Node {id: $id}) WHERE n.lock.lockedBy = $actorId REMOVE n.lock SET n.updatedAt = $updatedAt RETURN n',
+    //     { id: nodeId, actorId, updatedAt: new Date().toISOString() }
+    //   );
+    //   return result.records.length > 0;
+    // } finally {
+    //   await session.close();
+    // }
+
+    return true;
+  }
+
+  /**
+   * Get unresearched nodes, optionally filtered by layer
+   */
+  async getUnresearchedNodes(layer?: ICSLayer): Promise<KGNode[]> {
+    return Array.from(this.nodes.values()).filter((node) => {
+      if (
+        node.researchStatus !== ResearchStatus.UNRESEARCHED &&
+        node.researchStatus !== undefined
+      ) {
+        return false;
+      }
+      if (layer && node.layer !== layer) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Lock a node for research
+   */
+  async lockNodeForResearch(
+    nodeId: string,
+    agentId: string,
+  ): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    const locked = await this.lockNode(nodeId, agentId, 'research_in_progress');
+    if (!locked) {
+      return null;
+    }
+
+    node.researchStatus = ResearchStatus.IN_PROGRESS;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Add research data to a node
+   */
+  async addResearchData(
+    nodeId: string,
+    researchData: ResearchData,
+    sources: SourceCitation[],
+    confidence: number,
+  ): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    node.researchData = researchData;
+    node.sources = [...(node.sources || []), ...sources];
+    node.confidence = Math.max(node.confidence || 0.5, confidence);
+    node.researchStatus = ResearchStatus.RESEARCHED;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Mark a node as dubious
+   */
+  async markNodeAsDubious(
+    nodeId: string,
+    agentId: string,
+  ): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    node.researchStatus = ResearchStatus.DUBIOUS;
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Validate a node (increase confidence)
+   */
+  async validateNode(nodeId: string, agentId: string): Promise<KGNode | null> {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      return null;
+    }
+
+    node.validationCount = (node.validationCount || 0) + 1;
+    node.validatedBy = [...(node.validatedBy || []), agentId];
+    node.confidence = Math.min(1.0, (node.confidence || 0.5) + 0.1);
+    node.updatedAt = new Date();
+    this.nodes.set(nodeId, node);
+    return node;
+  }
+
+  /**
+   * Get connected edges for a node
+   */
+  async getConnectedEdges(nodeId: string): Promise<KGEdge[]> {
+    return Array.from(this.edges.values()).filter(
+      (edge) => edge.from === nodeId || edge.to === nodeId,
+    );
+  }
+
+  /**
+   * Get outgoing edges from a node
+   */
+  async getOutgoingEdges(nodeId: string, type?: string): Promise<KGEdge[]> {
+    return Array.from(this.edges.values()).filter((edge) => {
+      if (edge.from !== nodeId) {
+        return false;
+      }
+      if (type && edge.type !== type) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Get incoming edges to a node
+   */
+  async getIncomingEdges(nodeId: string, type?: string): Promise<KGEdge[]> {
+    return Array.from(this.edges.values()).filter((edge) => {
+      if (edge.to !== nodeId) {
+        return false;
+      }
+      if (type && edge.type !== type) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Find edge between two nodes
+   */
+  async findEdgeBetween(
+    from: string,
+    to: string,
+    type?: string,
+  ): Promise<KGEdge | null> {
+    for (const edge of this.edges.values()) {
+      if (edge.from === from && edge.to === to) {
+        if (!type || edge.type === type) {
+          return edge;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Find or create a node
+   */
+  async findOrCreateNode(
+    label: string,
+    type: string,
+    layer: ICSLayer,
+    properties: Record<string, any> = {},
+  ): Promise<KGNode> {
+    // Try to find existing node
+    const existing = Array.from(this.nodes.values()).find(
+      (n) => n.label === label && n.type === type && n.layer === layer,
+    );
+    if (existing) {
+      return existing;
+    }
+
+    // Create new node
+    return await this.createNode(label, type, layer, properties);
   }
 
   /**
@@ -472,4 +963,3 @@ export class Neo4jAdapter {
     };
   }
 }
-

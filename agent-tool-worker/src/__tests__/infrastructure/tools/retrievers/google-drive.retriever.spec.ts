@@ -6,7 +6,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoogleDriveRetriever, GoogleDriveArgs } from '@infrastructure/tools/retrievers/google-drive.retriever';
+import {
+  GoogleDriveRetriever,
+  GoogleDriveArgs,
+} from '@infrastructure/tools/retrievers/google-drive.retriever';
 import axios from 'axios';
 
 // Mock axios
@@ -50,8 +53,16 @@ describe('GoogleDriveRetriever', () => {
     it('should have error events configured', () => {
       expect(retriever.errorEvents).toBeDefined();
       expect(retriever.errorEvents.length).toBeGreaterThan(0);
-      expect(retriever.errorEvents.some(e => e.name === 'google-drive-auth-failed')).toBe(true);
-      expect(retriever.errorEvents.some(e => e.name === 'google-drive-quota-exceeded')).toBe(true);
+      expect(
+        retriever.errorEvents.some(
+          (e) => e.name === 'google-drive-auth-failed',
+        ),
+      ).toBe(true);
+      expect(
+        retriever.errorEvents.some(
+          (e) => e.name === 'google-drive-quota-exceeded',
+        ),
+      ).toBe(true);
     });
 
     it('should have correct retrieval type and caching settings', () => {
@@ -64,32 +75,45 @@ describe('GoogleDriveRetriever', () => {
     it('should reject max_results greater than 1000', async () => {
       const args: GoogleDriveArgs = {
         query: 'test',
-        max_results: 1001
+        max_results: 1001,
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('max_results must be between 1 and 1000');
+      expect(result.error!.message).toContain(
+        'max_results must be between 1 and 1000',
+      );
     });
 
     it('should reject max_results less than 1', async () => {
       const args: GoogleDriveArgs = {
         query: 'test',
-        max_results: 0
+        max_results: 0,
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('max_results must be between 1 and 1000');
+      expect(result.error!.message).toContain(
+        'max_results must be between 1 and 1000',
+      );
     });
 
     it('should reject invalid modified_after date format', async () => {
       const args: GoogleDriveArgs = {
         query: 'test',
-        modified_after: '2023/12/25'
+        modified_after: '2023/12/25',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('modified_after format');
     });
@@ -97,10 +121,13 @@ describe('GoogleDriveRetriever', () => {
     it('should reject invalid modified_before date format', async () => {
       const args: GoogleDriveArgs = {
         query: 'test',
-        modified_before: '12-25-2023'
+        modified_before: '12-25-2023',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('modified_before format');
     });
@@ -109,16 +136,19 @@ describe('GoogleDriveRetriever', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           files: [],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
         query: 'test',
-        max_results: 50
+        max_results: 50,
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
       expect(result.success).toBe(true);
     });
 
@@ -126,16 +156,19 @@ describe('GoogleDriveRetriever', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           files: [],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
         query: 'test',
-        modified_after: '2023-12-25T10:30:00Z'
+        modified_after: '2023-12-25T10:30:00Z',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
       expect(result.success).toBe(true);
     });
   });
@@ -154,18 +187,21 @@ describe('GoogleDriveRetriever', () => {
               viewedByMe: true,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'test-document'
+        query: 'test-document',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_files).toBe(1);
@@ -184,19 +220,22 @@ describe('GoogleDriveRetriever', () => {
               viewedByMe: false,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
         query: 'item',
-        folder_id: 'folder-abc123'
+        folder_id: 'folder-abc123',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.folder_id).toBe('folder-abc123');
@@ -214,27 +253,34 @@ describe('GoogleDriveRetriever', () => {
               viewedByMe: true,
               trashed: false,
               starred: false,
-              shared: false
+              shared: false,
             },
             {
               id: 'doc-file',
               name: 'letter.docx',
-              mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              mimeType:
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               viewedByMe: false,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        file_types: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        file_types: [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_files).toBe(2);
@@ -251,18 +297,21 @@ describe('GoogleDriveRetriever', () => {
               viewedByMe: true,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'My Folder'
+        query: 'My Folder',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.files[0].is_folder).toBe(true);
@@ -279,19 +328,22 @@ describe('GoogleDriveRetriever', () => {
               viewedByMe: false,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
           nextPageToken: 'NEXT_PAGE_TOKEN_123',
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'file'
+        query: 'file',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.next_page_token).toBe('NEXT_PAGE_TOKEN_123');
@@ -309,19 +361,22 @@ describe('GoogleDriveRetriever', () => {
               viewedByMe: false,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
         modified_after: '2023-12-01T00:00:00Z',
-        modified_before: '2023-12-31T23:59:59Z'
+        modified_before: '2023-12-31T23:59:59Z',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_files).toBe(1);
@@ -333,10 +388,13 @@ describe('GoogleDriveRetriever', () => {
       delete process.env.GOOGLE_ACCESS_TOKEN;
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('access token');
@@ -348,16 +406,19 @@ describe('GoogleDriveRetriever', () => {
         response: {
           status: 401,
           data: {
-            error: { message: 'Invalid credentials' }
-          }
-        }
+            error: { message: 'Invalid credentials' },
+          },
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('authentication failed');
@@ -369,16 +430,19 @@ describe('GoogleDriveRetriever', () => {
         response: {
           status: 403,
           data: {
-            error: { message: 'Permission denied' }
-          }
-        }
+            error: { message: 'Permission denied' },
+          },
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('authentication failed');
@@ -392,16 +456,19 @@ describe('GoogleDriveRetriever', () => {
         response: {
           status: 404,
           data: {
-            error: { message: 'File not found' }
-          }
-        }
+            error: { message: 'File not found' },
+          },
+        },
       });
 
       const args: GoogleDriveArgs = {
-        folder_id: 'invalid-folder-id'
+        folder_id: 'invalid-folder-id',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('not found');
@@ -415,16 +482,19 @@ describe('GoogleDriveRetriever', () => {
         response: {
           status: 429,
           data: {
-            error: { message: 'Rate limit exceeded' }
-          }
-        }
+            error: { message: 'Rate limit exceeded' },
+          },
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('quota exceeded');
@@ -434,14 +504,17 @@ describe('GoogleDriveRetriever', () => {
   describe('Error Handling - Network', () => {
     it('should handle network timeout', async () => {
       mockedAxios.get.mockRejectedValueOnce(
-        new Error('timeout of 30000ms exceeded')
+        new Error('timeout of 30000ms exceeded'),
       );
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('timeout');
@@ -449,14 +522,17 @@ describe('GoogleDriveRetriever', () => {
 
     it('should handle ECONNREFUSED network error', async () => {
       mockedAxios.get.mockRejectedValueOnce(
-        new Error('ECONNREFUSED: Connection refused')
+        new Error('ECONNREFUSED: Connection refused'),
       );
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Network connectivity');
@@ -470,16 +546,19 @@ describe('GoogleDriveRetriever', () => {
         response: {
           status: 500,
           data: {
-            error: { message: 'Internal server error' }
-          }
-        }
+            error: { message: 'Internal server error' },
+          },
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('API error');
@@ -489,10 +568,13 @@ describe('GoogleDriveRetriever', () => {
       mockedAxios.get.mockRejectedValueOnce(new Error('Unexpected error'));
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Unknown error');
@@ -512,26 +594,34 @@ describe('GoogleDriveRetriever', () => {
               size: '1024000',
               createdTime: '2023-12-01T10:00:00Z',
               modifiedTime: '2023-12-25T15:30:00Z',
-              owners: [{ emailAddress: 'owner@example.com', displayName: 'John Doe' }],
-              lastModifyingUser: { emailAddress: 'editor@example.com', displayName: 'Jane Smith' },
+              owners: [
+                { emailAddress: 'owner@example.com', displayName: 'John Doe' },
+              ],
+              lastModifyingUser: {
+                emailAddress: 'editor@example.com',
+                displayName: 'Jane Smith',
+              },
               webViewLink: 'https://drive.google.com/file/d/file-789/view',
               webContentLink: 'https://drive.google.com/uc?id=file-789',
               fileExtension: 'pdf',
               viewedByMe: true,
               trashed: false,
               starred: true,
-              shared: true
-            }
+              shared: true,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'document'
+        query: 'document',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       const file = result.output!.files[0];
@@ -551,15 +641,18 @@ describe('GoogleDriveRetriever', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           files: [],
-          incompleteSearch: true
-        }
+          incompleteSearch: true,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.incomplete_search).toBe(true);
@@ -569,15 +662,18 @@ describe('GoogleDriveRetriever', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           files: [],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'nonexistent'
+        query: 'nonexistent',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_files).toBe(0);
@@ -595,24 +691,33 @@ describe('GoogleDriveRetriever', () => {
               name: 'owned-file.txt',
               mimeType: 'text/plain',
               owners: [
-                { emailAddress: 'owner1@example.com', displayName: 'Owner One' },
-                { emailAddress: 'owner2@example.com', displayName: 'Owner Two' }
+                {
+                  emailAddress: 'owner1@example.com',
+                  displayName: 'Owner One',
+                },
+                {
+                  emailAddress: 'owner2@example.com',
+                  displayName: 'Owner Two',
+                },
               ],
               viewedByMe: false,
               trashed: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'owned-file'
+        query: 'owned-file',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.files[0].owner).toBe('owner1@example.com');
@@ -629,18 +734,21 @@ describe('GoogleDriveRetriever', () => {
               starred: true,
               shared: true,
               viewedByMe: true,
-              trashed: false
-            }
+              trashed: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        query: 'important'
+        query: 'important',
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       const file = result.output!.files[0];
@@ -653,12 +761,12 @@ describe('GoogleDriveRetriever', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           files: [],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        order_by: 'name'
+        order_by: 'name',
       };
 
       await retriever.execute({ name: 'google-drive-retriever', args });
@@ -679,18 +787,21 @@ describe('GoogleDriveRetriever', () => {
               trashed: true,
               viewedByMe: false,
               starred: false,
-              shared: false
-            }
+              shared: false,
+            },
           ],
-          incompleteSearch: false
-        }
+          incompleteSearch: false,
+        },
       });
 
       const args: GoogleDriveArgs = {
-        trash: true
+        trash: true,
       };
 
-      const result = await retriever.execute({ name: 'google-drive-retriever', args });
+      const result = await retriever.execute({
+        name: 'google-drive-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.files[0].is_trashed).toBe(true);

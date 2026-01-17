@@ -18,10 +18,17 @@ import {
   ToolMetadata,
   ErrorEvent,
 } from '../../value-objects/tool-config.value-objects';
-import { ITool, IToolValidator, IToolCache, IToolMetrics } from '../../ports/tool.ports';
+import {
+  ITool,
+  IToolValidator,
+  IToolCache,
+  IToolMetrics,
+} from '../../ports/tool.ports';
 
-export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = ToolOutput>
-  implements ITool
+export abstract class BaseTool<
+  TArgs = unknown,
+  TOutput extends ToolOutput = ToolOutput,
+> implements ITool
 {
   // Metadata - implemented by concrete classes
   abstract readonly name: string;
@@ -55,7 +62,7 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
   /**
    * Public entrypoint for tool execution with full error handling and metrics
    */
-  async execute(call: ToolCall): Promise<ToolResult<TArgs, TOutput>> {
+  async execute(call: ToolCall): Promise<ToolResult<TOutput>> {
     const startTime = new Date();
 
     try {
@@ -67,7 +74,11 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
           retryable: false,
         };
         await this.recordMetrics(call.name, startTime, false, error.name);
-        return this.createFailure(call, error, startTime) as ToolResult<TArgs, TOutput>;
+        return this.createFailure(
+          call,
+          error,
+          startTime,
+        ) as ToolResult<TOutput>;
       }
 
       // Check cache for retrievers
@@ -76,7 +87,7 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
         const cached = await this.cache.get(cacheKey);
         if (cached) {
           await this.recordMetrics(call.name, startTime, true);
-          return cached as ToolResult<TArgs, TOutput>;
+          return cached as ToolResult<TOutput>;
         }
       }
 
@@ -91,7 +102,11 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
           retryable: false,
         };
         await this.recordMetrics(call.name, startTime, false, error.name);
-        return this.createFailure(call, error, startTime) as ToolResult<TArgs, TOutput>;
+        return this.createFailure(
+          call,
+          error,
+          startTime,
+        ) as ToolResult<TOutput>;
       }
 
       // Cache result for retrievers
@@ -102,7 +117,6 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
 
       await this.recordMetrics(call.name, startTime, result.success);
       return result;
-
     } catch (error: unknown) {
       const toolError: ToolError = {
         name: (error as Error)?.name || 'UnknownError',
@@ -111,7 +125,11 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
       };
 
       await this.recordMetrics(call.name, startTime, false, toolError.name);
-      return this.createFailure(call, toolError, startTime) as ToolResult<TArgs, TOutput>;
+      return this.createFailure(
+        call,
+        toolError,
+        startTime,
+      ) as ToolResult<TOutput>;
     }
   }
 
@@ -144,7 +162,9 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
   /**
    * Execute tool with retry logic
    */
-  private async executeWithRetries(call: ToolCall): Promise<ToolResult<TArgs, TOutput>> {
+  private async executeWithRetries(
+    call: ToolCall,
+  ): Promise<ToolResult<TOutput>> {
     let lastError: ToolError | null = null;
 
     for (let attempt = 1; attempt <= this.metadata.retries + 1; attempt++) {
@@ -168,7 +188,11 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
       }
     }
 
-    return this.createFailure(call, lastError!, new Date()) as ToolResult<TArgs, TOutput>;
+    return this.createFailure(
+      call,
+      lastError!,
+      new Date(),
+    ) as ToolResult<TOutput>;
   }
 
   /**
@@ -196,7 +220,7 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
   private isRetryableError(error: unknown): boolean {
     const errorName = (error as Error)?.name;
     if (!errorName) return false;
-    const errorEvent = this.errorEvents.find(e => e.name === errorName);
+    const errorEvent = this.errorEvents.find((e) => e.name === errorName);
     return errorEvent?.retryable ?? false;
   }
 
@@ -230,7 +254,7 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
     call: ToolCall,
     output: TOutput,
     endTime: Date,
-  ): ToolSuccess<TArgs, TOutput> {
+  ): ToolSuccess<TOutput> {
     return {
       success: true,
       call,
@@ -249,7 +273,7 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
     call: ToolCall,
     error: ToolError,
     startTime: Date,
-  ): ToolFailure<TArgs> {
+  ): ToolFailure {
     const endTime = new Date();
     return {
       success: false,
@@ -266,7 +290,7 @@ export abstract class BaseTool<TArgs = unknown, TOutput extends ToolOutput = Too
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**

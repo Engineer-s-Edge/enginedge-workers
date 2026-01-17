@@ -1,6 +1,6 @@
 /**
  * Repository Ports
- * 
+ *
  * Interfaces for repository implementations (Domain Layer Ports)
  * These are implemented in the Infrastructure layer
  */
@@ -14,12 +14,28 @@ import {
   InterviewReport,
   QuestionCategory,
   Transcript,
+  Webhook,
 } from '../../domain/entities';
 
 export interface IInterviewRepository {
   save(interview: Interview): Promise<Interview>;
   findById(id: string): Promise<Interview | null>;
   findAll(): Promise<Interview[]>;
+  findByUserId(userId: string): Promise<Interview[]>;
+  findPublicInterviews(options?: {
+    page?: number;
+    limit?: number;
+    sortBy?: 'popular' | 'recent' | 'usage';
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    search?: string;
+  }): Promise<{
+    interviews: Interview[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>;
   update(id: string, interview: Partial<Interview>): Promise<Interview | null>;
   delete(id: string): Promise<boolean>;
 }
@@ -98,3 +114,11 @@ export interface IInterviewReportRepository {
   delete(reportId: string): Promise<boolean>;
 }
 
+export interface IWebhookRepository {
+  save(webhook: Webhook): Promise<Webhook>;
+  findById(id: string): Promise<Webhook | null>;
+  findByUserId(userId: string): Promise<Webhook[]>;
+  findByEvent(event: string): Promise<Webhook[]>;
+  update(id: string, webhook: Partial<Webhook>): Promise<Webhook | null>;
+  delete(id: string): Promise<boolean>;
+}

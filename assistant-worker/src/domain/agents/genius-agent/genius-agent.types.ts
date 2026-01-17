@@ -1,6 +1,6 @@
 /**
  * Genius Agent Types - Self-Improving Learning Agent
- * 
+ *
  * Defines types for supervised learning, unsupervised learning, and reinforcement learning modes.
  * Includes model management, training data, performance metrics, and self-improvement logic.
  */
@@ -147,7 +147,11 @@ export interface LearningHistoryEntry {
  */
 export interface ImprovementRecommendation {
   readonly id: string;
-  readonly type: 'model_change' | 'hyperparameter_tuning' | 'data_augmentation' | 'architecture_modification';
+  readonly type:
+    | 'model_change'
+    | 'hyperparameter_tuning'
+    | 'data_augmentation'
+    | 'architecture_modification';
   readonly description: string;
   readonly priority: 'low' | 'medium' | 'high';
   readonly expectedImpact: number;
@@ -242,7 +246,12 @@ export interface GeniusExecutionResult {
  * Training phase update
  */
 export interface GeniusStateUpdate {
-  readonly state: 'training' | 'evaluating' | 'improving' | 'complete' | 'error';
+  readonly state:
+    | 'training'
+    | 'evaluating'
+    | 'improving'
+    | 'complete'
+    | 'error';
   readonly agent_id: string;
   readonly mode: LearningMode;
   readonly data: {

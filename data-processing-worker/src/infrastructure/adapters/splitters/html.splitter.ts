@@ -24,7 +24,7 @@ export class HtmlSplitterAdapter extends TextSplitterPort {
 
     for (const doc of documents) {
       let content = doc.content;
-      
+
       if (stripTags) {
         // Simple tag stripping
         content = content.replace(/<[^>]*>/g, '').trim();
@@ -48,7 +48,7 @@ export class HtmlSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -56,7 +56,11 @@ export class HtmlSplitterAdapter extends TextSplitterPort {
     return chunks;
   }
 
-  private _splitHtml(html: string, chunkSize: number, stripTags: boolean): string[] {
+  private _splitHtml(
+    html: string,
+    chunkSize: number,
+    stripTags: boolean,
+  ): string[] {
     if (stripTags) {
       // If tags are stripped, use simple text splitting
       const chunks: string[] = [];
@@ -64,7 +68,10 @@ export class HtmlSplitterAdapter extends TextSplitterPort {
       const sentences = html.split(/[.!?]+/);
 
       for (const sentence of sentences) {
-        if ((currentChunk + sentence).length > chunkSize && currentChunk.length > 0) {
+        if (
+          (currentChunk + sentence).length > chunkSize &&
+          currentChunk.length > 0
+        ) {
           chunks.push(currentChunk.trim());
           currentChunk = sentence;
         } else {
@@ -95,7 +102,11 @@ export class HtmlSplitterAdapter extends TextSplitterPort {
       const closeTags = (line.match(/<\/[^>]*>/g) || []).length;
       tagDepth += openTags - closeTags;
 
-      if (currentSize + lineSize > chunkSize && currentChunk.length > 0 && tagDepth === 0) {
+      if (
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0 &&
+        tagDepth === 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -109,6 +120,6 @@ export class HtmlSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

@@ -1,12 +1,17 @@
 /**
  * Agent Integration Tests
- * 
+ *
  * End-to-end tests for agent operations.
  */
 
 import { INestApplication } from '@nestjs/common';
-import { createTestApp, testFixtures, cleanupTestData, assertValidResponse } from './test-utils';
-import * as request from 'supertest';
+import {
+  createTestApp,
+  testFixtures,
+  cleanupTestData,
+  assertValidResponse,
+} from './test-utils';
+import request from 'supertest';
 
 describe('Agent Integration Tests', () => {
   let app: INestApplication;
@@ -17,11 +22,13 @@ describe('Agent Integration Tests', () => {
   });
 
   afterAll(async () => {
+    // Final cleanup if any remains
     await cleanupTestData(app, createdAgentIds);
     await app.close();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await cleanupTestData(app, createdAgentIds);
     createdAgentIds = [];
   });
 
@@ -37,7 +44,7 @@ describe('Agent Integration Tests', () => {
 
       assertValidResponse(response.body, ['id', 'name', 'type', 'createdAt']);
       expect(response.body.type).toBe('react');
-      
+
       createdAgentIds.push(response.body.id);
     });
 
@@ -104,7 +111,7 @@ describe('Agent Integration Tests', () => {
       // Verify deletion
       await request(app.getHttpServer())
         .get(`/agents/${agentId}?userId=${testFixtures.userId}`)
-        .expect(500); // Should throw error
+        .expect(404);
     });
   });
 
@@ -128,7 +135,12 @@ describe('Agent Integration Tests', () => {
         })
         .expect(200);
 
-      assertValidResponse(response.body, ['agentId', 'status', 'output', 'duration']);
+      assertValidResponse(response.body, [
+        'agentId',
+        'status',
+        'output',
+        'duration',
+      ]);
       expect(response.body.agentId).toBe(agentId);
     });
 
@@ -165,6 +177,15 @@ describe('Agent Integration Tests', () => {
 
       const agentId = createResponse.body.id;
       createdAgentIds.push(agentId);
+
+      // Start execution to ensure instance exists
+      await request(app.getHttpServer())
+        .post(`/agents/${agentId}/execute?userId=${testFixtures.userId}`)
+        .send({
+          input: { messages: [{ role: 'user', content: 'test' }] },
+          userId: testFixtures.userId,
+        })
+        .expect(200);
 
       const response = await request(app.getHttpServer())
         .post(`/agents/${agentId}/abort?userId=${testFixtures.userId}`)
@@ -218,4 +239,3 @@ describe('Agent Integration Tests', () => {
     });
   });
 });
-

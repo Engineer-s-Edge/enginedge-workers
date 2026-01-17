@@ -1,4 +1,7 @@
-import { CompileCommandUseCase, CompileCommand } from '../../../application/use-cases/compile-command.use-case';
+import {
+  CompileCommandUseCase,
+  CompileCommand,
+} from '../../../application/use-cases/compile-command.use-case';
 import { LaTeXCompilerService } from '../../../application/services/latex-compiler.service';
 import { LaTeXDocument } from '../../../domain/entities/latex-document.entity';
 import { CompilationResult } from '../../../domain/entities/compilation-job.entity';
@@ -20,7 +23,8 @@ describe('CompileCommandUseCase', () => {
       const command: CompileCommand = {
         jobId: 'job-123',
         userId: 'user-456',
-        content: '\\documentclass{article}\\begin{document}Hello\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}Hello\\end{document}',
       };
 
       const compilationResult: CompilationResult = {
@@ -55,7 +59,8 @@ describe('CompileCommandUseCase', () => {
       const command: CompileCommand = {
         jobId: 'job-789',
         userId: 'user-456',
-        content: '\\documentclass{article}\\begin{document}\\invalidcommand\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}\\invalidcommand\\end{document}',
       };
 
       const compilationResult: CompilationResult = {
@@ -82,7 +87,9 @@ describe('CompileCommandUseCase', () => {
       const result = await useCase.execute(command);
 
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('Undefined control sequence: \\invalidcommand');
+      expect(result.errors).toContain(
+        'Undefined control sequence: \\invalidcommand',
+      );
       expect(result.pdfPath).toBeUndefined();
     });
 
@@ -151,7 +158,7 @@ describe('CompileCommandUseCase', () => {
       const result = await useCase.execute(command);
 
       expect(result.success).toBe(true);
-      
+
       // Verify document was created with settings
       const documentArg = mockCompilerService.compileDocument.mock.calls[0][0];
       expect(documentArg.settings.maxPasses).toBe(5);
@@ -279,7 +286,7 @@ describe('CompileCommandUseCase', () => {
 
       mockCompilerService.compileDocument.mockImplementation(async () => {
         // Simulate compilation taking 50ms
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
         return compilationResult;
       });
 
@@ -292,7 +299,8 @@ describe('CompileCommandUseCase', () => {
       const command: CompileCommand = {
         jobId: 'job-multi-error',
         userId: 'user-456',
-        content: '\\documentclass{article}\\begin{document}\\badcommand\\anotherbad\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}\\badcommand\\anotherbad\\end{document}',
       };
 
       const compilationResult: CompilationResult = {
@@ -325,8 +333,12 @@ describe('CompileCommandUseCase', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors).toHaveLength(2);
-      expect(result.errors).toContain('Undefined control sequence: \\badcommand');
-      expect(result.errors).toContain('Undefined control sequence: \\anotherbad');
+      expect(result.errors).toContain(
+        'Undefined control sequence: \\badcommand',
+      );
+      expect(result.errors).toContain(
+        'Undefined control sequence: \\anotherbad',
+      );
     });
 
     it('should handle multiple warnings', async () => {
@@ -373,7 +385,8 @@ describe('CompileCommandUseCase', () => {
       const command: CompileCommand = {
         jobId: 'job-content',
         userId: 'user-789',
-        content: '\\documentclass{article}\\begin{document}Hello LaTeX\\end{document}',
+        content:
+          '\\documentclass{article}\\begin{document}Hello LaTeX\\end{document}',
       };
 
       const compilationResult: CompilationResult = {
@@ -395,7 +408,9 @@ describe('CompileCommandUseCase', () => {
       await useCase.execute(command);
 
       const documentArg = mockCompilerService.compileDocument.mock.calls[0][0];
-      expect(documentArg.content).toBe('\\documentclass{article}\\begin{document}Hello LaTeX\\end{document}');
+      expect(documentArg.content).toBe(
+        '\\documentclass{article}\\begin{document}Hello LaTeX\\end{document}',
+      );
       expect(documentArg.id).toBe('job-content');
     });
 

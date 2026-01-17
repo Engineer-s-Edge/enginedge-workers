@@ -18,7 +18,10 @@ describe('Validation Services', () => {
     }
 
     class AgentValidator {
-      validateAgent(agent: Partial<Agent>): { valid: boolean; errors: string[] } {
+      validateAgent(agent: Partial<Agent>): {
+        valid: boolean;
+        errors: string[];
+      } {
         const errors: string[] = [];
 
         // Name validation
@@ -33,12 +36,17 @@ describe('Validation Services', () => {
         // Type validation
         if (!agent.type) {
           errors.push('Agent type is required');
-        } else if (!['react', 'graph', 'genius', 'expert'].includes(agent.type)) {
+        } else if (
+          !['react', 'graph', 'genius', 'expert'].includes(agent.type)
+        ) {
           errors.push('Invalid agent type');
         }
 
         // Status validation
-        if (agent.status && !['active', 'inactive', 'paused'].includes(agent.status)) {
+        if (
+          agent.status &&
+          !['active', 'inactive', 'paused'].includes(agent.status)
+        ) {
           errors.push('Invalid agent status');
         }
 
@@ -112,7 +120,9 @@ describe('Validation Services', () => {
       const result = validator.validateAgent(agent);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Agent name must be at least 2 characters');
+      expect(result.errors).toContain(
+        'Agent name must be at least 2 characters',
+      );
     });
 
     it('should reject name too long', () => {
@@ -124,7 +134,9 @@ describe('Validation Services', () => {
       const result = validator.validateAgent(agent);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Agent name must not exceed 100 characters');
+      expect(result.errors).toContain(
+        'Agent name must not exceed 100 characters',
+      );
     });
 
     it('should reject invalid type', () => {
@@ -195,9 +207,11 @@ describe('Validation Services', () => {
       expect(validator.validateCapabilities(['cap1', 'cap2'])).toBe(true);
       expect(validator.validateCapabilities([])).toBe(true);
       expect(validator.validateCapabilities('not-array' as any)).toBe(false);
-      expect(validator.validateCapabilities(Array.from({ length: 51 }, (_, i) => `c${i}`))).toBe(
-        false
-      );
+      expect(
+        validator.validateCapabilities(
+          Array.from({ length: 51 }, (_, i) => `c${i}`),
+        ),
+      ).toBe(false);
     });
 
     it('should report multiple errors', () => {
@@ -218,7 +232,10 @@ describe('Validation Services', () => {
   // ===== CONFIG VALIDATOR TESTS =====
   describe('Config Validator', () => {
     class ConfigValidator {
-      validateConfig(config: Record<string, any>): { valid: boolean; errors: string[] } {
+      validateConfig(config: Record<string, any>): {
+        valid: boolean;
+        errors: string[];
+      } {
         const errors: string[] = [];
 
         if (!config || typeof config !== 'object') {
@@ -227,7 +244,11 @@ describe('Validation Services', () => {
         }
 
         // Max depth validation
-        const checkDepth = (obj: any, depth: number = 0, maxDepth: number = 10): boolean => {
+        const checkDepth = (
+          obj: any,
+          depth: number = 0,
+          maxDepth: number = 10,
+        ): boolean => {
           if (depth > maxDepth) return false;
           if (typeof obj !== 'object' || obj === null) return true;
 
@@ -255,7 +276,10 @@ describe('Validation Services', () => {
         };
       }
 
-      validateConfigValue(key: string, value: any): { valid: boolean; reason?: string } {
+      validateConfigValue(
+        key: string,
+        value: any,
+      ): { valid: boolean; reason?: string } {
         // Value type validation
         if (typeof value === 'function') {
           return { valid: false, reason: 'Functions not allowed in config' };
@@ -266,7 +290,10 @@ describe('Validation Services', () => {
         }
 
         if (typeof value === 'undefined') {
-          return { valid: false, reason: 'Undefined values not allowed in config' };
+          return {
+            valid: false,
+            reason: 'Undefined values not allowed in config',
+          };
         }
 
         return { valid: true };
@@ -378,8 +405,16 @@ describe('Validation Services', () => {
   // ===== INPUT VALIDATION TESTS =====
   describe('Input Validator', () => {
     class InputValidator {
-      validateString(value: string, minLength: number = 0, maxLength: number = 1000): boolean {
-        return typeof value === 'string' && value.length >= minLength && value.length <= maxLength;
+      validateString(
+        value: string,
+        minLength: number = 0,
+        maxLength: number = 1000,
+      ): boolean {
+        return (
+          typeof value === 'string' &&
+          value.length >= minLength &&
+          value.length <= maxLength
+        );
       }
 
       validateNumber(value: number, min?: number, max?: number): boolean {
@@ -403,7 +438,10 @@ describe('Validation Services', () => {
         }
       }
 
-      validateArray(array: any[], itemValidator?: (item: any) => boolean): boolean {
+      validateArray(
+        array: any[],
+        itemValidator?: (item: any) => boolean,
+      ): boolean {
         if (!Array.isArray(array)) return false;
 
         if (itemValidator) {
@@ -497,7 +535,10 @@ describe('Validation Services', () => {
     }
 
     class BusinessRuleValidator {
-      validateAgentCreation(agent: Partial<Agent>): { valid: boolean; errors: string[] } {
+      validateAgentCreation(agent: Partial<Agent>): {
+        valid: boolean;
+        errors: string[];
+      } {
         const errors: string[] = [];
 
         // Rules for React agents
@@ -506,12 +547,19 @@ describe('Validation Services', () => {
         }
 
         // Rules for Graph agents
-        if (agent.type === 'graph' && !agent.capabilities?.includes('traverse')) {
+        if (
+          agent.type === 'graph' &&
+          !agent.capabilities?.includes('traverse')
+        ) {
           errors.push('Graph agents must have "traverse" capability');
         }
 
         // Rules for Genius agents
-        if (agent.type === 'genius' && agent.capabilities && agent.capabilities.length < 2) {
+        if (
+          agent.type === 'genius' &&
+          agent.capabilities &&
+          agent.capabilities.length < 2
+        ) {
           errors.push('Genius agents must have at least 2 capabilities');
         }
 
@@ -528,7 +576,7 @@ describe('Validation Services', () => {
 
       canTransitionStatus(
         currentStatus: string,
-        newStatus: string
+        newStatus: string,
       ): { allowed: boolean; reason?: string } {
         const validTransitions: Record<string, string[]> = {
           inactive: ['active', 'paused'],
@@ -536,7 +584,8 @@ describe('Validation Services', () => {
           paused: ['active', 'inactive'],
         };
 
-        const allowed = validTransitions[currentStatus]?.includes(newStatus) || false;
+        const allowed =
+          validTransitions[currentStatus]?.includes(newStatus) || false;
 
         if (!allowed) {
           return {
@@ -548,7 +597,10 @@ describe('Validation Services', () => {
         return { allowed: true };
       }
 
-      validateCapabilityCompatibility(type: string, capability: string): boolean {
+      validateCapabilityCompatibility(
+        type: string,
+        capability: string,
+      ): boolean {
         const compatibleCapabilities: Record<string, string[]> = {
           react: ['think', 'act', 'observe'],
           graph: ['traverse', 'analyze', 'visualize'],
@@ -577,7 +629,9 @@ describe('Validation Services', () => {
       const result = validator.validateAgentCreation(agent);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('React agents must have "think" capability');
+      expect(result.errors).toContain(
+        'React agents must have "think" capability',
+      );
     });
 
     it('should accept React agent with think capability', () => {
@@ -602,7 +656,9 @@ describe('Validation Services', () => {
       const result = validator.validateAgentCreation(agent);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Graph agents must have "traverse" capability');
+      expect(result.errors).toContain(
+        'Graph agents must have "traverse" capability',
+      );
     });
 
     it('should validate Genius agent needs multiple capabilities', () => {
@@ -615,7 +671,9 @@ describe('Validation Services', () => {
       const result = validator.validateAgentCreation(agent);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Genius agents must have at least 2 capabilities');
+      expect(result.errors).toContain(
+        'Genius agents must have at least 2 capabilities',
+      );
     });
 
     it('should validate Expert agent cannot be inactive on creation', () => {
@@ -629,7 +687,9 @@ describe('Validation Services', () => {
       const result = validator.validateAgentCreation(agent);
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Expert agents cannot be created as inactive');
+      expect(result.errors).toContain(
+        'Expert agents cannot be created as inactive',
+      );
     });
 
     it('should validate status transitions', () => {
@@ -647,11 +707,21 @@ describe('Validation Services', () => {
     });
 
     it('should validate capability compatibility', () => {
-      expect(validator.validateCapabilityCompatibility('react', 'think')).toBe(true);
-      expect(validator.validateCapabilityCompatibility('react', 'traverse')).toBe(false);
-      expect(validator.validateCapabilityCompatibility('graph', 'traverse')).toBe(true);
-      expect(validator.validateCapabilityCompatibility('genius', 'learn')).toBe(true);
-      expect(validator.validateCapabilityCompatibility('expert', 'explain')).toBe(true);
+      expect(validator.validateCapabilityCompatibility('react', 'think')).toBe(
+        true,
+      );
+      expect(
+        validator.validateCapabilityCompatibility('react', 'traverse'),
+      ).toBe(false);
+      expect(
+        validator.validateCapabilityCompatibility('graph', 'traverse'),
+      ).toBe(true);
+      expect(validator.validateCapabilityCompatibility('genius', 'learn')).toBe(
+        true,
+      );
+      expect(
+        validator.validateCapabilityCompatibility('expert', 'explain'),
+      ).toBe(true);
     });
 
     it('should provide reason for failed transitions', () => {
@@ -668,9 +738,11 @@ describe('Validation Services', () => {
     class EdgeCaseValidator {
       validateEmptyInput(input: any): boolean {
         if (input === null || input === undefined) return false;
-        if (typeof input === 'string' && input.trim().length === 0) return false;
+        if (typeof input === 'string' && input.trim().length === 0)
+          return false;
         if (Array.isArray(input) && input.length === 0) return false;
-        if (typeof input === 'object' && Object.keys(input).length === 0) return false;
+        if (typeof input === 'object' && Object.keys(input).length === 0)
+          return false;
         return true;
       }
 
@@ -693,7 +765,11 @@ describe('Validation Services', () => {
         return !isNaN(num) && isFinite(num);
       }
 
-      validateBoundaryConditions(value: number, min: number, max: number): boolean {
+      validateBoundaryConditions(
+        value: number,
+        min: number,
+        max: number,
+      ): boolean {
         return value >= min && value <= max;
       }
     }
@@ -727,9 +803,13 @@ describe('Validation Services', () => {
 
     it('should detect special characters', () => {
       expect(validator.validateSpecialCharacters('normal text')).toBe(true);
-      expect(validator.validateSpecialCharacters('text with <html>')).toBe(false);
-      expect(validator.validateSpecialCharacters("text with 'quote'")); 
-      expect(validator.validateSpecialCharacters('text with %escape%')).toBe(false);
+      expect(validator.validateSpecialCharacters('text with <html>')).toBe(
+        false,
+      );
+      expect(validator.validateSpecialCharacters("text with 'quote'"));
+      expect(validator.validateSpecialCharacters('text with %escape%')).toBe(
+        false,
+      );
     });
 
     it('should handle unicode correctly', () => {
@@ -741,7 +821,9 @@ describe('Validation Services', () => {
     it('should validate number edge cases', () => {
       expect(validator.validateNumberEdgeCases(0)).toBe(true);
       expect(validator.validateNumberEdgeCases(-42)).toBe(true);
-      expect(validator.validateNumberEdgeCases(Number.MAX_SAFE_INTEGER)).toBe(true);
+      expect(validator.validateNumberEdgeCases(Number.MAX_SAFE_INTEGER)).toBe(
+        true,
+      );
       expect(validator.validateNumberEdgeCases(NaN)).toBe(false);
       expect(validator.validateNumberEdgeCases(Infinity)).toBe(false);
     });

@@ -1,9 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { MLModelClient } from './ml-model-client.service';
 import { TimeSlotService } from './time-slot.service';
 import { TaskSchedulerService, Task } from './task-scheduler.service';
 import { TimeSlot } from '../../domain/value-objects/time-slot.value-object';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
+import { ActivityModelService } from './activity-model.service';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 /**
  * ML-Enhanced Recommendation
@@ -49,15 +51,15 @@ export interface UserPatterns {
 
 /**
  * Application Service: ML-Enhanced Recommendation Service
- * 
+ *
  * Combines ML predictions with rule-based scheduling logic to provide
  * intelligent, personalized scheduling recommendations.
- * 
+ *
  * Uses hybrid approach:
  * - ML model provides learned user preferences (60% weight)
  * - Rule-based system provides constraints and fallback (40% weight)
  * - Combination produces optimal recommendations
- * 
+ *
  * @hexagonal-layer Application
  */
 @Injectable()
@@ -70,11 +72,15 @@ export class RecommendationService {
     private readonly mlClient: MLModelClient,
     private readonly timeSlotService: TimeSlotService,
     private readonly taskScheduler: TaskSchedulerService,
+    @Optional()
+    private readonly activityModelService?: ActivityModelService,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {}
 
   /**
    * Get ML-enhanced recommendations for scheduling tasks
-   * 
+   *
    * @param userId - User ID
    * @param tasks - Tasks to schedule
    * @param calendarEvents - Current calendar events (busy times)
@@ -102,10 +108,18 @@ export class RecommendationService {
 
     // Check if ML service is available
     const mlAvailable = await this.mlClient.healthCheck();
+    const predictionStartTime = Date.now();
 
     if (!mlAvailable) {
-      this.logger.warn('ML service unavailable, falling back to rule-based only');
-      return this.getRuleBasedRecommendations(tasks, calendarEvents, startDate, endDate);
+      this.logger.warn(
+        'ML service unavailable, falling back to rule-based only',
+      );
+      return this.getRuleBasedRecommendations(
+        tasks,
+        calendarEvents,
+        startDate,
+        endDate,
+      );
     }
 
     const recommendations: MLRecommendation[] = [];
@@ -121,7 +135,8 @@ export class RecommendationService {
         );
         recommendations.push(recommendation);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         this.logger.error(
           `Failed to get recommendation for task ${task.id}: ${message}`,
         );
@@ -159,14 +174,48 @@ export class RecommendationService {
     startDate: Date,
     endDate: Date,
   ): Promise<MLRecommendation> {
+    // Get user patterns if ActivityModelService is available
+    let userPattern = null;
+    if (this.activityModelService) {
+      try {
+        userPattern = await this.activityModelService.getUserPatterns(userId);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to get user patterns: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
+    }
+
     // Get ML predictions
-    const mlPredictions = await this.mlClient.predictOptimalSlots(userId, {
-      title: task.title,
-      description: task.description,
-      duration: task.estimatedDuration,
-      priority: task.priority,
-      deadline: task.deadline?.toISOString(),
-    });
+    const predictionStart = Date.now();
+    let mlPredictions;
+    try {
+      mlPredictions = await this.mlClient.predictOptimalSlots(userId, {
+        title: task.title,
+        description: task.description,
+        duration: task.estimatedDuration,
+        priority: task.priority,
+        deadline: task.deadline?.toISOString(),
+      });
+
+      // Record metrics
+      if (this.metricsAdapter) {
+        const duration = (Date.now() - predictionStart) / 1000;
+        this.metricsAdapter.incrementMLPredictions('optimal_slots');
+        this.metricsAdapter.recordMLPredictionDuration(
+          duration,
+          'optimal_slots',
+        );
+      }
+    } catch (error) {
+      // Record error metrics
+      if (this.metricsAdapter) {
+        const errorType =
+          error instanceof Error ? error.constructor.name : 'UnknownError';
+        this.metricsAdapter.incrementMLPredictionErrors(errorType);
+      }
+      throw error;
+    }
 
     // Get available slots from rule-based system
     const availableSlots = this.timeSlotService.findAvailableSlots(
@@ -244,6 +293,12 @@ export class RecommendationService {
     if (bestConfidence > 0.8) {
       reasons.push('High confidence prediction');
     }
+    if (
+      userPattern &&
+      userPattern.isPeakProductivityHour(bestSlot.startTime.getHours())
+    ) {
+      reasons.push('Scheduled during your peak productivity hours');
+    }
     if (reasons.length === 0) {
       reasons.push('Standard scheduling algorithm');
     }
@@ -292,8 +347,11 @@ export class RecommendationService {
         );
         recommendations.push(rec);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`Failed to get rule-based recommendation: ${message}`);
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(
+          `Failed to get rule-based recommendation: ${message}`,
+        );
       }
     }
 
@@ -343,7 +401,10 @@ export class RecommendationService {
 
     // Find best slot using task scheduler
     let bestSlot = availableSlots[0];
-    let bestScore = this.taskScheduler['scoreSlot'](taskForScheduling, bestSlot);
+    let bestScore = this.taskScheduler['scoreSlot'](
+      taskForScheduling,
+      bestSlot,
+    );
 
     for (const slot of availableSlots.slice(1)) {
       const score = this.taskScheduler['scoreSlot'](taskForScheduling, slot);
@@ -371,34 +432,56 @@ export class RecommendationService {
 
   /**
    * Submit feedback to improve ML model
-   * 
+   *
    * @param feedback - User feedback on scheduled task
    */
   async submitFeedback(feedback: SchedulingFeedback): Promise<void> {
     this.logger.log(
       `Received feedback for task ${feedback.taskId}: ` +
-      `accepted=${feedback.userAccepted}, rating=${feedback.userRating}`,
+        `accepted=${feedback.userAccepted}, rating=${feedback.userRating}`,
     );
 
-    // TODO: Send feedback to ML service for model retraining
-    // This would be an additional endpoint on the ML service
-    // For now, just log it
-    this.logger.debug('Feedback logged (ML service feedback endpoint not implemented)');
+    try {
+      // Send feedback to ML service for model retraining
+      await this.mlClient.submitFeedback({
+        taskId: feedback.taskId,
+        scheduledSlot: feedback.scheduledSlot,
+        mlScore: feedback.mlScore,
+        userAccepted: feedback.userAccepted,
+        userRating: feedback.userRating,
+        completedOnTime: feedback.completedOnTime,
+        actualDuration: feedback.actualDuration,
+        feedback: feedback.feedback,
+      });
+      this.logger.debug('Feedback sent to ML service successfully');
+    } catch (error) {
+      this.logger.error('Failed to send feedback to ML service:', error);
+      // Don't throw - feedback submission failure shouldn't break the flow
+    }
   }
 
   /**
    * Analyze user's scheduling patterns
-   * 
+   *
    * @param userId - User ID
    * @returns Pattern analysis
    */
   async analyzeUserPatterns(userId: string): Promise<UserPatterns> {
     this.logger.log(`Analyzing patterns for user ${userId}`);
 
-    // This would integrate with the ML service to get learned patterns
-    // For now, return placeholder data
-    // TODO: Call ML service /analyze endpoint when available
+    try {
+      // Call ML service /analyze endpoint
+      const patterns = await this.mlClient.analyzeUserPatterns(userId);
+      if (patterns) {
+        return patterns;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to get patterns from ML service, using fallback: ${error}`,
+      );
+    }
 
+    // Fallback to placeholder data if ML service unavailable
     return {
       preferredHours: [9, 10, 14, 15],
       mostProductiveHours: [9, 10],
@@ -410,7 +493,9 @@ export class RecommendationService {
   /**
    * Convert string priority to number (1-5)
    */
-  private convertPriorityToNumber(priority?: 'high' | 'medium' | 'low'): number {
+  private convertPriorityToNumber(
+    priority?: 'high' | 'medium' | 'low',
+  ): number {
     switch (priority) {
       case 'high':
         return 5;

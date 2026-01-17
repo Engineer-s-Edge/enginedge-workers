@@ -1,6 +1,6 @@
 /**
  * CompilationJob Entity
- * 
+ *
  * Represents a LaTeX compilation job with its status, logs, and results.
  */
 

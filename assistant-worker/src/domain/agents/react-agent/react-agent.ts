@@ -1,6 +1,6 @@
 /**
  * ReAct Agent - Reasoning + Acting Pattern
- * 
+ *
  * Implements the ReAct (Reasoning + Acting) agent:
  * 1. Thought: LLM generates reasoning
  * 2. Action: Decide what action to take (tool or final answer)
@@ -10,8 +10,8 @@
 
 import { BaseAgent } from '../agent.base';
 import { ExecutionContext, ExecutionResult, AgentState } from '../../entities';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider, LLMRequest } from '@application/ports/llm-provider.port';
+import { ILogger } from '../../ports/logger.port';
+import { ILLMProvider, LLMRequest } from '../../ports/llm-provider.port';
 import { MemoryManager } from '../../services/memory-manager.service';
 import { StateMachine } from '../../services/state-machine.service';
 import { ResponseParser } from '../../services/response-parser.service';
@@ -23,7 +23,7 @@ interface ReActConfig {
   model?: string;
   systemPrompt?: string;
   tools?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Thought {
@@ -34,13 +34,26 @@ export interface Thought {
 export interface Action {
   type: 'tool' | 'final_answer';
   toolName?: string;
-  input?: any;
+  input?: unknown;
   answer?: string;
 }
 
 export interface Observation {
-  result: any;
+  result: unknown;
   timestamp: Date;
+}
+
+export interface ReasoningTrace {
+  thoughts: Thought[];
+  actions: Action[];
+  observations: Observation[];
+  thinkingSteps: Array<{ step: string; timestamp: Date }>;
+  toolExecutions: Array<{
+    name: string;
+    input: unknown;
+    output: unknown;
+    timestamp: Date;
+  }>;
 }
 
 // Type aliases for backward compatibility
@@ -54,7 +67,7 @@ export interface ReActResult extends ExecutionResult {
 
 /**
  * ReAct Agent - Reasoning + Acting Pattern
- * 
+ *
  * Implements the ReAct (Reasoning + Acting) agent:
  * 1. Thought: LLM generates reasoning
  * 2. Action: Decide what action to take (tool or final answer)
@@ -82,6 +95,7 @@ export class ReActAgent extends BaseAgent {
       temperature: 0.7,
       model: 'gpt-4',
       ...config,
+      tools: [...(config.tools || [])],
     };
   }
 
@@ -99,7 +113,8 @@ export class ReActAgent extends BaseAgent {
       this.observations = [];
 
       // Build initial prompt
-      const systemPrompt = this.config.systemPrompt || this.getDefaultSystemPrompt();
+      const systemPrompt =
+        this.config.systemPrompt || this.getDefaultSystemPrompt();
       let currentInput = input;
       let iteration = 0;
       const maxIterations = this.config.maxIterations || 10;
@@ -144,11 +159,16 @@ export class ReActAgent extends BaseAgent {
           const observation = await this.executeTool(
             action.toolName,
             action.input || {},
-            context,
           );
           this.observations.push(observation);
-          this.addThinkingStep(`Observation: ${JSON.stringify(observation.result)}`);
-          this.recordToolExecution(action.toolName, action.input, observation.result);
+          this.addThinkingStep(
+            `Observation: ${JSON.stringify(observation.result)}`,
+          );
+          this.recordToolExecution(
+            action.toolName,
+            action.input,
+            observation.result,
+          );
 
           // Add observation to context for next iteration
           currentInput = `Previous thought: ${thought}\n${
@@ -158,7 +178,10 @@ export class ReActAgent extends BaseAgent {
       }
 
       // Max iterations reached
-      this.logger.warn('ReAct: Max iterations reached', { maxIterations, iteration });
+      this.logger.warn('ReAct: Max iterations reached', {
+        maxIterations,
+        iteration,
+      });
       return {
         status: 'error',
         output: `Agent reached maximum iterations (${maxIterations}) without finding final answer`,
@@ -185,7 +208,8 @@ export class ReActAgent extends BaseAgent {
     try {
       yield `ReAct Agent Starting\n`;
 
-      const systemPrompt = this.config.systemPrompt || this.getDefaultSystemPrompt();
+      const systemPrompt =
+        this.config.systemPrompt || this.getDefaultSystemPrompt();
       let currentInput = input;
       let iteration = 0;
       const maxIterations = this.config.maxIterations || 10;
@@ -219,10 +243,13 @@ export class ReActAgent extends BaseAgent {
           const observation = await this.executeTool(
             action.toolName,
             action.input || {},
-            context,
           );
           yield `Observation: ${JSON.stringify(observation.result)}\n`;
-          this.recordToolExecution(action.toolName, action.input, observation.result);
+          this.recordToolExecution(
+            action.toolName,
+            action.input,
+            observation.result,
+          );
 
           currentInput = `Previous thought: ${thought}\n${
             action.toolName
@@ -246,12 +273,23 @@ export class ReActAgent extends BaseAgent {
     context: ExecutionContext,
   ): Promise<string> {
     try {
+      const messages: LLMRequest['messages'] = [
+        { role: 'system', content: systemPrompt },
+      ];
+
+      // Include combined memory context from all active memory types if available
+      if (context.memoryContext && context.memoryContext.trim().length > 0) {
+        messages.push({
+          role: 'system',
+          content: `Conversation Context:\n${context.memoryContext}`,
+        });
+      }
+
+      messages.push({ role: 'user', content: input });
+
       const llmRequest: LLMRequest = {
         model: this.config.model || 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: input },
-        ],
+        messages,
         temperature: this.config.temperature || 0.7,
         maxTokens: 500,
       };
@@ -281,12 +319,16 @@ export class ReActAgent extends BaseAgent {
       }
 
       // Look for Action pattern: Action: tool_name
-      const actionMatch = response.match(/Action\s*:\s*([a-zA-Z_]\w+)\s*(?:\n|$)/);
+      const actionMatch = response.match(
+        /Action\s*:\s*([a-zA-Z_]\w+)\s*(?:\n|$)/,
+      );
       if (actionMatch) {
         const toolName = actionMatch[1];
 
         // Extract Action Input
-        const inputMatch = response.match(/Action\s+Input\s*:\s*(.+?)(?:\n|$)/is);
+        const inputMatch = response.match(
+          /Action\s+Input\s*:\s*(.+?)(?:\n|$)/is,
+        );
         let input = {};
 
         if (inputMatch) {
@@ -320,10 +362,16 @@ export class ReActAgent extends BaseAgent {
    */
   private async executeTool(
     toolName: string,
-    input: any,
-    context: ExecutionContext,
+    input: unknown,
   ): Promise<Observation> {
     try {
+      if (this.config.tools?.length && !this.config.tools.includes(toolName)) {
+        this.logger.warn('Attempted to execute unregistered tool', {
+          toolName,
+          registeredTools: this.config.tools,
+        });
+      }
+
       this.logger.debug('Executing tool', { toolName, input });
 
       // In production, this would call the Agent Tool Worker via Kafka
@@ -387,5 +435,60 @@ Available tools: ${this.config.tools?.join(', ') || 'None'}`;
       lastThought: this.thoughts[this.thoughts.length - 1],
       lastAction: this.actions[this.actions.length - 1],
     };
+  }
+
+  getReasoningTrace(limit?: number): ReasoningTrace {
+    const slice = <T>(items: readonly T[]): T[] => {
+      if (!limit || limit <= 0) {
+        return [...items];
+      }
+      return items.slice(Math.max(items.length - limit, 0));
+    };
+
+    const metadata = this.getState().getMetadata() || {};
+    const thinkingSteps = Array.isArray(metadata?.thinkingSteps)
+      ? slice(
+          metadata.thinkingSteps as Array<{ step: string; timestamp: Date }>,
+        )
+      : [];
+    const executedTools = Array.isArray(metadata?.executedTools)
+      ? slice(
+          metadata.executedTools as Array<{
+            name: string;
+            input: unknown;
+            output: unknown;
+            timestamp: Date;
+          }>,
+        )
+      : [];
+
+    return {
+      thoughts: slice(this.thoughts),
+      actions: slice(this.actions),
+      observations: slice(this.observations),
+      thinkingSteps,
+      toolExecutions: executedTools,
+    };
+  }
+
+  registerTool(toolName: string): string[] {
+    const normalized = toolName.trim();
+    if (!normalized) {
+      return this.config.tools || [];
+    }
+
+    if (!this.config.tools) {
+      this.config.tools = [];
+    }
+
+    if (!this.config.tools.includes(normalized)) {
+      this.config.tools = [...this.config.tools, normalized];
+    }
+
+    return [...this.config.tools];
+  }
+
+  getRegisteredTools(): string[] {
+    return [...(this.config.tools || [])];
   }
 }

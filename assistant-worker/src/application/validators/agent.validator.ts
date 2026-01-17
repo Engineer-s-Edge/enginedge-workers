@@ -72,7 +72,8 @@ export class CreateAgentValidator {
     // For Collective: require child agents
     if (dto.agentType === 'collective') {
       if (!dto.childAgentIds || dto.childAgentIds.length === 0) {
-        errors.childAgentIds = 'Collective agents must have at least one child agent';
+        errors.childAgentIds =
+          'Collective agents must have at least one child agent';
       }
     }
 
@@ -88,12 +89,7 @@ export class UpdateAgentValidator {
     const errors: Record<string, string> = {};
 
     // At least one field must be provided
-    if (
-      !dto.name &&
-      !dto.config &&
-      !dto.memoryType &&
-      !dto.memoryConfig
-    ) {
+    if (!dto.name && !dto.config && !dto.memoryType && !dto.memoryConfig) {
       errors.general = 'At least one field must be provided for update';
     }
 

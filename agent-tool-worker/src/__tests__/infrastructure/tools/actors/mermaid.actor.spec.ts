@@ -3,7 +3,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { MermaidActor, MermaidArgs } from '../../../../infrastructure/tools/actors/mermaid.actor';
+import {
+  MermaidActor,
+  MermaidArgs,
+} from '../../../../infrastructure/tools/actors/mermaid.actor';
 
 describe('MermaidActor', () => {
   let actor: MermaidActor;
@@ -26,7 +29,9 @@ describe('MermaidActor', () => {
     });
 
     it('should have correct description', () => {
-      expect(actor.description).toBe('Provides integration with Mermaid for diagram rendering and generation');
+      expect(actor.description).toBe(
+        'Provides integration with Mermaid for diagram rendering and generation',
+      );
     });
 
     it('should have correct category', () => {
@@ -40,7 +45,7 @@ describe('MermaidActor', () => {
 
   describe('Error Events', () => {
     it('should define all required error events', () => {
-      const errorNames = actor.errorEvents.map(e => e.name);
+      const errorNames = actor.errorEvents.map((e) => e.name);
       expect(errorNames).toContain('SyntaxError');
       expect(errorNames).toContain('RenderError');
       expect(errorNames).toContain('ValidationError');
@@ -52,11 +57,14 @@ describe('MermaidActor', () => {
   describe('render-diagram operation', () => {
     const validArgs: MermaidArgs = {
       operation: 'render-diagram',
-      diagramCode: 'graph TD\nA --> B\nB --> C'
+      diagramCode: 'graph TD\nA --> B\nB --> C',
     };
 
     it('should successfully render a flowchart diagram', async () => {
-      const result = await actor.execute({ name: 'mermaid-actor', args: validArgs as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: validArgs as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.operation).toBe('render-diagram');
@@ -70,10 +78,13 @@ describe('MermaidActor', () => {
       const args: MermaidArgs = {
         operation: 'render-diagram',
         diagramCode: 'graph TD\nA --> B',
-        theme: 'dark'
+        theme: 'dark',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.svgContent).toContain('dark');
@@ -84,10 +95,13 @@ describe('MermaidActor', () => {
         operation: 'render-diagram',
         diagramCode: 'graph TD\nA --> B',
         width: 1200,
-        height: 800
+        height: 800,
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.svgContent).toContain('width="1200"');
@@ -96,13 +110,18 @@ describe('MermaidActor', () => {
 
     it('should throw ValidationError when diagram code is missing', async () => {
       const args: MermaidArgs = {
-        operation: 'render-diagram'
+        operation: 'render-diagram',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Diagram code is required for rendering');
+      expect(result.error?.message).toBe(
+        'Diagram code is required for rendering',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -111,10 +130,13 @@ describe('MermaidActor', () => {
     it('should validate correct flowchart syntax', async () => {
       const args: MermaidArgs = {
         operation: 'validate-syntax',
-        diagramCode: 'graph TD\nA --> B\nB --> C'
+        diagramCode: 'graph TD\nA --> B\nB --> C',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.operation).toBe('validate-syntax');
@@ -126,10 +148,13 @@ describe('MermaidActor', () => {
     it('should detect syntax errors', async () => {
       const args: MermaidArgs = {
         operation: 'validate-syntax',
-        diagramCode: 'invalid syntax {{{'
+        diagramCode: 'invalid syntax {{{',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.operation).toBe('validate-syntax');
@@ -141,10 +166,13 @@ describe('MermaidActor', () => {
     it('should detect unbalanced brackets', async () => {
       const args: MermaidArgs = {
         operation: 'validate-syntax',
-        diagramCode: 'graph TD\nA --> B['
+        diagramCode: 'graph TD\nA --> B[',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.isValid).toBe(false);
@@ -153,13 +181,18 @@ describe('MermaidActor', () => {
 
     it('should throw ValidationError when diagram code is missing', async () => {
       const args: MermaidArgs = {
-        operation: 'validate-syntax'
+        operation: 'validate-syntax',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Diagram code is required for validation');
+      expect(result.error?.message).toBe(
+        'Diagram code is required for validation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -167,10 +200,13 @@ describe('MermaidActor', () => {
   describe('get-themes operation', () => {
     it('should return available themes', async () => {
       const args: MermaidArgs = {
-        operation: 'get-themes'
+        operation: 'get-themes',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.operation).toBe('get-themes');
@@ -188,10 +224,13 @@ describe('MermaidActor', () => {
         operation: 'convert-format',
         diagramCode: '@startuml\nA -> B\n@enduml',
         sourceFormat: 'plantuml',
-        targetFormat: 'mermaid'
+        targetFormat: 'mermaid',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.operation).toBe('convert-format');
@@ -204,10 +243,13 @@ describe('MermaidActor', () => {
         operation: 'convert-format',
         diagramCode: 'digraph G {\nA -> B\n}',
         sourceFormat: 'graphviz',
-        targetFormat: 'mermaid'
+        targetFormat: 'mermaid',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output?.operation).toBe('convert-format');
@@ -219,26 +261,36 @@ describe('MermaidActor', () => {
       const args: MermaidArgs = {
         operation: 'convert-format',
         sourceFormat: 'plantuml',
-        targetFormat: 'mermaid'
+        targetFormat: 'mermaid',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Diagram code is required for conversion');
+      expect(result.error?.message).toBe(
+        'Diagram code is required for conversion',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
     it('should throw ValidationError when formats are missing', async () => {
       const args: MermaidArgs = {
         operation: 'convert-format',
-        diagramCode: 'some code'
+        diagramCode: 'some code',
       };
 
-      const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'mermaid-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Source and target formats are required');
+      expect(result.error?.message).toBe(
+        'Source and target formats are required',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -257,17 +309,20 @@ describe('MermaidActor', () => {
       { code: 'gitgraph:\ncommit', expected: 'gitgraph' },
       { code: 'mindmap\nroot((mindmap))', expected: 'mindmap' },
       { code: 'timeline\ntitle Timeline', expected: 'timeline' },
-      { code: 'sankey-beta\nA [10] B', expected: 'sankey' }
+      { code: 'sankey-beta\nA [10] B', expected: 'sankey' },
     ];
 
     testCases.forEach(({ code, expected }) => {
       it(`should detect ${expected} diagram type`, async () => {
         const args: MermaidArgs = {
           operation: 'render-diagram',
-          diagramCode: code
+          diagramCode: code,
         };
 
-        const result = await actor.execute({ name: 'mermaid-actor', args: args as unknown as Record<string, unknown> });
+        const result = await actor.execute({
+          name: 'mermaid-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
 
         expect(result.success).toBe(true);
         expect(result.output?.diagramType).toBe(expected);
@@ -278,13 +333,15 @@ describe('MermaidActor', () => {
   describe('Unsupported operations', () => {
     it('should throw ValidationError for unsupported operation', async () => {
       const args = {
-        operation: 'unsupported-op'
+        operation: 'unsupported-op',
       };
 
       const result = await actor.execute({ name: 'mermaid-actor', args });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Unsupported operation: unsupported-op');
+      expect(result.error?.message).toBe(
+        'Unsupported operation: unsupported-op',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -292,7 +349,9 @@ describe('MermaidActor', () => {
   describe('Error handling', () => {
     it('should handle syntax errors', () => {
       const error = new Error('Parse error: invalid syntax');
-      const handledError = (actor as unknown as { handleRenderError: (error: unknown) => Error }).handleRenderError(error);
+      const handledError = (
+        actor as unknown as { handleRenderError: (error: unknown) => Error }
+      ).handleRenderError(error);
 
       expect(handledError.name).toBe('SyntaxError');
       expect(handledError.message).toContain('Syntax error');
@@ -300,7 +359,9 @@ describe('MermaidActor', () => {
 
     it('should handle render errors', () => {
       const error = new Error('SVG rendering failed');
-      const handledError = (actor as unknown as { handleRenderError: (error: unknown) => Error }).handleRenderError(error);
+      const handledError = (
+        actor as unknown as { handleRenderError: (error: unknown) => Error }
+      ).handleRenderError(error);
 
       expect(handledError.name).toBe('RenderError');
       expect(handledError.message).toContain('Rendering failed');
@@ -308,7 +369,9 @@ describe('MermaidActor', () => {
 
     it('should handle network errors', () => {
       const error = new Error('Network timeout');
-      const handledError = (actor as unknown as { handleRenderError: (error: unknown) => Error }).handleRenderError(error);
+      const handledError = (
+        actor as unknown as { handleRenderError: (error: unknown) => Error }
+      ).handleRenderError(error);
 
       expect(handledError.name).toBe('NetworkError');
       expect(handledError.message).toContain('Network connectivity issue');
@@ -316,7 +379,9 @@ describe('MermaidActor', () => {
 
     it('should handle unknown errors', () => {
       const error = new Error('Unknown error');
-      const handledError = (actor as unknown as { handleRenderError: (error: unknown) => Error }).handleRenderError(error);
+      const handledError = (
+        actor as unknown as { handleRenderError: (error: unknown) => Error }
+      ).handleRenderError(error);
 
       expect(handledError.name).toBe('RenderError');
       expect(handledError.message).toContain('Mermaid operation failed');

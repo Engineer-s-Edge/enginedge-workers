@@ -84,7 +84,7 @@ export class ToolRegistry {
    */
   getActorsByCategory(category: string): IActor[] {
     return Array.from(this.actors.values()).filter(
-      actor => actor.category === category
+      (actor) => actor.category === category,
     );
   }
 
@@ -93,7 +93,7 @@ export class ToolRegistry {
    */
   getRetrieversByType(retrievalType: string): IRetriever[] {
     return Array.from(this.retrievers.values()).filter(
-      retriever => retriever.retrievalType === retrievalType
+      (retriever) => retriever.retrievalType === retrievalType,
     );
   }
 
@@ -102,7 +102,7 @@ export class ToolRegistry {
    */
   getToolsRequiringAuth(): IActor[] {
     return Array.from(this.actors.values()).filter(
-      actor => actor.requiresAuth
+      (actor) => actor.requiresAuth,
     );
   }
 
@@ -111,7 +111,7 @@ export class ToolRegistry {
    */
   getCachingRetrievers(): IRetriever[] {
     return Array.from(this.retrievers.values()).filter(
-      retriever => retriever.caching
+      (retriever) => retriever.caching,
     );
   }
 

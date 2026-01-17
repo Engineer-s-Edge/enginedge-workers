@@ -22,7 +22,11 @@ export class LLMApplicationService {
   /**
    * Legacy method for backward compatibility
    */
-  async processLLMRequest(prompt: string, model: string, parameters?: Record<string, unknown>) {
+  async processLLMRequest(
+    prompt: string,
+    model: string,
+    parameters?: Record<string, unknown>,
+  ) {
     const request: LLMRequest = {
       model,
       messages: [{ role: 'user', content: prompt }],

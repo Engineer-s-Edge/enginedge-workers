@@ -1,11 +1,17 @@
 /**
  * MongoDB Module
- * 
+ *
  * Configures MongoDB connection using native driver.
  * Provides a shared MongoDB client and database instance for repositories.
  */
 
-import { Module, OnModuleInit, OnModuleDestroy, Global, Inject } from '@nestjs/common';
+import {
+  Module,
+  OnModuleInit,
+  OnModuleDestroy,
+  Global,
+  Inject,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MongoClient, Db } from 'mongodb';
 
@@ -36,10 +42,7 @@ import { MongoClient, Db } from 'mongodb';
     },
     {
       provide: 'MONGODB_DB',
-      useFactory: async (
-        client: MongoClient,
-        configService: ConfigService,
-      ) => {
+      useFactory: async (client: MongoClient, configService: ConfigService) => {
         const dbName =
           configService.get<string>('MONGODB_DATABASE') || 'interview_worker';
         return client.db(dbName);
@@ -59,4 +62,3 @@ export class MongoDbModule implements OnModuleDestroy {
     await this.client.close();
   }
 }
-

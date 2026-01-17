@@ -126,7 +126,12 @@ describe('Domain Logic Services', () => {
     });
 
     it('should create agents with proper type', () => {
-      const types: AgentConfig['type'][] = ['react', 'graph', 'genius', 'expert'];
+      const types: AgentConfig['type'][] = [
+        'react',
+        'graph',
+        'genius',
+        'expert',
+      ];
 
       for (const type of types) {
         const agent = factory.create({
@@ -337,7 +342,6 @@ describe('Domain Logic Services', () => {
 
   // ===== PROMPT BUILDER TESTS =====
   describe('Prompt Builder Service', () => {
-
     it('should build prompt from template', () => {
       const builder = new PromptBuilder();
       const prompt = builder
@@ -359,9 +363,7 @@ describe('Domain Logic Services', () => {
     });
 
     it('should handle missing variables', () => {
-      const prompt = new PromptBuilder()
-        .template('Hello {name}')
-        .build();
+      const prompt = new PromptBuilder().template('Hello {name}').build();
 
       expect(prompt).toContain('{name}');
     });
@@ -372,7 +374,7 @@ describe('Domain Logic Services', () => {
           `System: You are a {role}.
 Context: {context}
 Query: {query}
-Response format: {format}`
+Response format: {format}`,
         )
         .set('role', 'data analyst')
         .set('context', 'Financial data')
@@ -445,7 +447,9 @@ Response format: {format}`
       }
 
       parseList(response: string, delimiter: string = '\n'): string[] {
-        return response.split(delimiter).filter((item) => item.trim().length > 0);
+        return response
+          .split(delimiter)
+          .filter((item) => item.trim().length > 0);
       }
 
       parseKeyValue(response: string): Record<string, string> {
@@ -684,7 +688,10 @@ role: analyst`;
     }
 
     class CoordinationValidator {
-      validate(context: CoordinationContext): { valid: boolean; errors: string[] } {
+      validate(context: CoordinationContext): {
+        valid: boolean;
+        errors: string[];
+      } {
         const errors: string[] = [];
 
         if (!context.agentIds || context.agentIds.length === 0) {
@@ -905,7 +912,7 @@ role: analyst`;
       expect(validation.valid).toBe(true);
 
       const agents = context.agentIds.map((id) =>
-        factory.createReactAgent(`Agent from ${id}`)
+        factory.createReactAgent(`Agent from ${id}`),
       );
 
       expect(agents).toHaveLength(2);

@@ -1,7 +1,14 @@
 import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
 import { Worker } from 'worker_threads';
 import * as os from 'os';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 export interface WorkerTask<T = unknown, R = unknown> {
   id: string;
@@ -30,7 +37,7 @@ export class WorkerThreadPool implements OnModuleDestroy {
   private shutdownRequested = false;
 
   constructor(
-    @Inject('ILogger') private readonly logger: ILogger,
+    @Inject('ILogger') private readonly logger: Logger,
     @Inject('WORKER_THREAD_CONFIG') config?: Partial<WorkerThreadConfig>,
   ) {
     const cpuCount = os.cpus().length;
@@ -41,7 +48,9 @@ export class WorkerThreadPool implements OnModuleDestroy {
       taskTimeout: config?.taskTimeout ?? 60000,
     };
 
-    this.logger.info(`WorkerThreadPool: Initializing with ${this.config.minWorkers}-${this.config.maxWorkers} workers`);
+    this.logger.info(
+      `WorkerThreadPool: Initializing with ${this.config.minWorkers}-${this.config.maxWorkers} workers`,
+    );
     this.initializeMinWorkers();
   }
 
@@ -55,17 +64,17 @@ export class WorkerThreadPool implements OnModuleDestroy {
     // Note: Worker script path should be configured based on your setup
     const workerScript = `
       const { parentPort } = require('worker_threads');
-      
+
       parentPort.on('message', async (task) => {
         try {
           // Execute task - this would be replaced with actual agent execution
           const result = await executeAgentTask(task);
           parentPort.postMessage({ success: true, result });
         } catch (error) {
-          parentPort.postMessage({ 
-            success: false, 
+          parentPort.postMessage({
+            success: false,
             error: error.message,
-            stack: error.stack 
+            stack: error.stack
           });
         }
       });
@@ -79,13 +88,17 @@ export class WorkerThreadPool implements OnModuleDestroy {
     const worker = new Worker(workerScript, { eval: true });
 
     worker.on('error', (err) => {
-      this.logger.error('WorkerThreadPool: Worker error: ${err.message}', { stack: err.stack });
+      this.logger.error('WorkerThreadPool: Worker error: ${err.message}', {
+        stack: err.stack,
+      });
       this.handleWorkerFailure(worker);
     });
 
     worker.on('exit', (code) => {
       if (code !== 0 && !this.shutdownRequested) {
-        this.logger.warn('WorkerThreadPool: Worker exited unexpectedly', { code });
+        this.logger.warn('WorkerThreadPool: Worker exited unexpectedly', {
+          code,
+        });
         this.handleWorkerFailure(worker);
       }
     });
@@ -93,17 +106,22 @@ export class WorkerThreadPool implements OnModuleDestroy {
     this.workers.push(worker);
     this.availableWorkers.push(worker);
 
-    this.logger.debug('WorkerThreadPool: Worker created', { totalWorkers: this.workers.length });
+    this.logger.debug('WorkerThreadPool: Worker created', {
+      totalWorkers: this.workers.length,
+    });
     return worker;
   }
 
   private handleWorkerFailure(worker: Worker): void {
     // Remove failed worker
-    this.workers = this.workers.filter(w => w !== worker);
-    this.availableWorkers = this.availableWorkers.filter(w => w !== worker);
+    this.workers = this.workers.filter((w) => w !== worker);
+    this.availableWorkers = this.availableWorkers.filter((w) => w !== worker);
 
     // Replace with new worker if below minimum
-    if (this.workers.length < this.config.minWorkers && !this.shutdownRequested) {
+    if (
+      this.workers.length < this.config.minWorkers &&
+      !this.shutdownRequested
+    ) {
       this.createWorker();
     }
 
@@ -137,10 +155,14 @@ export class WorkerThreadPool implements OnModuleDestroy {
 
       // Timeout handler
       const timeout = setTimeout(() => {
-        const index = this.taskQueue.findIndex(t => t.id === taskId);
+        const index = this.taskQueue.findIndex((t) => t.id === taskId);
         if (index !== -1) {
           this.taskQueue.splice(index, 1);
-          reject(new Error(`Task ${taskId} timed out after ${this.config.taskTimeout}ms`));
+          reject(
+            new Error(
+              `Task ${taskId} timed out after ${this.config.taskTimeout}ms`,
+            ),
+          );
         }
       }, this.config.taskTimeout);
 
@@ -187,7 +209,12 @@ export class WorkerThreadPool implements OnModuleDestroy {
   private executeTask<T, R>(worker: Worker, task: WorkerTask<T, R>): void {
     this.activeTaskCount++;
 
-    const messageHandler = (message: { success: boolean; result?: R; error?: string; stack?: string }) => {
+    const messageHandler = (message: {
+      success: boolean;
+      result?: R;
+      error?: string;
+      stack?: string;
+    }) => {
       worker.off('message', messageHandler);
       this.availableWorkers.push(worker);
       this.activeTaskCount--;
@@ -206,9 +233,9 @@ export class WorkerThreadPool implements OnModuleDestroy {
     worker.on('message', messageHandler);
     worker.postMessage(task.data);
 
-    this.logger.debug('WorkerThreadPool: Task assigned', { 
-      taskId: task.id, 
-      activeTaskCount: this.activeTaskCount, 
+    this.logger.debug('WorkerThreadPool: Task assigned', {
+      taskId: task.id,
+      activeTaskCount: this.activeTaskCount,
       queueLength: this.taskQueue.length,
     });
   }
@@ -221,12 +248,17 @@ export class WorkerThreadPool implements OnModuleDestroy {
     const shutdownTimeout = 10000; // 10s
     const startTime = Date.now();
 
-    while (this.activeTaskCount > 0 && Date.now() - startTime < shutdownTimeout) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    while (
+      this.activeTaskCount > 0 &&
+      Date.now() - startTime < shutdownTimeout
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     if (this.activeTaskCount > 0) {
-      this.logger.warn('WorkerThreadPool: Forcing shutdown', { activeTaskCount: this.activeTaskCount });
+      this.logger.warn('WorkerThreadPool: Forcing shutdown', {
+        activeTaskCount: this.activeTaskCount,
+      });
     }
 
     // Terminate all workers

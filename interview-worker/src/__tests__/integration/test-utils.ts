@@ -1,6 +1,6 @@
 /**
  * Integration Test Utilities
- * 
+ *
  * Helper functions and fixtures for integration testing.
  */
 
@@ -21,7 +21,7 @@ export async function createTestApp(): Promise<INestApplication> {
   // Start MongoDB Memory Server
   mongoServer = await MongoMemoryServer.create();
   const mongoUri = mongoServer.getUri();
-  
+
   // Connect to in-memory MongoDB
   mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
@@ -44,7 +44,9 @@ export async function createTestApp(): Promise<INestApplication> {
 /**
  * Clean up test database
  */
-export async function cleanupTestDatabase(app: INestApplication): Promise<void> {
+export async function cleanupTestDatabase(
+  app: INestApplication,
+): Promise<void> {
   if (mongoDb) {
     const collections = await mongoDb.listCollections().toArray();
     for (const collection of collections) {
@@ -150,7 +152,7 @@ export const testFixtures = {
 export async function waitFor(
   condition: () => boolean | Promise<boolean>,
   timeoutMs: number = 5000,
-  intervalMs: number = 100
+  intervalMs: number = 100,
 ): Promise<void> {
   const startTime = Date.now();
 
@@ -167,9 +169,12 @@ export async function waitFor(
 /**
  * Assert response structure
  */
-export function assertValidResponse(response: any, expectedKeys: string[]): void {
+export function assertValidResponse(
+  response: any,
+  expectedKeys: string[],
+): void {
   expect(response).toBeDefined();
-  
+
   for (const key of expectedKeys) {
     expect(response).toHaveProperty(key);
   }
@@ -195,4 +200,3 @@ export function createMockLLMResponse(content: string): any {
 export function getTestDb(): Db {
   return mongoDb;
 }
-

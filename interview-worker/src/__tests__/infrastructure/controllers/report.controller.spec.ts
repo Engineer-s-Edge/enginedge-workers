@@ -3,9 +3,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReportController } from '../../../../infrastructure/controllers/report.controller';
-import { EvaluatorService } from '../../../../application/services/evaluator.service';
-import { InterviewReport } from '../../../../domain/entities';
+import { ReportController } from '../../../infrastructure/controllers/report.controller';
+import { EvaluatorService } from '../../../application/services/evaluator.service';
+import { InterviewReport } from '../../../domain/entities';
 
 describe('ReportController', () => {
   let controller: ReportController;
@@ -14,6 +14,7 @@ describe('ReportController', () => {
   beforeEach(async () => {
     mockEvaluatorService = {
       generateReport: jest.fn(),
+      getReport: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -72,7 +73,7 @@ describe('ReportController', () => {
     expect(mockEvaluatorService.generateReport).toHaveBeenCalledWith('s1');
   });
 
-  it('should get report (calls generateReport)', async () => {
+  it('should get report', async () => {
     const mockReport = new InterviewReport({
       reportId: 'r1',
       sessionId: 's1',
@@ -104,12 +105,11 @@ describe('ReportController', () => {
       },
     });
 
-    mockEvaluatorService.generateReport.mockResolvedValue(mockReport);
+    mockEvaluatorService.getReport.mockResolvedValue(mockReport);
 
     const result = await controller.getReport('s1');
 
     expect(result?.reportId).toBe('r1');
-    expect(mockEvaluatorService.generateReport).toHaveBeenCalledWith('s1');
+    expect(mockEvaluatorService.getReport).toHaveBeenCalledWith('s1');
   });
 });
-

@@ -3,14 +3,149 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { LocalDBActor, DatabaseArgs, DatabaseOutput, DatabaseRecord } from '@infrastructure/tools/actors/local-db.actor';
+import {
+  LocalDBActor,
+  DatabaseArgs,
+  DatabaseOutput,
+  DatabaseRecord,
+} from '@infrastructure/tools/actors/local-db.actor';
+
+// Mock DB Implementation
+const createMockDb = () => {
+  const collections = new Map<string, any[]>();
+
+  return {
+    listCollections: jest.fn().mockImplementation((filter) => ({
+      toArray: jest.fn().mockImplementation(async () => {
+        if (filter && filter.name) {
+          return collections.has(filter.name) ? [{ name: filter.name }] : [];
+        }
+        return Array.from(collections.keys()).map((name) => ({ name }));
+      }),
+    })),
+    createCollection: jest.fn().mockImplementation(async (name) => {
+      if (collections.has(name)) throw new Error('Collection exists');
+      collections.set(name, []);
+      return {};
+    }),
+    collection: jest.fn().mockImplementation((name) => {
+      return {
+        createIndexes: jest.fn().mockResolvedValue([]),
+        insertOne: jest.fn().mockImplementation(async (doc) => {
+          if (!collections.has(name))
+            throw new Error(`Table '${name}' not found`);
+          doc._id = doc._id || 'generated-id-' + Math.random();
+          collections.get(name)!.push({ ...doc });
+          return { insertedId: doc._id };
+        }),
+        find: jest.fn().mockImplementation((query, options) => {
+          const data = collections.get(name) || [];
+          let results = data.filter((item) => {
+            for (const key in query) {
+              if (getNested(item, key) !== query[key]) return false;
+            }
+            return true;
+          });
+
+          if (options && options.projection) {
+            results = results.map((item) => {
+              const projected: any = {};
+              for (const key in options.projection) {
+                if (options.projection[key]) {
+                  const val = getNested(item, key);
+                  if (val !== undefined) {
+                    const parts = key.split('.');
+                    let curr = projected;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                      curr[parts[i]] = curr[parts[i]] || {};
+                      curr = curr[parts[i]];
+                    }
+                    curr[parts[parts.length - 1]] = val;
+                  }
+                }
+              }
+              return projected;
+            });
+          }
+
+          return {
+            toArray: jest.fn().mockResolvedValue(results),
+            sort: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockImplementation((limit) => ({
+              toArray: jest.fn().mockResolvedValue(results.slice(0, limit)),
+            })),
+          };
+        }),
+        findOne: jest.fn().mockImplementation(async (query) => {
+          const data = collections.get(name) || [];
+          return (
+            data.find((item) => {
+              for (const key in query) {
+                if (getNested(item, key) !== query[key]) return false;
+              }
+              return true;
+            }) || null
+          );
+        }),
+        findOneAndUpdate: jest
+          .fn()
+          .mockImplementation(async (query, update, options) => {
+            const data = collections.get(name) || [];
+            const index = data.findIndex((item) => {
+              for (const key in query) {
+                if (getNested(item, key) !== query[key]) return false;
+              }
+              return true;
+            });
+
+            if (index !== -1) {
+              const item = data[index];
+              if (update.$set) {
+                for (const k in update.$set) {
+                  item[k] = update.$set[k];
+                }
+              }
+              return options?.returnDocument === 'after' ? item : data[index];
+            }
+            return null;
+          }),
+        findOneAndDelete: jest.fn().mockImplementation(async (query) => {
+          const data = collections.get(name) || [];
+          const index = data.findIndex((item) => {
+            for (const key in query) {
+              if (getNested(item, key) !== query[key]) return false;
+            }
+            return true;
+          });
+
+          if (index !== -1) {
+            const deleted = data[index];
+            data.splice(index, 1);
+            return deleted;
+          }
+          return null;
+        }),
+        countDocuments: jest.fn().mockImplementation(async () => {
+          return (collections.get(name) || []).length;
+        }),
+      };
+    }),
+  };
+};
+
+function getNested(obj: any, path: string) {
+  return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj);
+}
 
 describe('LocalDBActor', () => {
   let actor: LocalDBActor;
+  let mockDb: any;
 
   beforeEach(async () => {
+    mockDb = createMockDb();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [LocalDBActor],
+      providers: [LocalDBActor, { provide: 'MONGODB_DB', useValue: mockDb }],
     }).compile();
 
     actor = module.get<LocalDBActor>(LocalDBActor);
@@ -19,7 +154,9 @@ describe('LocalDBActor', () => {
   describe('Basic Properties', () => {
     it('should have correct name and description', () => {
       expect(actor.name).toBe('local-db-actor');
-      expect(actor.description).toBe('Provides local database operations for data persistence and querying');
+      expect(actor.description).toBe(
+        'Provides local database operations for data persistence and querying',
+      );
     });
 
     it('should have correct category and auth requirements', () => {
@@ -38,9 +175,9 @@ describe('LocalDBActor', () => {
             name: { type: 'string', required: true },
             email: { type: 'string', required: true, unique: true },
             age: { type: 'number' },
-            active: { type: 'boolean', default: true }
-          }
-        }
+            active: { type: 'boolean', default: true },
+          },
+        },
       };
 
       const result = await actor.execute({ name: 'local-db-actor', args });
@@ -58,9 +195,9 @@ describe('LocalDBActor', () => {
           operation: 'create-table',
           schema: {
             table: 'users',
-            fields: { name: { type: 'string' } }
-          }
-        }
+            fields: { name: { type: 'string' } },
+          },
+        },
       });
 
       await actor.execute({
@@ -69,14 +206,14 @@ describe('LocalDBActor', () => {
           operation: 'create-table',
           schema: {
             table: 'products',
-            fields: { title: { type: 'string' } }
-          }
-        }
+            fields: { title: { type: 'string' } },
+          },
+        },
       });
 
       const result = await actor.execute({
         name: 'local-db-actor',
-        args: { operation: 'list-tables' }
+        args: { operation: 'list-tables' },
       });
 
       expect(result.success).toBe(true);
@@ -100,10 +237,10 @@ describe('LocalDBActor', () => {
               name: { type: 'string', required: true },
               email: { type: 'string', required: true },
               age: { type: 'number' },
-              active: { type: 'boolean', default: true }
-            }
-          }
-        }
+              active: { type: 'boolean', default: true },
+            },
+          },
+        },
       });
     });
 
@@ -112,7 +249,7 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'create',
           table: 'users',
-          data: { name: 'John Doe', email: 'john@example.com', age: 30 }
+          data: { name: 'John Doe', email: 'john@example.com', age: 30 },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -134,7 +271,7 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'create',
           table: 'users',
-          data: { name: 'Jane Doe', email: 'jane@example.com' }
+          data: { name: 'Jane Doe', email: 'jane@example.com' },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -148,7 +285,7 @@ describe('LocalDBActor', () => {
           operation: 'create',
           table: 'users',
           id: 'custom-id-123',
-          data: { name: 'Bob Smith', email: 'bob@example.com' }
+          data: { name: 'Bob Smith', email: 'bob@example.com' },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -160,20 +297,22 @@ describe('LocalDBActor', () => {
       it('should throw error when creating record without table', async () => {
         const args: DatabaseArgs = {
           operation: 'create',
-          data: { name: 'John Doe' }
+          data: { name: 'John Doe' },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe('Table and data are required for record creation');
+        expect(result.error!.message).toBe(
+          'Table and data are required for record creation',
+        );
       });
 
       it('should throw error when creating record in non-existent table', async () => {
         const args: DatabaseArgs = {
           operation: 'create',
           table: 'nonexistent',
-          data: { name: 'John Doe' }
+          data: { name: 'John Doe' },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -186,7 +325,7 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'create',
           table: 'users',
-          data: { email: 'john@example.com' } // Missing required 'name'
+          data: { email: 'john@example.com' }, // Missing required 'name'
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -199,7 +338,7 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'create',
           table: 'users',
-          data: { name: 'John Doe', email: 'john@example.com', age: 'thirty' } // age should be number
+          data: { name: 'John Doe', email: 'john@example.com', age: 'thirty' }, // age should be number
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -220,8 +359,8 @@ describe('LocalDBActor', () => {
             operation: 'create',
             table: 'users',
             id: 'user-123',
-            data: { name: 'John Doe', email: 'john@example.com', age: 30 }
-          }
+            data: { name: 'John Doe', email: 'john@example.com', age: 30 },
+          },
         });
         createdRecord = createResult.output!.record!;
       });
@@ -230,7 +369,7 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'read',
           table: 'users',
-          id: 'user-123'
+          id: 'user-123',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -245,25 +384,29 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'read',
           table: 'users',
-          id: 'nonexistent'
+          id: 'nonexistent',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe("Record with ID 'nonexistent' not found in table 'users'");
+        expect(result.error!.message).toBe(
+          "Record with ID 'nonexistent' not found in table 'users'",
+        );
       });
 
       it('should throw error when reading without table and ID', async () => {
         const args: DatabaseArgs = {
           operation: 'read',
-          table: 'users'
+          table: 'users',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe('Table and ID are required for record reading');
+        expect(result.error!.message).toBe(
+          'Table and ID are required for record reading',
+        );
       });
     });
 
@@ -276,8 +419,8 @@ describe('LocalDBActor', () => {
             operation: 'create',
             table: 'users',
             id: 'user-123',
-            data: { name: 'John Doe', email: 'john@example.com', age: 30 }
-          }
+            data: { name: 'John Doe', email: 'john@example.com', age: 30 },
+          },
         });
       });
 
@@ -286,7 +429,7 @@ describe('LocalDBActor', () => {
           operation: 'update',
           table: 'users',
           id: 'user-123',
-          data: { age: 31, name: 'John Smith' }
+          data: { age: 31, name: 'John Smith' },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -297,7 +440,9 @@ describe('LocalDBActor', () => {
         expect(result.output!.record!.data.name).toBe('John Smith');
         expect(result.output!.record!.data.age).toBe(31);
         expect(result.output!.record!.data.email).toBe('john@example.com'); // Unchanged
-        expect(result.output!.record!.updatedAt.getTime()).toBeGreaterThanOrEqual(result.output!.record!.createdAt.getTime());
+        expect(
+          result.output!.record!.updatedAt.getTime(),
+        ).toBeGreaterThanOrEqual(result.output!.record!.createdAt.getTime());
       });
 
       it('should throw error when updating non-existent record', async () => {
@@ -305,26 +450,30 @@ describe('LocalDBActor', () => {
           operation: 'update',
           table: 'users',
           id: 'nonexistent',
-          data: { age: 31 }
+          data: { age: 31 },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe("Record with ID 'nonexistent' not found in table 'users'");
+        expect(result.error!.message).toBe(
+          "Record with ID 'nonexistent' not found in table 'users'",
+        );
       });
 
       it('should throw error when updating without table, ID, and data', async () => {
         const args: DatabaseArgs = {
           operation: 'update',
           table: 'users',
-          id: 'user-123'
+          id: 'user-123',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe('Table, ID, and data are required for record update');
+        expect(result.error!.message).toBe(
+          'Table, ID, and data are required for record update',
+        );
       });
     });
 
@@ -337,8 +486,8 @@ describe('LocalDBActor', () => {
             operation: 'create',
             table: 'users',
             id: 'user-123',
-            data: { name: 'John Doe', email: 'john@example.com', age: 30 }
-          }
+            data: { name: 'John Doe', email: 'john@example.com', age: 30 },
+          },
         });
       });
 
@@ -346,7 +495,7 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'delete',
           table: 'users',
-          id: 'user-123'
+          id: 'user-123',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -359,37 +508,46 @@ describe('LocalDBActor', () => {
         const readArgs: DatabaseArgs = {
           operation: 'read',
           table: 'users',
-          id: 'user-123'
+          id: 'user-123',
         };
-        const readResult = await actor.execute({ name: 'local-db-actor', args: readArgs });
+        const readResult = await actor.execute({
+          name: 'local-db-actor',
+          args: readArgs,
+        });
 
         expect(readResult.success).toBe(false);
-        expect(readResult.error!.message).toBe("Record with ID 'user-123' not found in table 'users'");
+        expect(readResult.error!.message).toBe(
+          "Record with ID 'user-123' not found in table 'users'",
+        );
       });
 
       it('should throw error when deleting non-existent record', async () => {
         const args: DatabaseArgs = {
           operation: 'delete',
           table: 'users',
-          id: 'nonexistent'
+          id: 'nonexistent',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe("Record with ID 'nonexistent' not found in table 'users'");
+        expect(result.error!.message).toBe(
+          "Record with ID 'nonexistent' not found in table 'users'",
+        );
       });
 
       it('should throw error when deleting without table and ID', async () => {
         const args: DatabaseArgs = {
           operation: 'delete',
-          table: 'users'
+          table: 'users',
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(false);
-        expect(result.error!.message).toBe('Table and ID are required for record deletion');
+        expect(result.error!.message).toBe(
+          'Table and ID are required for record deletion',
+        );
       });
     });
 
@@ -402,8 +560,13 @@ describe('LocalDBActor', () => {
             operation: 'create',
             table: 'users',
             id: 'user-1',
-            data: { name: 'John Doe', email: 'john@example.com', age: 30, active: true }
-          }
+            data: {
+              name: 'John Doe',
+              email: 'john@example.com',
+              age: 30,
+              active: true,
+            },
+          },
         });
 
         await actor.execute({
@@ -412,8 +575,13 @@ describe('LocalDBActor', () => {
             operation: 'create',
             table: 'users',
             id: 'user-2',
-            data: { name: 'Jane Smith', email: 'jane@example.com', age: 25, active: true }
-          }
+            data: {
+              name: 'Jane Smith',
+              email: 'jane@example.com',
+              age: 25,
+              active: true,
+            },
+          },
         });
 
         await actor.execute({
@@ -422,8 +590,13 @@ describe('LocalDBActor', () => {
             operation: 'create',
             table: 'users',
             id: 'user-3',
-            data: { name: 'Bob Johnson', email: 'bob@example.com', age: 35, active: false }
-          }
+            data: {
+              name: 'Bob Johnson',
+              email: 'bob@example.com',
+              age: 35,
+              active: false,
+            },
+          },
         });
       });
 
@@ -431,8 +604,8 @@ describe('LocalDBActor', () => {
         const args: DatabaseArgs = {
           operation: 'query',
           query: {
-            table: 'users'
-          }
+            table: 'users',
+          },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -449,15 +622,19 @@ describe('LocalDBActor', () => {
           operation: 'query',
           query: {
             table: 'users',
-            where: { active: true }
-          }
+            where: { active: true },
+          },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(true);
         expect(result.output!.records).toHaveLength(2);
-        expect(result.output!.records!.every(record => record.data.active === true)).toBe(true);
+        expect(
+          result.output!.records!.every(
+            (record) => record.data.active === true,
+          ),
+        ).toBe(true);
       });
 
       it('should query with limit', async () => {
@@ -465,8 +642,8 @@ describe('LocalDBActor', () => {
           operation: 'query',
           query: {
             table: 'users',
-            limit: 2
-          }
+            limit: 2,
+          },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
@@ -480,19 +657,22 @@ describe('LocalDBActor', () => {
           operation: 'query',
           query: {
             table: 'users',
-            select: ['name', 'email']
-          }
+            select: ['name', 'email'],
+          },
         };
 
         const result = await actor.execute({ name: 'local-db-actor', args });
 
         expect(result.success).toBe(true);
-        expect(result.output!.records!.every(record =>
-          'name' in record.data &&
-          'email' in record.data &&
-          !('age' in record.data) &&
-          !('active' in record.data)
-        )).toBe(true);
+        expect(
+          result.output!.records!.every(
+            (record) =>
+              'name' in record.data &&
+              'email' in record.data &&
+              !('age' in record.data) &&
+              !('active' in record.data),
+          ),
+        ).toBe(true);
       });
     });
   });

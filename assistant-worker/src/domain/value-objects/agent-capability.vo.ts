@@ -1,9 +1,9 @@
 /**
  * Agent Capability Value Object
- * 
+ *
  * Describes the capabilities and constraints of an agent type.
  * Immutable and used for validation and capability checking.
- * 
+ *
  * IMPORTANT: These capabilities apply ONLY to individual agent types
  * (ReAct, Graph, Expert, Genius). Collective is an orchestrator that
  * coordinates MEMBER agents - it does NOT have capabilities itself.
@@ -18,7 +18,7 @@ export type ExecutionModel =
 
 /**
  * ACTUAL memory types from enginedge-core infrastructure
- * 
+ *
  * These correspond to concrete implementations in memory.service.ts:
  * - buffer: Fixed-size message buffer
  * - buffer_window: Token-limited window
@@ -214,20 +214,47 @@ export class AgentCapability {
   }
 
   /**
+   * Predefined capabilities for Manager agent
+   */
+  static forManager(): AgentCapability {
+    return AgentCapability.create({
+      executionModel: 'dag',
+      canUseTools: true,
+      canStreamResults: true,
+      canPauseResume: true,
+      canCoordinate: false,
+      supportsParallelExecution: true,
+      maxInputTokens: 16000,
+      maxOutputTokens: 8000,
+      supportedMemoryTypes: [
+        'buffer',
+        'buffer_window',
+        'token_buffer',
+        'summary',
+        'summary_buffer',
+        'entity',
+        'knowledge_graph',
+        'vector_store',
+      ],
+      timeoutMs: 1200000, // 20 minutes
+    });
+  }
+
+  /**
    * Collective DOES NOT have a capability
-   * 
+   *
    * Collective is an ORCHESTRATOR that coordinates member agents.
    * Each member agent has its own AgentCapability.
    * Collective itself does not execute - it delegates to member agents.
-   * 
+   *
    * @deprecated This method should never be called
    * @throws Always throws an error
    */
   static forCollective(): never {
     throw new Error(
       'Collective agents do NOT have capabilities. ' +
-      'Collective is an orchestrator that coordinates member agents. ' +
-      'Each member agent has its own AgentCapability.'
+        'Collective is an orchestrator that coordinates member agents. ' +
+        'Each member agent has its own AgentCapability.',
     );
   }
 
@@ -248,7 +275,9 @@ export class AgentCapability {
   /**
    * Check if can perform an operation
    */
-  canPerform(operation: 'stream' | 'pause' | 'coordinate' | 'use-tools'): boolean {
+  canPerform(
+    operation: 'stream' | 'pause' | 'coordinate' | 'use-tools',
+  ): boolean {
     switch (operation) {
       case 'stream':
         return this.canStreamResults;

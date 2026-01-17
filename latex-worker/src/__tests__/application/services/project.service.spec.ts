@@ -4,7 +4,11 @@
 
 import { ProjectService } from '../../../application/services/project.service';
 import { IProjectRepository } from '../../../domain/ports';
-import { LaTeXProject, ProjectFile, ProjectDependency } from '../../../domain/entities';
+import {
+  LaTeXProject,
+  ProjectFile,
+  ProjectDependency,
+} from '../../../domain/entities';
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -187,7 +191,12 @@ describe('ProjectService', () => {
 
   describe('updateFile', () => {
     it('should update file content', async () => {
-      const project = LaTeXProject.create('p1', 'Test', 'main.tex', 'old content');
+      const project = LaTeXProject.create(
+        'p1',
+        'Test',
+        'main.tex',
+        'old content',
+      );
       mockRepository.findById.mockResolvedValue(project);
 
       const result = await service.updateFile('p1', 'main.tex', 'new content');
@@ -217,7 +226,11 @@ describe('ProjectService', () => {
   describe('removeFile', () => {
     it('should remove a file from project', async () => {
       let project = LaTeXProject.create('p1', 'Test', 'main.tex', 'content');
-      project = project.addFile({ path: 'chapter.tex', content: 'ch', type: 'tex' });
+      project = project.addFile({
+        path: 'chapter.tex',
+        content: 'ch',
+        type: 'tex',
+      });
       mockRepository.findById.mockResolvedValue(project);
 
       const result = await service.removeFile('p1', 'chapter.tex');
@@ -231,9 +244,9 @@ describe('ProjectService', () => {
       const project = LaTeXProject.create('p1', 'Test', 'main.tex', 'content');
       mockRepository.findById.mockResolvedValue(project);
 
-      await expect(
-        service.removeFile('p1', 'main.tex'),
-      ).rejects.toThrow('Cannot remove main file');
+      await expect(service.removeFile('p1', 'main.tex')).rejects.toThrow(
+        'Cannot remove main file',
+      );
     });
   });
 
@@ -259,7 +272,11 @@ describe('ProjectService', () => {
   describe('updateMainFile', () => {
     it('should update project main file', async () => {
       let project = LaTeXProject.create('p1', 'Test', 'main.tex', 'content');
-      project = project.addFile({ path: 'alt.tex', content: 'alt', type: 'tex' });
+      project = project.addFile({
+        path: 'alt.tex',
+        content: 'alt',
+        type: 'tex',
+      });
       mockRepository.findById.mockResolvedValue(project);
 
       const result = await service.updateMainFile('p1', 'alt.tex');
@@ -272,9 +289,9 @@ describe('ProjectService', () => {
       const project = LaTeXProject.create('p1', 'Test', 'main.tex', 'content');
       mockRepository.findById.mockResolvedValue(project);
 
-      await expect(
-        service.updateMainFile('p1', 'missing.tex'),
-      ).rejects.toThrow('File missing.tex not found');
+      await expect(service.updateMainFile('p1', 'missing.tex')).rejects.toThrow(
+        'File missing.tex not found',
+      );
     });
   });
 

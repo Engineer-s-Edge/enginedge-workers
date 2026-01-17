@@ -1,5 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from 'prom-client';
+import {
+  Counter,
+  Gauge,
+  Histogram,
+  Registry,
+  collectDefaultMetrics,
+} from 'prom-client';
 
 @Injectable()
 export class MetricsService implements OnModuleInit {
@@ -145,7 +151,12 @@ export class MetricsService implements OnModuleInit {
   /**
    * Record a compilation attempt
    */
-  recordCompilation(documentType: string, durationMs: number, success: boolean, errorType?: string) {
+  recordCompilation(
+    documentType: string,
+    durationMs: number,
+    success: boolean,
+    errorType?: string,
+  ) {
     const durationSeconds = durationMs / 1000;
 
     this.compilationDuration.observe(
@@ -177,7 +188,10 @@ export class MetricsService implements OnModuleInit {
    * Record an error
    */
   recordError(errorType: string, errorCategory: string) {
-    this.errorsByType.inc({ error_type: errorType, error_category: errorCategory });
+    this.errorsByType.inc({
+      error_type: errorType,
+      error_category: errorCategory,
+    });
   }
 
   /**

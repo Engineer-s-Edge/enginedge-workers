@@ -1,14 +1,169 @@
 /**
  * Genius Agent Controller
- * 
+ *
  * Specialized endpoints for Genius (learning) agents.
  * Handles expert pool management and learning modes.
  */
 
-import { Controller, Post, Get, Body, Param, Query, HttpCode, HttpStatus, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+  Sse,
+  MessageEvent,
+  Patch,
+  Query,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { AgentService } from '@application/services/agent.service';
 import { ExecuteAgentUseCase } from '@application/use-cases/execute-agent.use-case';
-import { ILogger } from '@application/ports/logger.port';
+import { GeniusAgent } from '@domain/agents/genius-agent/genius-agent';
+import {
+  LearningMode,
+  GeniusAgentState,
+  LearningHistoryEntry,
+} from '@domain/agents/genius-agent/genius-agent.types';
+import { ExpertPoolManager } from '@domain/services/expert-pool-manager.service';
+import { AgentId } from '@domain/entities/agent.entity';
+import {
+  KGModification,
+  ActiveExecution,
+  ExpertPoolStats,
+} from '@domain/services/expert-pool.types';
+import {
+  GeniusExpertRuntimeService,
+  ExpertTopicAssignment,
+} from '@application/services/genius/genius-expert-runtime.service';
+import { GeniusAgentOrchestrator } from '@application/services/genius-agent.orchestrator';
+import { LearningModeAdapter } from '@infrastructure/adapters/implementations/learning-mode.adapter';
+import { ValidationAdapter } from '@infrastructure/adapters/implementations/validation.adapter';
+import { TopicCatalogAdapter } from '@infrastructure/adapters/implementations/topic-catalog.adapter';
+import { ValidationWorkflowService } from '@application/services/validation-workflow.service';
+import {
+  ValidationCheckType,
+  ValidationConfig,
+  ValidationQueueItem,
+  ValidationStatusSnapshot,
+  ValidationResult,
+  ExpertReport,
+} from '@domain/validation/validation.types';
+import { randomUUID } from 'node:crypto';
+import { UserId } from '../decorators/user-id.decorator';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
+
+type TrainingDataSample = Record<string, unknown>;
+
+interface TrainingRequestBody {
+  userId: string;
+  trainingData: TrainingDataSample[];
+  mode: 'supervised' | 'unsupervised' | 'reinforcement';
+}
+
+interface ExpertTopicInput {
+  topicId?: string;
+  title: string;
+  summary?: string;
+  priority?: number;
+}
+
+interface ExpertResponse {
+  expertId: string;
+  name: string;
+  specialization: string;
+  complexity: number;
+  availability: boolean;
+  status: 'available' | 'active' | 'paused';
+  assignedTopics: Array<
+    Omit<ExpertTopicAssignment, 'lastUpdated'> & { lastUpdated: string }
+  >;
+  researchProgress: number;
+  validationStatus: string;
+  aimShootSkinStage: 'AIM' | 'SHOOT' | 'SKIN' | 'IDLE';
+  metrics: {
+    sourcesUsed: number;
+    avgConfidence: number;
+    durationMs: number;
+  };
+  runtime: {
+    paused: boolean;
+    startedAt: string | null;
+    lastUpdated: string | null;
+    notes: string[];
+  };
+}
+
+interface ValidationResultEntry {
+  validation?: { score?: number } & Record<string, unknown>;
+  validationScore?: number;
+  [key: string]: unknown;
+}
+
+interface ValidationQueueRequestBody {
+  userId: string;
+  expertId: string;
+  topic: string;
+  findings: string[];
+  sources: string[];
+  summary?: string;
+  confidence?: number;
+  priority?: number;
+  categories?: string[];
+  contradictions?: string[];
+  citations?: Array<{ text: string; sourceId?: string; url?: string }>;
+}
+
+interface ValidatorAgentRequestBody {
+  userId: string;
+  name: string;
+  mode: 'reactive' | 'skin-phase' | 'safety';
+  capabilities: ValidationCheckType[];
+}
+
+interface ReviewActionBody {
+  userId: string;
+  notes?: string;
+}
+
+interface LearningProgressResponse {
+  agentId: string;
+  userId: string;
+  currentMode: LearningMode;
+  progress: {
+    percentage: number;
+    averagePerformance: number;
+    totalIterations: number;
+    lastUpdated: string | null;
+  };
+  trainingTimeline: SerializedLearningHistoryEntry[];
+  recommendations: GeniusAgentState['recommendations'];
+  orchestratorStats: Record<string, unknown>;
+}
+
+interface NormalizedTrainingTopic {
+  topic: string;
+  complexity: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+}
+
+type SerializedLearningHistoryEntry = Omit<
+  LearningHistoryEntry,
+  'timestamp'
+> & {
+  timestamp: string;
+};
 
 /**
  * Genius Agent specialized controller
@@ -18,8 +173,15 @@ export class GeniusAgentController {
   constructor(
     private readonly agentService: AgentService,
     private readonly executeAgentUseCase: ExecuteAgentUseCase,
+    private readonly expertPoolManager: ExpertPoolManager,
+    private readonly expertRuntime: GeniusExpertRuntimeService,
+    private readonly geniusOrchestrator: GeniusAgentOrchestrator,
+    private readonly learningModeAdapter: LearningModeAdapter,
+    private readonly validationAdapter: ValidationAdapter,
+    private readonly validationWorkflow: ValidationWorkflowService,
+    private readonly topicCatalogAdapter: TopicCatalogAdapter,
     @Inject('ILogger')
-    private readonly logger: ILogger,
+    private readonly logger: Logger,
   ) {}
 
   /**
@@ -27,12 +189,15 @@ export class GeniusAgentController {
    */
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createGeniusAgent(@Body() body: {
-    name: string;
-    userId: string;
-    learningMode?: 'user-directed' | 'autonomous' | 'scheduled';
-    expertPoolSize?: number;
-  }) {
+  async createGeniusAgent(
+    @Body()
+    body: {
+      name: string;
+      userId: string;
+      learningMode?: 'user-directed' | 'autonomous' | 'scheduled';
+      expertPoolSize?: number;
+    },
+  ) {
     this.logger.info('Creating Genius agent', { name: body.name });
 
     const config = {
@@ -61,19 +226,60 @@ export class GeniusAgentController {
   @HttpCode(HttpStatus.OK)
   async trainAgent(
     @Param('id') agentId: string,
-    @Body() body: {
-      userId: string;
-      trainingData: any[];
-      mode: 'supervised' | 'unsupervised' | 'reinforcement';
-    },
+    @Body() body: TrainingRequestBody,
   ) {
-    this.logger.info('Training Genius agent', { agentId, mode: body.mode });
+    if (!Array.isArray(body.trainingData) || body.trainingData.length === 0) {
+      throw new BadRequestException(
+        'trainingData must include at least one sample',
+      );
+    }
+
+    const mode = this.mapLearningMode(body.mode);
+    const instance = await this.ensureGeniusInstance(agentId, body.userId);
+    instance.switchMode(mode);
+
+    const topics = this.extractTrainingTopics(body.trainingData);
+    const trainingInput = this.buildTrainingPrompt(body.trainingData, mode);
+
+    const [agentExecution, learningModeResult, orchestratorResult] =
+      await Promise.all([
+        this.executeAgentUseCase.execute({
+          agentId,
+          userId: body.userId,
+          input: trainingInput,
+          context: {
+            metadata: {
+              trainingData: body.trainingData,
+              mode,
+            },
+          },
+        }),
+        this.learningModeAdapter.executeLearningMode({
+          userId: body.userId,
+          mode: this.mapLearningModeToExecutionMode(mode),
+          topics: topics.map((t) => t.topic),
+        }),
+        mode === LearningMode.SUPERVISED
+          ? this.geniusOrchestrator.executeUserDirectedLearning(
+              body.userId,
+              topics.map((t) => ({ topic: t.topic, complexity: t.complexity })),
+            )
+          : this.geniusOrchestrator.executeAutonomousLearning(body.userId, {
+              maxTopics: Math.max(topics.length, 1),
+              minPriority: 0,
+            }),
+      ]);
 
     return {
       agentId,
       trainingId: `training_${Date.now()}`,
-      mode: body.mode,
-      status: 'started',
+      mode,
+      status: agentExecution.status,
+      learningMode: learningModeResult,
+      orchestrator: orchestratorResult,
+      agentResult: agentExecution,
+      topicsScheduled: topics.length,
+      startedAt: learningModeResult.timestamp,
     };
   }
 
@@ -81,16 +287,99 @@ export class GeniusAgentController {
    * GET /agents/genius/:id/experts - Get expert pool
    */
   @Get(':id/experts')
-  async getExpertPool(
-    @Param('id') agentId: string,
-    @Query('userId') userId: string,
-  ) {
-    this.logger.info('Getting expert pool', { agentId });
+  async getExpertPool(@Param('id') agentId: string, @UserId() userId: string) {
+    await this.agentService.getAgent(agentId, userId);
+
+    const [availableExperts, poolStats] = await Promise.all([
+      this.expertPoolManager.getAvailableExperts(),
+      this.expertPoolManager.getPoolStats(),
+    ]);
+    const activeExecutions = this.expertPoolManager.getActiveExecutions();
+    const runtimeSnapshots = this.expertRuntime.getExperts(agentId);
+    const runtimeMap = new Map(runtimeSnapshots.map((s) => [s.expertId, s]));
+    const executionMap = new Map(
+      activeExecutions.map((exec) => [exec.expertId, exec]),
+    );
+
+    const expertIds = new Set<string>([
+      ...availableExperts.map((e) => e.id),
+      ...activeExecutions.map((e) => e.expertId),
+    ]);
+
+    const experts: ExpertResponse[] = [];
+
+    for (const expertId of expertIds) {
+      const baseExpert =
+        availableExperts.find((expert) => expert.id === expertId) ||
+        (await this.expertPoolManager.getExpert(expertId as AgentId));
+
+      if (!baseExpert) {
+        continue;
+      }
+
+      const runtime = runtimeMap.get(expertId);
+      const execution = executionMap.get(expertId as AgentId);
+      const workLog = this.expertPoolManager.getExpertWorkLog(
+        expertId as AgentId,
+      );
+      const stage = this.deriveStageFromWorkLog(workLog, runtime?.currentPhase);
+      const researchProgress = this.estimateResearchProgress(
+        stage,
+        runtime?.researchProgress,
+        execution,
+      );
+      const assignedTopics = this.serializeAssignments(
+        runtime?.assignedTopics?.length
+          ? runtime.assignedTopics
+          : this.buildAssignmentsFromExecution(execution, researchProgress),
+      );
+
+      const sourcesUsed = workLog.filter(
+        (entry) => entry.operationType === 'add-research',
+      ).length;
+      const confidenceValues = workLog
+        .map((entry) => entry.metadata?.confidence as number | undefined)
+        .filter((value): value is number => typeof value === 'number');
+
+      const response: ExpertResponse = {
+        expertId,
+        name: `${baseExpert.specialization} Expert`,
+        specialization: baseExpert.specialization,
+        complexity: baseExpert.complexity,
+        availability: baseExpert.availability,
+        status: runtime?.paused ? 'paused' : execution ? 'active' : 'available',
+        assignedTopics,
+        researchProgress,
+        validationStatus: runtime?.validationStatus || 'not-started',
+        aimShootSkinStage:
+          stage.toUpperCase() as ExpertResponse['aimShootSkinStage'],
+        metrics: {
+          sourcesUsed,
+          avgConfidence:
+            confidenceValues.length > 0
+              ? confidenceValues.reduce((sum, value) => sum + value, 0) /
+                confidenceValues.length
+              : 0.72,
+          durationMs: execution
+            ? Date.now() - execution.startTime.getTime()
+            : 0,
+        },
+        runtime: {
+          paused: runtime?.paused ?? false,
+          startedAt: this.toIso(execution?.startTime),
+          lastUpdated: this.toIso(runtime?.updatedAt),
+          notes: runtime?.notes ?? [],
+        },
+      };
+
+      experts.push(response);
+    }
 
     return {
       agentId,
-      experts: [],
-      poolSize: 0,
+      poolSize: experts.length,
+      stats: this.serializePoolStats(poolStats),
+      experts,
     };
   }
 
@@ -101,17 +390,55 @@ export class GeniusAgentController {
   @HttpCode(HttpStatus.CREATED)
   async addExpert(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
-      expertId: string;
       specialty: string;
+      expertise?: string[];
+      complexity?: 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+      initialTopics?: ExpertTopicInput[];
     },
   ) {
-    this.logger.info('Adding expert to pool', { agentId, expertId: body.expertId });
+    await this.agentService.getAgent(agentId, body.userId);
+
+    const allocation = await this.expertPoolManager.allocateExperts({
+      count: 1,
+      specialization: body.specialty,
+      expertise: body.expertise || [],
+      complexity: body.complexity,
+    });
+
+    const expert = allocation.allocated[0];
+    if (!expert) {
+      throw new BadRequestException('Unable to allocate expert');
+    }
+
+    this.expertRuntime.registerExpert(agentId, expert.id, {
+      specialization: expert.specialization,
+      assignedTopics: [],
+    });
+
+    if (body.initialTopics?.length) {
+      const assignments = body.initialTopics.map((topic, index) => ({
+        topicId: topic.topicId || `manual-${Date.now()}-${index}`,
+        title: topic.title,
+        summary: topic.summary,
+        priority: topic.priority,
+        progress: 0,
+        status: 'pending' as const,
+        lastUpdated: new Date(),
+      }));
+      this.expertRuntime.assignTopics(agentId, expert.id, assignments);
+    }
 
     return {
       success: true,
-      message: `Expert ${body.expertId} added to pool`,
+      expert: {
+        expertId: expert.id,
+        specialization: expert.specialization,
+        expertise: expert.expertise,
+        complexity: expert.complexity,
+      },
     };
   }
 
@@ -121,15 +448,32 @@ export class GeniusAgentController {
   @Get(':id/learning-progress')
   async getLearningProgress(
     @Param('id') agentId: string,
-    @Query('userId') userId: string,
-  ) {
-    this.logger.info('Getting learning progress', { agentId });
+    @UserId() userId: string,
+  ): Promise<LearningProgressResponse> {
+    const instance = await this.ensureGeniusInstance(agentId, userId);
+    const [stats] = await Promise.all([
+      this.geniusOrchestrator.getStatistics(userId),
+    ]);
+
+    const state = instance.getGeniusState();
+    const progress = this.calculateLearningProgress(state);
+    const trainingTimeline: SerializedLearningHistoryEntry[] =
+      state.learningHistory.map((entry) => {
+        const { timestamp, ...rest } = entry;
+        return {
+          ...rest,
+          timestamp: timestamp.toISOString(),
+        };
+      });
 
     return {
       agentId,
-      accuracy: 0,
-      iterations: 0,
-      lastTraining: null,
+      userId,
+      currentMode: state.currentMode,
+      progress,
+      trainingTimeline,
+      recommendations: state.recommendations,
+      orchestratorStats: stats,
     };
   }
 
@@ -140,18 +484,818 @@ export class GeniusAgentController {
   @HttpCode(HttpStatus.OK)
   async validateQuality(
     @Param('id') agentId: string,
-    @Body() body: {
+    @Body()
+    body: {
       userId: string;
-      testData: any[];
+      testData: Array<{
+        topic?: string;
+        sources?: string[];
+        findings?: string[];
+        confidence?: number;
+      }>;
+      integrate?: boolean;
     },
   ) {
-    this.logger.info('Validating quality', { agentId });
+    if (!Array.isArray(body.testData) || body.testData.length === 0) {
+      throw new BadRequestException(
+        'testData must include at least one report',
+      );
+    }
+
+    await this.agentService.getAgent(agentId, body.userId);
+
+    const reports = body.testData.map((report, idx) => ({
+      topic: report.topic || `topic-${idx + 1}`,
+      sources: report.sources || [],
+      findings: report.findings || [],
+      confidence: report.confidence ?? 0.7,
+    }));
+
+    const validation =
+      await this.geniusOrchestrator.validateResearchReports(reports);
+
+    let integration: Record<string, unknown> | null = null;
+    if (body.integrate) {
+      integration = await this.geniusOrchestrator.integrateResearchResults(
+        validation.results,
+      );
+    }
+
+    const validationResults =
+      (validation.results as ValidationResultEntry[]) || [];
+    const summaryScore =
+      validation.totalReports > 0
+        ? validationResults.reduce(
+            (sum: number, entry: ValidationResultEntry) => {
+              const score =
+                entry.validation?.score ?? entry.validationScore ?? 0;
+              const normalizedScore =
+                typeof score === 'number' ? score : Number(score) || 0;
+              return sum + normalizedScore;
+            },
+            0,
+          ) / validation.totalReports
+        : 0;
 
     return {
       agentId,
-      validationScore: 0,
-      metrics: {},
+      summary: {
+        reports: validation.totalReports,
+        passed: validation.passed,
+        failed: validation.failed,
+        successRate: validation.successRate,
+        averageScore: summaryScore,
+      },
+      validation,
+      integration,
     };
   }
-}
 
+  /**
+   * POST /agents/genius/:id/validation-queue - enqueue manual validation request
+   */
+  @Post(':id/validation-queue')
+  async enqueueValidation(
+    @Param('id') agentId: string,
+    @Body() body: ValidationQueueRequestBody,
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const report = this.buildExpertReport(agentId, body);
+    const item = this.validationWorkflow.enqueue(
+      agentId,
+      report,
+      body.priority ?? 5,
+    );
+    return {
+      agentId,
+      queue: this.serializeQueueItem(item),
+    };
+  }
+
+  /**
+   * GET /agents/genius/:id/validation-queue - list queue items
+   */
+  @Get(':id/validation-queue')
+  async listValidationQueue(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const queue = this.validationWorkflow
+      .listQueue(agentId)
+      .map((item) => this.serializeQueueItem(item));
+    return { agentId, queue };
+  }
+
+  /**
+   * POST /agents/genius/:id/validation-queue/:queueId/process - execute queued validation
+   */
+  @Post(':id/validation-queue/:queueId/process')
+  async processValidationQueueItem(
+    @Param('id') agentId: string,
+    @Param('queueId') queueId: string,
+    @Body() body: { userId: string; applyFixes?: boolean },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const item = await this.validationWorkflow.processQueueItem(
+      agentId,
+      queueId,
+      { applyFixes: body.applyFixes },
+    );
+    return this.serializeQueueItem(item);
+  }
+
+  /**
+   * GET /agents/genius/:id/experts/:expertId/validation-status - status snapshot
+   */
+  @Get(':id/experts/:expertId/validation-status')
+  async getValidationStatus(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @UserId() userId: string,
+    @Query('reportId') reportId?: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    if (!reportId) {
+      throw new BadRequestException('reportId is required');
+    }
+    const snapshot = this.validationWorkflow.getStatus(expertId, reportId);
+    if (!snapshot) {
+      throw new NotFoundException(
+        `Validation status for expert '${expertId}' not found`,
+      );
+    }
+    return snapshot;
+  }
+
+  /**
+   * GET /agents/genius/:id/validation/events - SSE stream for validation updates
+   */
+  @Sse(':id/validation/events')
+  validationEvents(
+    @Param('id') agentId: string,
+    @Query('userId') userId: string,
+  ): Observable<MessageEvent> {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return new Observable<MessageEvent>((subscriber) => {
+      let subscription: (() => void) | undefined;
+      this.agentService
+        .getAgent(agentId, userId)
+        .then(() => {
+          subscription = this.validationWorkflow.subscribe(agentId, (event) => {
+            subscriber.next(
+              new MessageEvent(event.type, {
+                data: event.payload,
+              }),
+            );
+          });
+        })
+        .catch((error) => {
+          subscriber.error(error);
+        });
+
+      return () => {
+        if (subscription) {
+          subscription();
+        }
+      };
+    });
+  }
+
+  /**
+   * GET /agents/genius/:id/validators - list validator agents
+   */
+  @Get(':id/validators')
+  async listValidators(@Param('id') agentId: string, @UserId() userId: string) {
+    await this.agentService.getAgent(agentId, userId);
+    return {
+      agentId,
+      validators: this.validationWorkflow.listValidatorAgents(agentId),
+    };
+  }
+
+  /**
+   * POST /agents/genius/:id/validators/add - register validator agent
+   */
+  @Post(':id/validators/add')
+  async addValidator(
+    @Param('id') agentId: string,
+    @Body() body: ValidatorAgentRequestBody,
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const validator = this.validationWorkflow.addValidatorAgent(agentId, {
+      name: body.name,
+      mode: body.mode,
+      capabilities: body.capabilities,
+    });
+    return { agentId, validator };
+  }
+
+  /**
+   * POST /agents/genius/:id/validators/:validatorId/validate - run validator
+   */
+  @Post(':id/validators/:validatorId/validate')
+  async runValidator(
+    @Param('id') agentId: string,
+    @Param('validatorId') validatorId: string,
+    @Body() body: ValidationQueueRequestBody,
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const report = this.buildExpertReport(agentId, body);
+    const result = await this.validationWorkflow.runValidator(
+      agentId,
+      validatorId,
+      report,
+    );
+    return this.serializeValidationResult(result);
+  }
+
+  /**
+   * GET /agents/genius/:id/validators/:validatorId/errors - validator errors
+   */
+  @Get(':id/validators/:validatorId/errors')
+  async getValidatorErrors(
+    @Param('id') agentId: string,
+    @Param('validatorId') validatorId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return {
+      agentId,
+      validatorId,
+      errors: this.validationWorkflow.listValidatorErrors(agentId, validatorId),
+    };
+  }
+
+  /**
+   * GET /agents/genius/:id/reviews/pending - manual reviews
+   */
+  @Get(':id/reviews/pending')
+  async listPendingReviews(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return {
+      agentId,
+      reviews: this.validationWorkflow.listManualReviews(agentId),
+    };
+  }
+
+  @Post(':id/reviews/:reviewId/approve')
+  async approveReview(
+    @Param('id') agentId: string,
+    @Param('reviewId') reviewId: string,
+    @Body() body: ReviewActionBody,
+  ) {
+    return this.updateReview(agentId, reviewId, 'approve', body);
+  }
+
+  @Post(':id/reviews/:reviewId/reject')
+  async rejectReview(
+    @Param('id') agentId: string,
+    @Param('reviewId') reviewId: string,
+    @Body() body: ReviewActionBody,
+  ) {
+    return this.updateReview(agentId, reviewId, 'reject', body);
+  }
+
+  @Post(':id/reviews/:reviewId/request-changes')
+  async requestReviewChanges(
+    @Param('id') agentId: string,
+    @Param('reviewId') reviewId: string,
+    @Body() body: ReviewActionBody,
+  ) {
+    return this.updateReview(agentId, reviewId, 'request-changes', body);
+  }
+
+  /**
+   * GET /agents/genius/:id/validations - list validations for agent
+   */
+  @Get(':id/validations')
+  async listValidations(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const validations = this.validationWorkflow
+      .listValidations(agentId)
+      .map((result) => this.serializeValidationResult(result));
+    return { agentId, validations };
+  }
+
+  /**
+   * GET /agents/genius/:id/validations/:validationId - get validation detail
+   */
+  @Get(':id/validations/:validationId')
+  async getValidation(
+    @Param('id') agentId: string,
+    @Param('validationId') validationId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const result = this.validationWorkflow.getValidation(validationId);
+    if (!result) {
+      throw new NotFoundException(`Validation '${validationId}' not found`);
+    }
+    return this.serializeValidationResult(result);
+  }
+
+  /**
+   * GET /agents/genius/:id/experts/:expertId/validations - validations per expert
+   */
+  @Get(':id/experts/:expertId/validations')
+  async getExpertValidations(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const results = this.validationWorkflow
+      .getValidationsForExpert(expertId)
+      .map((result) => this.serializeValidationResult(result));
+    return { agentId, expertId, validations: results };
+  }
+
+  /**
+   * POST /agents/genius/:id/validations/:validationId/apply-fixes
+   */
+  @Post(':id/validations/:validationId/apply-fixes')
+  async applyValidationFixes(
+    @Param('id') agentId: string,
+    @Param('validationId') validationId: string,
+    @Body() body: { userId: string },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const result = await this.validationWorkflow.applyFixes(validationId);
+    return this.serializeValidationResult(result);
+  }
+
+  /**
+   * GET /agents/genius/:id/validation-config
+   */
+  @Get(':id/validation-config')
+  async getValidationConfig(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    return this.validationAdapter.getConfig();
+  }
+
+  /**
+   * PATCH /agents/genius/:id/validation-config
+   */
+  @Patch(':id/validation-config')
+  async updateValidationConfig(
+    @Param('id') agentId: string,
+    @Body()
+    body: {
+      userId: string;
+      config: Partial<ValidationConfig>;
+    },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    return this.validationAdapter.updateConfig(body.config);
+  }
+
+  /**
+   * GET /agents/genius/:id/validation-stats
+   */
+  @Get(':id/validation-stats')
+  async getValidationStats(
+    @Param('id') agentId: string,
+    @UserId() userId: string,
+  ) {
+    await this.agentService.getAgent(agentId, userId);
+    const stats = this.validationAdapter.getStatistics();
+    const queueSize = this.validationWorkflow.listQueue(agentId).length;
+    const reviews = this.validationWorkflow.listManualReviews(agentId).length;
+    return {
+      agentId,
+      queueSize,
+      pendingReviews: reviews,
+      stats,
+    };
+  }
+
+  /**
+   * POST /agents/genius/:id/experts/:expertId/reassign-topics - Reassign expert topics
+   */
+  @Post(':id/experts/:expertId/reassign-topics')
+  async reassignExpertTopics(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @Body()
+    body: { userId: string; topics: ExpertTopicInput[] },
+  ) {
+    if (!body.topics?.length) {
+      throw new BadRequestException('topics are required');
+    }
+
+    await this.agentService.getAgent(agentId, body.userId);
+    const expert = await this.expertPoolManager.getExpert(expertId as AgentId);
+    if (!expert) {
+      throw new NotFoundException(`Expert '${expertId}' not found`);
+    }
+
+    const assignments = body.topics.map((topic, index) => ({
+      topicId: topic.topicId || `topic-${Date.now()}-${index}`,
+      title: topic.title,
+      summary: topic.summary,
+      priority: topic.priority,
+      status: 'pending' as const,
+      progress: 0,
+      lastUpdated: new Date(),
+    }));
+
+    const snapshot = this.expertRuntime.assignTopics(
+      agentId,
+      expertId,
+      assignments,
+    );
+    await this.expertPoolManager.markExpertBusy(expertId as AgentId);
+
+    await Promise.all(
+      assignments.map((assignment) =>
+        this.topicCatalogAdapter
+          .addTopic(assignment.title, {
+            description:
+              assignment.summary || `Assignment for expert ${expertId}`,
+            complexity:
+              `L${assignment.priority ?? 3}` as NormalizedTrainingTopic['complexity'],
+            relatedTopics: [],
+            lastResearched: new Date(),
+            researchCount: 1,
+            confidence: 0.75,
+          })
+          .catch(() => null),
+      ),
+    );
+
+    return {
+      expertId,
+      assignments: this.serializeAssignments(snapshot.assignedTopics),
+    };
+  }
+
+  /**
+   * POST /agents/genius/:id/experts/:expertId/pause - Pause expert research
+   */
+  @Post(':id/experts/:expertId/pause')
+  async pauseExpert(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @Body() body: { userId: string; reason?: string },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const expert = await this.expertPoolManager.getExpert(expertId as AgentId);
+    if (!expert) {
+      throw new NotFoundException(`Expert '${expertId}' not found`);
+    }
+
+    const snapshot = this.expertRuntime.pauseExpert(
+      agentId,
+      expertId,
+      body.reason,
+    );
+    await this.expertPoolManager.markExpertBusy(expertId as AgentId);
+
+    return {
+      expertId,
+      paused: true,
+      assignments: this.serializeAssignments(snapshot.assignedTopics),
+    };
+  }
+
+  /**
+   * POST /agents/genius/:id/experts/:expertId/resume - Resume expert research
+   */
+  @Post(':id/experts/:expertId/resume')
+  async resumeExpert(
+    @Param('id') agentId: string,
+    @Param('expertId') expertId: string,
+    @Body() body: { userId: string; note?: string },
+  ) {
+    await this.agentService.getAgent(agentId, body.userId);
+    const expert = await this.expertPoolManager.getExpert(expertId as AgentId);
+    if (!expert) {
+      throw new NotFoundException(`Expert '${expertId}' not found`);
+    }
+
+    const snapshot = this.expertRuntime.resumeExpert(
+      agentId,
+      expertId,
+      body.note,
+    );
+    await this.expertPoolManager.markExpertAvailable(expertId as AgentId);
+
+    return {
+      expertId,
+      paused: false,
+      assignments: this.serializeAssignments(snapshot.assignedTopics),
+    };
+  }
+
+  private async updateReview(
+    agentId: string,
+    reviewId: string,
+    action: 'approve' | 'reject' | 'request-changes',
+    body: ReviewActionBody,
+  ) {
+    if (!body.userId) {
+      throw new BadRequestException('userId is required');
+    }
+    await this.agentService.getAgent(agentId, body.userId);
+    const review = this.validationWorkflow.updateManualReview(
+      agentId,
+      reviewId,
+      action,
+      body.userId,
+      body.notes,
+    );
+    return review;
+  }
+
+  private serializeQueueItem(item: ValidationQueueItem) {
+    return {
+      id: item.id,
+      topic: item.topic,
+      expertId: item.expertId,
+      priority: item.priority,
+      status: item.status,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      history: item.history.map((entry) => ({
+        status: entry.status,
+        timestamp: entry.timestamp.toISOString(),
+        notes: entry.notes,
+      })),
+      result: item.result ? this.serializeValidationResult(item.result) : null,
+      lastError: item.lastError,
+    };
+  }
+
+  private serializeValidationResult(result: ValidationResult) {
+    return {
+      id: result.id,
+      expertId: result.expertId,
+      topic: result.topic,
+      status: result.status,
+      score: result.score,
+      coverageScore: result.coverageScore,
+      completenessScore: result.completenessScore,
+      requiresManualReview: result.requiresManualReview,
+      reviewReason: result.reviewReason,
+      validatedAt: result.validatedAt.toISOString(),
+      durationMs: result.validationDurationMs,
+      issues: result.issues,
+      checks: result.checks,
+    };
+  }
+
+  private buildExpertReport(
+    agentId: string,
+    body: ValidationQueueRequestBody,
+  ): ExpertReport {
+    if (!body.expertId) {
+      throw new BadRequestException('expertId is required');
+    }
+    if (!body.findings?.length) {
+      throw new BadRequestException('findings are required');
+    }
+    if (!body.sources?.length) {
+      throw new BadRequestException('sources are required');
+    }
+
+    return {
+      reportId: `${agentId}:${randomUUID()}`,
+      expertId: body.expertId,
+      topic: body.topic,
+      summary: body.summary,
+      findings: body.findings,
+      sources: body.sources,
+      confidence: body.confidence ?? 0.75,
+      categories: body.categories,
+      contradictions: body.contradictions,
+      citations: body.citations?.map((citation) => ({
+        ...citation,
+        verified: false,
+      })),
+      metadata: {
+        agentId,
+        priority: body.priority ?? 5,
+        source: 'manual',
+      },
+    };
+  }
+
+  private async ensureGeniusInstance(
+    agentId: string,
+    userId: string,
+  ): Promise<GeniusAgent> {
+    const instance = await this.agentService.getAgentInstance(agentId, userId);
+    if (!(instance instanceof GeniusAgent)) {
+      throw new BadRequestException(`Agent '${agentId}' is not a Genius agent`);
+    }
+    return instance;
+  }
+
+  private mapLearningMode(mode: string): LearningMode {
+    switch (mode) {
+      case 'supervised':
+        return LearningMode.SUPERVISED;
+      case 'unsupervised':
+        return LearningMode.UNSUPERVISED;
+      case 'reinforcement':
+        return LearningMode.REINFORCEMENT;
+      default:
+        throw new BadRequestException(`Unsupported learning mode '${mode}'`);
+    }
+  }
+
+  private mapLearningModeToExecutionMode(
+    mode: LearningMode,
+  ): 'user-directed' | 'autonomous' | 'scheduled' {
+    if (mode === LearningMode.SUPERVISED) {
+      return 'user-directed';
+    }
+    if (mode === LearningMode.REINFORCEMENT) {
+      return 'scheduled';
+    }
+    return 'autonomous';
+  }
+
+  private buildTrainingPrompt(
+    trainingData: TrainingDataSample[],
+    mode: LearningMode,
+  ): string {
+    const preview = trainingData
+      .slice(0, 3)
+      .map(
+        (sample, index) =>
+          `Sample ${index + 1}: ${JSON.stringify(sample).substring(0, 200)}`,
+      )
+      .join('\n');
+
+    return `Run ${mode.toLowerCase()} learning on ${trainingData.length} samples.\nPreview:\n${preview}`;
+  }
+
+  private extractTrainingTopics(
+    trainingData: TrainingDataSample[],
+  ): NormalizedTrainingTopic[] {
+    const topics = trainingData.map((sample) => {
+      const topic =
+        sample.topic || sample.label || sample.title || 'General Research';
+      const complexity = (sample.complexity ||
+        'L3') as NormalizedTrainingTopic['complexity'];
+      return { topic: String(topic), complexity };
+    });
+
+    const unique = new Map<string, NormalizedTrainingTopic>();
+    topics.forEach((topic) => {
+      if (!unique.has(topic.topic)) {
+        unique.set(topic.topic, topic);
+      }
+    });
+    return Array.from(unique.values());
+  }
+
+  private deriveStageFromWorkLog(
+    workLog: KGModification[],
+    runtimeStage?: string,
+  ): 'aim' | 'shoot' | 'skin' | 'idle' {
+    if (runtimeStage && ['aim', 'shoot', 'skin'].includes(runtimeStage)) {
+      return runtimeStage as 'aim' | 'shoot' | 'skin';
+    }
+
+    const latest = workLog[workLog.length - 1];
+    if (!latest) {
+      return 'idle';
+    }
+
+    switch (latest.operationType) {
+      case 'create-node':
+      case 'create-edge':
+        return 'aim';
+      case 'update-node':
+        return 'shoot';
+      case 'add-research':
+      case 'skin':
+        return 'skin';
+      default:
+        return 'idle';
+    }
+  }
+
+  private estimateResearchProgress(
+    stage: 'aim' | 'shoot' | 'skin' | 'idle',
+    runtimeProgress?: number,
+    execution?: ActiveExecution,
+  ): number {
+    if (typeof runtimeProgress === 'number') {
+      return runtimeProgress;
+    }
+
+    const base =
+      stage === 'aim'
+        ? 0.33
+        : stage === 'shoot'
+          ? 0.66
+          : stage === 'skin'
+            ? 0.95
+            : 0;
+
+    if (!execution) {
+      return Math.round(base * 100);
+    }
+
+    const durationMs = Date.now() - execution.startTime.getTime();
+    const incremental = Math.min(durationMs / (10 * 60 * 1000), 0.05);
+    return Math.round(Math.min(1, base + incremental) * 100);
+  }
+
+  private buildAssignmentsFromExecution(
+    execution: ActiveExecution | undefined,
+    progress: number,
+  ): ExpertTopicAssignment[] {
+    if (!execution) {
+      return [];
+    }
+
+    return [
+      {
+        topicId: execution.topicId || execution.topic,
+        title: execution.topic,
+        status: progress >= 100 ? 'completed' : 'in-progress',
+        progress,
+        lastUpdated: new Date(),
+      },
+    ];
+  }
+
+  private serializeAssignments(
+    assignments: ExpertTopicAssignment[] | undefined,
+  ) {
+    return (assignments || []).map((assignment) => ({
+      topicId: assignment.topicId,
+      title: assignment.title,
+      status: assignment.status,
+      progress: assignment.progress,
+      priority: assignment.priority,
+      summary: assignment.summary,
+      lastUpdated: assignment.lastUpdated.toISOString(),
+    }));
+  }
+
+  private serializePoolStats(stats: ExpertPoolStats) {
+    return {
+      activeExperts: stats.activeExperts,
+      totalExpertsSpawned: stats.totalExpertsSpawned,
+      totalTopicsCompleted: stats.totalTopicsCompleted,
+      totalTopicsFailed: stats.totalTopicsFailed,
+      averageCompletionTimeMs: stats.averageCompletionTimeMs,
+      collisionCount: stats.collisionCount,
+      queuedRequests: stats.queuedRequests,
+    };
+  }
+
+  private calculateLearningProgress(
+    state: GeniusAgentState,
+  ): LearningProgressResponse['progress'] {
+    if (!state.learningHistory.length) {
+      return {
+        percentage: 0,
+        averagePerformance: 0,
+        totalIterations: 0,
+        lastUpdated: null,
+      };
+    }
+
+    const averagePerformance =
+      state.learningHistory.reduce(
+        (sum, entry) => sum + (entry.performance ?? 0),
+        0,
+      ) / state.learningHistory.length;
+
+    const completed = state.learningHistory.filter(
+      (entry) => entry.performance >= 0.8,
+    ).length;
+
+    return {
+      percentage: Math.round((completed / state.learningHistory.length) * 100),
+      averagePerformance: Number(averagePerformance.toFixed(2)),
+      totalIterations: state.learningHistory.length,
+      lastUpdated:
+        state.learningHistory[
+          state.learningHistory.length - 1
+        ]?.timestamp.toISOString() || null,
+    };
+  }
+
+  private toIso(date?: Date | null): string | null {
+    return date ? date.toISOString() : null;
+  }
+}

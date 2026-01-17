@@ -1,6 +1,6 @@
 /**
  * Database Module
- * 
+ *
  * Configures MongoDB connection and provides repositories
  */
 
@@ -9,11 +9,26 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Schemas
-import { LaTeXDocumentSchema, LaTeXDocumentSchemaFactory } from './schemas/latex-document.schema';
-import { LaTeXProjectSchema, LaTeXProjectSchemaFactory } from './schemas/latex-project.schema';
-import { LaTeXTemplateSchema, LaTeXTemplateSchemaFactory } from './schemas/latex-template.schema';
-import { CompilationJobSchema, CompilationJobSchemaFactory } from './schemas/compilation-job.schema';
-import { PackageCacheSchema, PackageCacheSchemaFactory } from './schemas/package-cache.schema';
+import {
+  LaTeXDocumentSchema,
+  LaTeXDocumentSchemaFactory,
+} from './schemas/latex-document.schema';
+import {
+  LaTeXProjectSchema,
+  LaTeXProjectSchemaFactory,
+} from './schemas/latex-project.schema';
+import {
+  LaTeXTemplateSchema,
+  LaTeXTemplateSchemaFactory,
+} from './schemas/latex-template.schema';
+import {
+  CompilationJobSchema,
+  CompilationJobSchemaFactory,
+} from './schemas/compilation-job.schema';
+import {
+  PackageCacheSchema,
+  PackageCacheSchemaFactory,
+} from './schemas/package-cache.schema';
 
 // Repositories
 import { MongoDBDocumentRepository } from './repositories/document.repository';
@@ -29,7 +44,10 @@ import { GridFSService } from './services/gridfs.service';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI', 'mongodb://localhost:27017/latex-worker'),
+        uri: configService.get<string>(
+          'MONGODB_URI',
+          'mongodb://localhost:27017/latex-worker',
+        ),
       }),
       inject: [ConfigService],
     }),

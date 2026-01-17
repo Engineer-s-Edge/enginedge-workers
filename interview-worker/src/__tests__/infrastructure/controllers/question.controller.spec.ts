@@ -3,9 +3,9 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { QuestionController } from '../../../../infrastructure/controllers/question.controller';
-import { QuestionService } from '../../../../application/services/question.service';
-import { InterviewQuestion } from '../../../../domain/entities';
+import { QuestionController } from '../../../infrastructure/controllers/question.controller';
+import { QuestionService } from '../../../application/services/question.service';
+import { InterviewQuestion } from '../../../domain/entities';
 
 describe('QuestionController', () => {
   let controller: QuestionController;
@@ -123,7 +123,10 @@ describe('QuestionController', () => {
 
     mockQuestionService.getQuestionsByCategory.mockResolvedValue(mockQuestions);
 
-    const result = await controller.getQuestionsByCategory('tech-trivia', 'easy');
+    const result = await controller.getQuestionsByCategory(
+      'tech-trivia',
+      'easy',
+    );
 
     expect(result).toHaveLength(1);
     expect(mockQuestionService.getQuestionsByCategory).toHaveBeenCalledWith(
@@ -159,4 +162,3 @@ describe('QuestionController', () => {
     expect(mockQuestionService.deleteQuestion).toHaveBeenCalledWith('q1');
   });
 });
-

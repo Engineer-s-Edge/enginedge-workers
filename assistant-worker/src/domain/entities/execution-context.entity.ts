@@ -21,6 +21,9 @@ export interface ExecutionContext {
       metadata?: Record<string, unknown>;
     }>;
   };
+  // Combined memory context from all active memory types
+  // This is populated by the agent execution service using MemoryService.getCombinedContext()
+  memoryContext?: string;
   metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;

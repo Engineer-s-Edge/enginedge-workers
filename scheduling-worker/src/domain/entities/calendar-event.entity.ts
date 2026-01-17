@@ -1,8 +1,8 @@
 /**
  * Calendar Event Entity
- * 
+ *
  * Represents a calendar event (from Google Calendar or other sources)
- * 
+ *
  * Domain Entity - No infrastructure dependencies
  */
 
@@ -92,7 +92,8 @@ export class CalendarEvent {
     const duration = this.getDurationMinutes();
     const isFullDay = duration >= 1440; // 24 hours
     const startAtMidnight =
-      this.startTime.getHours() === 0 && this.startTime.getMinutes() === 0;
+      this.startTime.getUTCHours() === 0 &&
+      this.startTime.getUTCMinutes() === 0;
     return isFullDay && startAtMidnight;
   }
 
@@ -119,7 +120,9 @@ export class CalendarEvent {
       this.id,
       this.calendarId,
       updates.title ?? this.title,
-      updates.description !== undefined ? updates.description : this.description,
+      updates.description !== undefined
+        ? updates.description
+        : this.description,
       this.startTime,
       this.endTime,
       updates.location !== undefined ? updates.location : this.location,

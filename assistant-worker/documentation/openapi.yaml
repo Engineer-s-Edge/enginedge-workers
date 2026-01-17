@@ -1,655 +1,4132 @@
-openapi: 3.0.3
+components:
+  schemas:
+    CreateAssistantDto:
+      properties: {}
+      type: object
+    ExecuteAssistantDto:
+      properties: {}
+      type: object
+    UpdateAssistantDto:
+      properties: {}
+      type: object
+  securitySchemes:
+    jwt:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
 info:
+  contact: {}
+  description: 'Comprehensive AI agent platform with support for multiple agent types, memory systems, and knowledge graphs. Features: 6 specialized agent types, 5 memory systems, Neo4j knowledge graph, real-time streaming, and human-in-the-loop support.'
   title: Assistant Worker API
-  description: |
-    Comprehensive AI agent platform with support for multiple agent types, memory systems, and knowledge graphs.
-    
-    **Features:**
-    - 6 specialized agent types
-    - 5 memory systems
-    - Neo4j knowledge graph
-    - Real-time streaming
-    - Human-in-the-loop support
   version: 1.0.0
-  contact:
-    name: API Support
-    email: support@yourdomain.com
-  license:
-    name: Proprietary
-    
-servers:
-  - url: http://localhost:3001
-    description: Development server
-  - url: https://assistant.yourdomain.com
-    description: Production server
-
-tags:
-  - name: Agents
-    description: Core agent operations
-  - name: ReAct
-    description: ReAct agent operations
-  - name: Graph
-    description: Graph agent operations
-  - name: Expert
-    description: Expert agent operations
-  - name: Genius
-    description: Genius agent operations
-  - name: Collective
-    description: Collective agent operations
-  - name: Manager
-    description: Manager agent operations
-  - name: Memory
-    description: Memory operations
-  - name: Knowledge Graph
-    description: Knowledge graph operations
-  - name: Health
-    description: Health and metrics
-
+openapi: 3.0.0
 paths:
-  /health:
-    get:
-      summary: Health check
-      description: Check service health
-      tags:
-        - Health
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                  timestamp:
-                    type: string
-                    format: date-time
-                  uptime:
-                    type: number
-                  memory:
-                    type: object
-                    properties:
-                      used:
-                        type: number
-                      total:
-                        type: number
-
-  /metrics:
-    get:
-      summary: Prometheus metrics
-      description: Get Prometheus-formatted metrics
-      tags:
-        - Health
-      responses:
-        '200':
-          description: Metrics data
-          content:
-            text/plain:
-              schema:
-                type: string
-
-  /agents/create:
-    post:
-      summary: Create agent
-      description: Create a new agent instance
-      tags:
-        - Agents
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - type
-                - userId
-              properties:
-                name:
-                  type: string
-                  example: my-assistant
-                type:
-                  type: string
-                  enum: [react, graph, expert, genius, collective, manager]
-                  example: react
-                userId:
-                  type: string
-                  example: user123
-                config:
-                  type: object
-                  properties:
-                    model:
-                      type: string
-                      example: gpt-4
-                    provider:
-                      type: string
-                      example: openai
-                    temperature:
-                      type: number
-                      minimum: 0
-                      maximum: 1
-                      example: 0.7
-                    maxTokens:
-                      type: integer
-                      example: 2048
-                    systemPrompt:
-                      type: string
-                    enableTools:
-                      type: boolean
-                      example: true
-                    toolNames:
-                      type: array
-                      items:
-                        type: string
-                    streamingEnabled:
-                      type: boolean
-                      example: true
-                    timeout:
-                      type: integer
-                      example: 30000
-      responses:
-        '201':
-          description: Agent created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    example: agent_1729776000_abc123
-                  name:
-                    type: string
-                  type:
-                    type: string
-                  state:
-                    type: string
-                    example: idle
-                  createdAt:
-                    type: string
-                    format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
   /agents:
     get:
-      summary: List agents
-      description: Get list of agents for a user
-      tags:
-        - Agents
+      operationId: AgentController_listAgents
       parameters:
-        - name: userId
-          in: query
+        - in: query
+          name: userId
           required: true
           schema:
             type: string
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [react, graph, expert, genius, collective, manager]
-        - name: active
-          in: query
-          schema:
-            type: boolean
       responses:
         '200':
-          description: List of agents
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  total:
-                    type: integer
-                  agents:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/AgentSummary'
-
-  /agents/{agentId}:
+          description: ''
+      tags:
+        - Agent
+  /agents/collective/create:
+    post:
+      operationId: CollectiveAgentController_createCollectiveAgent
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/agents/{agentId}/queue:
     get:
-      summary: Get agent
-      description: Get agent details
-      tags:
-        - Agents
+      operationId: CollectiveAgentController_getAgentMessageQueue
       parameters:
-        - $ref: '#/components/parameters/AgentId'
-        - name: userId
-          in: query
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Agent details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Agent'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      summary: Delete agent
-      description: Delete an agent
+          description: ''
       tags:
-        - Agents
+        - CollectiveAgent
+  /agents/collective/{id}/artifacts:
+    get:
+      operationId: CollectiveAgentController_getArtifacts
       parameters:
-        - $ref: '#/components/parameters/AgentId'
-        - name: userId
-          in: query
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+    post:
+      operationId: CollectiveAgentController_createArtifact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/artifacts/live:
+    get:
+      operationId: CollectiveAgentController_streamLiveArtifacts
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/artifacts/{artifactId}:
+    delete:
+      operationId: CollectiveAgentController_deleteArtifact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: artifactId
           required: true
           schema:
             type: string
       responses:
         '204':
-          description: Agent deleted
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /agents/{agentId}/execute:
-    post:
-      summary: Execute agent
-      description: Execute agent with input
+          description: ''
       tags:
-        - Agents
+        - CollectiveAgent
+    get:
+      operationId: CollectiveAgentController_getArtifactDetail
       parameters:
-        - $ref: '#/components/parameters/AgentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExecuteRequest'
-      responses:
-        '200':
-          description: Execution result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExecutionResult'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '408':
-          $ref: '#/components/responses/Timeout'
-
-  /agents/{agentId}/stream:
-    post:
-      summary: Stream execution
-      description: Execute agent with streaming
-      tags:
-        - Agents
-      parameters:
-        - $ref: '#/components/parameters/AgentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ExecuteRequest'
-      responses:
-        '200':
-          description: Streaming response
-          content:
-            text/event-stream:
-              schema:
-                type: string
-
-  /agents/{agentId}/abort:
-    post:
-      summary: Abort execution
-      description: Abort agent execution
-      tags:
-        - Agents
-      parameters:
-        - $ref: '#/components/parameters/AgentId'
-        - name: userId
-          in: query
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: artifactId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Execution aborted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-
+          description: ''
+      tags:
+        - CollectiveAgent
+    patch:
+      operationId: CollectiveAgentController_updateArtifact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: artifactId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/artifacts/{artifactId}/lock:
+    delete:
+      operationId: CollectiveAgentController_unlockArtifact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: artifactId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: lockToken
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+    post:
+      operationId: CollectiveAgentController_lockArtifact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: artifactId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/artifacts/{artifactId}/versions:
+    get:
+      operationId: CollectiveAgentController_getArtifactVersions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: artifactId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/deadlocks:
+    get:
+      operationId: CollectiveAgentController_getDeadlocks
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/deadlocks/{deadlockId}/resolve:
+    post:
+      operationId: CollectiveAgentController_resolveDeadlock
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: deadlockId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/messages:
+    post:
+      operationId: CollectiveAgentController_sendCollectiveMessage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/messages/agent/{targetAgentId}:
+    get:
+      operationId: CollectiveAgentController_getAgentMessages
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: targetAgentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/messages/live:
+    get:
+      operationId: CollectiveAgentController_streamLiveMessages
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/messages/pm:
+    get:
+      operationId: CollectiveAgentController_getPMMessageQueue
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/orchestrate:
+    post:
+      operationId: CollectiveAgentController_orchestrateTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/pause:
+    post:
+      operationId: CollectiveAgentController_pauseCollective
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/progress:
+    get:
+      operationId: CollectiveAgentController_getCollectiveProgress
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/resume:
+    post:
+      operationId: CollectiveAgentController_resumeCollective
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/state:
+    get:
+      operationId: CollectiveAgentController_getCollectiveStateSnapshot
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/sub-agents:
+    get:
+      operationId: CollectiveAgentController_getSubAgents
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/sub-agents/add:
+    post:
+      operationId: CollectiveAgentController_addSubAgent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/task-queue:
+    get:
+      operationId: CollectiveAgentController_getTaskQueue
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks:
+    get:
+      operationId: CollectiveAgentController_listCollectiveTasks
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+    post:
+      operationId: CollectiveAgentController_createCollectiveTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/hierarchy:
+    get:
+      operationId: CollectiveAgentController_getTaskHierarchy
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/level/{level}:
+    get:
+      operationId: CollectiveAgentController_getTasksByLevel
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: level
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}:
+    delete:
+      operationId: CollectiveAgentController_deleteCollectiveTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+    get:
+      operationId: CollectiveAgentController_getCollectiveTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+    patch:
+      operationId: CollectiveAgentController_updateCollectiveTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/assign:
+    post:
+      operationId: CollectiveAgentController_assignTaskManually
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/children:
+    get:
+      operationId: CollectiveAgentController_getTaskChildren
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/complete:
+    post:
+      operationId: CollectiveAgentController_completeTaskManually
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/dependencies:
+    get:
+      operationId: CollectiveAgentController_getTaskDependencies
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+    post:
+      operationId: CollectiveAgentController_addTaskDependency
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/dependencies/{dependencyId}:
+    delete:
+      operationId: CollectiveAgentController_removeTaskDependency
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: dependencyId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/parent:
+    get:
+      operationId: CollectiveAgentController_getTaskParent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/tasks/{taskId}/reassign:
+    post:
+      operationId: CollectiveAgentController_reassignTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/collective/{id}/waiting-dependencies:
+    get:
+      operationId: CollectiveAgentController_getWaitingDependencies
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CollectiveAgent
+  /agents/create:
+    post:
+      operationId: AgentController_create
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Agent
+  /agents/events/stream:
+    get:
+      operationId: AgentController_streamAgentEvents
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: types
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /agents/expert/create:
+    post:
+      operationId: ExpertAgentController_createExpertAgent
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/expert/research/stream:
+    get:
+      operationId: ExpertAgentController_streamResearch
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: researchDepth
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: maxSources
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: maxTokens
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: useBertScore
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: conversationId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: agentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/expert/{id}/contradictions:
+    get:
+      operationId: ExpertAgentController_getContradictions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/expert/{id}/evidence:
+    get:
+      operationId: ExpertAgentController_getEvidence
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/expert/{id}/research:
+    post:
+      operationId: ExpertAgentController_conductResearch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/expert/{id}/sources:
+    get:
+      operationId: ExpertAgentController_getResearchSources
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/expert/{id}/synthesize:
+    post:
+      operationId: ExpertAgentController_synthesizeReport
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExpertAgent
+  /agents/genius/create:
+    post:
+      operationId: GeniusAgentController_createGeniusAgent
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts:
+    get:
+      operationId: GeniusAgentController_getExpertPool
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts/add:
+    post:
+      operationId: GeniusAgentController_addExpert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts/{expertId}/pause:
+    post:
+      operationId: GeniusAgentController_pauseExpert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: expertId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts/{expertId}/reassign-topics:
+    post:
+      operationId: GeniusAgentController_reassignExpertTopics
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: expertId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts/{expertId}/resume:
+    post:
+      operationId: GeniusAgentController_resumeExpert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: expertId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts/{expertId}/validation-status:
+    get:
+      operationId: GeniusAgentController_getValidationStatus
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: expertId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: reportId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/experts/{expertId}/validations:
+    get:
+      operationId: GeniusAgentController_getExpertValidations
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: expertId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/learning-progress:
+    get:
+      operationId: GeniusAgentController_getLearningProgress
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/reviews/pending:
+    get:
+      operationId: GeniusAgentController_listPendingReviews
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/reviews/{reviewId}/approve:
+    post:
+      operationId: GeniusAgentController_approveReview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/reviews/{reviewId}/reject:
+    post:
+      operationId: GeniusAgentController_rejectReview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/reviews/{reviewId}/request-changes:
+    post:
+      operationId: GeniusAgentController_requestReviewChanges
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/train:
+    post:
+      operationId: GeniusAgentController_trainAgent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validate:
+    post:
+      operationId: GeniusAgentController_validateQuality
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validation-config:
+    get:
+      operationId: GeniusAgentController_getValidationConfig
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+    patch:
+      operationId: GeniusAgentController_updateValidationConfig
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validation-queue:
+    get:
+      operationId: GeniusAgentController_listValidationQueue
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+    post:
+      operationId: GeniusAgentController_enqueueValidation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validation-queue/{queueId}/process:
+    post:
+      operationId: GeniusAgentController_processValidationQueueItem
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: queueId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validation-stats:
+    get:
+      operationId: GeniusAgentController_getValidationStats
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validation/events:
+    get:
+      operationId: GeniusAgentController_validationEvents
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validations:
+    get:
+      operationId: GeniusAgentController_listValidations
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validations/{validationId}:
+    get:
+      operationId: GeniusAgentController_getValidation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: validationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validations/{validationId}/apply-fixes:
+    post:
+      operationId: GeniusAgentController_applyValidationFixes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: validationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validators:
+    get:
+      operationId: GeniusAgentController_listValidators
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validators/add:
+    post:
+      operationId: GeniusAgentController_addValidator
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validators/{validatorId}/errors:
+    get:
+      operationId: GeniusAgentController_getValidatorErrors
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: validatorId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/genius/{id}/validators/{validatorId}/validate:
+    post:
+      operationId: GeniusAgentController_runValidator
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: validatorId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GeniusAgent
+  /agents/graph/create:
+    post:
+      operationId: GraphAgentController_createGraphAgent
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/approval:
+    post:
+      operationId: GraphAgentController_provideApproval
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/chat-action:
+    post:
+      operationId: GraphAgentController_provideChatAction
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/checkpoint:
+    post:
+      operationId: GraphAgentController_createCheckpoint
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/checkpoints:
+    get:
+      operationId: GraphAgentController_listRuntimeCheckpoints
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/checkpoints/{checkpointId}:
+    get:
+      operationId: GraphAgentController_getCheckpointSnapshot
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: checkpointId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/checkpoints/{checkpointId}/restore:
+    post:
+      operationId: GraphAgentController_restoreCheckpoint
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: checkpointId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/continue:
+    post:
+      operationId: GraphAgentController_continueWithInput
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/edges/{edgeId}:
+    patch:
+      operationId: GraphAgentController_updateEdgeCheckpoint
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: edgeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/edges/{edgeId}/decisions:
+    get:
+      operationId: GraphAgentController_getEdgeDecisions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: edgeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/edges/{edgeId}/history:
+    get:
+      operationId: GraphAgentController_getEdgeHistory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: edgeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/edges/{edgeId}/queue:
+    get:
+      operationId: GraphAgentController_getEdgeQueue
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: edgeId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/execute:
+    post:
+      operationId: GraphAgentController_executeWorkflow
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/has-pending:
+    get:
+      operationId: GraphAgentController_hasPending
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/memory-groups:
+    get:
+      operationId: GraphAgentController_listMemoryGroups
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/memory-groups/{groupId}:
+    get:
+      operationId: GraphAgentController_getMemoryGroup
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: groupId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/pause:
+    post:
+      operationId: GraphAgentController_pauseGraph
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/pending:
+    get:
+      operationId: GraphAgentController_listPendingInteractions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/resume:
+    post:
+      operationId: GraphAgentController_resumeFromCheckpoint
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/state:
+    get:
+      operationId: GraphAgentController_getWorkflowState
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/graph/{id}/user-input:
+    post:
+      operationId: GraphAgentController_provideUserInput
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - GraphAgent
+  /agents/manager/create:
+    post:
+      operationId: ManagerAgentController_createManagerAgent
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/aggregate:
+    post:
+      operationId: ManagerAgentController_aggregateResults
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/assignments:
+    get:
+      operationId: ManagerAgentController_listAssignments
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeCompleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/assignments/{assignmentId}:
+    get:
+      operationId: ManagerAgentController_getAssignment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: assignmentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/assignments/{assignmentId}/reassign:
+    post:
+      operationId: ManagerAgentController_reassignAssignment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: assignmentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/available-agents:
+    get:
+      operationId: ManagerAgentController_listAvailableAgents
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/coordinate:
+    post:
+      operationId: ManagerAgentController_coordinateExecution
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/decompose:
+    post:
+      operationId: ManagerAgentController_decomposeTask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/events/stream:
+    get:
+      operationId: ManagerAgentController_streamManagerEvents
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/pause:
+    post:
+      operationId: ManagerAgentController_pauseManager
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/progress:
+    get:
+      operationId: ManagerAgentController_getProgress
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/resume:
+    post:
+      operationId: ManagerAgentController_resumeManager
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/state:
+    get:
+      operationId: ManagerAgentController_getManagerState
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/subtasks:
+    get:
+      operationId: ManagerAgentController_getSubtasks
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/subtasks/{subtaskId}/retry:
+    post:
+      operationId: ManagerAgentController_retrySubtask
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: subtaskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/manager/{id}/trigger-aggregation:
+    post:
+      operationId: ManagerAgentController_triggerAggregation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ManagerAgent
+  /agents/react/create:
+    post:
+      operationId: ReActAgentController_createReActAgent
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ReActAgent
+  /agents/react/{id}/add-tool:
+    post:
+      operationId: ReActAgentController_addTool
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ReActAgent
+  /agents/react/{id}/execute:
+    post:
+      operationId: ReActAgentController_executeWithReasoning
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ReActAgent
+  /agents/react/{id}/reasoning:
+    get:
+      operationId: ReActAgentController_getReasoningHistory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ReActAgent
+  /agents/stats:
+    get:
+      operationId: AgentController_getStats
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /agents/{id}:
+    delete:
+      operationId: AgentController_deleteAgent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Agent
+    get:
+      operationId: AgentController_getAgent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /agents/{id}/abort:
+    post:
+      operationId: AgentController_abortAgent
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /agents/{id}/execute:
+    post:
+      operationId: AgentController_execute
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /agents/{id}/stream:
+    post:
+      operationId: AgentController_executeStream
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /assistants:
+    get:
+      operationId: AssistantsController_findAll
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+    post:
+      operationId: AssistantsController_create
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssistantDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models:
+    get:
+      operationId: AssistantsController_getAllModels
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/capability/{capability}:
+    get:
+      operationId: AssistantsController_getModelsWithCapability
+      parameters:
+        - in: path
+          name: capability
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/category/{category}:
+    get:
+      operationId: AssistantsController_getModelsByCategory
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/cost-range:
+    get:
+      operationId: AssistantsController_getModelsByCostRange
+      parameters:
+        - in: query
+          name: minCost
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: maxCost
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/provider/{provider}:
+    get:
+      operationId: AssistantsController_getModelsByProvider
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/providers:
+    get:
+      operationId: AssistantsController_getAvailableProviders
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/search:
+    get:
+      operationId: AssistantsController_searchModels
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/{modelId}/calculate-cost:
+    post:
+      operationId: AssistantsController_calculateModelCost
+      parameters:
+        - in: path
+          name: modelId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/models/{provider}/{modelId}/details:
+    get:
+      operationId: AssistantsController_getModelDetails
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: modelId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/query:
+    post:
+      operationId: AssistantsController_query
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/{name}:
+    delete:
+      operationId: AssistantsController_remove
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+    get:
+      operationId: AssistantsController_findOne
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+    put:
+      operationId: AssistantsController_update
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAssistantDto'
+        required: true
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/{name}/execute:
+    post:
+      operationId: AssistantsController_execute
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteAssistantDto'
+        required: true
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Assistants
+  /assistants/{name}/execute/stream:
+    post:
+      operationId: AssistantsController_executeStream
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteAssistantDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Assistants
+  /conversations:
+    get:
+      operationId: ConversationsController_list
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+    post:
+      operationId: ConversationsController_create
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/bulk-archive:
+    post:
+      operationId: ConversationsController_bulkArchive
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/bulk-delete:
+    post:
+      operationId: ConversationsController_bulkDelete
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/bulk-export:
+    post:
+      operationId: ConversationsController_bulkExport
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/bulk-move-to-folder:
+    post:
+      operationId: ConversationsController_bulkMoveToFolder
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/bulk-tag:
+    post:
+      operationId: ConversationsController_bulkTag
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/folders:
+    get:
+      operationId: ConversationsController_listFolders
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+    post:
+      operationId: ConversationsController_createFolder
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/folders/{folderId}:
+    delete:
+      operationId: ConversationsController_deleteFolder
+      parameters:
+        - in: path
+          name: folderId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+    patch:
+      operationId: ConversationsController_updateFolder
+      parameters:
+        - in: path
+          name: folderId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/merge:
+    post:
+      operationId: ConversationsController_mergeConversations
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/search:
+    get:
+      operationId: ConversationsController_search
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: agentType
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: folderId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: tags
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dateFrom
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/search/snippets:
+    get:
+      operationId: ConversationsController_searchSnippets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: conversationIds
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: contextLines
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/statistics/aggregate:
+    get:
+      operationId: ConversationsController_getAggregateStatistics
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: agentType
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dateFrom
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dateTo
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/tags:
+    get:
+      operationId: ConversationsController_listTags
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}:
+    get:
+      operationId: ConversationsController_get
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/checkpoints:
+    get:
+      operationId: ConversationsController_getCheckpoints
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+    post:
+      operationId: ConversationsController_checkpoint
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/checkpoints/{checkpointId}/restore:
+    post:
+      operationId: ConversationsController_restoreCheckpoint
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: checkpointId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/children:
+    post:
+      operationId: ConversationsController_addChild
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/duplicate:
+    post:
+      operationId: ConversationsController_duplicateConversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/events:
+    get:
+      operationId: ConversationsController_events
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: since
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/export:
+    post:
+      operationId: ConversationsController_exportConversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/memories:
+    get:
+      operationId: ConversationsController_getMemories
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+    post:
+      operationId: ConversationsController_addMemory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/memories/{memoryId}:
+    delete:
+      operationId: ConversationsController_removeMemory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memoryId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+    patch:
+      operationId: ConversationsController_updateMemory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memoryId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/messages:
+    patch:
+      operationId: ConversationsController_addMessage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/messages/{messageId}:
+    patch:
+      operationId: ConversationsController_editMessage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/move-to-folder:
+    post:
+      operationId: ConversationsController_moveToFolder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/pause:
+    post:
+      operationId: ConversationsController_pause
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/pin:
+    patch:
+      operationId: ConversationsController_pinConversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/resume:
+    post:
+      operationId: ConversationsController_resume
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/settings:
+    patch:
+      operationId: ConversationsController_updateSettings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/state:
+    patch:
+      operationId: ConversationsController_updateState
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/statistics:
+    get:
+      operationId: ConversationsController_getStatistics
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/tags:
+    post:
+      operationId: ConversationsController_addTags
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/tags/{tagId}:
+    delete:
+      operationId: ConversationsController_removeTag
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: tagId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/tool-calls:
+    post:
+      operationId: ConversationsController_toolCall
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/tools/{toolId}/execute:
+    post:
+      operationId: ConversationsController_executeTool
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: toolId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Conversations
+  /conversations/{id}/unpin:
+    patch:
+      operationId: ConversationsController_unpinConversation
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Conversations
+  /health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /health/live:
+    get:
+      operationId: HealthController_liveness
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /health/ready:
+    get:
+      operationId: HealthController_readiness
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /hitl/agents/{agentId}/requests:
+    delete:
+      operationId: HITLController_clearAgentRequests
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+    get:
+      operationId: HITLController_listAgentRequests
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+  /hitl/agents/{agentId}/requests/pending:
+    get:
+      operationId: HITLController_listPendingRequests
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+  /hitl/requests:
+    post:
+      operationId: HITLController_createRequest
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - HITL
+  /hitl/requests/{requestId}:
+    delete:
+      operationId: HITLController_cancelRequest
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+    get:
+      operationId: HITLController_getRequest
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+  /hitl/requests/{requestId}/respond:
+    patch:
+      operationId: HITLController_respondToRequest
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+  /hitl/stats:
+    get:
+      operationId: HITLController_getStats
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+  /hitl/stats/agents/{agentId}:
+    get:
+      operationId: HITLController_getAgentStats
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - HITL
+  /knowledge-graph/domains:
+    get:
+      operationId: KnowledgeGraphController_getDomains
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/edges:
+    get:
+      operationId: KnowledgeGraphController_getAllEdges
+      parameters:
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+    post:
+      operationId: KnowledgeGraphController_createEdge
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/edges/{id}:
+    delete:
+      operationId: KnowledgeGraphController_deleteEdge
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - KnowledgeGraph
+    get:
+      operationId: KnowledgeGraphController_getEdge
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+    patch:
+      operationId: KnowledgeGraphController_updateEdge
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/events/stream:
+    get:
+      operationId: KnowledgeGraphController_streamGraphEvents
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/ics/build:
+    post:
+      operationId: KnowledgeGraphController_buildICSHierarchy
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/ics/traverse-down/{nodeId}:
+    get:
+      operationId: KnowledgeGraphController_traverseDown
+      parameters:
+        - in: path
+          name: nodeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/ics/traverse-up/{nodeId}:
+    get:
+      operationId: KnowledgeGraphController_traverseUp
+      parameters:
+        - in: path
+          name: nodeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes:
+    get:
+      operationId: KnowledgeGraphController_getAllNodes
+      parameters:
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: layers
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+    post:
+      operationId: KnowledgeGraphController_createNode
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/bulk-delete:
+    post:
+      operationId: KnowledgeGraphController_bulkDeleteNodes
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/bulk-update:
+    post:
+      operationId: KnowledgeGraphController_bulkUpdateNodes
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/colors:
+    post:
+      operationId: KnowledgeGraphController_getNodeColors
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/layer/{layer}:
+    get:
+      operationId: KnowledgeGraphController_getNodesByLayer
+      parameters:
+        - in: path
+          name: layer
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/layers:
+    get:
+      operationId: KnowledgeGraphController_getNodesByLayers
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/type/{type}:
+    get:
+      operationId: KnowledgeGraphController_getNodesByType
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/{id}:
+    delete:
+      operationId: KnowledgeGraphController_deleteNode
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - KnowledgeGraph
+    get:
+      operationId: KnowledgeGraphController_getNode
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+    patch:
+      operationId: KnowledgeGraphController_updateNode
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/{id}/color:
+    get:
+      operationId: KnowledgeGraphController_getNodeColor
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/{id}/connected-domains:
+    get:
+      operationId: KnowledgeGraphController_getConnectedDomains
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/{id}/domain:
+    patch:
+      operationId: KnowledgeGraphController_updateNodeDomain
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/{id}/neighbors:
+    get:
+      operationId: KnowledgeGraphController_getNeighbors
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: direction
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/nodes/{id}/subgraph:
+    get:
+      operationId: KnowledgeGraphController_getSubgraph
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: depth
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/query:
+    get:
+      operationId: KnowledgeGraphController_executeQuery
+      parameters:
+        - in: query
+          name: cypher
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: params
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/search:
+    post:
+      operationId: KnowledgeGraphController_searchNodes
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /knowledge-graph/stats:
+    get:
+      operationId: KnowledgeGraphController_getStats
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - KnowledgeGraph
+  /memory/conversations/list:
+    get:
+      operationId: MemoryController_listConversations
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/conversations/search:
+    post:
+      operationId: MemoryController_searchConversations
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/stats/{userId}:
+    get:
+      operationId: MemoryController_getStats
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}:
+    delete:
+      operationId: MemoryController_clearMemory
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: memoryType
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Memory
+    get:
+      operationId: MemoryController_getMessages
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: memoryType
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/context:
+    get:
+      operationId: MemoryController_getContext
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: memoryType
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/entities:
+    get:
+      operationId: MemoryController_getEntities
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/entities/search:
+    post:
+      operationId: MemoryController_searchEntities
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
   /memory/{conversationId}/messages:
     post:
-      summary: Add message
-      description: Add message to conversation memory
-      tags:
-        - Memory
+      operationId: MemoryController_addMessage
       parameters:
-        - name: conversationId
-          in: path
+        - in: path
+          name: conversationId
           required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - role
-                - content
-              properties:
-                role:
-                  type: string
-                  enum: [user, assistant, system]
-                content:
-                  type: string
-                memoryType:
-                  type: string
-                  enum: [buffer, window, summary, vector, entity]
-                  default: buffer
-                metadata:
-                  type: object
-      responses:
-        '201':
-          description: Message added
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  conversationId:
-                    type: string
-                  messageAdded:
-                    type: boolean
-
-  /memory/{conversationId}:
-    get:
-      summary: Get messages
-      description: Get conversation messages
-      tags:
-        - Memory
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: memoryType
-          in: query
-          schema:
-            type: string
-            enum: [buffer, window, summary, vector, entity]
-        - name: limit
-          in: query
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Conversation messages
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  conversationId:
-                    type: string
-                  memoryType:
-                    type: string
-                  messages:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Message'
-                  total:
-                    type: integer
-    delete:
-      summary: Clear memory
-      description: Clear conversation memory
-      tags:
-        - Memory
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: memoryType
-          in: query
           schema:
             type: string
       responses:
-        '204':
-          description: Memory cleared
-
-  /knowledge-graph/nodes:
+        '201':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/search:
     post:
-      summary: Create node
-      description: Create a knowledge graph node
-      tags:
-        - Knowledge Graph
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - label
-                - type
-                - layer
-              properties:
-                label:
-                  type: string
-                  example: Quantum Computing
-                type:
-                  type: string
-                  example: concept
-                layer:
-                  type: string
-                  enum: [L1_OBSERVATIONS, L2_PATTERNS, L3_MODELS, L4_THEORIES, L5_PRINCIPLES, L6_SYNTHESIS]
-                properties:
-                  type: object
-      responses:
-        '201':
-          description: Node created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  node:
-                    $ref: '#/components/schemas/KGNode'
-
-  /knowledge-graph/nodes/{nodeId}:
-    get:
-      summary: Get node
-      description: Get knowledge graph node
-      tags:
-        - Knowledge Graph
+      operationId: MemoryController_searchSimilar
       parameters:
-        - name: nodeId
-          in: path
+        - in: path
+          name: conversationId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Node details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  node:
-                    $ref: '#/components/schemas/KGNode'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-components:
-  parameters:
-    AgentId:
-      name: agentId
-      in: path
-      required: true
-      schema:
-        type: string
-      description: Agent identifier
-
-  schemas:
-    AgentSummary:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        type:
-          type: string
-        state:
-          type: string
-
-    Agent:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        state:
-          type: string
-        config:
-          type: object
-
-    ExecuteRequest:
-      type: object
-      required:
-        - input
-        - userId
-      properties:
-        input:
-          type: string
-        userId:
-          type: string
-        sessionId:
-          type: string
-        conversationId:
-          type: string
-
-    ExecutionResult:
-      type: object
-      properties:
-        output:
-          type: string
-        status:
-          type: string
-        executionTime:
-          type: number
-        tokenCount:
-          type: object
-          properties:
-            input:
-              type: integer
-            output:
-              type: integer
-        metadata:
-          type: object
-
-    Message:
-      type: object
-      properties:
-        role:
-          type: string
-          enum: [user, assistant, system]
-        content:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        metadata:
-          type: object
-
-    KGNode:
-      type: object
-      properties:
-        id:
-          type: string
-        label:
-          type: string
-        type:
-          type: string
-        layer:
-          type: string
-        properties:
-          type: object
-        createdAt:
-          type: string
-          format: date-time
-
-    Error:
-      type: object
-      properties:
-        statusCode:
-          type: integer
-        message:
-          type: string
-        error:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        path:
-          type: string
-
-  responses:
-    BadRequest:
-      description: Bad request
-      content:
-        application/json:
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/summary:
+    get:
+      operationId: MemoryController_getSummary
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
           schema:
-            $ref: '#/components/schemas/Error'
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/types:
+    get:
+      operationId: MemoryController_getMemoryTypes
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
           schema:
-            $ref: '#/components/schemas/Error'
-
-    ValidationError:
-      description: Validation error
-      content:
-        application/json:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/types/add:
+    post:
+      operationId: MemoryController_addMemoryType
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
           schema:
-            allOf:
-              - $ref: '#/components/schemas/Error'
-              - type: object
-                properties:
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        field:
-                          type: string
-                        message:
-                          type: string
-
-    Timeout:
-      description: Request timeout
-      content:
-        application/json:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Memory
+  /memory/{conversationId}/types/{memoryType}:
+    delete:
+      operationId: MemoryController_removeMemoryType
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
           schema:
-            $ref: '#/components/schemas/Error'
-
+            type: string
+        - in: path
+          name: memoryType
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+    get:
+      operationId: MemoryController_getMemoryTypeContent
+      parameters:
+        - in: path
+          name: conversationId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: memoryType
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Memory
+  /metrics:
+    get:
+      operationId: MetricsController_getMetrics
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Metrics
+  /metrics/dashboard:
+    get:
+      operationId: MetricsController_getDashboardStats
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Metrics
+  /models:
+    get:
+      operationId: ModelsController_getAllModels
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/capability/{capability}:
+    get:
+      operationId: ModelsController_getModelsByCapability
+      parameters:
+        - in: path
+          name: capability
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/category/{category}:
+    get:
+      operationId: ModelsController_getModelsByCategory
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/cost-range:
+    get:
+      operationId: ModelsController_getModelsByCostRange
+      parameters:
+        - in: query
+          name: min
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: max
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/provider/{provider}:
+    get:
+      operationId: ModelsController_getModelsByProvider
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/providers:
+    get:
+      operationId: ModelsController_getProviders
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/search:
+    get:
+      operationId: ModelsController_searchModels
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/{modelId}/calculate-cost:
+    post:
+      operationId: ModelsController_calculateCost
+      parameters:
+        - in: path
+          name: modelId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+  /models/{provider}/{modelId}/details:
+    get:
+      operationId: ModelsController_getModelDetails
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: modelId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Models
+servers: []
+tags:
+  - description: Core agent operations
+    name: Agents
+  - description: ReAct agent operations
+    name: ReAct
+  - description: Graph agent operations
+    name: Graph
+  - description: Expert agent operations
+    name: Expert
+  - description: Genius agent operations
+    name: Genius
+  - description: Collective agent operations
+    name: Collective
+  - description: Manager agent operations
+    name: Manager
+  - description: Assistant CRUD operations
+    name: Assistants
+  - description: Conversation management
+    name: Conversations
+  - description: Memory operations
+    name: Memory
+  - description: Knowledge graph operations
+    name: Knowledge Graph
+  - description: Metrics and monitoring
+    name: Metrics
+  - description: Health checks
+    name: Health

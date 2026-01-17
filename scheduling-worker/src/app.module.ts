@@ -4,23 +4,24 @@ import { HealthModule } from './health/health.module';
 import { DomainModule } from './domain/domain.module';
 import { ApplicationModule } from './application/application.module';
 import { InfrastructureModule } from './infrastructure/infrastructure.module';
+import { ThreadingModule } from './infrastructure/threading/threading.module';
 
 /**
  * App Module - Root module for Scheduling Worker
- * 
+ *
  * Hexagonal Architecture Layers:
- * 
+ *
  * 1. Domain Layer (Core Business Logic)
  *    - Entities: CalendarEvent, Habit, Goal
  *    - Value Objects: TimeSlot
  *    - Domain Services: Pure business logic
  *    - No external dependencies
- * 
+ *
  * 2. Application Layer (Use Cases & Orchestration)
  *    - Services: HabitService, GoalService
  *    - Ports: Interfaces for external services (Google Calendar, MongoDB, Kafka)
  *    - DTOs: Data transfer objects
- * 
+ *
  * 3. Infrastructure Layer (Adapters & Implementations)
  *    - Adapters:
  *      - Auth: Google OAuth 2.0
@@ -30,10 +31,10 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
  *      - Logging: Structured logger
  *    - Controllers: REST API endpoints
  *    - Interceptors: Cross-cutting concerns
- * 
+ *
  * Responsibility: Google Calendar sync, habit tracking, goal management,
  *                 task scheduling, ML-based optimization
- * 
+ *
  * Port: 3007
  */
 @Module({
@@ -44,7 +45,8 @@ import { InfrastructureModule } from './infrastructure/infrastructure.module';
     HealthModule,
     DomainModule,
     ApplicationModule,
-    InfrastructureModule,
+    InfrastructureModule, // Must be before ThreadingModule so ILogger is available
+    ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
   ],
   controllers: [],
   providers: [],

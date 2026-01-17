@@ -61,26 +61,27 @@ export interface ApiIntegrationConfig {
  */
 @Injectable()
 export class OAuthManager {
-  private tokenCache: Map<string, { token: string; expiresAt: number }> = new Map();
+  private tokenCache: Map<string, { token: string; expiresAt: number }> =
+    new Map();
 
   /**
    * Refresh OAuth token
    */
   async refreshAccessToken(
     refreshToken: string,
-    config: OAuthConfig
+    config: OAuthConfig,
   ): Promise<{ accessToken: string; expiresIn: number }> {
     try {
       const response = await axios.post(config.refreshTokenUri, {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
         client_id: config.clientId,
-        client_secret: config.clientSecret
+        client_secret: config.clientSecret,
       });
 
       return {
         accessToken: response.data.access_token,
-        expiresIn: response.data.expires_in || 3600
+        expiresIn: response.data.expires_in || 3600,
       };
     } catch (error) {
       throw new Error('Failed to refresh OAuth token');
@@ -94,7 +95,7 @@ export class OAuthManager {
     currentToken: string,
     expiresAt: number,
     refreshToken: string,
-    config: OAuthConfig
+    config: OAuthConfig,
   ): Promise<string> {
     // Check if token is still valid (with 5-minute buffer)
     const now = Date.now() / 1000;
@@ -151,7 +152,7 @@ export class RateLimitService {
 
     // Check requests per second
     if (config.requestsPerSecond) {
-      const recentRequests = timestamps.filter(t => now - t < 1);
+      const recentRequests = timestamps.filter((t) => now - t < 1);
       if (recentRequests.length >= config.requestsPerSecond) {
         return false;
       }
@@ -159,7 +160,7 @@ export class RateLimitService {
 
     // Check requests per minute
     if (config.requestsPerMinute) {
-      const recentRequests = timestamps.filter(t => now - t < 60);
+      const recentRequests = timestamps.filter((t) => now - t < 60);
       if (recentRequests.length >= config.requestsPerMinute) {
         return false;
       }
@@ -167,7 +168,7 @@ export class RateLimitService {
 
     // Check requests per hour
     if (config.requestsPerHour) {
-      const recentRequests = timestamps.filter(t => now - t < 3600);
+      const recentRequests = timestamps.filter((t) => now - t < 3600);
       if (recentRequests.length >= config.requestsPerHour) {
         return false;
       }
@@ -185,14 +186,17 @@ export class RateLimitService {
     timestamps.push(now);
 
     // Clean up old timestamps (older than 1 hour)
-    const recentTimestamps = timestamps.filter(t => now - t < 3600);
+    const recentTimestamps = timestamps.filter((t) => now - t < 3600);
     this.requestTimestamps.set(apiName, recentTimestamps);
   }
 
   /**
    * Get current rate limit status
    */
-  getStatus(apiName: string, config: RateLimitConfig): {
+  getStatus(
+    apiName: string,
+    config: RateLimitConfig,
+  ): {
     requestsPerSecond: number;
     requestsPerMinute: number;
     requestsPerHour: number;
@@ -202,14 +206,14 @@ export class RateLimitService {
 
     return {
       requestsPerSecond: config.requestsPerSecond
-        ? timestamps.filter(t => now - t < 1).length
+        ? timestamps.filter((t) => now - t < 1).length
         : 0,
       requestsPerMinute: config.requestsPerMinute
-        ? timestamps.filter(t => now - t < 60).length
+        ? timestamps.filter((t) => now - t < 60).length
         : 0,
       requestsPerHour: config.requestsPerHour
-        ? timestamps.filter(t => now - t < 3600).length
-        : 0
+        ? timestamps.filter((t) => now - t < 3600).length
+        : 0,
     };
   }
 
@@ -226,7 +230,7 @@ export class RateLimitService {
     let maxWait = 0;
 
     if (config.requestsPerSecond) {
-      const recentRequests = timestamps.filter(t => now - t < 1);
+      const recentRequests = timestamps.filter((t) => now - t < 1);
       if (recentRequests.length >= config.requestsPerSecond) {
         const oldestRequest = Math.min(...recentRequests);
         const wait = oldestRequest + 1 - now;
@@ -235,7 +239,7 @@ export class RateLimitService {
     }
 
     if (config.requestsPerMinute) {
-      const recentRequests = timestamps.filter(t => now - t < 60);
+      const recentRequests = timestamps.filter((t) => now - t < 60);
       if (recentRequests.length >= config.requestsPerMinute) {
         const oldestRequest = Math.min(...recentRequests);
         const wait = oldestRequest + 60 - now;
@@ -255,7 +259,7 @@ export class RateLimitService {
 export class ApiClientFactory {
   constructor(
     private oauthManager: OAuthManager,
-    private rateLimitService: RateLimitService
+    private rateLimitService: RateLimitService,
   ) {}
 
   /**
@@ -264,7 +268,7 @@ export class ApiClientFactory {
   createClient(config: ApiIntegrationConfig): AxiosInstance {
     const client = axios.create({
       baseURL: config.baseUrl,
-      timeout: 30000
+      timeout: 30000,
     });
 
     // Apply authentication
@@ -273,9 +277,17 @@ export class ApiClientFactory {
     // Apply rate limiting interceptor
     client.interceptors.request.use((requestConfig) => {
       // Check rate limits
-      if (config.rateLimit && !this.rateLimitService.canMakeRequest(config.name, config.rateLimit)) {
-        const wait = this.rateLimitService.getWaitTime(config.name, config.rateLimit);
-        throw new Error(`Rate limit exceeded for ${config.name}. Wait ${wait.toFixed(2)}s before retrying.`);
+      if (
+        config.rateLimit &&
+        !this.rateLimitService.canMakeRequest(config.name, config.rateLimit)
+      ) {
+        const wait = this.rateLimitService.getWaitTime(
+          config.name,
+          config.rateLimit,
+        );
+        throw new Error(
+          `Rate limit exceeded for ${config.name}. Wait ${wait.toFixed(2)}s before retrying.`,
+        );
       }
 
       this.rateLimitService.recordRequest(config.name);
@@ -293,11 +305,15 @@ export class ApiClientFactory {
   /**
    * Apply authentication headers based on credentials type
    */
-  private applyAuthentication(client: AxiosInstance, credentials: ApiCredentials): void {
+  private applyAuthentication(
+    client: AxiosInstance,
+    credentials: ApiCredentials,
+  ): void {
     switch (credentials.type) {
       case 'oauth':
         if (credentials.accessToken) {
-          client.defaults.headers.common['Authorization'] = `Bearer ${credentials.accessToken}`;
+          client.defaults.headers.common['Authorization'] =
+            `Bearer ${credentials.accessToken}`;
         }
         break;
 
@@ -309,14 +325,15 @@ export class ApiClientFactory {
 
       case 'bearer_token':
         if (credentials.accessToken) {
-          client.defaults.headers.common['Authorization'] = `Bearer ${credentials.accessToken}`;
+          client.defaults.headers.common['Authorization'] =
+            `Bearer ${credentials.accessToken}`;
         }
         break;
 
       case 'basic':
         if (credentials.username && credentials.password) {
           const encoded = Buffer.from(
-            `${credentials.username}:${credentials.password}`
+            `${credentials.username}:${credentials.password}`,
           ).toString('base64');
           client.defaults.headers.common['Authorization'] = `Basic ${encoded}`;
         }
@@ -329,7 +346,11 @@ export class ApiClientFactory {
    */
   private applyRetryLogic(
     client: AxiosInstance,
-    retryPolicy: { maxRetries: number; retryDelay: number; backoffMultiplier: number }
+    retryPolicy: {
+      maxRetries: number;
+      retryDelay: number;
+      backoffMultiplier: number;
+    },
   ): void {
     client.interceptors.response.use(undefined, async (error: AxiosError) => {
       const config = error.config;
@@ -338,13 +359,17 @@ export class ApiClientFactory {
       const retryCount = (config as any).retryCount || 0;
 
       // Don't retry if max retries exceeded or not a retriable error
-      if (retryCount >= retryPolicy.maxRetries || !this.isRetriableError(error)) {
+      if (
+        retryCount >= retryPolicy.maxRetries ||
+        !this.isRetriableError(error)
+      ) {
         throw error;
       }
 
       // Calculate delay with exponential backoff
       const delay =
-        retryPolicy.retryDelay * Math.pow(retryPolicy.backoffMultiplier, retryCount);
+        retryPolicy.retryDelay *
+        Math.pow(retryPolicy.backoffMultiplier, retryCount);
 
       // Wait before retrying
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -372,7 +397,7 @@ export class ApiClientFactory {
  */
 @Module({
   providers: [OAuthManager, RateLimitService, ApiClientFactory],
-  exports: [OAuthManager, RateLimitService, ApiClientFactory]
+  exports: [OAuthManager, RateLimitService, ApiClientFactory],
 })
 @Global()
 export class ApiIntegrationsModule {}

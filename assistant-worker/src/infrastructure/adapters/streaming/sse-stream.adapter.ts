@@ -1,17 +1,33 @@
 /**
  * Server-Sent Events (SSE) Stream Adapter
- * 
+ *
  * Provides real-time streaming of agent execution updates to clients.
  * Supports progress updates, token streaming, and event notifications.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Response } from 'express';
 
 export interface StreamEvent {
-  type: 'start' | 'progress' | 'token' | 'thought' | 'tool' | 'complete' | 'error';
+  type:
+    | 'start'
+    | 'progress'
+    | 'token'
+    | 'thought'
+    | 'tool'
+    | 'complete'
+    | 'error'
+    | 'heartbeat';
   data: any;
   timestamp: Date;
+}
+
+export interface InitializeStreamOptions {
+  reconnectToken?: string;
+  heartbeatIntervalMs?: number;
+  disableHeartbeat?: boolean;
+  metadata?: Record<string, unknown>;
+  onClose?: () => void;
 }
 
 /**
@@ -19,12 +35,23 @@ export interface StreamEvent {
  */
 @Injectable()
 export class SSEStreamAdapter {
-  private activeStreams: Map<string, Response> = new Map();
+  private readonly logger = new Logger(SSEStreamAdapter.name);
+  private readonly activeStreams: Map<string, Response> = new Map();
+  private readonly heartbeatTimers: Map<string, NodeJS.Timeout> = new Map();
+  private readonly streamOptions: Map<string, InitializeStreamOptions> =
+    new Map();
+  private readonly defaultHeartbeatInterval = Number(
+    process.env.SSE_HEARTBEAT_MS ?? 25000,
+  );
 
   /**
    * Initialize SSE connection
    */
-  initializeStream(streamId: string, res: Response): void {
+  initializeStream(
+    streamId: string,
+    res: Response,
+    options?: InitializeStreamOptions,
+  ): void {
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -34,16 +61,31 @@ export class SSEStreamAdapter {
     // Send initial connection event
     this.sendEvent(res, {
       type: 'start',
-      data: { streamId, message: 'Stream connected' },
+      data: {
+        streamId,
+        message: 'Stream connected',
+        reconnectToken: options?.reconnectToken,
+        heartbeatIntervalMs:
+          options?.heartbeatIntervalMs ?? this.defaultHeartbeatInterval,
+        metadata: options?.metadata,
+      },
       timestamp: new Date(),
     });
 
     // Store active stream
     this.activeStreams.set(streamId, res);
+    this.streamOptions.set(streamId, options || {});
 
-    // Handle client disconnect
+    if (options?.disableHeartbeat !== true) {
+      this.startHeartbeat(
+        streamId,
+        res,
+        options?.heartbeatIntervalMs ?? this.defaultHeartbeatInterval,
+      );
+    }
+
     res.on('close', () => {
-      this.activeStreams.delete(streamId);
+      this.cleanupStream(streamId);
     });
   }
 
@@ -66,7 +108,7 @@ export class SSEStreamAdapter {
    */
   sendToStream(streamId: string, event: StreamEvent): boolean {
     const res = this.activeStreams.get(streamId);
-    
+
     if (!res) {
       return false;
     }
@@ -111,7 +153,12 @@ export class SSEStreamAdapter {
   /**
    * Send tool execution update
    */
-  sendToolExecution(streamId: string, toolName: string, args: any, result?: any): boolean {
+  sendToolExecution(
+    streamId: string,
+    toolName: string,
+    args: any,
+    result?: any,
+  ): boolean {
     return this.sendToStream(streamId, {
       type: 'tool',
       data: { toolName, args, result },
@@ -140,7 +187,7 @@ export class SSEStreamAdapter {
    */
   sendError(streamId: string, error: string | Error): boolean {
     const errorMessage = typeof error === 'string' ? error : error.message;
-    
+
     const sent = this.sendToStream(streamId, {
       type: 'error',
       data: { error: errorMessage },
@@ -158,11 +205,13 @@ export class SSEStreamAdapter {
    */
   closeStream(streamId: string): void {
     const res = this.activeStreams.get(streamId);
-    
-    if (res) {
+
+    if (res && !res.writableEnded) {
       res.end();
-      this.activeStreams.delete(streamId);
+      return;
     }
+
+    this.cleanupStream(streamId);
   }
 
   /**
@@ -183,10 +232,74 @@ export class SSEStreamAdapter {
    * Close all streams
    */
   closeAllStreams(): void {
-    for (const [streamId, res] of this.activeStreams.entries()) {
-      res.end();
+    for (const streamId of Array.from(this.activeStreams.keys())) {
+      this.closeStream(streamId);
     }
-    this.activeStreams.clear();
+  }
+
+  private startHeartbeat(
+    streamId: string,
+    res: Response,
+    intervalMs?: number,
+  ): void {
+    const heartbeatInterval = intervalMs && intervalMs > 0 ? intervalMs : null;
+    if (!heartbeatInterval) {
+      return;
+    }
+
+    this.clearHeartbeat(streamId);
+
+    const timer = setInterval(() => {
+      if (res.writableEnded) {
+        this.clearHeartbeat(streamId);
+        return;
+      }
+
+      this.sendEvent(res, {
+        type: 'heartbeat',
+        data: { streamId },
+        timestamp: new Date(),
+      });
+    }, heartbeatInterval);
+
+    this.heartbeatTimers.set(streamId, timer);
+  }
+
+  private clearHeartbeat(streamId: string): void {
+    const timer = this.heartbeatTimers.get(streamId);
+    if (timer) {
+      clearInterval(timer);
+      this.heartbeatTimers.delete(streamId);
+    }
+  }
+
+  private cleanupStream(streamId: string): void {
+    if (
+      !this.activeStreams.has(streamId) &&
+      !this.streamOptions.has(streamId) &&
+      !this.heartbeatTimers.has(streamId)
+    ) {
+      return;
+    }
+
+    this.clearHeartbeat(streamId);
+
+    if (this.activeStreams.has(streamId)) {
+      this.activeStreams.delete(streamId);
+    }
+
+    const options = this.streamOptions.get(streamId);
+    this.streamOptions.delete(streamId);
+
+    if (options?.onClose) {
+      try {
+        options.onClose();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`onClose handler failed for stream ${streamId}`, {
+          error: message,
+        });
+      }
+    }
   }
 }
-

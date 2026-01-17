@@ -1,6 +1,6 @@
 /**
  * Task Configuration Value Object
- * 
+ *
  * Describes a task within a Collective agent.
  * Used by Collective agents to coordinate work among child agents.
  */
@@ -49,7 +49,10 @@ export class TaskConfig {
       throw new Error('At least one agent type must be assigned to task');
     }
 
-    if (props.priority !== undefined && (props.priority < 0 || props.priority > 100)) {
+    if (
+      props.priority !== undefined &&
+      (props.priority < 0 || props.priority > 100)
+    ) {
       throw new Error('Priority must be between 0 and 100');
     }
 
@@ -95,7 +98,8 @@ export class TaskConfig {
       taskId: this.taskId,
       description: this.description,
       assignedAgentTypes: this.assignedAgentTypes,
-      dependencies: this.dependencies.length > 0 ? this.dependencies : undefined,
+      dependencies:
+        this.dependencies.length > 0 ? this.dependencies : undefined,
       priority: this.priority,
       maxRetries: this.maxRetries,
       timeoutMs: this.timeoutMs,

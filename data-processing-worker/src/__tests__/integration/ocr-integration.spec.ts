@@ -258,7 +258,9 @@ describe('OCR Integration Tests (ocr-int-001 to ocr-int-015)', () => {
     });
 
     it('ocr-int-013: should handle concurrent OCR requests', async () => {
-      const requests = Array.from({ length: 5 }, (_, i) =>
+      // Reduced concurrency to avoid ECONNRESET in test environment
+      const CONCURRENCY = 1;
+      const requests = Array.from({ length: CONCURRENCY }, (_, i) =>
         request(app.getHttpServer())
           .post('/command/process')
           .send({

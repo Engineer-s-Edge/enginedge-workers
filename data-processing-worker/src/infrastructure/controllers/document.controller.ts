@@ -26,7 +26,7 @@ interface MulterFile {
 
 /**
  * Document Controller (Infrastructure Layer)
- * 
+ *
  * REST API endpoints for document processing operations.
  */
 @Controller('documents')
@@ -52,10 +52,14 @@ export class DocumentController {
     @Body('store') store?: string,
     @Body('metadata') metadata?: string,
   ) {
-    this.logger.log(`Uploading document: ${file.originalname} (${file.size} bytes)`);
+    this.logger.log(
+      `Uploading document: ${file.originalname} (${file.size} bytes)`,
+    );
 
-    const blob = new Blob([new Uint8Array(file.buffer)], { type: file.mimetype });
-    
+    const blob = new Blob([new Uint8Array(file.buffer)], {
+      type: file.mimetype,
+    });
+
     const options = {
       loaderOptions: { fileName: file.originalname },
       split: split !== 'false',
@@ -64,7 +68,10 @@ export class DocumentController {
       metadata: metadata ? JSON.parse(metadata) : {},
     };
 
-    const result = await this.documentProcessingService.processDocument(blob, options);
+    const result = await this.documentProcessingService.processDocument(
+      blob,
+      options,
+    );
 
     return {
       success: true,
@@ -95,7 +102,10 @@ export class DocumentController {
       metadata: metadata || {},
     };
 
-    const result = await this.documentProcessingService.processDocument(url, options);
+    const result = await this.documentProcessingService.processDocument(
+      url,
+      options,
+    );
 
     return {
       success: true,
@@ -148,7 +158,10 @@ export class DocumentController {
       },
     };
 
-    const result = await this.documentProcessingService.processDocument(source, options);
+    const result = await this.documentProcessingService.processDocument(
+      source,
+      options,
+    );
 
     // Return in RAG-friendly format
     return {
@@ -158,14 +171,12 @@ export class DocumentController {
         topK: topK || 5,
         filters: filters || {},
       },
-      chunks: result.documents?.map((doc) => ({
-        id: doc.id,
-        content: doc.content,
-        metadata: doc.metadata,
-        embedding: doc.embedding,
-      })) || [],
-      totalChunks: result.documents?.length || 0,
-      processingTime: result.processingTime,
+      chunks: result.documentIds.map((id) => ({
+        id,
+        content: '',
+        metadata: {},
+      })),
+      totalChunks: result.chunks,
     };
   }
 
@@ -191,7 +202,7 @@ export class DocumentController {
     return {
       success: true,
       query,
-      results: results.map(r => ({
+      results: results.map((r) => ({
         documentId: r.document.id,
         content: r.document.content.substring(0, 500), // Truncate for response
         metadata: r.document.metadata,
@@ -233,7 +244,9 @@ export class DocumentController {
    * GET /documents/by-conversation/:conversationId
    */
   @Get('by-conversation/:conversationId')
-  async getDocumentsByConversation(@Param('conversationId') conversationId: string) {
+  async getDocumentsByConversation(
+    @Param('conversationId') conversationId: string,
+  ) {
     this.logger.log(`Getting documents for conversation: ${conversationId}`);
 
     const results = await this.documentProcessingService.searchSimilar(
@@ -245,7 +258,7 @@ export class DocumentController {
     return {
       success: true,
       conversationId,
-      documents: results.map(r => ({
+      documents: results.map((r) => ({
         id: r.document.id,
         content: r.document.content.substring(0, 500),
         metadata: r.document.metadata,

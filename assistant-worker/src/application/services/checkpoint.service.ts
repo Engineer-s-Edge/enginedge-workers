@@ -1,6 +1,6 @@
 /**
  * Checkpoint Service
- * 
+ *
  * Manages agent execution checkpoints for pause/resume functionality.
  * Particularly important for long-running Graph agents.
  */
@@ -40,7 +40,7 @@ export class CheckpointService {
     userId: string,
     state: any,
     name?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<Checkpoint> {
     const checkpoint: Checkpoint = {
       id: `checkpoint_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -60,7 +60,10 @@ export class CheckpointService {
     }
     this.agentCheckpoints.get(agentId)!.push(checkpoint.id);
 
-    this.logger.info('Checkpoint created', { checkpointId: checkpoint.id, agentId });
+    this.logger.info('Checkpoint created', {
+      checkpointId: checkpoint.id,
+      agentId,
+    });
 
     return checkpoint;
   }
@@ -75,7 +78,10 @@ export class CheckpointService {
   /**
    * List checkpoints for an agent
    */
-  async listCheckpoints(agentId: string, limit?: number): Promise<Checkpoint[]> {
+  async listCheckpoints(
+    agentId: string,
+    limit?: number,
+  ): Promise<Checkpoint[]> {
     const checkpointIds = this.agentCheckpoints.get(agentId) || [];
     const checkpoints = checkpointIds
       .map((id) => this.checkpoints.get(id))
@@ -136,7 +142,10 @@ export class CheckpointService {
     }
 
     this.agentCheckpoints.delete(agentId);
-    this.logger.info('Agent checkpoints deleted', { agentId, count: deletedCount });
+    this.logger.info('Agent checkpoints deleted', {
+      agentId,
+      count: deletedCount,
+    });
 
     return deletedCount;
   }
@@ -151,7 +160,10 @@ export class CheckpointService {
       throw new Error(`Checkpoint ${checkpointId} not found`);
     }
 
-    this.logger.info('Restoring from checkpoint', { checkpointId, agentId: checkpoint.agentId });
+    this.logger.info('Restoring from checkpoint', {
+      checkpointId,
+      agentId: checkpoint.agentId,
+    });
 
     // Return deep clone to prevent mutations
     return JSON.parse(JSON.stringify(checkpoint.state));
@@ -162,7 +174,7 @@ export class CheckpointService {
    */
   async updateCheckpointMetadata(
     checkpointId: string,
-    metadata: Record<string, any>
+    metadata: Record<string, any>,
   ): Promise<Checkpoint | null> {
     const checkpoint = this.checkpoints.get(checkpointId);
 
@@ -181,7 +193,10 @@ export class CheckpointService {
   /**
    * Clean up old checkpoints (keep only N most recent per agent)
    */
-  async cleanupOldCheckpoints(agentId: string, keepCount: number = 5): Promise<number> {
+  async cleanupOldCheckpoints(
+    agentId: string,
+    keepCount: number = 5,
+  ): Promise<number> {
     const checkpoints = await this.listCheckpoints(agentId);
 
     if (checkpoints.length <= keepCount) {
@@ -221,4 +236,3 @@ export class CheckpointService {
     };
   }
 }
-

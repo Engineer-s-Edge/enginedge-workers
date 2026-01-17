@@ -1,6 +1,6 @@
 /**
  * InterviewResponse Entity
- * 
+ *
  * Represents a candidate's response to a question, including any follow-up questions and answers.
  */
 
@@ -94,16 +94,24 @@ export class InterviewResponse {
       sessionId: data.sessionId as string,
       questionId: data.questionId as string,
       candidateResponse: data.candidateResponse as string,
-      followups: (data.followups as Array<Omit<Followup, 'timestamp'> & { timestamp: string | Date }>)?.map((f) => ({
+      followups: (
+        data.followups as Array<
+          Omit<Followup, 'timestamp'> & { timestamp: string | Date }
+        >
+      )?.map((f) => ({
         followupForQuestionId: f.followupForQuestionId,
         text: f.text,
         depth: f.depth,
         candidateResponse: f.candidateResponse,
-        timestamp: f.timestamp instanceof Date ? f.timestamp : new Date(f.timestamp as string),
+        timestamp:
+          f.timestamp instanceof Date
+            ? f.timestamp
+            : new Date(f.timestamp as string),
       })),
       skipped: data.skipped as boolean,
-      submittedAt: data.submittedAt ? new Date(data.submittedAt as string) : new Date(),
+      submittedAt: data.submittedAt
+        ? new Date(data.submittedAt as string)
+        : new Date(),
     });
   }
 }
-

@@ -3,17 +3,27 @@ import { BaseLoaderPort } from '@domain/ports/loader.port';
 import { Document } from '@domain/entities/document.entity';
 
 class FakeLoader extends BaseLoaderPort {
-  constructor(private readonly name: string, private readonly exts: string[] = ['.txt']) {
+  constructor(
+    private readonly name: string,
+    private readonly exts: string[] = ['.txt'],
+  ) {
     super();
   }
 
   async load(source: string | Blob): Promise<Document[]> {
-    return [new Document(`${this.name}-id`, `content-from-${this.name}`, { source: String(source), sourceType: 'file' })];
+    return [
+      new Document(`${this.name}-id`, `content-from-${this.name}`, {
+        source: String(source),
+        sourceType: 'file',
+      }),
+    ];
   }
 
   supports(source: string | Blob): boolean {
     if (typeof source !== 'string') return false;
-    return this.exts.some((e) => source.endsWith(e) || source.includes(this.name));
+    return this.exts.some(
+      (e) => source.endsWith(e) || source.includes(this.name),
+    );
   }
 
   getSupportedTypes(): string[] {

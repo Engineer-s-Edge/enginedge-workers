@@ -1,11 +1,16 @@
 import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LoaderRegistryService } from './loader-registry.service';
 import { Document } from '../../domain/entities/document.entity';
-import { TextSplitterPort, EmbedderPort, VectorStorePort } from '../../domain/ports/processing.port';
+import {
+  TextSplitterPort,
+  EmbedderPort,
+  VectorStorePort,
+} from '../../domain/ports/processing.port';
 
 /**
  * Document Processing Service (Application Layer)
- * 
+ *
  * Orchestrates the complete document processing pipeline:
  * 1. Load documents
  * 2. Split into chunks
@@ -18,9 +23,16 @@ export class DocumentProcessingService {
 
   constructor(
     private readonly loaderRegistry: LoaderRegistryService,
-    @Optional() @Inject('TextSplitterPort') private readonly textSplitter?: TextSplitterPort,
-    @Optional() @Inject('EmbedderPort') private readonly embedder?: EmbedderPort,
-    @Optional() @Inject('VectorStorePort') private readonly vectorStore?: VectorStorePort,
+    @Optional()
+    @Inject('TextSplitterPort')
+    private readonly textSplitter?: TextSplitterPort,
+    @Optional()
+    @Inject('EmbedderPort')
+    private readonly embedder?: EmbedderPort,
+    @Optional()
+    @Inject('VectorStorePort')
+    private readonly vectorStore?: VectorStorePort,
+    private readonly configService?: ConfigService,
   ) {
     this.logger.log('Document Processing Service initialized');
   }
@@ -40,32 +52,47 @@ export class DocumentProcessingService {
       metadata?: Record<string, unknown>;
     },
   ): Promise<{ documentIds: string[]; chunks: number }> {
-    this.logger.log(`Processing document from source: ${typeof source === 'string' ? source : 'Blob'}`);
+    this.logger.log(
+      `Processing document from source: ${typeof source === 'string' ? source : 'Blob'}`,
+    );
 
     // 1. Load documents
-    const documents = await this.loadDocument(source, options?.loaderName, options?.loaderOptions);
+    const documents = await this.loadDocument(
+      source,
+      options?.loaderName,
+      options?.loaderOptions,
+    );
     this.logger.log(`Loaded ${documents.length} documents`);
 
     // 2. Split into chunks (optional)
     let processedDocs = documents;
     if (options?.split !== false) {
       if (!this.textSplitter) {
-        throw new Error('TextSplitter not configured. Please configure a text splitter to enable document splitting.');
+        throw new Error(
+          'TextSplitter not configured. Please configure a text splitter to enable document splitting.',
+        );
       }
-      processedDocs = await this.textSplitter.splitDocuments(documents, options?.splitOptions);
+      processedDocs = await this.textSplitter.splitDocuments(
+        documents,
+        options?.splitOptions,
+      );
       this.logger.log(`Split into ${processedDocs.length} chunks`);
     }
 
     // 3. Generate embeddings and store (optional)
     if (options?.embed !== false && options?.store !== false) {
       if (!this.embedder) {
-        throw new Error('Embedder not configured. Please configure an embedder to enable embedding generation.');
+        throw new Error(
+          'Embedder not configured. Please configure an embedder to enable embedding generation.',
+        );
       }
       if (!this.vectorStore) {
-        throw new Error('VectorStore not configured. Please configure a vector store to enable document storage.');
+        throw new Error(
+          'VectorStore not configured. Please configure a vector store to enable document storage.',
+        );
       }
-      
-      const texts = processedDocs.map(doc => doc.content);
+
+      const texts = processedDocs.map((doc) => doc.content);
       const embeddings = await this.embedder.embedBatch(texts);
       this.logger.log(`Generated ${embeddings.length} embeddings`);
 
@@ -79,7 +106,10 @@ export class DocumentProcessingService {
       return { documentIds, chunks: processedDocs.length };
     }
 
-    return { documentIds: processedDocs.map(d => d.id), chunks: processedDocs.length };
+    return {
+      documentIds: processedDocs.map((d) => d.id),
+      chunks: processedDocs.length,
+    };
   }
 
   /**
@@ -109,17 +139,27 @@ export class DocumentProcessingService {
     limit: number = 5,
     filter?: Record<string, unknown>,
   ): Promise<Array<{ document: Document; score: number }>> {
-    this.logger.log(`Searching for similar documents: "${query}" (limit: ${limit})`);
+    this.logger.log(
+      `Searching for similar documents: "${query}" (limit: ${limit})`,
+    );
 
     if (!this.embedder) {
-      throw new Error('Embedder not configured. Please configure an embedder to enable similarity search.');
+      throw new Error(
+        'Embedder not configured. Please configure an embedder to enable similarity search.',
+      );
     }
     if (!this.vectorStore) {
-      throw new Error('VectorStore not configured. Please configure a vector store to enable similarity search.');
+      throw new Error(
+        'VectorStore not configured. Please configure a vector store to enable similarity search.',
+      );
     }
 
     const queryEmbedding = await this.embedder.embedText(query);
-    const results = await this.vectorStore.similaritySearch(queryEmbedding, limit, filter);
+    const results = await this.vectorStore.similaritySearch(
+      queryEmbedding,
+      limit,
+      filter,
+    );
 
     this.logger.log(`Found ${results.length} similar documents`);
     return results;
@@ -130,11 +170,13 @@ export class DocumentProcessingService {
    */
   async deleteDocuments(ids: string[]): Promise<void> {
     this.logger.log(`Deleting ${ids.length} documents`);
-    
+
     if (!this.vectorStore) {
-      throw new Error('VectorStore not configured. Please configure a vector store to enable document deletion.');
+      throw new Error(
+        'VectorStore not configured. Please configure a vector store to enable document deletion.',
+      );
     }
-    
+
     await this.vectorStore.deleteDocuments(ids);
   }
 
@@ -143,9 +185,11 @@ export class DocumentProcessingService {
    */
   async getDocument(id: string): Promise<Document | null> {
     if (!this.vectorStore) {
-      throw new Error('VectorStore not configured. Please configure a vector store to retrieve documents.');
+      throw new Error(
+        'VectorStore not configured. Please configure a vector store to retrieve documents.',
+      );
     }
-    
+
     return this.vectorStore.getDocument(id);
   }
 
@@ -169,20 +213,26 @@ export class DocumentProcessingService {
     this.logger.log('Detecting URLs in content');
 
     // URL regex pattern
-    const urlRegex = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+    const urlRegex =
+      /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
     const urls = content.match(urlRegex) || [];
     const uniqueUrls = [...new Set(urls)];
 
     const maxUrls = options?.maxUrls || 10;
     const limitedUrls = uniqueUrls.slice(0, maxUrls);
 
-    this.logger.log(`Found ${uniqueUrls.length} unique URLs, loading ${limitedUrls.length}`);
+    this.logger.log(
+      `Found ${uniqueUrls.length} unique URLs, loading ${limitedUrls.length}`,
+    );
 
     const allDocuments: Document[] = [];
 
     for (const url of limitedUrls) {
       try {
-        const docs = await this.loaderRegistry.loadAuto(url, options?.loaderOptions);
+        const docs = await this.loaderRegistry.loadAuto(
+          url,
+          options?.loaderOptions,
+        );
         allDocuments.push(...docs);
         this.logger.log(`Loaded ${docs.length} documents from ${url}`);
       } catch (error: any) {
@@ -224,9 +274,13 @@ export class DocumentProcessingService {
         allDocumentIds.push(...result.documentIds);
         totalChunks += result.chunks;
 
-        this.logger.log(`Processed attachment: ${attachment.filename} (${result.chunks} chunks)`);
+        this.logger.log(
+          `Processed attachment: ${attachment.filename} (${result.chunks} chunks)`,
+        );
       } catch (error: any) {
-        this.logger.error(`Failed to process attachment ${attachment.filename}: ${error.message}`);
+        this.logger.error(
+          `Failed to process attachment ${attachment.filename}: ${error.message}`,
+        );
       }
     }
 
@@ -253,7 +307,10 @@ export class DocumentProcessingService {
     for (const reference of references) {
       try {
         // Check if it's a URL
-        if (reference.startsWith('http://') || reference.startsWith('https://')) {
+        if (
+          reference.startsWith('http://') ||
+          reference.startsWith('https://')
+        ) {
           const result = await this.processDocument(reference, {
             ...options,
             metadata: {
@@ -275,7 +332,9 @@ export class DocumentProcessingService {
           }
         }
       } catch (error: any) {
-        this.logger.error(`Failed to process reference ${reference}: ${error.message}`);
+        this.logger.error(
+          `Failed to process reference ${reference}: ${error.message}`,
+        );
       }
     }
 
@@ -293,7 +352,9 @@ export class DocumentProcessingService {
       summarize?: boolean;
     },
   ): Promise<string> {
-    this.logger.log(`Shortening content from ${content.length} to max ${maxLength} characters`);
+    this.logger.log(
+      `Shortening content from ${content.length} to max ${maxLength} characters`,
+    );
 
     // Simple truncation if content is already short enough
     if (content.length <= maxLength) {
@@ -301,16 +362,30 @@ export class DocumentProcessingService {
     }
 
     if (options?.summarize) {
-      // TODO: Implement LLM-based summarization
-      // For now, use intelligent truncation
-      this.logger.warn('LLM summarization not yet implemented, using truncation');
+      // Implement LLM-based summarization via assistant-worker
+      try {
+        const summary = await this.summarizeWithLLM(content, maxLength);
+        if (summary) {
+          return summary;
+        }
+        // Fall through to truncation if LLM summarization fails
+        this.logger.warn(
+          'LLM summarization failed, falling back to truncation',
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(
+          `LLM summarization error: ${message}, using truncation`,
+        );
+      }
     }
 
     if (options?.preserveStructure) {
       // Try to preserve paragraph structure
       const paragraphs = content.split('\n\n');
       let shortened = '';
-      
+
       for (const paragraph of paragraphs) {
         if ((shortened + paragraph).length <= maxLength - 50) {
           shortened += paragraph + '\n\n';
@@ -326,5 +401,73 @@ export class DocumentProcessingService {
 
     // Simple truncation with ellipsis
     return content.substring(0, maxLength - 20) + '\n\n[Content truncated...]';
+  }
+
+  /**
+   * Summarize content using LLM via assistant-worker
+   */
+  private async summarizeWithLLM(
+    content: string,
+    maxLength: number,
+  ): Promise<string | null> {
+    try {
+      const assistantWorkerUrl =
+        this.configService?.get<string>('ASSISTANT_WORKER_URL') ||
+        'http://localhost:3001';
+
+      // Truncate content if too long for LLM (most models have token limits)
+      const contentForSummary =
+        content.length > 10000
+          ? content.substring(0, 10000) +
+            '\n\n[Content truncated for summarization...]'
+          : content;
+
+      const response = await fetch(`${assistantWorkerUrl}/llm/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a helpful assistant that summarizes text content. Provide concise, accurate summaries that preserve key information.',
+            },
+            {
+              role: 'user',
+              content: `Please summarize the following content in approximately ${maxLength} characters or less, preserving the most important information:\n\n${contentForSummary}`,
+            },
+          ],
+          temperature: 0.3, // Lower temperature for more consistent summaries
+          maxTokens: Math.floor(maxLength / 4), // Rough estimate: 4 chars per token
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`LLM service returned ${response.status}`);
+      }
+
+      const result = await response.json();
+      const summary = result.content || result.text || null;
+
+      if (summary && summary.length <= maxLength) {
+        return summary;
+      }
+
+      // If summary is too long, truncate it
+      if (summary && summary.length > maxLength) {
+        return (
+          summary.substring(0, maxLength - 20) + '\n\n[Summary truncated...]'
+        );
+      }
+
+      return null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to summarize with LLM: ${message}`);
+      return null;
+    }
   }
 }

@@ -78,4 +78,3 @@ describe('CreateQuestionUseCase', () => {
     expect(result.tags).toEqual([]);
   });
 });
-

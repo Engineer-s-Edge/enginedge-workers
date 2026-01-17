@@ -4,7 +4,10 @@ import { TextSplitterFactoryService } from '@application/services/text-splitter-
 class DummySplitter {
   constructor(public name: string) {}
   async splitDocuments(docs: any[]): Promise<any[]> {
-    return docs.map((d, i) => ({ ...d, content: d.content + `-chunk-${this.name}-${i}` }));
+    return docs.map((d, i) => ({
+      ...d,
+      content: d.content + `-chunk-${this.name}-${i}`,
+    }));
   }
 }
 

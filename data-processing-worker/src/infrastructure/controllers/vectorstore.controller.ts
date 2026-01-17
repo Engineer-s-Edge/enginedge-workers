@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Delete, Body, Param, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Logger,
+} from '@nestjs/common';
 import { MongoDBVectorStoreAdapter } from '../adapters/vectorstores/mongodb.vectorstore';
 
 interface MetadataFilter extends Record<string, unknown> {
@@ -10,7 +18,7 @@ interface MetadataFilter extends Record<string, unknown> {
 
 /**
  * Vector Store Controller
- * 
+ *
  * REST API endpoints for vector store operations:
  * - Similarity search
  * - Metadata search
@@ -22,9 +30,7 @@ interface MetadataFilter extends Record<string, unknown> {
 export class VectorStoreController {
   private readonly logger = new Logger(VectorStoreController.name);
 
-  constructor(
-    private readonly vectorStore: MongoDBVectorStoreAdapter,
-  ) {}
+  constructor(private readonly vectorStore: MongoDBVectorStoreAdapter) {}
 
   /**
    * POST /vector-store/search
@@ -143,13 +149,19 @@ export class VectorStoreController {
   ) {
     this.logger.log(`Conversation search for: ${body.conversationId}`);
 
-    const { queryEmbedding, conversationId, userId, limit = 5, includeGlobalDocuments = true } = body;
+    const {
+      queryEmbedding,
+      conversationId,
+      userId,
+      limit = 5,
+      includeGlobalDocuments = true,
+    } = body;
 
     // Build filter for conversation-scoped documents
-    const filter: Record<string, unknown> = {
-      $or: [
-        { 'metadata.conversationId': conversationId },
-      ],
+    const filter: {
+      $or: Array<Record<string, unknown>>;
+    } = {
+      $or: [{ 'metadata.conversationId': conversationId }],
     };
 
     // Optionally include global/shared documents
@@ -293,9 +305,7 @@ export class VectorStoreController {
    * Delete multiple documents
    */
   @Delete('documents')
-  async deleteDocuments(
-    @Body() body: { ids: string[] },
-  ) {
+  async deleteDocuments(@Body() body: { ids: string[] }) {
     this.logger.log(`Deleting ${body.ids.length} documents`);
 
     await this.vectorStore.deleteDocuments(body.ids);

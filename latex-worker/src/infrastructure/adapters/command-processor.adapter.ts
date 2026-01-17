@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Command, CommandResult } from '@domain/entities/command.entities';
+import { CommandDto, CommandResultDto } from '@application/dto/command.dto';
 import { ICommandProcessor } from '@application/ports/interfaces';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class CommandProcessorAdapter implements ICommandProcessor {
     this.logger.log('CommandProcessorAdapter initialized');
   }
 
-  async processCommand(command: Command): Promise<CommandResult> {
+  async processCommand(command: CommandDto): Promise<CommandResultDto> {
     this.logger.log(`Processing command: ${JSON.stringify(command)}`);
 
     if (!command || !command.taskType) {
@@ -50,7 +50,10 @@ export class CommandProcessorAdapter implements ICommandProcessor {
         result: resultPayload,
       };
     } catch (error) {
-      this.logger.error(`Error processing task ${taskId}:`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Error processing task ${taskId}:`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return {
         taskId: taskId,
         status: 'FAILURE',

@@ -4,14 +4,41 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { LearningModeAdapter } from '../../../infrastructure/adapters/implementations/learning-mode.adapter';
-import { LearningModeConfig, LearningMode } from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
+import { LearningModeService } from '../../../application/services/learning-mode.service';
+import {
+  LearningMode,
+  LearningModeConfig,
+} from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
 
 describe('LearningModeAdapter', () => {
   let adapter: LearningModeAdapter;
+  let mockService: any;
 
   beforeEach(async () => {
+    mockService = {
+      getModeStatistics: jest.fn().mockResolvedValue({
+        mode: 'user-directed',
+        usageCount: 1,
+        successRate: 1,
+      }),
+      isLearning: jest.fn().mockResolvedValue(false),
+      switchMode: jest.fn().mockResolvedValue(true),
+      cancelLearning: jest.fn().mockResolvedValue(true),
+      executeLearningMode: jest.fn().mockImplementation((config) => ({
+        success: true,
+        mode: config.mode,
+        topicsProcessed: ['topic1'],
+        duration: 123,
+        timestamp: new Date(),
+      })),
+      getCurrentMode: jest.fn().mockResolvedValue('user-directed'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [LearningModeAdapter],
+      providers: [
+        LearningModeAdapter,
+        { provide: LearningModeService, useValue: mockService },
+      ],
     }).compile();
 
     adapter = module.get<LearningModeAdapter>(LearningModeAdapter);
@@ -72,11 +99,14 @@ describe('LearningModeAdapter', () => {
     });
 
     it('should handle concurrent executions', async () => {
-      const configs: LearningModeConfig[] = Array.from({ length: 10 }, (_, i) => ({
-        userId: `user-${i}`,
-        mode: 'user-directed' as LearningMode,
-        topics: [`Topic-${i}`],
-      }));
+      const configs: LearningModeConfig[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          userId: `user-${i}`,
+          mode: 'user-directed' as LearningMode,
+          topics: [`Topic-${i}`],
+        }),
+      );
 
       const results = await Promise.all(
         configs.map((c) => adapter.executeLearningMode(c)),
@@ -182,9 +212,7 @@ describe('LearningModeAdapter', () => {
       ];
 
       const promises = modes.flatMap((mode) =>
-        Array.from({ length: 5 }, () =>
-          adapter.getModeStatistics(mode),
-        ),
+        Array.from({ length: 5 }, () => adapter.getModeStatistics(mode)),
       );
 
       const results = await Promise.all(promises);
@@ -249,9 +277,7 @@ describe('LearningModeAdapter', () => {
       const changes = [];
 
       for (let i = 0; i < 20; i++) {
-        changes.push(
-          adapter.switchMode('user-rapid', modes[i % 3]),
-        );
+        changes.push(adapter.switchMode('user-rapid', modes[i % 3]));
       }
 
       const results = await Promise.all(changes);

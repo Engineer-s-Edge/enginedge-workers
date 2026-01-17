@@ -1,6 +1,6 @@
 /**
  * Topic Catalog Adapter Interface
- * 
+ *
  * Port interface for topic discovery and tracking
  * Abstracts external TopicCatalogService implementation
  */
@@ -26,7 +26,10 @@ export interface ITopicCatalogAdapter {
   /**
    * Add topic to catalog
    */
-  addTopic(topic: string, metadata: Omit<TopicMetadata, 'id' | 'name'>): Promise<TopicMetadata>;
+  addTopic(
+    topic: string,
+    metadata: Omit<TopicMetadata, 'id' | 'name'>,
+  ): Promise<TopicMetadata>;
 
   /**
    * Get topic details
@@ -46,7 +49,10 @@ export interface ITopicCatalogAdapter {
   /**
    * Update topic metadata
    */
-  updateTopic(topic: string, metadata: Partial<TopicMetadata>): Promise<TopicMetadata>;
+  updateTopic(
+    topic: string,
+    metadata: Partial<TopicMetadata>,
+  ): Promise<TopicMetadata>;
 
   /**
    * Get trending topics
@@ -56,5 +62,13 @@ export interface ITopicCatalogAdapter {
   /**
    * Track topic research
    */
-  trackResearch(topic: string, researchData: Record<string, unknown>): Promise<boolean>;
+  trackResearch(
+    topic: string,
+    researchData: Record<string, unknown>,
+  ): Promise<boolean>;
+
+  /**
+   * Delete topic from catalog
+   */
+  deleteTopic(topic: string): Promise<boolean>;
 }

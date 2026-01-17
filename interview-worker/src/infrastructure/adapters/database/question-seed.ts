@@ -1,16 +1,23 @@
 /**
  * Question Bank Seed Data
- * 
+ *
  * Provides 50+ sample questions for the question bank.
  * These questions cover all categories and difficulty levels.
  */
 
 import { InterviewQuestion } from '../../../domain/entities';
 
-export const SEED_QUESTIONS: Omit<
-  InterviewQuestion,
-  'matches' | 'toObject' | 'fromObject'
->[] = [
+export const SEED_QUESTIONS: Array<{
+  questionId: string;
+  category: 'tech-trivia' | 'system-design' | 'behavioral' | 'coding';
+  subcategory?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+  question: string;
+  expectedDuration?: number;
+  starterCode?: string;
+  correctWorkingCode?: string;
+}> = [
   // Behavioral Questions
   {
     questionId: 'beh-001',
@@ -89,8 +96,7 @@ export const SEED_QUESTIONS: Omit<
     subcategory: 'typescript',
     difficulty: 'easy',
     tags: ['typescript', 'types'],
-    question:
-      'What are the main benefits of TypeScript over JavaScript?',
+    question: 'What are the main benefits of TypeScript over JavaScript?',
     expectedDuration: 3,
   },
   {
@@ -109,8 +115,7 @@ export const SEED_QUESTIONS: Omit<
     subcategory: 'http',
     difficulty: 'easy',
     tags: ['http', 'web'],
-    question:
-      'What is the difference between HTTP GET and POST methods?',
+    question: 'What is the difference between HTTP GET and POST methods?',
     expectedDuration: 3,
   },
   {
@@ -119,8 +124,7 @@ export const SEED_QUESTIONS: Omit<
     subcategory: 'http',
     difficulty: 'medium',
     tags: ['http', 'rest'],
-    question:
-      'Explain RESTful API principles. What makes an API RESTful?',
+    question: 'Explain RESTful API principles. What makes an API RESTful?',
     expectedDuration: 6,
   },
   {
@@ -159,8 +163,7 @@ export const SEED_QUESTIONS: Omit<
     subcategory: 'git',
     difficulty: 'easy',
     tags: ['git', 'version-control'],
-    question:
-      'Explain the difference between git merge and git rebase.',
+    question: 'Explain the difference between git merge and git rebase.',
     expectedDuration: 4,
   },
 
@@ -273,8 +276,7 @@ export const SEED_QUESTIONS: Omit<
     subcategory: 'arrays',
     difficulty: 'medium',
     tags: ['arrays', 'sorting'],
-    question:
-      'Given an array of intervals, merge all overlapping intervals.',
+    question: 'Given an array of intervals, merge all overlapping intervals.',
     expectedDuration: 20,
   },
 
@@ -338,7 +340,7 @@ export const SEED_QUESTIONS: Omit<
     difficulty: 'hard',
     tags: ['graph', 'shortest-path'],
     question:
-      'Implement Dijkstra\'s algorithm to find the shortest path between two nodes in a weighted graph.',
+      "Implement Dijkstra's algorithm to find the shortest path between two nodes in a weighted graph.",
     expectedDuration: 30,
   },
 
@@ -424,7 +426,7 @@ export const SEED_QUESTIONS: Omit<
     difficulty: 'medium',
     tags: ['linked-list', 'two-pointers'],
     question:
-      'Given a linked list, determine if it has a cycle using Floyd\'s cycle detection algorithm.',
+      "Given a linked list, determine if it has a cycle using Floyd's cycle detection algorithm.",
     expectedDuration: 18,
   },
   {
@@ -592,4 +594,3 @@ export function createSeedQuestions(): InterviewQuestion[] {
       }),
   );
 }
-

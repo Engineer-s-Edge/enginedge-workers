@@ -1,0 +1,1273 @@
+components:
+  schemas:
+    AddBulletDto:
+      properties: {}
+      type: object
+    MarkReviewedDto:
+      properties: {}
+      type: object
+  securitySchemes:
+    jwt:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
+info:
+  contact: {}
+  description: AI-powered resume generation, evaluation, and tailoring platform
+  title: Resume Worker API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /latex/lint:
+    post:
+      operationId: LatexLintController_lint
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - LatexLint
+  /resume/ai/analyze-latex:
+    post:
+      operationId: LatexController_analyzeLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Latex
+  /resume/ai/edit-latex:
+    post:
+      operationId: LatexController_editLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Latex
+  /resume/bullets/check-match:
+    post:
+      operationId: BulletsController_checkMatch
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Bullets
+  /resume/bullets/create-reference:
+    post:
+      operationId: BulletsController_createReference
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Bullets
+  /resume/bullets/resolve-references:
+    post:
+      operationId: BulletsController_resolveReferences
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Bullets
+  /resume/cover-letters:
+    post:
+      operationId: CoverLetterController_createCoverLetter
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/generate:
+    post:
+      operationId: CoverLetterController_generateCoverLetter
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/resume/{resumeId}:
+    get:
+      operationId: CoverLetterController_getCoverLettersForResume
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}:
+    delete:
+      operationId: CoverLetterController_deleteCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+    get:
+      operationId: CoverLetterController_getCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+    patch:
+      operationId: CoverLetterController_updateCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/edit:
+    post:
+      operationId: CoverLetterController_editCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/export/pdf:
+    get:
+      operationId: CoverLetterController_exportPdf
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/export/tex:
+    get:
+      operationId: CoverLetterController_exportTex
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/cover-letters/{id}/regenerate:
+    post:
+      operationId: CoverLetterController_regenerateCoverLetter
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CoverLetter
+  /resume/evaluation/bullet:
+    post:
+      operationId: EvaluationController_evaluateBullet
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/bullets:
+    post:
+      operationId: EvaluationController_evaluateBullets
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/compare/{reportId1}/{reportId2}:
+    get:
+      operationId: EvaluationController_compareEvaluations
+      parameters:
+        - in: path
+          name: reportId1
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reportId2
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/report/{reportId}:
+    get:
+      operationId: EvaluationController_getReport
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/resume/{resumeId}:
+    post:
+      operationId: EvaluationController_evaluateResume
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/resume/{resumeId}/history:
+    get:
+      operationId: EvaluationController_getScoreHistory
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/evaluation/resume/{resumeId}/reports:
+    get:
+      operationId: EvaluationController_getResumeReports
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Evaluation
+  /resume/experience-bank:
+    post:
+      operationId: ExperienceBankController_addBullet
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBulletDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/bulk-delete:
+    post:
+      operationId: ExperienceBankController_bulkDelete
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/bulk-evaluate:
+    post:
+      operationId: ExperienceBankController_bulkEvaluate
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/bulk-review:
+    post:
+      operationId: ExperienceBankController_bulkReview
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/export:
+    get:
+      operationId: ExperienceBankController_exportBullets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: bulletIds
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeScores
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeMetadata
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/import:
+    post:
+      operationId: ExperienceBankController_importBullets
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/search:
+    get:
+      operationId: ExperienceBankController_search
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/user/{userId}:
+    get:
+      operationId: ExperienceBankController_findByUser
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: reviewed
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}:
+    delete:
+      operationId: ExperienceBankController_delete
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - ExperienceBank
+    get:
+      operationId: ExperienceBankController_findById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+    patch:
+      operationId: ExperienceBankController_updateBullet
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}/review:
+    patch:
+      operationId: ExperienceBankController_markReviewed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkReviewedDto'
+        required: true
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}/scores:
+    get:
+      operationId: ExperienceBankController_getScoreHistory
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/experience-bank/{id}/usage:
+    get:
+      operationId: ExperienceBankController_getUsage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+    patch:
+      operationId: ExperienceBankController_updateUsage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ExperienceBank
+  /resume/job-postings/extract:
+    post:
+      operationId: JobPostingController_extractPosting
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/job-postings/user/{userId}:
+    get:
+      operationId: JobPostingController_getUserPostings
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: search
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: tags
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: company
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: role
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sortOrder
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/job-postings/user/{userId}/summary:
+    get:
+      operationId: JobPostingController_getUserPostingsSummary
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/job-postings/{id}:
+    delete:
+      operationId: JobPostingController_deletePosting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+    get:
+      operationId: JobPostingController_getPosting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+    patch:
+      operationId: JobPostingController_updatePosting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - JobPosting
+  /resume/resumes:
+    post:
+      operationId: ResumeController_create
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/job-posting/{jobPostingId}:
+    get:
+      operationId: ResumeController_findByJobPosting
+      parameters:
+        - in: path
+          name: jobPostingId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/user/{userId}:
+    get:
+      operationId: ResumeController_findByUser
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}:
+    delete:
+      operationId: ResumeController_delete
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Resume
+    get:
+      operationId: ResumeController_findById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+    put:
+      operationId: ResumeController_update
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/export/pdf:
+    get:
+      operationId: ResumeController_exportPdf
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/export/tex:
+    get:
+      operationId: ResumeController_exportTex
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/layout:
+    get:
+      operationId: ResumeController_getLayout
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+    patch:
+      operationId: ResumeController_saveLayout
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/locations:
+    get:
+      operationId: ResumeController_getLocations
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: finding
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{id}/sync-status:
+    get:
+      operationId: ResumeController_getSyncStatus
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/apply-template:
+    post:
+      operationId: ResumeController_applyTemplate
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/current-job-posting:
+    get:
+      operationId: ResumeController_getCurrentJobPosting
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+    patch:
+      operationId: ResumeController_setCurrentJobPosting
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/formatting:
+    patch:
+      operationId: ResumeController_updateFormatting
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/resumes/{resumeId}/sections/reorder:
+    patch:
+      operationId: ResumeController_reorderSections
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Resume
+  /resume/suggestions/bank-swaps:
+    post:
+      operationId: SuggestionsController_getBankSwaps
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/suggestions/bullet-improvements:
+    post:
+      operationId: SuggestionsController_getBulletImprovements
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/suggestions/score-bullet:
+    post:
+      operationId: SuggestionsController_scoreBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/suggestions/score-resume-with-bullet:
+    post:
+      operationId: SuggestionsController_scoreResumeWithBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Suggestions
+  /resume/tools/add-bullet-to-bank:
+    post:
+      operationId: ToolsController_addBulletToBank
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/build-cover-letter-latex:
+    post:
+      operationId: ToolsController_buildCoverLetterLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/create-bullet:
+    post:
+      operationId: ToolsController_createDraftBullet
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/edit-cover-letter-latex:
+    post:
+      operationId: ToolsController_editCoverLetterLatex
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/evaluate-bullet:
+    post:
+      operationId: ToolsController_evaluateBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/flag-bullet:
+    post:
+      operationId: ToolsController_flagBullet
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/get-flagged-bullets:
+    get:
+      operationId: ToolsController_getFlaggedBullets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/get-unreviewed-bullets:
+    get:
+      operationId: ToolsController_getUnreviewedBullets
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/tools/remove-bullet-from-bank/{bulletId}:
+    delete:
+      operationId: ToolsController_removeBulletFromBank
+      parameters:
+        - in: path
+          name: bulletId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Tools
+  /resume/user-data:
+    get:
+      operationId: UserDataController_getUserData
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - UserData
+    patch:
+      operationId: UserDataController_updateUserData
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - UserData
+  /resume/{resumeId}/edit/apply:
+    post:
+      operationId: ResumeEditingController_applyEdit
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/redo:
+    post:
+      operationId: ResumeEditingController_redo
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/stacks:
+    get:
+      operationId: ResumeEditingController_getStackSizes
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/undo:
+    post:
+      operationId: ResumeEditingController_undo
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions:
+    get:
+      operationId: ResumeEditingController_getVersionHistory
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions/compare/{version1}/{version2}:
+    get:
+      operationId: ResumeEditingController_compareVersions
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: version1
+          required: true
+          schema:
+            type: number
+        - in: path
+          name: version2
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions/{versionNumber}:
+    get:
+      operationId: ResumeEditingController_getVersion
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: versionNumber
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeEditing
+  /resume/{resumeId}/edit/versions/{versionNumber}/rollback:
+    post:
+      operationId: ResumeEditingController_rollback
+      parameters:
+        - in: path
+          name: resumeId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: versionNumber
+          required: true
+          schema:
+            type: number
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeEditing
+  /tailor:
+    post:
+      operationId: ResumeTailoringController_startTailoring
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ResumeTailoring
+  /tailor/job/{jobId}:
+    delete:
+      operationId: ResumeTailoringController_cancelJob
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeTailoring
+    get:
+      operationId: ResumeTailoringController_getJobStatus
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeTailoring
+  /tailor/user/{userId}/jobs:
+    get:
+      operationId: ResumeTailoringController_getUserJobs
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ResumeTailoring
+servers: []
+tags:
+  - description: Resume CRUD operations
+    name: Resumes
+  - description: Manage bullet point library with vector search
+    name: Experience Bank
+  - description: Extract and manage job postings
+    name: Job Postings
+  - description: Evaluate resumes and bullets
+    name: Evaluation
+  - description: Full resume tailoring workflow
+    name: Tailoring
+  - description: LaTeX editing operations
+    name: Editing
+  - description: Generate tailored cover letters
+    name: Cover Letter
+  - description: Health checks and metrics
+    name: Health

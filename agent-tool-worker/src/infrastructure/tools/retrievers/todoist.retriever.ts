@@ -18,8 +18,15 @@
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import { BaseRetriever } from '../../../domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '../../../domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '../../../domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '../../../domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '../../../domain/entities/tool.entities';
 
 export interface TodoistArgs extends Record<string, unknown> {
   query?: string;
@@ -104,84 +111,87 @@ export interface TodoistOutput extends ToolOutput {
 }
 
 @Injectable()
-export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> {
+export class TodoistRetriever extends BaseRetriever<
+  TodoistArgs,
+  TodoistOutput
+> {
   readonly inputSchema = {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'Search query for task content'
+        description: 'Search query for task content',
       },
       filter: {
         type: 'string',
-        description: 'Todoist filter expression for advanced filtering'
+        description: 'Todoist filter expression for advanced filtering',
       },
       project_id: {
         type: 'string',
-        description: 'Filter by project ID'
+        description: 'Filter by project ID',
       },
       section_id: {
         type: 'string',
-        description: 'Filter by section ID'
+        description: 'Filter by section ID',
       },
       priority: {
         type: 'array',
         items: { type: 'number' },
-        description: 'Filter by priority levels (1-4)'
+        description: 'Filter by priority levels (1-4)',
       },
       priority_level: {
         type: 'string',
         enum: ['urgent', 'high', 'medium', 'low'],
-        description: 'Filter by priority level'
+        description: 'Filter by priority level',
       },
       status: {
         type: 'string',
         enum: ['active', 'completed'],
         description: 'Filter by task status',
-        default: 'active'
+        default: 'active',
       },
       due_date: {
         type: 'string',
         description: 'Filter by due date (YYYY-MM-DD format)',
-        format: 'date'
+        format: 'date',
       },
       due_before: {
         type: 'string',
         description: 'Filter for tasks due before date (YYYY-MM-DD)',
-        format: 'date'
+        format: 'date',
       },
       due_after: {
         type: 'string',
         description: 'Filter for tasks due after date (YYYY-MM-DD)',
-        format: 'date'
+        format: 'date',
       },
       sort_by: {
         type: 'string',
         enum: ['due_date', 'priority', 'string', 'created'],
         description: 'Sort field',
-        default: 'due_date'
+        default: 'due_date',
       },
       sort_order: {
         type: 'string',
         enum: ['asc', 'desc'],
         description: 'Sort order',
-        default: 'asc'
+        default: 'asc',
       },
       max_results: {
         type: 'number',
         description: 'Maximum tasks to return',
         minimum: 1,
         maximum: 200,
-        default: 20
+        default: 20,
       },
       offset: {
         type: 'number',
         description: 'Offset for pagination',
         minimum: 0,
-        default: 0
-      }
+        default: 0,
+      },
     },
-    required: []
+    required: [],
   };
 
   readonly outputSchema = {
@@ -211,16 +221,17 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
             is_recurring: { type: 'boolean' },
             created_at: { type: 'string', format: 'date-time' },
             comment_count: { type: 'number' },
-            url: { type: 'string' }
-          }
-        }
-      }
+            url: { type: 'string' },
+          },
+        },
+      },
     },
-    required: ['success', 'total_results', 'tasks']
+    required: ['success', 'total_results', 'tasks'],
   };
 
   readonly name = 'todoist-retriever';
-  readonly description = 'Search and retrieve tasks from Todoist with filtering, sorting, and status tracking';
+  readonly description =
+    'Search and retrieve tasks from Todoist with filtering, sorting, and status tracking';
   readonly retrievalType: RetrievalType = RetrievalType.API_DATA;
 
   readonly metadata = new RetrieverConfig(
@@ -232,30 +243,51 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
-    new ErrorEvent('todoist-auth-failed', 'Todoist authentication failed', false),
+    new ErrorEvent(
+      'todoist-auth-failed',
+      'Todoist authentication failed',
+      false,
+    ),
     new ErrorEvent('todoist-api-error', 'Todoist API request failed', true),
-    new ErrorEvent('todoist-invalid-project', 'Invalid project ID provided', false),
-    new ErrorEvent('todoist-network-error', 'Network connectivity issue with Todoist API', true),
-    new ErrorEvent('todoist-rate-limit', 'Todoist API rate limit exceeded', true)
+    new ErrorEvent(
+      'todoist-invalid-project',
+      'Invalid project ID provided',
+      false,
+    ),
+    new ErrorEvent(
+      'todoist-network-error',
+      'Network connectivity issue with Todoist API',
+      true,
+    ),
+    new ErrorEvent(
+      'todoist-rate-limit',
+      'Todoist API rate limit exceeded',
+      true,
+    ),
   ];
 
   public get caching(): boolean {
     return false; // Tasks change frequently
   }
 
-  protected async retrieve(args: TodoistArgs & { ragConfig: RAGConfig }): Promise<TodoistOutput> {
+  protected async retrieve(
+    args: TodoistArgs & { ragConfig: RAGConfig },
+  ): Promise<TodoistOutput> {
     // Manual input validation
-    if (args.max_results !== undefined && (args.max_results < 1 || args.max_results > 200)) {
+    if (
+      args.max_results !== undefined &&
+      (args.max_results < 1 || args.max_results > 200)
+    ) {
       throw new Error('max_results must be between 1 and 200');
     }
     if (args.offset !== undefined && args.offset < 0) {
       throw new Error('offset must be non-negative');
     }
-    if (args.priority && args.priority.some(p => p < 1 || p > 4)) {
+    if (args.priority && args.priority.some((p) => p < 1 || p > 4)) {
       throw new Error('Priority levels must be between 1 and 4');
     }
 
@@ -267,14 +299,16 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
         query: args.query,
         total_results: response.data.tasks?.length || 0,
         filter_applied: this.buildFilterDescription(args),
-        tasks: this.transformTasks(response.data.tasks || [])
+        tasks: this.transformTasks(response.data.tasks || []),
       };
     } catch (error: unknown) {
       return this.handleTodoistError(error);
     }
   }
 
-  private async sendTodoistRequest(args: TodoistArgs): Promise<AxiosResponse<TodoistApiResponse>> {
+  private async sendTodoistRequest(
+    args: TodoistArgs,
+  ): Promise<AxiosResponse<TodoistApiResponse>> {
     const token = process.env.TODOIST_API_TOKEN;
     if (!token) {
       throw new Error('Todoist API token not configured');
@@ -284,7 +318,9 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
 
     // Build filter from arguments
     if (args.status) {
-      filters.push(`(status = ${args.status === 'completed' ? 'done' : 'active'})`);
+      filters.push(
+        `(status = ${args.status === 'completed' ? 'done' : 'active'})`,
+      );
     }
 
     if (args.project_id) {
@@ -299,7 +335,9 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
       const priorityMap = { urgent: 4, high: 3, medium: 2, low: 1 };
       filters.push(`priority = ${priorityMap[args.priority_level]}`);
     } else if (args.priority && args.priority.length > 0) {
-      const priorityFilter = args.priority.map(p => `priority = ${p}`).join(' | ');
+      const priorityFilter = args.priority
+        .map((p) => `priority = ${p}`)
+        .join(' | ');
       filters.push(`(${priorityFilter})`);
     }
 
@@ -318,12 +356,14 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
     let filterQuery = filters.join(' & ');
 
     if (args.filter) {
-      filterQuery = filterQuery ? `${filterQuery} & ${args.filter}` : args.filter;
+      filterQuery = filterQuery
+        ? `${filterQuery} & ${args.filter}`
+        : args.filter;
     }
 
     const params: Record<string, unknown> = {
       limit: Math.min(args.max_results || 20, 200),
-      offset: args.offset || 0
+      offset: args.offset || 0,
     };
 
     if (args.query) {
@@ -343,12 +383,12 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
       'https://api.todoist.com/rest/v2/tasks',
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
         params,
-        timeout: 30000
-      }
+        timeout: 30000,
+      },
     );
   }
 
@@ -372,7 +412,7 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
   }
 
   private transformTasks(tasks: TodoistTask[]): TodoistOutput['tasks'] {
-    return tasks.map(task => ({
+    return tasks.map((task) => ({
       task_id: task.id,
       content: task.content,
       description: task.description,
@@ -388,7 +428,7 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
       is_recurring: task.due?.is_recurring || false,
       created_at: task.created_at,
       comment_count: task.comment_count,
-      url: task.url
+      url: task.url,
     }));
   }
 
@@ -397,20 +437,25 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
       4: 'urgent',
       3: 'high',
       2: 'medium',
-      1: 'low'
+      1: 'low',
     };
     return labels[priority] || 'unknown';
   }
 
   private handleTodoistError(error: unknown): never {
     let errorMessage = 'Unknown error occurred while accessing Todoist API';
-    
+
     // Check for axios-like error structure (works with mocks and real axios errors)
-    const axiosLikeError = error as { isAxiosError?: boolean; response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
-    
+    const axiosLikeError = error as {
+      isAxiosError?: boolean;
+      response?: { status?: number; data?: { error?: { message?: string } } };
+      message?: string;
+    };
+
     if (axios.isAxiosError(error) || axiosLikeError.isAxiosError) {
       const status = axiosLikeError.response?.status;
-      const message = axiosLikeError.response?.data?.error?.message || axiosLikeError.message;
+      const message =
+        axiosLikeError.response?.data?.error?.message || axiosLikeError.message;
 
       if (status === 401 || status === 403) {
         errorMessage = 'Todoist authentication failed - check API token';
@@ -426,11 +471,18 @@ export class TodoistRetriever extends BaseRetriever<TodoistArgs, TodoistOutput> 
     } else if (error instanceof Error) {
       if (error.message.includes('timeout')) {
         errorMessage = 'Todoist API request timeout';
-      } else if (error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+      } else if (
+        error.message.includes('network') ||
+        error.message.includes('ECONNREFUSED')
+      ) {
         errorMessage = 'Network connectivity issue with Todoist API';
       } else if (error.message.includes('token not configured')) {
         errorMessage = error.message;
-      } else if (error.message.includes('max_results') || error.message.includes('offset') || error.message.includes('Priority')) {
+      } else if (
+        error.message.includes('max_results') ||
+        error.message.includes('offset') ||
+        error.message.includes('Priority')
+      ) {
         errorMessage = error.message;
       }
     }

@@ -1,16 +1,23 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, Producer, KafkaConfig } from 'kafkajs';
 import { MessageBrokerPort } from '@application/ports/message-broker.port';
 
 /**
  * Kafka Message Broker Adapter (Infrastructure Layer)
- * 
+ *
  * Implements the MessageBrokerPort interface for Kafka.
  * This adapter handles all Kafka-specific implementation details.
  */
 @Injectable()
-export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleInit, OnModuleDestroy {
+export class KafkaMessageBrokerAdapter
+  implements MessageBrokerPort, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(KafkaMessageBrokerAdapter.name);
   private kafka!: Kafka;
   private consumer!: Consumer;
@@ -25,19 +32,32 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
    * Initialize Kafka client with configuration
    */
   private initializeKafka(): void {
-    const brokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092');
-    const securityProtocol = this.configService.get<string>('KAFKA_SECURITY_PROTOCOL', 'PLAINTEXT');
-    const saslMechanism = this.configService.get<string>('KAFKA_SASL_MECHANISM');
+    const brokers = this.configService.get<string>(
+      'KAFKA_BROKERS',
+      'localhost:9092',
+    );
+    const securityProtocol = this.configService.get<string>(
+      'KAFKA_SECURITY_PROTOCOL',
+      'PLAINTEXT',
+    );
+    const saslMechanism = this.configService.get<string>(
+      'KAFKA_SASL_MECHANISM',
+    );
     const saslUsername = this.configService.get<string>('KAFKA_SASL_USERNAME');
     const saslPassword = this.configService.get<string>('KAFKA_SASL_PASSWORD');
 
     const kafkaConfig: KafkaConfig = {
       clientId: 'worker-node',
-      brokers: brokers.split(',').map(broker => broker.trim()),
+      brokers: brokers.split(',').map((broker) => broker.trim()),
     };
 
     // Add SASL configuration if security protocol requires it
-    if (securityProtocol === 'SASL_PLAINTEXT' && saslMechanism && saslUsername && saslPassword) {
+    if (
+      securityProtocol === 'SASL_PLAINTEXT' &&
+      saslMechanism &&
+      saslUsername &&
+      saslPassword
+    ) {
       if (saslMechanism === 'plain') {
         kafkaConfig.sasl = {
           mechanism: 'plain' as const,
@@ -59,8 +79,10 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
       }
     }
 
-    this.logger.log(`Initializing Kafka with brokers: ${brokers}, security: ${securityProtocol}`);
-    
+    this.logger.log(
+      `Initializing Kafka with brokers: ${brokers}, security: ${securityProtocol}`,
+    );
+
     this.kafka = new Kafka(kafkaConfig);
     this.consumer = this.kafka.consumer({ groupId: 'worker-group' });
     this.producer = this.kafka.producer();
@@ -86,17 +108,20 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
   async connect(): Promise<void> {
     try {
       this.logger.log('Connecting to Kafka...');
-      
+
       await this.consumer.connect();
       this.logger.log('Kafka consumer connected');
-      
+
       await this.producer.connect();
       this.logger.log('Kafka producer connected');
 
       this.connected = true;
       this.logger.log('Successfully connected to Kafka');
     } catch (error) {
-      this.logger.error('Failed to connect to Kafka:', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to connect to Kafka:',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -107,14 +132,17 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
   async disconnect(): Promise<void> {
     try {
       this.logger.log('Disconnecting from Kafka...');
-      
+
       await this.consumer.disconnect();
       await this.producer.disconnect();
-      
+
       this.connected = false;
       this.logger.log('Successfully disconnected from Kafka');
     } catch (error) {
-      this.logger.error('Failed to disconnect from Kafka:', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to disconnect from Kafka:',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -137,7 +165,10 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
       });
       this.logger.debug(`Message sent to topic ${topic}`);
     } catch (error) {
-      this.logger.error(`Failed to send message to topic ${topic}:`, error as Record<string, unknown>);
+      this.logger.error(
+        `Failed to send message to topic ${topic}:`,
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -145,7 +176,10 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
   /**
    * Subscribe to a topic and handle messages
    */
-  async subscribe(topic: string, handler: (message: unknown) => Promise<void>): Promise<void> {
+  async subscribe(
+    topic: string,
+    handler: (message: unknown) => Promise<void>,
+  ): Promise<void> {
     try {
       await this.consumer.subscribe({ topic, fromBeginning: false });
       this.logger.log(`Subscribed to topic: ${topic}`);
@@ -167,13 +201,19 @@ export class KafkaMessageBrokerAdapter implements MessageBrokerPort, OnModuleIni
             const parsedMessage = JSON.parse(message.value.toString());
             await handler(parsedMessage);
           } catch (error) {
-            this.logger.error('Failed to process message:', error as Record<string, unknown>);
+            this.logger.error(
+              'Failed to process message:',
+              error as Record<string, unknown>,
+            );
             // Depending on requirements, you might want to send to a dead-letter queue
           }
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to subscribe to topic ${topic}:`, error as Record<string, unknown>);
+      this.logger.error(
+        `Failed to subscribe to topic ${topic}:`,
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }

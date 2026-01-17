@@ -7,7 +7,11 @@ import * as crypto from 'crypto';
 export class NotionLoaderAdapter extends FilesystemLoaderPort {
   private readonly logger = new Logger(NotionLoaderAdapter.name);
 
-  async loadBlob(blob: Blob, fileName: string, options?: Record<string, unknown>): Promise<Document[]> {
+  async loadBlob(
+    blob: Blob,
+    fileName: string,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     this.logger.log(`Loading Notion Markdown blob: ${fileName}`);
     const metadata = (options?.metadata as Record<string, unknown>) ?? {};
 
@@ -16,7 +20,7 @@ export class NotionLoaderAdapter extends FilesystemLoaderPort {
       const arrayBuffer = await blob.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const textContent = buffer.toString('utf-8');
-      
+
       // Create a temporary document since LangChain's NotionLoader expects filesystem path
       const document = new Document(
         this.generateDocumentId(fileName, 0),
@@ -27,15 +31,19 @@ export class NotionLoaderAdapter extends FilesystemLoaderPort {
           mimeType: 'text/markdown',
           fileName,
           fileExtension: '.md',
-          ...metadata
-        } as DocumentMetadata
+          ...metadata,
+        } as DocumentMetadata,
       );
-      
+
       this.logger.log(`Loaded 1 document from Notion`);
       return [document];
     } catch (error) {
-      this.logger.error(`Error loading Notion: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw new Error(`Failed to load Notion: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Error loading Notion: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new Error(
+        `Failed to load Notion: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

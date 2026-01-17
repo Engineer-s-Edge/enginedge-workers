@@ -4,7 +4,10 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProcessCommandUseCase } from '../../../application/use-cases/process-command.use-case';
-import { Command, CommandResult } from '../../../domain/entities/command.entities';
+import {
+  Command,
+  CommandResult,
+} from '../../../domain/entities/command.entities';
 
 describe('ProcessCommandUseCase', () => {
   let useCase: ProcessCommandUseCase;
@@ -40,35 +43,40 @@ describe('ProcessCommandUseCase', () => {
   it('should process command and publish result', async () => {
     const mockCommand: Command = {
       taskId: 'task-1',
-      type: 'test-command',
+      taskType: 'test-command',
       payload: {},
     };
 
     const mockResult: CommandResult = {
       taskId: 'task-1',
-      success: true,
-      data: {},
+      status: 'SUCCESS',
+      result: {},
     };
 
     mockCommandProcessor.processCommand.mockResolvedValue(mockResult);
 
     const result = await useCase.execute(mockCommand);
 
-    expect(result.success).toBe(true);
-    expect(mockCommandProcessor.processCommand).toHaveBeenCalledWith(mockCommand);
+    expect(result.status).toBe('SUCCESS');
+    expect(mockCommandProcessor.processCommand).toHaveBeenCalledWith(
+      mockCommand,
+    );
     expect(mockMessagePublisher.publishResult).toHaveBeenCalledWith(mockResult);
   });
 
   it('should handle errors gracefully', async () => {
     const mockCommand: Command = {
       taskId: 'task-1',
-      type: 'test-command',
+      taskType: 'test-command',
       payload: {},
     };
 
-    mockCommandProcessor.processCommand.mockRejectedValue(new Error('Processing failed'));
+    mockCommandProcessor.processCommand.mockRejectedValue(
+      new Error('Processing failed'),
+    );
 
-    await expect(useCase.execute(mockCommand)).rejects.toThrow('Processing failed');
+    await expect(useCase.execute(mockCommand)).rejects.toThrow(
+      'Processing failed',
+    );
   });
 });
-

@@ -37,7 +37,10 @@ describe('VectorSearchRetriever', () => {
     });
 
     it('vector-search-005: should have valid input schema', () => {
-      const schema = retriever.metadata.inputSchema as { required?: string[]; properties?: Record<string, unknown> };
+      const schema = retriever.metadata.inputSchema as {
+        required?: string[];
+        properties?: Record<string, unknown>;
+      };
       expect(schema).toHaveProperty('properties');
       expect(schema.required).toContain('query');
       expect(schema.required).toContain('userId');
@@ -47,13 +50,13 @@ describe('VectorSearchRetriever', () => {
   describe('Input Validation', () => {
     it('vector-search-006: should validate missing query', async () => {
       await expect(
-        retriever.validateInput({ userId: 'user-123' })
+        retriever.validateInput({ userId: 'user-123' }),
       ).rejects.toThrow('query must be a non-empty string');
     });
 
     it('vector-search-007: should validate missing userId', async () => {
       await expect(
-        retriever.validateInput({ query: 'test query' })
+        retriever.validateInput({ query: 'test query' }),
       ).rejects.toThrow('userId must be a non-empty string');
     });
 
@@ -63,7 +66,7 @@ describe('VectorSearchRetriever', () => {
           query: 'test',
           userId: 'user-123',
           limit: 0,
-        })
+        }),
       ).rejects.toThrow('limit must be a number between 1 and 100');
     });
 
@@ -73,7 +76,7 @@ describe('VectorSearchRetriever', () => {
           query: 'test',
           userId: 'user-123',
           limit: 101,
-        })
+        }),
       ).rejects.toThrow('limit must be a number between 1 and 100');
     });
 
@@ -83,7 +86,7 @@ describe('VectorSearchRetriever', () => {
           query: 'test',
           userId: 'user-123',
           similarity: 'invalid' as 'cosine',
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -94,7 +97,7 @@ describe('VectorSearchRetriever', () => {
           userId: 'user-123',
           limit: 5,
           similarity: 'cosine',
-        })
+        }),
       ).resolves.toBe(true);
     });
   });
@@ -247,14 +250,18 @@ describe('VectorSearchRetriever', () => {
     });
 
     it('vector-search-016: should handle embedding generation failure', async () => {
-      mockedAxios.post.mockRejectedValueOnce(new Error('Embedding service unavailable'));
+      mockedAxios.post.mockRejectedValueOnce(
+        new Error('Embedding service unavailable'),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await expect((retriever as any).retrieve({
-        query: 'test',
-        userId: 'user-123',
-        ragConfig: {},
-      })).rejects.toThrow('Embedding service unavailable');
+      await expect(
+        (retriever as any).retrieve({
+          query: 'test',
+          userId: 'user-123',
+          ragConfig: {},
+        }),
+      ).rejects.toThrow('Embedding service unavailable');
     });
 
     it('vector-search-017: should handle vector search failure', async () => {
@@ -267,22 +274,26 @@ describe('VectorSearchRetriever', () => {
         .mockRejectedValueOnce(new Error('Database connection failed'));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await expect((retriever as any).retrieve({
-        query: 'test',
-        userId: 'user-123',
-        ragConfig: {},
-      })).rejects.toThrow();
+      await expect(
+        (retriever as any).retrieve({
+          query: 'test',
+          userId: 'user-123',
+          ragConfig: {},
+        }),
+      ).rejects.toThrow();
     });
 
     it('vector-search-018: should handle axios timeout', async () => {
       mockedAxios.post.mockRejectedValueOnce(new Error('timeout exceeded'));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await expect((retriever as any).retrieve({
-        query: 'test',
-        userId: 'user-123',
-        ragConfig: {},
-      })).rejects.toThrow();
+      await expect(
+        (retriever as any).retrieve({
+          query: 'test',
+          userId: 'user-123',
+          ragConfig: {},
+        }),
+      ).rejects.toThrow();
     });
   });
 
@@ -292,7 +303,8 @@ describe('VectorSearchRetriever', () => {
         results: [
           {
             documentId: 'doc-1',
-            content: 'Machine learning content here with lots of text that will be truncated',
+            content:
+              'Machine learning content here with lots of text that will be truncated',
             metadata: { sourceType: 'web', url: 'https://example.com' },
             score: 0.95,
           },
@@ -302,7 +314,7 @@ describe('VectorSearchRetriever', () => {
       };
 
       const formatted = retriever.formatResult(mockResult);
-      
+
       expect(formatted).toContain('Found 1 document(s) in 250ms');
       expect(formatted).toContain('Score: 0.9500');
       expect(formatted).toContain('Source: web');
@@ -317,7 +329,7 @@ describe('VectorSearchRetriever', () => {
       };
 
       const formatted = retriever.formatResult(mockResult);
-      
+
       expect(formatted).toBe('No matching documents found.');
     });
 
@@ -337,7 +349,7 @@ describe('VectorSearchRetriever', () => {
       };
 
       const formatted = retriever.formatResult(mockResult);
-      
+
       expect(formatted).toContain('a'.repeat(200));
       expect(formatted).not.toContain('a'.repeat(201));
     });
@@ -348,7 +360,7 @@ describe('VectorSearchRetriever', () => {
       mockedAxios.get.mockResolvedValueOnce({ status: 200 });
 
       const available = await retriever.isAvailable();
-      
+
       expect(available).toBe(true);
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.stringContaining('/health'),
@@ -360,7 +372,7 @@ describe('VectorSearchRetriever', () => {
       mockedAxios.get.mockRejectedValueOnce(new Error('Connection refused'));
 
       const available = await retriever.isAvailable();
-      
+
       expect(available).toBe(false);
     });
   });
@@ -368,7 +380,7 @@ describe('VectorSearchRetriever', () => {
   describe('Usage Examples', () => {
     it('vector-search-024: should provide usage examples', () => {
       const examples = retriever.getUsageExamples();
-      
+
       expect(examples).toBeDefined();
       expect(Array.isArray(examples)).toBe(true);
       expect(examples.length).toBeGreaterThan(0);
@@ -382,11 +394,13 @@ describe('VectorSearchRetriever', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await expect((retriever as any).retrieve({
-        query: 'test',
-        userId: 'user-123',
-        ragConfig: {},
-      })).rejects.toThrow('Failed to generate query embedding');
+      await expect(
+        (retriever as any).retrieve({
+          query: 'test',
+          userId: 'user-123',
+          ragConfig: {},
+        }),
+      ).rejects.toThrow('Failed to generate query embedding');
     });
 
     it('vector-search-026: should handle non-array embedding', async () => {
@@ -395,11 +409,13 @@ describe('VectorSearchRetriever', () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await expect((retriever as any).retrieve({
-        query: 'test',
-        userId: 'user-123',
-        ragConfig: {},
-      })).rejects.toThrow('Failed to generate query embedding');
+      await expect(
+        (retriever as any).retrieve({
+          query: 'test',
+          userId: 'user-123',
+          ragConfig: {},
+        }),
+      ).rejects.toThrow('Failed to generate query embedding');
     });
 
     it('vector-search-027: should handle missing results in response', async () => {

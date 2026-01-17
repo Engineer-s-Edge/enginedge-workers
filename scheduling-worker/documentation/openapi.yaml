@@ -1,1101 +1,2208 @@
-openapi: 3.0.3
+components:
+  schemas:
+    ActivityEvent:
+      properties: {}
+      type: object
+    ActivityPattern:
+      properties: {}
+      type: object
+    AddMilestoneDto:
+      properties: {}
+      type: object
+    AnalyzeTimeUsageDto:
+      properties: {}
+      type: object
+    CompleteHabitDto:
+      properties: {}
+      type: object
+    CompleteMilestoneDto:
+      properties: {}
+      type: object
+    CompleteTaskDto:
+      properties: {}
+      type: object
+    CreateGoalDto:
+      properties: {}
+      type: object
+    CreateHabitDto:
+      properties: {}
+      type: object
+    GetRecommendationsDto:
+      properties: {}
+      type: object
+    Goal:
+      properties: {}
+      type: object
+    GoalProgressResponse:
+      properties: {}
+      type: object
+    Habit:
+      properties: {}
+      type: object
+    HabitStatsResponse:
+      properties: {}
+      type: object
+    LogTimeDto:
+      properties: {}
+      type: object
+    ManualScheduleDto:
+      properties: {}
+      type: object
+    ScheduleRequestDto:
+      properties: {}
+      type: object
+    SubmitFeedbackDto:
+      properties: {}
+      type: object
+    TrackCompletionDto:
+      properties: {}
+      type: object
+    UpdateGoalDto:
+      properties: {}
+      type: object
+    UpdateHabitDto:
+      properties: {}
+      type: object
+    UpdateProgressDto:
+      properties: {}
+      type: object
+  securitySchemes:
+    jwt:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
 info:
+  contact: {}
+  description: Goal management, habit tracking, calendar integration, and ML-powered scheduling
   title: Scheduling Worker API
-  description: Intelligent Calendar & Task Management API
   version: 1.0.0
-  contact:
-    name: EnginEdge Team
-    email: dev@enginedge.com
-  license:
-    name: Proprietary
-
-servers:
-  - url: http://localhost:3007
-    description: Development server
-  - url: https://api.scheduling.company.com
-    description: Production server
-
-security:
-  - bearerAuth: []
-
+openapi: 3.0.0
 paths:
-  /health:
-    get:
-      summary: Health check
-      description: Check the health status of the service
-      tags:
-        - Health
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-                  timestamp:
-                    type: string
-                    format: date-time
-                  uptime:
-                    type: number
-
-  /calendars:
-    get:
-      summary: Get user calendars
-      description: Retrieve all calendars for the authenticated user
-      tags:
-        - Calendar
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: List of calendars
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  calendars:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        name:
-                          type: string
-                        primary:
-                          type: boolean
-                        accessRole:
-                          type: string
-                          enum: [owner, writer, reader]
-                        backgroundColor:
-                          type: string
-
-  /calendars/sync:
+  /activity/analyze:
     post:
-      summary: Sync calendar events
-      description: Synchronize calendar events with Google Calendar
-      tags:
-        - Calendar
-      security:
-        - bearerAuth: []
+      operationId: ActivityController_analyzeTimeUsage
+      parameters: []
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                calendarId:
-                  type: string
-                  description: Google Calendar ID
-                fullSync:
-                  type: boolean
-                  default: false
-                  description: Perform full sync instead of incremental
-      responses:
-        '200':
-          description: Sync completed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  syncedEvents:
-                    type: integer
-                  newEvents:
-                    type: integer
-                  updatedEvents:
-                    type: integer
-                  deletedEvents:
-                    type: integer
-
-  /events:
-    get:
-      summary: Get calendar events
-      description: Retrieve calendar events within a date range
-      tags:
-        - Calendar
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: calendarId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: Calendar ID
-        - name: start
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: Start date (ISO 8601)
-        - name: end
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: End date (ISO 8601)
-        - name: maxResults
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 2500
-            default: 250
-      responses:
-        '200':
-          description: List of calendar events
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  events:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        calendarId:
-                          type: string
-                        title:
-                          type: string
-                        description:
-                          type: string
-                        startTime:
-                          type: string
-                          format: date-time
-                        endTime:
-                          type: string
-                          format: date-time
-                        location:
-                          type: string
-                        attendees:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              email:
-                                type: string
-                              displayName:
-                                type: string
-                              responseStatus:
-                                type: string
-                                enum: [needsAction, declined, tentative, accepted]
-                        reminders:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              method:
-                                type: string
-                                enum: [email, popup]
-                              minutes:
-                                type: integer
-                        recurrence:
-                          type: object
-                          properties:
-                            frequency:
-                              type: string
-                              enum: [daily, weekly, monthly, yearly]
-                            interval:
-                              type: integer
-                            until:
-                              type: string
-                              format: date
-                            count:
-                              type: integer
-                            byDay:
-                              type: array
-                              items:
-                                type: string
-
-  /goals:
-    get:
-      summary: Get user goals
-      description: Retrieve all goals for the authenticated user
-      tags:
-        - Goals
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [not_started, in_progress, completed, abandoned]
-        - name: priority
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 5
-      responses:
-        '200':
-          description: List of goals
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  goals:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        userId:
-                          type: string
-                        title:
-                          type: string
-                        description:
-                          type: string
-                        priority:
-                          type: integer
-                          minimum: 1
-                          maximum: 5
-                        status:
-                          type: string
-                          enum: [not_started, in_progress, completed, abandoned]
-                        targetDate:
-                          type: string
-                          format: date
-                        estimatedTimeRequired:
-                          type: integer
-                          description: Time in minutes
-                        timeSpent:
-                          type: integer
-                          description: Time in minutes
-                        progressPercentage:
-                          type: integer
-                          minimum: 0
-                          maximum: 100
-                        milestones:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              id:
-                                type: string
-                              title:
-                                type: string
-                              description:
-                                type: string
-                              targetDate:
-                                type: string
-                                format: date
-                              completed:
-                                type: boolean
-                              completedAt:
-                                type: string
-                                format: date-time
-                        createdAt:
-                          type: string
-                          format: date-time
-                        updatedAt:
-                          type: string
-                          format: date-time
-
-    post:
-      summary: Create a new goal
-      description: Create a new goal for the authenticated user
-      tags:
-        - Goals
-      security:
-        - bearerAuth: []
-      requestBody:
+              $ref: '#/components/schemas/AnalyzeTimeUsageDto'
         required: true
+      responses:
+        '200':
+          description: Time usage analysis
+      summary: Analyze time usage
+      tags:
+        - Activity
+  /activity/breakdown:
+    get:
+      operationId: ActivityDashboardController_getTimeBreakdown
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Time breakdown retrieved
+      summary: Get time usage breakdown by category
+      tags:
+        - Activity & Productivity
+  /activity/efficiency/{userId}:
+    get:
+      operationId: ActivityController_getEfficiency
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Schedule efficiency metrics
+      summary: Get schedule efficiency metrics
+      tags:
+        - Activity
+  /activity/events/{eventId}/complete:
+    post:
+      operationId: ActivityController_trackEventCompletion
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      requestBody:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - title
-                - priority
+              $ref: '#/components/schemas/TrackCompletionDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityEvent'
+          description: Event completion tracked
+      summary: Track event completion
+      tags:
+        - Activity
+  /activity/insights/{userId}:
+    get:
+      operationId: ActivityController_getInsights
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Productivity insights
+      summary: Get productivity insights
+      tags:
+        - Activity
+  /activity/patterns/{userId}:
+    get:
+      operationId: ActivityController_getPatterns
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityPattern'
+          description: User activity patterns
+        '404':
+          description: Pattern not found
+      summary: Get user activity patterns
+      tags:
+        - Activity
+  /activity/peak-hours:
+    get:
+      operationId: ActivityDashboardController_getPeakHours
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Peak hours data retrieved
+      summary: Get peak productivity hours heatmap data
+      tags:
+        - Activity & Productivity
+  /activity/predict/{eventId}:
+    get:
+      operationId: ActivityController_predictEventSuccess
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event success probability (0-1)
+      summary: Predict event success probability
+      tags:
+        - Activity
+  /activity/timeline:
+    get:
+      operationId: ActivityDashboardController_getActivityTimeline
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity timeline retrieved
+      summary: Get activity timeline
+      tags:
+        - Activity & Productivity
+  /assistant/agents/task-assist:
+    post:
+      operationId: TaskAssistController_taskAssist
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
               properties:
-                title:
-                  type: string
-                  maxLength: 200
                 description:
                   type: string
-                priority:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                targetDate:
-                  type: string
-                  format: date
-                estimatedTimeRequired:
-                  type: integer
-                  minimum: 0
-                milestones:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      title:
-                        type: string
-                      description:
-                        type: string
-                      targetDate:
-                        type: string
-                        format: date
+              required:
+                - description
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Task data extracted
+      summary: Extract structured task data from natural language
+      tags:
+        - Task Assist
+  /calendar/auth/callback:
+    get:
+      operationId: CalendarController_handleCallbackGet
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tokens retrieved
+      summary: Handle OAuth callback (GET)
+      tags:
+        - calendar
+    post:
+      operationId: CalendarController_handleCallback
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tokens retrieved
+      summary: Handle OAuth callback
+      tags:
+        - calendar
+  /calendar/auth/url:
+    get:
+      operationId: CalendarController_getAuthUrl
+      parameters: []
+      responses:
+        '200':
+          description: OAuth URL generated
+      summary: Get Google Calendar OAuth URL
+      tags:
+        - calendar
+  /calendar/events:
+    get:
+      operationId: CalendarController_listEvents
+      parameters:
+        - in: query
+          name: maxResults
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: timeMin
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: timeMax
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: calendarId
+          required: false
+          schema:
+            example: primary
+      responses:
+        '200':
+          description: Events retrieved
+      summary: List calendar events
+      tags:
+        - calendar
+    post:
+      operationId: CalendarController_createEvent
+      parameters: []
       responses:
         '201':
-          description: Goal created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  goal:
-                    $ref: '#/components/schemas/Goal'
-
-  /goals/{goalId}:
-    get:
-      summary: Get a specific goal
-      description: Retrieve a specific goal by ID
+          description: Event created
+      summary: Create a new calendar event
       tags:
-        - Goals
-      security:
-        - bearerAuth: []
+        - calendar
+  /calendar/events/locked-block:
+    post:
+      operationId: CalendarController_createLockedBlock
+      parameters: []
+      responses:
+        '201':
+          description: Locked block created
+      summary: Create a locked time block
+      tags:
+        - calendar
+  /calendar/events/{eventId}:
+    delete:
+      operationId: CalendarController_deleteEvent
       parameters:
-        - name: goalId
+        - description: Event ID
           in: path
+          name: eventId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Goal details
+          description: Event deleted
+      summary: Delete an event
+      tags:
+        - calendar
+    get:
+      operationId: CalendarController_getEvent
+      parameters:
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: calendarId
+          required: false
+          schema:
+            example: primary
+      responses:
+        '200':
+          description: Event retrieved
+      summary: Get a single event
+      tags:
+        - calendar
+    put:
+      operationId: CalendarController_updateEvent
+      parameters:
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event updated
+      summary: Update an existing event
+      tags:
+        - calendar
+  /calendar/events/{eventId}/enhanced:
+    post:
+      operationId: CalendarController_updateEventEnhanced
+      parameters:
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event updated
+      summary: Enhanced event update with validation
+      tags:
+        - calendar
+  /calendar/freebusy:
+    post:
+      operationId: CalendarController_queryFreeBusy
+      parameters: []
+      responses:
+        '200':
+          description: Free/busy data retrieved
+      summary: Query free/busy information
+      tags:
+        - calendar
+  /goals:
+    get:
+      operationId: GoalController_getGoals
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  goal:
-                    $ref: '#/components/schemas/Goal'
-        '404':
-          description: Goal not found
-
-    put:
-      summary: Update a goal
-      description: Update an existing goal
+                items:
+                  $ref: '#/components/schemas/Goal'
+                type: array
+          description: List of goals
+      summary: Get all goals for a user
       tags:
         - Goals
-      security:
-        - bearerAuth: []
+    post:
+      operationId: GoalController_createGoal
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGoalDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: Goal created successfully
+        '400':
+          description: Invalid input
+      summary: Create a new goal
+      tags:
+        - Goals
+  /goals/user/{userId}/by-priority:
+    get:
+      operationId: GoalController_getGoalsByPriority
       parameters:
-        - name: goalId
-          in: path
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Goal'
+                type: array
+          description: List of goals sorted by priority (high to low)
+      summary: Get goals sorted by priority
+      tags:
+        - Goals
+  /goals/user/{userId}/due-soon:
+    get:
+      operationId: GoalController_getGoalsDueSoon
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - description: 'Number of days ahead to look (default: 7)'
+          in: query
+          name: days
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Goal'
+                type: array
+          description: List of goals due soon
+      summary: Get goals due soon for a user
+      tags:
+        - Goals
+  /goals/user/{userId}/overdue:
+    get:
+      operationId: GoalController_getOverdueGoals
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Goal'
+                type: array
+          description: List of overdue goals
+      summary: Get overdue goals for a user
+      tags:
+        - Goals
+  /goals/{goalId}/milestones/{milestoneId}/complete:
+    post:
+      operationId: GoalController_completeMilestone
+      parameters:
+        - in: path
+          name: goalId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: milestoneId
           required: true
           schema:
             type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                  maxLength: 200
-                description:
-                  type: string
-                priority:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                status:
-                  type: string
-                  enum: [not_started, in_progress, completed, abandoned]
-                targetDate:
-                  type: string
-                  format: date
-                progressPercentage:
-                  type: integer
-                  minimum: 0
-                  maximum: 100
-                timeSpent:
-                  type: integer
-                  minimum: 0
+              $ref: '#/components/schemas/CompleteMilestoneDto'
+        required: true
       responses:
         '200':
-          description: Goal updated successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  goal:
-                    $ref: '#/components/schemas/Goal'
-
-    delete:
-      summary: Delete a goal
-      description: Delete an existing goal
+                $ref: '#/components/schemas/Goal'
+          description: Milestone completed successfully
+        '404':
+          description: Goal or milestone not found
+      summary: Complete a milestone
       tags:
         - Goals
-      security:
-        - bearerAuth: []
+  /goals/{id}:
+    delete:
+      operationId: GoalController_deleteGoal
       parameters:
-        - name: goalId
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '204':
           description: Goal deleted successfully
-
+        '404':
+          description: Goal not found
+      summary: Delete a goal
+      tags:
+        - Goals
+    get:
+      operationId: GoalController_getGoal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: Goal details
+        '404':
+          description: Goal not found
+      summary: Get a specific goal by ID
+      tags:
+        - Goals
+    put:
+      operationId: GoalController_updateGoal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGoalDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: Goal updated successfully
+        '404':
+          description: Goal not found
+      summary: Update a goal
+      tags:
+        - Goals
+  /goals/{id}/milestones:
+    post:
+      operationId: GoalController_addMilestone
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMilestoneDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: Milestone added successfully
+        '404':
+          description: Goal not found
+      summary: Add a milestone to a goal
+      tags:
+        - Goals
+  /goals/{id}/progress:
+    post:
+      operationId: GoalController_updateProgress
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProgressDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: Progress updated successfully
+        '404':
+          description: Goal not found
+      summary: Update goal progress
+      tags:
+        - Goals
+  /goals/{id}/progress-summary:
+    get:
+      operationId: GoalController_getProgressSummary
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoalProgressResponse'
+          description: Goal progress summary
+        '404':
+          description: Goal not found
+      summary: Get progress summary for a goal
+      tags:
+        - Goals
+  /goals/{id}/time:
+    post:
+      operationId: GoalController_logTime
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogTimeDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: Time logged successfully
+        '404':
+          description: Goal not found
+      summary: Log time spent on a goal
+      tags:
+        - Goals
   /habits:
     get:
-      summary: Get user habits
-      description: Retrieve all habits for the authenticated user
-      tags:
-        - Habits
-      security:
-        - bearerAuth: []
+      operationId: HabitController_getHabits
       parameters:
-        - name: isActive
-          in: query
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: isActive
+          required: false
           schema:
             type: boolean
       responses:
         '200':
-          description: List of habits
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  habits:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        userId:
-                          type: string
-                        name:
-                          type: string
-                        description:
-                          type: string
-                        frequency:
-                          type: string
-                          enum: [daily, weekly, monthly]
-                        priority:
-                          type: integer
-                          minimum: 1
-                          maximum: 5
-                        estimatedDurationMinutes:
-                          type: integer
-                          minimum: 1
-                        preferredTimeOfDay:
-                          type: string
-                          enum: [morning, afternoon, evening, anytime]
-                        isActive:
-                          type: boolean
-                        createdAt:
-                          type: string
-                          format: date-time
-                        updatedAt:
-                          type: string
-                          format: date-time
-                        completions:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              date:
-                                type: string
-                                format: date
-                              completed:
-                                type: boolean
-                              note:
-                                type: string
-
-    post:
-      summary: Create a new habit
-      description: Create a new habit for the authenticated user
+                items:
+                  $ref: '#/components/schemas/Habit'
+                type: array
+          description: List of habits
+      summary: Get all habits for a user
       tags:
         - Habits
-      security:
-        - bearerAuth: []
+    post:
+      operationId: HabitController_createHabit
+      parameters: []
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - name
-                - frequency
-                - priority
-                - estimatedDurationMinutes
-              properties:
-                name:
-                  type: string
-                  maxLength: 100
-                description:
-                  type: string
-                frequency:
-                  type: string
-                  enum: [daily, weekly, monthly]
-                priority:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                estimatedDurationMinutes:
-                  type: integer
-                  minimum: 1
-                preferredTimeOfDay:
-                  type: string
-                  enum: [morning, afternoon, evening, anytime]
-                  default: anytime
+              $ref: '#/components/schemas/CreateHabitDto'
+        required: true
       responses:
         '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
           description: Habit created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  habit:
-                    $ref: '#/components/schemas/Habit'
-
-  /habits/{habitId}:
+        '400':
+          description: Invalid input
+      summary: Create a new habit
+      tags:
+        - Habits
+  /habits/user/{userId}/due-today:
     get:
-      summary: Get a specific habit
-      description: Retrieve a specific habit by ID
-      tags:
-        - Habits
-      security:
-        - bearerAuth: []
+      operationId: HabitController_getHabitsDueToday
       parameters:
-        - name: habitId
-          in: path
+        - in: path
+          name: userId
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Habit details
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  habit:
-                    $ref: '#/components/schemas/Habit'
-
-    put:
-      summary: Update a habit
-      description: Update an existing habit
+                items:
+                  $ref: '#/components/schemas/Habit'
+                type: array
+          description: List of habits due today
+      summary: Get habits due today for a user
       tags:
         - Habits
-      security:
-        - bearerAuth: []
+  /habits/user/{userId}/unmet:
+    get:
+      operationId: HabitController_getUnmetHabits
       parameters:
-        - name: habitId
-          in: path
+        - in: path
+          name: userId
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  maxLength: 100
-                description:
-                  type: string
-                frequency:
-                  type: string
-                  enum: [daily, weekly, monthly]
-                priority:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                estimatedDurationMinutes:
-                  type: integer
-                  minimum: 1
-                preferredTimeOfDay:
-                  type: string
-                  enum: [morning, afternoon, evening, anytime]
-                isActive:
-                  type: boolean
+        - in: query
+          name: date
+          required: false
+          schema:
+            type: string
       responses:
         '200':
-          description: Habit updated successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  habit:
-                    $ref: '#/components/schemas/Habit'
-
+                items:
+                  $ref: '#/components/schemas/Habit'
+                type: array
+          description: List of unmet habits
+      summary: Get unmet habits for a specific date
+      tags:
+        - Habits
+  /habits/{id}:
     delete:
-      summary: Delete a habit
-      description: Delete an existing habit
-      tags:
-        - Habits
-      security:
-        - bearerAuth: []
+      operationId: HabitController_deleteHabit
       parameters:
-        - name: habitId
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '204':
           description: Habit deleted successfully
-
-  /habits/{habitId}/complete:
-    post:
-      summary: Complete a habit
-      description: Mark a habit as completed for a specific date
+        '404':
+          description: Habit not found
+      summary: Delete a habit
       tags:
         - Habits
-      security:
-        - bearerAuth: []
+    get:
+      operationId: HabitController_getHabit
       parameters:
-        - name: habitId
-          in: path
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+          description: Habit details
+        '404':
+          description: Habit not found
+      summary: Get a specific habit by ID
+      tags:
+        - Habits
+    put:
+      operationId: HabitController_updateHabit
+      parameters:
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - date
-                - completed
-              properties:
-                date:
-                  type: string
-                  format: date
-                  description: Date of completion (YYYY-MM-DD)
-                completed:
-                  type: boolean
-                note:
-                  type: string
-                  maxLength: 500
+              $ref: '#/components/schemas/UpdateHabitDto'
+        required: true
       responses:
         '200':
-          description: Habit completion recorded
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  habit:
-                    $ref: '#/components/schemas/Habit'
-                  completion:
-                    type: object
-                    properties:
-                      date:
-                        type: string
-                        format: date
-                      completed:
-                        type: boolean
-                      note:
-                        type: string
-
-  /schedule/preview:
-    post:
-      summary: Preview schedule
-      description: Generate a schedule preview for optimal time slots
+                $ref: '#/components/schemas/Habit'
+          description: Habit updated successfully
+        '404':
+          description: Habit not found
+      summary: Update a habit
       tags:
-        - Scheduling
-      security:
-        - bearerAuth: []
+        - Habits
+  /habits/{id}/complete:
+    post:
+      operationId: HabitController_completeHabit
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - userId
+              $ref: '#/components/schemas/CompleteHabitDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+          description: Habit marked as complete
+        '404':
+          description: Habit not found
+      summary: Mark a habit as completed for a specific date
+      tags:
+        - Habits
+  /habits/{id}/stats:
+    get:
+      operationId: HabitController_getHabitStats
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitStatsResponse'
+          description: Habit statistics
+        '404':
+          description: Habit not found
+      summary: Get statistics for a habit
+      tags:
+        - Habits
+  /health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /metrics:
+    get:
+      operationId: MetricsController_getMetrics
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+          description: Prometheus metrics in text format
+      summary: Get Prometheus metrics
+      tags:
+        - Metrics
+  /ml/analysis/{userId}:
+    get:
+      operationId: MLController_getUserAnalysis
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ML
+  /ml/feedback:
+    post:
+      operationId: MLController_submitFeedback
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitFeedbackDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ML
+  /ml/health:
+    get:
+      operationId: MLController_checkMLHealth
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ML
+  /ml/recommendations:
+    get:
+      operationId: MLController_getRecommendationsML
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - ML
+    post:
+      operationId: MLController_getRecommendations
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetRecommendationsDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ML
+  /ml/recommendations/accept:
+    post:
+      operationId: MLController_acceptRecommendationsML
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ML
+  /ml/tasks/schedule:
+    post:
+      operationId: MLController_scheduleTaskML
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ML
+  /ml/tasks/split-schedule:
+    post:
+      operationId: MLController_splitAndScheduleTaskML
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - ML
+  /schedule/commit:
+    post:
+      operationId: SchedulingController_commitSchedule
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleRequestDto'
+        required: true
+      responses:
+        '201':
+          description: Tasks scheduled and committed to calendar
+      summary: Schedule and commit tasks to calendar
+      tags:
+        - Scheduling
+  /schedule/complete:
+    post:
+      operationId: SchedulingController_completeTask
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteTaskDto'
+        required: true
+      responses:
+        '200':
+          description: Task marked as completed
+      summary: Mark a scheduled task as completed
+      tags:
+        - Scheduling
+  /schedule/conflicts/resolve:
+    post:
+      operationId: SchedulingController_resolveConflicts
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
               properties:
+                conflictingTasks:
+                  type: array
+                strategy:
+                  enum:
+                    - priority
+                    - deadline
+                    - duration
+                  type: string
                 userId:
                   type: string
-                calendarId:
-                  type: string
-                date:
-                  type: string
-                  format: date
-                workingHoursStart:
-                  type: integer
-                  minimum: 0
-                  maximum: 23
-                  default: 9
-                workingHoursEnd:
-                  type: integer
-                  minimum: 0
-                  maximum: 23
-                  default: 17
-                workingDays:
-                  type: array
-                  items:
-                    type: integer
-                    minimum: 0
-                    maximum: 6
-                  default: [1, 2, 3, 4, 5]  # Monday to Friday
-                bufferMinutes:
-                  type: integer
-                  minimum: 0
-                  default: 15
-                includeWeekends:
-                  type: boolean
-                  default: false
-                maxTaskDuration:
-                  type: integer
-                  minimum: 15
-                  maximum: 480
-                  default: 120
+        required: true
+      responses:
+        '200':
+          description: Conflicts resolved
+      summary: Resolve scheduling conflicts
+      tags:
+        - Scheduling
+  /schedule/manual:
+    post:
+      operationId: SchedulingController_manualSchedule
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManualScheduleDto'
+        required: true
+      responses:
+        '201':
+          description: Task scheduled manually
+      summary: Manually schedule a task at a specific time
+      tags:
+        - Scheduling
+  /schedule/preview:
+    post:
+      operationId: SchedulingController_previewSchedule
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleRequestDto'
+        required: true
       responses:
         '200':
           description: Schedule preview generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  preview:
-                    type: object
-                    properties:
-                      availableSlots:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            startTime:
-                              type: string
-                              format: date-time
-                            endTime:
-                              type: string
-                              format: date-time
-                            duration:
-                              type: integer
-                              description: Duration in minutes
-                            score:
-                              type: number
-                              description: Scheduling score (0-1)
-                      recommendations:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            taskId:
-                              type: string
-                            suggestedStartTime:
-                              type: string
-                              format: date-time
-                            confidence:
-                              type: number
-                              minimum: 0
-                              maximum: 1
-
-  /schedule/task:
-    post:
-      summary: Schedule a task
-      description: Schedule a specific task at an optimal time slot
+      summary: Preview schedule for a date without committing
       tags:
         - Scheduling
-      security:
-        - bearerAuth: []
+  /schedule/reschedule:
+    post:
+      operationId: SchedulingController_reschedule
+      parameters: []
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - userId
-                - task
-                - startTime
-              properties:
-                userId:
-                  type: string
-                calendarId:
-                  type: string
-                task:
-                  type: object
-                  required:
-                    - id
-                    - title
-                    - duration
-                  properties:
-                    id:
-                      type: string
-                    title:
-                      type: string
-                    description:
-                      type: string
-                    duration:
-                      type: integer
-                      minimum: 15
-                      maximum: 480
-                      description: Duration in minutes
-                    priority:
-                      type: integer
-                      minimum: 1
-                      maximum: 5
-                    category:
-                      type: string
-                startTime:
-                  type: string
-                  format: date-time
+              $ref: '#/components/schemas/ScheduleRequestDto'
+        required: true
       responses:
-        '201':
-          description: Task scheduled successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  scheduledTask:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      taskId:
-                        type: string
-                      calendarEventId:
-                        type: string
-                      startTime:
-                        type: string
-                        format: date-time
-                      endTime:
-                        type: string
-                        format: date-time
-                      status:
-                        type: string
-                        enum: [scheduled, completed, cancelled]
-                      createdAt:
-                        type: string
-                        format: date-time
-
-  /schedule/tasks/{taskId}/complete:
-    post:
-      summary: Complete a scheduled task
-      description: Mark a scheduled task as completed
+        '200':
+          description: Tasks rescheduled
+      summary: Reschedule all auto-scheduled tasks for a date
       tags:
         - Scheduling
-      security:
-        - bearerAuth: []
+  /schedule/skip:
+    post:
+      operationId: SchedulingController_skipTask
+      parameters: []
+      responses:
+        '200':
+          description: Task marked as skipped
+      summary: Mark a scheduled task as skipped
+      tags:
+        - Scheduling
+  /schedule/slots:
+    get:
+      operationId: SchedulingController_getAvailableSlots
       parameters:
-        - name: taskId
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: duration
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Available time slots
+      summary: Get available time slots for scheduling
+      tags:
+        - Scheduling
+  /schedule/stats:
+    get:
+      operationId: SchedulingController_getStats
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Completion statistics
+      summary: Get completion statistics
+      tags:
+        - Scheduling
+  /schedule/today:
+    get:
+      operationId: SchedulingController_getTodaySchedule
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: calendarId
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Today's schedule
+      summary: Get today's scheduled items
+      tags:
+        - Scheduling
+  /schedule/{eventId}:
+    delete:
+      operationId: SchedulingController_removeScheduledTask
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: calendarId
+          required: false
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Scheduled task removed
+      summary: Remove a scheduled task from calendar
+      tags:
+        - Scheduling
+  /scheduling/calendar/agenda:
+    get:
+      operationId: CalendarViewController_getAgendaView
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agenda view data retrieved
+      summary: Get agenda view data
+      tags:
+        - Calendar View
+  /scheduling/calendar/day:
+    get:
+      operationId: CalendarViewController_getDayView
+      parameters:
+        - description: Date in YYYY-MM-DD format
+          in: query
+          name: date
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Day view data retrieved
+      summary: Get day view data
+      tags:
+        - Calendar View
+  /scheduling/calendar/month:
+    get:
+      operationId: CalendarViewController_getMonthView
+      parameters:
+        - in: query
+          name: year
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: month
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Month view data retrieved
+      summary: Get month view data
+      tags:
+        - Calendar View
+  /scheduling/calendar/week:
+    get:
+      operationId: CalendarViewController_getWeekView
+      parameters:
+        - description: Start date in YYYY-MM-DD format
+          in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Week view data retrieved
+      summary: Get week view data
+      tags:
+        - Calendar View
+  /scheduling/days/locked:
+    get:
+      operationId: DayLockController_getLockedDays
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Locked days retrieved
+      summary: Get locked days in date range
+      tags:
+        - Day Locking
+  /scheduling/days/{date}/lock:
+    post:
+      operationId: DayLockController_lockDay
+      parameters:
+        - description: Date in YYYY-MM-DD format
           in: path
+          name: date
           required: true
           schema:
             type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
               properties:
-                completionRate:
-                  type: number
-                  minimum: 0
-                  maximum: 1
-                  default: 1.0
-                actualStart:
+                locked:
+                  type: boolean
+                userId:
                   type: string
-                  format: date-time
-                actualEnd:
-                  type: string
-                  format: date-time
-                notes:
-                  type: string
-                  maxLength: 1000
+              required:
+                - userId
+                - locked
+              type: object
+        required: true
       responses:
         '200':
-          description: Task completion recorded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  scheduledTask:
-                    $ref: '#/components/schemas/ScheduledTask'
-                  stats:
-                    type: object
+          description: Day lock status updated
+      summary: Lock or unlock a day
+      tags:
+        - Day Locking
+  /scheduling/productivity/trends:
+    get:
+      operationId: ActivityDashboardController_getProductivityTrends
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: granularity
+          required: false
+          schema:
+            enum:
+              - daily
+              - weekly
+              - monthly
+            type: string
+      responses:
+        '200':
+          description: Productivity trends retrieved
+      summary: Get productivity trends
+      tags:
+        - Activity & Productivity
+  /scheduling/productivity/{userId}:
+    get:
+      operationId: ActivityDashboardController_getProductivityMetrics
+      parameters:
+        - description: User ID
+          in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Productivity metrics retrieved
+      summary: Get productivity metrics
+      tags:
+        - Activity & Productivity
+  /scheduling/recommendations:
+    get:
+      operationId: SchedulingRecommendationsController_getRecommendations
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recommendations retrieved
+      summary: Get ML recommendations for task reorganization
+      tags:
+        - Scheduling Recommendations
+  /scheduling/recommendations/accept:
+    post:
+      operationId: SchedulingRecommendationsController_acceptRecommendations
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                allRecommendations:
+                  items:
                     properties:
-                      completionRate:
+                      confidence:
                         type: number
-                      actualDuration:
-                        type: integer
-                        description: Actual duration in minutes
-                      efficiency:
+                      originalEndTime:
+                        format: date-time
+                        type: string
+                      originalStartTime:
+                        format: date-time
+                        type: string
+                      reasoning:
+                        type: string
+                      recommendedEndTime:
+                        format: date-time
+                        type: string
+                      recommendedStartTime:
+                        format: date-time
+                        type: string
+                      taskId:
+                        type: string
+                    type: object
+                  type: array
+                recommendationIds:
+                  items:
+                    type: string
+                  type: array
+                userId:
+                  type: string
+              required:
+                - userId
+                - allRecommendations
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Recommendations accepted
+      summary: Accept ML recommendations and apply to tasks
+      tags:
+        - Scheduling Recommendations
+  /scheduling/tasks:
+    get:
+      operationId: TaskController_listTasks
+      parameters:
+        - in: query
+          name: userId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: priority
+          required: false
+          schema:
+            enum:
+              - low
+              - medium
+              - high
+              - urgent
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            enum:
+              - pending
+              - in-progress
+              - completed
+              - partially-completed
+            type: string
+        - in: query
+          name: isLocked
+          required: false
+          schema:
+            type: boolean
+        - in: query
+          name: tags
+          required: false
+          schema:
+            items:
+              type: string
+            type: array
+      responses:
+        '200':
+          description: Tasks retrieved
+      summary: List tasks with filters
+      tags:
+        - Tasks
+    post:
+      operationId: TaskController_createTask
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                calendarId:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                endTime:
+                  format: date-time
+                  type: string
+                estimatedDuration:
+                  type: number
+                isLocked:
+                  type: boolean
+                location:
+                  type: string
+                priority:
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                  type: string
+                recurrence:
+                  type: object
+                startTime:
+                  format: date-time
+                  type: string
+                tags:
+                  items:
+                    type: string
+                  type: array
+                title:
+                  type: string
+                userId:
+                  type: string
+              required:
+                - userId
+                - calendarId
+                - title
+                - startTime
+                - endTime
+              type: object
+        required: true
+      responses:
+        '201':
+          description: Task created
+      summary: Create a new task
+      tags:
+        - Tasks
+  /scheduling/tasks/analytics:
+    get:
+      operationId: ActivityDashboardController_getTaskAnalytics
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task analytics retrieved
+      summary: Get task completion analytics
+      tags:
+        - Activity & Productivity
+  /scheduling/tasks/schedule:
+    post:
+      operationId: TaskController_scheduleTask
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                category:
+                  type: string
+                description:
+                  type: string
+                dueDate:
+                  format: date-time
+                  type: string
+                estimatedDuration:
+                  type: number
+                preferences:
+                  properties:
+                    avoidConflicts:
+                      type: boolean
+                    preferredDays:
+                      items:
                         type: number
-                        description: Efficiency score (0-1)
-
-components:
-  schemas:
-    Goal:
-      type: object
-      properties:
-        id:
-          type: string
-        userId:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        priority:
-          type: integer
-          minimum: 1
-          maximum: 5
-        status:
-          type: string
-          enum: [not_started, in_progress, completed, abandoned]
-        targetDate:
-          type: string
-          format: date
-        estimatedTimeRequired:
-          type: integer
-        timeSpent:
-          type: integer
-        progressPercentage:
-          type: integer
-          minimum: 0
-          maximum: 100
-        milestones:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-              title:
-                type: string
-              description:
-                type: string
-              targetDate:
-                type: string
-                format: date
-              completed:
-                type: boolean
-              completedAt:
-                type: string
-                format: date-time
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    Habit:
-      type: object
-      properties:
-        id:
-          type: string
-        userId:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        frequency:
-          type: string
-          enum: [daily, weekly, monthly]
-        priority:
-          type: integer
-          minimum: 1
-          maximum: 5
-        estimatedDurationMinutes:
-          type: integer
-        preferredTimeOfDay:
-          type: string
-          enum: [morning, afternoon, evening, anytime]
-        isActive:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        completions:
-          type: array
-          items:
-            type: object
-            properties:
-              date:
-                type: string
-                format: date
-              completed:
-                type: boolean
-              note:
-                type: string
-
-    ScheduledTask:
-      type: object
-      properties:
-        id:
-          type: string
-        taskId:
-          type: string
-        calendarEventId:
-          type: string
-        startTime:
-          type: string
-          format: date-time
-        endTime:
-          type: string
-          format: date-time
-        status:
-          type: string
-          enum: [scheduled, completed, cancelled]
-        completionRate:
-          type: number
-          minimum: 0
-          maximum: 1
-        actualStart:
-          type: string
-          format: date-time
-        actualEnd:
-          type: string
-          format: date-time
-        notes:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token for authentication
+                      type: array
+                    preferredHours:
+                      items:
+                        type: number
+                      type: array
+                  type: object
+                priority:
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                  type: string
+                title:
+                  type: string
+              required:
+                - title
+                - estimatedDuration
+              type: object
+        required: true
+      responses:
+        '200':
+          description: ML scheduling recommendations
+      summary: Find optimal time slot for task using ML
+      tags:
+        - Tasks
+  /scheduling/tasks/split-schedule:
+    post:
+      operationId: TaskController_splitAndScheduleTask
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                category:
+                  type: string
+                description:
+                  type: string
+                preferredPartDuration:
+                  type: number
+                priority:
+                  enum:
+                    - low
+                    - medium
+                    - high
+                    - urgent
+                  type: string
+                timeRange:
+                  properties:
+                    end:
+                      format: date-time
+                      type: string
+                    start:
+                      format: date-time
+                      type: string
+                  type: object
+                title:
+                  type: string
+                totalDuration:
+                  type: number
+              required:
+                - title
+                - totalDuration
+                - preferredPartDuration
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Split tasks scheduled
+      summary: Split task and schedule parts using ML
+      tags:
+        - Tasks
+  /scheduling/tasks/stats:
+    get:
+      operationId: ActivityDashboardController_getTaskStats
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task statistics retrieved
+      summary: Get task statistics
+      tags:
+        - Activity & Productivity
+  /scheduling/tasks/trends:
+    get:
+      operationId: ActivityDashboardController_getTaskTrends
+      parameters:
+        - in: query
+          name: startDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: granularity
+          required: false
+          schema:
+            enum:
+              - daily
+              - weekly
+              - monthly
+            type: string
+      responses:
+        '200':
+          description: Task trends retrieved
+      summary: Get task trends
+      tags:
+        - Activity & Productivity
+  /scheduling/tasks/{taskId}:
+    delete:
+      operationId: TaskController_deleteTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task deleted
+        '404':
+          description: Task not found
+      summary: Delete a task
+      tags:
+        - Tasks
+    get:
+      operationId: TaskController_getTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task retrieved
+        '404':
+          description: Task not found
+      summary: Get task by ID
+      tags:
+        - Tasks
+    put:
+      operationId: TaskController_updateTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task updated
+        '404':
+          description: Task not found
+      summary: Update a task
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/complete:
+    post:
+      operationId: TaskController_completeTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                actualDuration:
+                  type: number
+                completionPercentage:
+                  maximum: 100
+                  minimum: 0
+                  type: number
+                completionType:
+                  enum:
+                    - fully
+                    - partially
+                  type: string
+                notes:
+                  type: string
+              required:
+                - completionType
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Task completed
+      summary: Mark task as complete
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/defer:
+    post:
+      operationId: TaskController_deferTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                deferType:
+                  enum:
+                    - same-day
+                    - next-day
+                    - next-3-days
+                    - next-week
+                  type: string
+                newTime:
+                  format: date-time
+                  type: string
+              required:
+                - deferType
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Task deferred
+      summary: Defer task to different time
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/duplicate:
+    post:
+      operationId: TaskController_duplicateTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                newEndTime:
+                  format: date-time
+                  type: string
+                newStartTime:
+                  format: date-time
+                  type: string
+              type: object
+        required: true
+      responses:
+        '201':
+          description: Task duplicated
+      summary: Duplicate a task
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/history:
+    get:
+      operationId: TaskController_getTaskHistory
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task history retrieved
+      summary: Get task history
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/lock:
+    post:
+      operationId: TaskController_lockTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                locked:
+                  type: boolean
+              required:
+                - locked
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Task lock status updated
+      summary: Lock or unlock a task
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/recur:
+    post:
+      operationId: TaskController_makeTaskRecurring
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                recurrence:
+                  properties:
+                    byDay:
+                      items:
+                        type: string
+                      type: array
+                    count:
+                      type: number
+                    frequency:
+                      enum:
+                        - daily
+                        - weekly
+                        - monthly
+                        - yearly
+                      type: string
+                    interval:
+                      type: number
+                    until:
+                      format: date-time
+                      type: string
+                  type: object
+              required:
+                - recurrence
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Task made recurring
+      summary: Make task recurring
+      tags:
+        - Tasks
+  /scheduling/tasks/{taskId}/split:
+    post:
+      operationId: TaskController_splitTask
+      parameters:
+        - description: Task ID
+          in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                deferType:
+                  enum:
+                    - next-day
+                    - next-3-days
+                    - next-week
+                  type: string
+                durations:
+                  items:
+                    type: number
+                  type: array
+                numberOfTasks:
+                  type: number
+                scheduleParts:
+                  type: boolean
+                splitEvenly:
+                  type: boolean
+              required:
+                - numberOfTasks
+                - splitEvenly
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Task split
+      summary: Split task into multiple tasks
+      tags:
+        - Tasks
+servers: []
+tags:
+  - description: Goal management
+    name: Goals
+  - description: Habit tracking
+    name: Habits
+  - description: Activity logging
+    name: Activities
+  - description: Calendar integration
+    name: Calendar
+  - description: Scheduling operations
+    name: Schedule
+  - description: Machine learning features
+    name: ML
+  - description: Metrics and monitoring
+    name: Metrics
+  - description: Health checks
+    name: Health

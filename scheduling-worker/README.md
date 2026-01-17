@@ -4,7 +4,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)
-![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-unknown-lightgrey.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 ![TypeScript](https://img.shields.io/badge/typescript-5.0-blue.svg)
 ![NestJS](https://img.shields.io/badge/nestjs-10.0-red.svg)
@@ -67,6 +67,7 @@ The **Scheduling Worker** provides comprehensive calendar and task management wi
 - **Progress Monitoring** - Visual progress tracking and analytics
 - **Streak Tracking** - Maintain motivation with streak counters
 - **Reminder System** - Customizable notifications and alerts
+- **Activity Model Service** - Track user activity patterns, predict event success, calculate efficiency metrics
 
 ### ML-Powered Scheduling
 
@@ -75,6 +76,8 @@ The **Scheduling Worker** provides comprehensive calendar and task management wi
 - **Conflict Prediction** - Prevent scheduling conflicts
 - **Priority Optimization** - Schedule high-priority tasks first
 - **Energy-Based Scheduling** - Schedule tasks based on energy levels
+- **Activity Tracking** - Track completion patterns and productivity metrics
+- **Efficiency Metrics** - Calculate schedule efficiency, time utilization, and completion rates
 
 ## 🚀 Quick Start
 
@@ -116,10 +119,10 @@ npm run build
    # Google Calendar API
    GOOGLE_CLIENT_ID=your_client_id
    GOOGLE_CLIENT_SECRET=your_client_secret
-   GOOGLE_REDIRECT_URI=http://localhost:3003/auth/google/callback
+   GOOGLE_REDIRECT_URI=http://localhost:3007/auth/google/callback
 
    # Server
-   PORT=3003
+   PORT=3007
    NODE_ENV=development
    ```
 
@@ -136,12 +139,12 @@ npm run start:prod
 npm run start
 ```
 
-The service will start on `http://localhost:3003` (or your configured PORT).
+The service will start on `http://localhost:3007` (or your configured PORT).
 
 ### Health Check
 
 ```bash
-curl http://localhost:3003/health
+curl http://localhost:3007/health
 ```
 
 Expected response:
@@ -167,7 +170,9 @@ Comprehensive documentation is available in the `documentation/` folder:
 |------------|---------------|---------|
 | **ARCHITECTURE** | System architecture and design | [View](documentation/ARCHITECTURE.md) |
 | **API** | Complete API reference | [View](documentation/API.md) |
-| **CALENDAR_INTEGRATION** | Google Calendar setup guide | [View](documentation/CALENDAR_INTEGRATION.md) |
+| **CALENDAR_SETUP** | Google Calendar setup guide | [View](documentation/CALENDAR_SETUP.md) |
+| **ML_INTEGRATION** | ML service integration documentation | [View](documentation/ML_INTEGRATION.md) |
+| **CALENDAR_INTEGRATION** | Google Calendar integration details | [View](documentation/CALENDAR_INTEGRATION.md) |
 | **GOAL_MANAGEMENT** | Goal and habit tracking guide | [View](documentation/GOAL_MANAGEMENT.md) |
 | **ML_SCHEDULING** | AI-powered scheduling features | [View](documentation/ML_SCHEDULING.md) |
 | **DEPLOYMENT** | Docker & Kubernetes deployment | [View](documentation/DEPLOYMENT.md) |
@@ -181,14 +186,14 @@ Comprehensive documentation is available in the `documentation/` folder:
 
 ```bash
 # Authenticate with Google
-curl http://localhost:3003/auth/google
+curl http://localhost:3007/auth/google
 
 # Get calendar list
-curl http://localhost:3003/calendars \
+curl http://localhost:3007/calendars \
   -H "Authorization: Bearer your_token"
 
 # Create calendar event
-curl -X POST http://localhost:3003/events \
+curl -X POST http://localhost:3007/events \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -209,7 +214,7 @@ curl -X POST http://localhost:3003/events \
 
 ```bash
 # Create a goal
-curl -X POST http://localhost:3003/goals \
+curl -X POST http://localhost:3007/goals \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -224,7 +229,7 @@ curl -X POST http://localhost:3003/goals \
   }'
 
 # Get goal progress
-curl http://localhost:3003/goals/project-alpha/progress \
+curl http://localhost:3007/goals/project-alpha/progress \
   -H "Authorization: Bearer your_token"
 ```
 
@@ -232,7 +237,7 @@ curl http://localhost:3003/goals/project-alpha/progress \
 
 ```bash
 # Create a habit
-curl -X POST http://localhost:3003/habits \
+curl -X POST http://localhost:3007/habits \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -244,7 +249,7 @@ curl -X POST http://localhost:3003/habits \
   }'
 
 # Mark habit as completed
-curl -X POST http://localhost:3003/habits/morning-exercise/complete \
+curl -X POST http://localhost:3007/habits/morning-exercise/complete \
   -H "Authorization: Bearer your_token" \
   -d '{"date": "2025-10-27"}'
 ```
@@ -253,7 +258,7 @@ curl -X POST http://localhost:3003/habits/morning-exercise/complete \
 
 ```bash
 # Get optimal meeting time
-curl -X POST http://localhost:3003/schedule/optimize \
+curl -X POST http://localhost:3007/schedule/optimize \
   -H "Authorization: Bearer your_token" \
   -H "Content-Type: application/json" \
   -d '{
@@ -307,7 +312,7 @@ curl -X POST http://localhost:3003/schedule/optimize \
 
 <div align="center">
 
-![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen.svg)
+![Coverage](https://img.shields.io/badge/coverage-unknown-lightgrey.svg)
 ![Tests](https://img.shields.io/badge/tests-150%2B-brightgreen.svg)
 
 </div>
@@ -328,7 +333,7 @@ npm run test:e2e
 The Scheduling Worker exposes Prometheus-compatible metrics:
 
 ```bash
-curl http://localhost:3003/metrics
+curl http://localhost:3007/metrics
 ```
 
 **Key Metrics:**
@@ -373,7 +378,7 @@ curl http://localhost:3003/metrics
 docker build -t scheduling-worker:latest .
 
 # Run container
-docker run -p 3003:3003 \
+docker run -p 3007:3007 \
   -e GOOGLE_CLIENT_ID=your_id \
   -e GOOGLE_CLIENT_SECRET=your_secret \
   scheduling-worker:latest
@@ -418,8 +423,8 @@ For issues, questions, or contributions:
 
 ### 🌟 Star this repo if you find it helpful! 🌟
 
-**Status:** ✅ Production Ready  
-**Version:** 1.0.0  
+**Status:** ✅ Production Ready
+**Version:** 1.0.0
 **Last Updated:** October 27, 2025
 
 ---

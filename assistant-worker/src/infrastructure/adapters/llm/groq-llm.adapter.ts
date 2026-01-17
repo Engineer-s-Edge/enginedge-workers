@@ -1,5 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { ILLMProvider, LLMRequest, LLMResponse, LLMStreamChunk } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMRequest,
+  LLMResponse,
+  LLMStreamChunk,
+} from '@application/ports/llm-provider.port';
 import { ILogger } from '@application/ports/logger.port';
 
 interface GroqMessage {
@@ -25,7 +30,7 @@ interface GroqResponse {
 
 /**
  * Groq LLM Adapter
- * 
+ *
  * Implements ILLMProvider for Groq API
  * Supports high-speed inference with OpenAI-compatible endpoint
  */
@@ -40,7 +45,7 @@ export class GroqLLMAdapter implements ILLMProvider {
   ) {
     this.apiKey = process.env.GROQ_API_KEY || '';
     this.baseUrl = process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1';
-    
+
     if (!this.apiKey) {
       this.logger.warn('GroqLLMAdapter: Groq API key not configured');
     }
@@ -57,7 +62,7 @@ export class GroqLLMAdapter implements ILLMProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -73,16 +78,21 @@ export class GroqLLMAdapter implements ILLMProvider {
         throw new Error(`Groq API error: ${response.status} - ${error}`);
       }
 
-      const data = await response.json() as GroqResponse;
-      
+      const data = (await response.json()) as GroqResponse;
+
       return this.parseResponse(data);
     } catch (error) {
-      this.logger.error('Groq LLM invocation failed', error as Record<string, unknown>);
+      this.logger.error(
+        'Groq LLM invocation failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
 
-  async *invokeStream(request: LLMRequest): AsyncGenerator<LLMStreamChunk, void, unknown> {
+  async *invokeStream(
+    request: LLMRequest,
+  ): AsyncGenerator<LLMStreamChunk, void, unknown> {
     this.logger.debug('GroqLLMAdapter: Starting Groq streaming', {
       model: request.model,
     });
@@ -92,7 +102,7 @@ export class GroqLLMAdapter implements ILLMProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: request.model,
@@ -118,7 +128,7 @@ export class GroqLLMAdapter implements ILLMProvider {
 
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -128,7 +138,7 @@ export class GroqLLMAdapter implements ILLMProvider {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
+
             if (data === '[DONE]') {
               yield {
                 content: '',
@@ -164,7 +174,10 @@ export class GroqLLMAdapter implements ILLMProvider {
         }
       }
     } catch (error) {
-      this.logger.error('Groq streaming failed', error as Record<string, unknown>);
+      this.logger.error(
+        'Groq streaming failed',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -186,7 +199,7 @@ export class GroqLLMAdapter implements ILLMProvider {
     try {
       const response = await fetch(`${this.baseUrl}/models`, {
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
       });
       return response.ok;
@@ -197,7 +210,7 @@ export class GroqLLMAdapter implements ILLMProvider {
 
   private parseResponse(data: GroqResponse): LLMResponse {
     const choice = data.choices[0];
-    
+
     if (!choice) {
       throw new Error('No choices in Groq response');
     }
@@ -208,11 +221,13 @@ export class GroqLLMAdapter implements ILLMProvider {
     return {
       content,
       finishReason,
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
-      } : undefined,
+      usage: data.usage
+        ? {
+            promptTokens: data.usage.prompt_tokens,
+            completionTokens: data.usage.completion_tokens,
+            totalTokens: data.usage.total_tokens,
+          }
+        : undefined,
     };
   }
 
@@ -239,10 +254,14 @@ export class GroqLLMAdapter implements ILLMProvider {
   }
 
   async speechToText(audioBuffer: Buffer, language?: string): Promise<string> {
-    throw new Error('Speech-to-text not implemented. Use a dedicated STT service.');
+    throw new Error(
+      'Speech-to-text not implemented. Use a dedicated STT service.',
+    );
   }
 
   async textToSpeech(text: string, voice?: string): Promise<Buffer> {
-    throw new Error('Text-to-speech not implemented. Use a dedicated TTS service.');
+    throw new Error(
+      'Text-to-speech not implemented. Use a dedicated TTS service.',
+    );
   }
 }

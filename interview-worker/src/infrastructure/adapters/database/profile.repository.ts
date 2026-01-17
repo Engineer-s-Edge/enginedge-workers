@@ -41,19 +41,23 @@ export class MongoCandidateProfileRepository
       );
       return profile;
     } catch (error) {
-      this.logger.error(`Failed to save profile: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save profile: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
-  async findBySessionId(
-    sessionId: string,
-  ): Promise<CandidateProfile | null> {
+  async findBySessionId(sessionId: string): Promise<CandidateProfile | null> {
     try {
       const doc = await this.collection.findOne({ sessionId });
       return doc ? CandidateProfile.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find profile: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find profile: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -80,7 +84,10 @@ export class MongoCandidateProfileRepository
 
       return result ? CandidateProfile.fromObject(result) : null;
     } catch (error) {
-      this.logger.error(`Failed to update profile: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to update profile: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -90,9 +97,11 @@ export class MongoCandidateProfileRepository
       const result = await this.collection.deleteOne({ sessionId });
       return result.deletedCount > 0;
     } catch (error) {
-      this.logger.error(`Failed to delete profile: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to delete profile: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

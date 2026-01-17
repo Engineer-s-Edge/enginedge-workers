@@ -1,6 +1,6 @@
 /**
  * MongoDB Token Storage Adapter
- * 
+ *
  * Stores OAuth tokens in MongoDB for persistence
  */
 
@@ -113,7 +113,9 @@ export class MongoTokenStorageAdapter implements ITokenStorage {
     accountId: string,
     tokens: GoogleOAuthTokens,
   ): Promise<void> {
-    this.logger.log(`Storing tokens for user: ${userId}, account: ${accountId}`);
+    this.logger.log(
+      `Storing tokens for user: ${userId}, account: ${accountId}`,
+    );
 
     await this.tokenModel.findOneAndUpdate(
       { userId, accountId },
@@ -140,7 +142,9 @@ export class MongoTokenStorageAdapter implements ITokenStorage {
     userId: string,
     accountId: string,
   ): Promise<GoogleOAuthTokens | null> {
-    this.logger.log(`Retrieving tokens for user: ${userId}, account: ${accountId}`);
+    this.logger.log(
+      `Retrieving tokens for user: ${userId}, account: ${accountId}`,
+    );
 
     const doc = await this.tokenModel.findOne({ userId, accountId });
 

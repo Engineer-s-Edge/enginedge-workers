@@ -1,0 +1,225 @@
+[
+  {
+    "id": "gb001",
+    "bullet": "Developed scalable microservices architecture using Node.js and Docker, reducing deployment time by 60%",
+    "expectedScore": 0.95,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "Software Engineer",
+      "technologies": ["Node.js", "Docker", "Microservices"],
+      "impactScore": 0.9
+    }
+  },
+  {
+    "id": "gb002",
+    "bullet": "Led team of 5 engineers to implement CI/CD pipeline, increasing release frequency from monthly to daily",
+    "expectedScore": 0.92,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "DevOps Engineer",
+      "technologies": ["CI/CD", "DevOps"],
+      "impactScore": 0.85
+    }
+  },
+  {
+    "id": "gb003",
+    "bullet": "Optimized database queries resulting in 40% improvement in application response time",
+    "expectedScore": 0.90,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "Backend Engineer",
+      "technologies": ["Database", "SQL", "Performance"],
+      "impactScore": 0.8
+    }
+  },
+  {
+    "id": "gb004",
+    "bullet": "Was responsible for working on various projects",
+    "expectedScore": 0.25,
+    "expectedChecks": {
+      "actionVerb": false,
+      "activeVoice": false,
+      "quantifiable": false,
+      "concise": false,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": false,
+      "noFluff": false,
+      "grammarCorrect": true,
+      "structuralFormula": false
+    },
+    "metadata": {
+      "role": "Generic",
+      "technologies": [],
+      "impactScore": 0.1
+    },
+    "notes": "Bad example: passive voice, no metrics, vague"
+  },
+  {
+    "id": "gb005",
+    "bullet": "Implemented machine learning model achieving 95% accuracy for fraud detection, saving company $2M annually",
+    "expectedScore": 0.98,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "ML Engineer",
+      "technologies": ["Machine Learning", "Python", "Fraud Detection"],
+      "impactScore": 0.95
+    }
+  },
+  {
+    "id": "gb006",
+    "bullet": "Collaborated with cross-functional teams to deliver features",
+    "expectedScore": 0.35,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": false,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": false,
+      "noFluff": false,
+      "grammarCorrect": true,
+      "structuralFormula": false
+    },
+    "metadata": {
+      "role": "Generic",
+      "technologies": [],
+      "impactScore": 0.2
+    },
+    "notes": "Weak: no metrics, vague outcome"
+  },
+  {
+    "id": "gb007",
+    "bullet": "Architected and deployed AWS infrastructure supporting 10M+ daily active users with 99.99% uptime",
+    "expectedScore": 0.96,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "Cloud Engineer",
+      "technologies": ["AWS", "Cloud", "Infrastructure"],
+      "impactScore": 0.92
+    }
+  },
+  {
+    "id": "gb008",
+    "bullet": "Spearheaded migration from monolith to microservices, improving system scalability and reducing costs by 35%",
+    "expectedScore": 0.94,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "Software Architect",
+      "technologies": ["Microservices", "Architecture", "Migration"],
+      "impactScore": 0.88
+    }
+  },
+  {
+    "id": "gb009",
+    "bullet": "Built React dashboard with real-time analytics, increasing user engagement by 50%",
+    "expectedScore": 0.91,
+    "expectedChecks": {
+      "actionVerb": true,
+      "activeVoice": true,
+      "quantifiable": true,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": true,
+      "noFluff": true,
+      "grammarCorrect": true,
+      "structuralFormula": true
+    },
+    "metadata": {
+      "role": "Frontend Engineer",
+      "technologies": ["React", "JavaScript", "Dashboard"],
+      "impactScore": 0.82
+    }
+  },
+  {
+    "id": "gb010",
+    "bullet": "Helped with improving the codebase quality",
+    "expectedScore": 0.30,
+    "expectedChecks": {
+      "actionVerb": false,
+      "activeVoice": true,
+      "quantifiable": false,
+      "concise": true,
+      "tenseConsistent": true,
+      "atsSafe": true,
+      "hasKeywords": false,
+      "noFluff": false,
+      "grammarCorrect": true,
+      "structuralFormula": false
+    },
+    "metadata": {
+      "role": "Generic",
+      "technologies": [],
+      "impactScore": 0.15
+    },
+    "notes": "Weak: 'helped' is not strong, no metrics, vague"
+  }
+]

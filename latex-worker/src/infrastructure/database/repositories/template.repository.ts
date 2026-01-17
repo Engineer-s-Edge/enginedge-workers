@@ -40,7 +40,7 @@ export class MongoDBTemplateRepository implements ITemplateRepository {
 
   async findById(id: string): Promise<LaTeXTemplate | null> {
     const tmpl = await this.templateModel.findOne({ templateId: id }).exec();
-    
+
     if (!tmpl) {
       return null;
     }
@@ -61,7 +61,7 @@ export class MongoDBTemplateRepository implements ITemplateRepository {
       .sort({ usageCount: -1 })
       .exec();
 
-    return templates.map(tmpl =>
+    return templates.map((tmpl) =>
       LaTeXTemplate.create(
         tmpl.templateId,
         tmpl.name,
@@ -79,7 +79,7 @@ export class MongoDBTemplateRepository implements ITemplateRepository {
       .sort({ updatedAt: -1 })
       .exec();
 
-    return templates.map(tmpl =>
+    return templates.map((tmpl) =>
       LaTeXTemplate.create(
         tmpl.templateId,
         tmpl.name,
@@ -97,7 +97,7 @@ export class MongoDBTemplateRepository implements ITemplateRepository {
       .sort({ usageCount: -1 })
       .exec();
 
-    return templates.map(tmpl =>
+    return templates.map((tmpl) =>
       LaTeXTemplate.create(
         tmpl.templateId,
         tmpl.name,
@@ -126,7 +126,7 @@ export class MongoDBTemplateRepository implements ITemplateRepository {
       .sort({ usageCount: -1 })
       .exec();
 
-    return templates.map(tmpl =>
+    return templates.map((tmpl) =>
       LaTeXTemplate.create(
         tmpl.templateId,
         tmpl.name,

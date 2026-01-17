@@ -85,4 +85,3 @@ describe('InterviewResponse', () => {
     expect(response.candidateResponse).toBe('My answer');
   });
 });
-

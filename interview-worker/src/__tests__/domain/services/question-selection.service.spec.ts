@@ -11,7 +11,7 @@ describe('QuestionSelectionService', () => {
 
   beforeEach(() => {
     service = new QuestionSelectionService();
-    
+
     mockQuestions = [
       new InterviewQuestion({
         questionId: 'q1',
@@ -137,12 +137,12 @@ describe('QuestionSelectionService', () => {
     it('should randomize question order', () => {
       const result1 = service.selectQuestions(mockQuestions, {});
       const result2 = service.selectQuestions(mockQuestions, {});
-      
+
       // Results should be different (high probability)
       // Note: There's a small chance they're the same, but very unlikely with 5 items
       const ids1 = result1.map((q) => q.questionId).join(',');
       const ids2 = result2.map((q) => q.questionId).join(',');
-      
+
       // At least verify we got the same questions (just potentially different order)
       expect(result1.length).toBe(result2.length);
     });
@@ -173,10 +173,7 @@ describe('QuestionSelectionService', () => {
       expect(result.get(1)).toHaveLength(1);
 
       // Verify no repetition
-      const allSelected = [
-        ...(result.get(0) || []),
-        ...(result.get(1) || []),
-      ];
+      const allSelected = [...(result.get(0) || []), ...(result.get(1) || [])];
       const questionIds = allSelected.map((q) => q.questionId);
       const uniqueIds = new Set(questionIds);
       expect(uniqueIds.size).toBe(2);
@@ -239,4 +236,3 @@ describe('QuestionSelectionService', () => {
     });
   });
 });
-

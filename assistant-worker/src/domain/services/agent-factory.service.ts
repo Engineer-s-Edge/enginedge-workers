@@ -1,13 +1,12 @@
 /**
  * Agent Factory Service
- * 
+ *
  * Responsible for creating agents with proper type initialization and capability assignment.
  * Encapsulates agent creation logic and type-specific setup.
  */
 
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
-import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider } from '@application/ports/llm-provider.port';
+import { ILogger } from '../ports/logger.port';
+import { ILLMProvider } from '../ports/llm-provider.port';
 import { Agent } from '../entities/agent.entity';
 import { BaseAgent } from '../agents/agent.base';
 import { ReActAgent } from '../agents/react-agent/react-agent';
@@ -24,26 +23,31 @@ import { PromptBuilder } from '../services/prompt-builder.service';
 
 /**
  * AgentFactory - Factory for creating agent instances
- * 
+ *
  * Responsibilities:
  * - Create agent instances of all types
  * - Dependency injection for agent dependencies
  * - Configuration validation
  * - Initialization
  */
-@Injectable()
 export class AgentFactory {
   // Note: StateMachineService is not injected as instance because agents need the class constructor
   // Agents use: new StateMachine(...) for their own state management
-  
+
   constructor(
-    @Inject('ILogger')
     private readonly logger: ILogger,
-    @Inject('ILLMProvider')
     private readonly llmProvider: ILLMProvider,
     private readonly memoryManager: MemoryManager,
     private readonly responseParser: ResponseParser,
     private readonly promptBuilder: PromptBuilder,
+    // Optional collective services for CollectiveAgent
+    private readonly messageQueue?: any,
+    private readonly communication?: any,
+    private readonly sharedMemory?: any,
+    private readonly artifactLocking?: any,
+    private readonly taskAssignment?: any,
+    private readonly deadlockDetection?: any,
+    private readonly coordinationValidator?: any,
   ) {}
 
   /**
@@ -51,7 +55,10 @@ export class AgentFactory {
    */
   createInstance(agent: Agent): BaseAgent {
     try {
-      this.logger.debug('Creating agent instance', { agentId: agent.id, type: agent.agentType });
+      this.logger.debug('Creating agent instance', {
+        agentId: agent.id,
+        type: agent.agentType,
+      });
 
       switch (agent.agentType) {
         case 'react':
@@ -69,10 +76,14 @@ export class AgentFactory {
         case 'interview':
           return this.createInterviewAgent(agent);
         default:
-          throw new BadRequestException(`Unknown agent type: ${agent.agentType}`);
+          throw new Error(`Unknown agent type: ${agent.agentType}`);
       }
     } catch (error) {
-      this.logger.error('Failed to create agent instance', { error, agentId: agent.id, type: agent.agentType });
+      this.logger.error('Failed to create agent instance', {
+        error,
+        agentId: agent.id,
+        type: agent.agentType,
+      });
       throw error;
     }
   }
@@ -86,7 +97,8 @@ export class AgentFactory {
       maxIterations: 10,
       temperature: agent.config.temperature || 0.7,
       model: agent.config.model,
-      systemPrompt: agent.config.systemPrompt || this.getDefaultSystemPrompt('react'),
+      systemPrompt:
+        agent.config.systemPrompt || this.getDefaultSystemPrompt('react'),
       tools: [],
     };
 
@@ -160,11 +172,7 @@ export class AgentFactory {
       model: agent.config.model,
     };
 
-    return new GeniusAgent(
-      this.llmProvider,
-      this.logger,
-      config,
-    );
+    return new GeniusAgent(this.llmProvider, this.logger, config);
   }
 
   /**
@@ -173,15 +181,45 @@ export class AgentFactory {
    * Best for: Large-scale coordination tasks
    */
   private createCollectiveAgent(agent: Agent): CollectiveAgent {
+    if (
+      !this.messageQueue ||
+      !this.communication ||
+      !this.sharedMemory ||
+      !this.artifactLocking ||
+      !this.taskAssignment ||
+      !this.deadlockDetection ||
+      !this.coordinationValidator
+    ) {
+      throw new Error(
+        'CollectiveAgent requires collective services (MessageQueueService, CommunicationService, etc.) to be injected into AgentFactory',
+      );
+    }
+
+    // Validate that collective agent has children
+    if (!agent.childAgents || agent.childAgents.length === 0) {
+      throw new Error('Collective agents must have at least one child agent');
+    }
+
     const config = {
+      collectiveId: `collective_${agent.id || Date.now()}`,
       maxSubAgents: 10,
       temperature: agent.config.temperature || 0.6,
       model: agent.config.model,
+      defaultStrategy: undefined,
+      enablePM: true,
+      deadlockCheckInterval: 5000,
     };
 
     return new CollectiveAgent(
       this.llmProvider,
       this.logger,
+      this.messageQueue,
+      this.communication,
+      this.sharedMemory,
+      this.artifactLocking,
+      this.taskAssignment,
+      this.deadlockDetection,
+      this.coordinationValidator,
       config,
     );
   }
@@ -214,22 +252,21 @@ export class AgentFactory {
    * Best for: Conducting mock interviews
    */
   private createInterviewAgent(agent: Agent): InterviewAgent {
+    // Interview-specific config - these should come from agent metadata or be passed separately
+    // For now, use defaults and environment variables
     const config = {
-      interviewWorkerBaseUrl: agent.config.interviewWorkerBaseUrl || process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
-      sessionId: agent.config.sessionId || '',
-      interviewId: agent.config.interviewId || '',
-      candidateId: agent.config.candidateId || '',
+      interviewWorkerBaseUrl:
+        process.env.INTERVIEW_WORKER_URL || 'http://localhost:3004',
+      sessionId: '',
+      interviewId: '',
+      candidateId: '',
       temperature: agent.config.temperature || 0.7,
       model: agent.config.model || 'gpt-4',
-      difficulty: agent.config.difficulty || 'medium',
-      communicationMode: agent.config.communicationMode || 'text',
+      difficulty: 'medium' as const,
+      communicationMode: 'text' as const,
     };
 
-    return new InterviewAgent(
-      this.llmProvider,
-      this.logger,
-      config,
-    );
+    return new InterviewAgent(this.llmProvider, this.logger, config);
   }
 
   /**

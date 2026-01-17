@@ -1,51 +1,43 @@
 /**
  * Validation Service Adapter Interface
- * 
- * Port interface for research validation
- * Abstracts external ValidationService implementation
+ *
+ * Port interface for research validation.
  */
 
-export interface ValidationConfig {
-  sources: string[];
-  findings: string[];
-  confidence: number;
-  topic: string;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  score: number;
-  checks: {
-    sourceCredibility: boolean;
-    findingConsistency: boolean;
-    confidenceLevel: boolean;
-    relevanceScore: boolean;
-    duplicationDetected: boolean;
-    semanticValidity: boolean;
-  };
-  feedback: string[];
-}
+import {
+  BatchValidationRequest,
+  BatchValidationResult,
+  ValidateExpertWorkRequest,
+  ValidationResult,
+  ValidationStatistics,
+  ValidationConfig,
+} from '@domain/validation/validation.types';
 
 export interface IValidationAdapter {
   /**
-   * Validate research data against 6-check pipeline
+   * Validate expert work request.
    */
-  validate(config: ValidationConfig): Promise<ValidationResult>;
+  validate(request: ValidateExpertWorkRequest): Promise<ValidationResult>;
 
   /**
-   * Batch validate multiple reports
+   * Batch validate multiple expert reports with queue-aware orchestration.
    */
-  validateBatch(configs: ValidationConfig[]): Promise<ValidationResult[]>;
-
-
+  validateBatch(
+    request: BatchValidationRequest,
+  ): Promise<BatchValidationResult>;
 
   /**
-   * Check source credibility
+   * Retrieve current validation configuration.
    */
-  checkSourceCredibility(sources: string[]): Promise<number>;
+  getConfig(): ValidationConfig;
 
   /**
-   * Check finding consistency
+   * Update runtime validation configuration.
    */
-  checkFindingConsistency(findings: string[]): Promise<boolean>;
+  updateConfig(config: Partial<ValidationConfig>): ValidationConfig;
+
+  /**
+   * Retrieve aggregate validation statistics.
+   */
+  getStatistics(): ValidationStatistics;
 }

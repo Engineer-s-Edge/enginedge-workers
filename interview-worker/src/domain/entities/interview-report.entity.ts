@@ -1,41 +1,36 @@
-/**
- * InterviewReport Entity
- * 
- * Represents the final evaluation report generated after an interview is completed.
- * Contains scores, feedback, and observations from the evaluator LLM.
- */
-
-import { CandidateObservations } from './candidate-profile.entity';
-
-export interface TranscriptMessage {
-  timestamp: Date;
-  speaker: 'candidate' | 'agent';
-  text: string;
-  type: 'user-input' | 'voice-transcription' | 'agent-response' | 'followup';
-  followupForQuestionId?: string;
-}
-
-export interface Transcript {
-  sessionId: string;
-  messages: TranscriptMessage[];
-}
-
-export interface InterviewScore {
-  overall: number; // 0-100
+import type { CandidateObservations } from './candidate-profile.entity';
+export type InterviewScore = {
+  overall: number;
   byPhase: {
     behavioral?: number;
     technical?: number;
     coding?: number;
     systemDesign?: number;
   };
-}
+};
 
+// Transcript message and transcript types used across repositories and use-cases
+export type TranscriptMessage = {
+  timestamp: Date;
+  speaker: 'candidate' | 'agent';
+  text: string;
+  type: 'user-input' | 'voice-transcription' | 'agent-response' | 'followup';
+  followupForQuestionId?: string;
+  confidence?: number;
+};
+
+export type Transcript = {
+  sessionId: string;
+  messages: TranscriptMessage[];
+};
+
+// Interview report entity used by evaluator and repositories
 export class InterviewReport {
   reportId: string;
   sessionId: string;
   score: InterviewScore;
-  feedback: string; // From evaluator LLM
-  observations: CandidateObservations;
+  feedback: string;
+  observations?: CandidateObservations;
   transcript: Transcript;
   generatedAt: Date;
 
@@ -44,7 +39,7 @@ export class InterviewReport {
     sessionId: string;
     score: InterviewScore;
     feedback: string;
-    observations: CandidateObservations;
+    observations?: CandidateObservations;
     transcript: Transcript;
     generatedAt?: Date;
   }) {
@@ -57,9 +52,6 @@ export class InterviewReport {
     this.generatedAt = data.generatedAt || new Date();
   }
 
-  /**
-   * Convert to plain object for MongoDB storage
-   */
   toObject(): Record<string, unknown> {
     return {
       reportId: this.reportId,
@@ -69,41 +61,48 @@ export class InterviewReport {
       observations: this.observations,
       transcript: {
         sessionId: this.transcript.sessionId,
-        messages: this.transcript.messages.map((msg) => ({
-          timestamp: msg.timestamp,
-          speaker: msg.speaker,
-          text: msg.text,
-          type: msg.type,
-          followupForQuestionId: msg.followupForQuestionId,
+        messages: this.transcript.messages.map((m) => ({
+          timestamp: m.timestamp,
+          speaker: m.speaker,
+          text: m.text,
+          type: m.type,
+          followupForQuestionId: m.followupForQuestionId,
         })),
       },
       generatedAt: this.generatedAt,
     };
   }
 
-  /**
-   * Create from MongoDB document
-   */
   static fromObject(data: Record<string, unknown>): InterviewReport {
-    const transcript = data.transcript as Record<string, unknown>;
+    const transcriptDoc = data.transcript as {
+      sessionId: string;
+      messages: any[];
+    };
     return new InterviewReport({
       reportId: data.reportId as string,
       sessionId: data.sessionId as string,
       score: data.score as InterviewScore,
       feedback: data.feedback as string,
-      observations: data.observations as CandidateObservations,
+      observations: (data.observations as CandidateObservations) || undefined,
       transcript: {
-        sessionId: transcript.sessionId as string,
-        messages: (transcript.messages as Record<string, unknown>[]).map((msg) => ({
-          timestamp: msg.timestamp ? new Date(msg.timestamp as string) : new Date(),
+        sessionId: transcriptDoc?.sessionId || (data.sessionId as string),
+        messages: (transcriptDoc?.messages || []).map((msg: any) => ({
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
           speaker: msg.speaker as 'candidate' | 'agent',
           text: msg.text as string,
-          type: msg.type as 'user-input' | 'voice-transcription' | 'agent-response' | 'followup',
-          followupForQuestionId: msg.followupForQuestionId as string | undefined,
+          type: msg.type as
+            | 'user-input'
+            | 'voice-transcription'
+            | 'agent-response'
+            | 'followup',
+          followupForQuestionId: msg.followupForQuestionId as
+            | string
+            | undefined,
         })),
       },
-      generatedAt: data.generatedAt ? new Date(data.generatedAt as string) : new Date(),
+      generatedAt: data.generatedAt
+        ? new Date(data.generatedAt as string)
+        : new Date(),
     });
   }
 }
-

@@ -6,7 +6,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { RateLimitingService, RateLimitQuota } from '@infrastructure/services/rate-limiting.service';
+import {
+  RateLimitingService,
+  RateLimitQuota,
+} from '@infrastructure/services/rate-limiting.service';
 
 describe('RateLimitingService', () => {
   let service: RateLimitingService;
@@ -135,7 +138,7 @@ describe('RateLimitingService', () => {
       const quota: RateLimitQuota = {
         requestsPerSecond: 2,
         requestsPerMinute: 10,
-        requestsPerHour: 100
+        requestsPerHour: 100,
       };
 
       // Hit second limit
@@ -149,7 +152,7 @@ describe('RateLimitingService', () => {
       const quota: RateLimitQuota = {
         requestsPerSecond: 10,
         requestsPerMinute: 3,
-        requestsPerHour: 100
+        requestsPerHour: 100,
       };
 
       service.recordRequest('api-most-restrictive');
@@ -219,7 +222,7 @@ describe('RateLimitingService', () => {
       const quota: RateLimitQuota = {
         requestsPerSecond: 10,
         requestsPerMinute: 100,
-        requestsPerHour: 1000
+        requestsPerHour: 1000,
       };
 
       service.recordRequest('api-status');
@@ -265,21 +268,30 @@ describe('RateLimitingService', () => {
 
       const resets = service.getQuotaResets('api-multi-reset');
       expect(resets.length).toBe(3);
-      expect(resets.some(r => r.limit === 'second')).toBe(true);
-      expect(resets.some(r => r.limit === 'minute')).toBe(true);
-      expect(resets.some(r => r.limit === 'hour')).toBe(true);
+      expect(resets.some((r) => r.limit === 'second')).toBe(true);
+      expect(resets.some((r) => r.limit === 'minute')).toBe(true);
+      expect(resets.some((r) => r.limit === 'hour')).toBe(true);
     });
 
     it('should calculate time until reset', () => {
-      const timeToSecondReset = service.getTimeUntilReset('api-time-reset', 'second');
+      const timeToSecondReset = service.getTimeUntilReset(
+        'api-time-reset',
+        'second',
+      );
       expect(timeToSecondReset).toBeGreaterThanOrEqual(0);
       expect(timeToSecondReset).toBeLessThanOrEqual(1);
 
-      const timeToMinuteReset = service.getTimeUntilReset('api-time-reset', 'minute');
+      const timeToMinuteReset = service.getTimeUntilReset(
+        'api-time-reset',
+        'minute',
+      );
       expect(timeToMinuteReset).toBeGreaterThanOrEqual(0);
       expect(timeToMinuteReset).toBeLessThanOrEqual(60);
 
-      const timeToHourReset = service.getTimeUntilReset('api-time-reset', 'hour');
+      const timeToHourReset = service.getTimeUntilReset(
+        'api-time-reset',
+        'hour',
+      );
       expect(timeToHourReset).toBeGreaterThanOrEqual(0);
       expect(timeToHourReset).toBeLessThanOrEqual(3600);
     });
@@ -289,14 +301,18 @@ describe('RateLimitingService', () => {
     it('should check if specific limit is exceeded', () => {
       const quota: RateLimitQuota = {
         requestsPerSecond: 2,
-        requestsPerMinute: 10
+        requestsPerMinute: 10,
       };
 
       service.recordRequest('api-limit-check');
       service.recordRequest('api-limit-check');
 
-      expect(service.isLimitExceeded('api-limit-check', 'second', quota)).toBe(true);
-      expect(service.isLimitExceeded('api-limit-check', 'minute', quota)).toBe(false);
+      expect(service.isLimitExceeded('api-limit-check', 'second', quota)).toBe(
+        true,
+      );
+      expect(service.isLimitExceeded('api-limit-check', 'minute', quota)).toBe(
+        false,
+      );
     });
   });
 
@@ -308,14 +324,22 @@ describe('RateLimitingService', () => {
       service.recordRequest('api-percentage');
       service.recordRequest('api-percentage');
 
-      const percentage = service.getQuotaPercentage('api-percentage', 'second', quota);
+      const percentage = service.getQuotaPercentage(
+        'api-percentage',
+        'second',
+        quota,
+      );
       expect(percentage).toBe(30);
     });
 
     it('should calculate 0% when no requests', () => {
       const quota: RateLimitQuota = { requestsPerMinute: 60 };
 
-      const percentage = service.getQuotaPercentage('api-percentage-zero', 'minute', quota);
+      const percentage = service.getQuotaPercentage(
+        'api-percentage-zero',
+        'minute',
+        quota,
+      );
       expect(percentage).toBe(0);
     });
 
@@ -326,7 +350,11 @@ describe('RateLimitingService', () => {
         service.recordRequest('api-percentage-full');
       }
 
-      const percentage = service.getQuotaPercentage('api-percentage-full', 'second', quota);
+      const percentage = service.getQuotaPercentage(
+        'api-percentage-full',
+        'second',
+        quota,
+      );
       expect(percentage).toBe(100);
     });
   });

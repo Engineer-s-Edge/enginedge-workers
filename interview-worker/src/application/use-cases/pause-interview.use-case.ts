@@ -32,4 +32,3 @@ export class PauseInterviewUseCase {
     return updated;
   }
 }
-

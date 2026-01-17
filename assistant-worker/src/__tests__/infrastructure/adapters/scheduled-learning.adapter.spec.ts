@@ -4,13 +4,40 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ScheduledLearningAdapter } from '../../../infrastructure/adapters/implementations/scheduled-learning.adapter';
+import { ScheduledLearningManagerService } from '../../../application/services/scheduled-learning-manager.service';
 
 describe('ScheduledLearningAdapter', () => {
   let adapter: ScheduledLearningAdapter;
+  let mockManager: any;
 
   beforeEach(async () => {
+    mockManager = {
+      scheduleLearning: jest.fn().mockImplementation((config) => ({
+        id: 'sched-' + Math.random(),
+        userId: config.userId,
+        topicId: config.topicId,
+        cronExpression: config.cronExpression,
+        active: true,
+      })),
+      cancelScheduled: jest.fn().mockResolvedValue(true),
+      getSchedule: jest.fn().mockImplementation((id) => {
+        if (id === 'nonexistent') return null;
+        return {
+          id,
+          userId: 'user-1',
+          topicId: 'ML',
+          cronExpression: '0 9 * * *',
+          active: true,
+        };
+      }),
+      getUserSchedules: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ScheduledLearningAdapter],
+      providers: [
+        ScheduledLearningAdapter,
+        { provide: ScheduledLearningManagerService, useValue: mockManager },
+      ],
     }).compile();
 
     adapter = module.get<ScheduledLearningAdapter>(ScheduledLearningAdapter);

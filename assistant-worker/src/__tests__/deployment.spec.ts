@@ -14,14 +14,20 @@ describe('Deployment', () => {
     dockerMock = {
       buildImage: jest.fn().mockResolvedValue({ imageId: 'sha256:abc123' }),
       pushImage: jest.fn().mockResolvedValue({ success: true }),
-      runContainer: jest.fn().mockResolvedValue({ containerId: 'container-123' }),
+      runContainer: jest
+        .fn()
+        .mockResolvedValue({ containerId: 'container-123' }),
       stopContainer: jest.fn().mockResolvedValue({ success: true }),
     };
 
     kubernetesM = {
       deployPod: jest.fn().mockResolvedValue({ podName: 'pod-123' }),
-      deployService: jest.fn().mockResolvedValue({ serviceName: 'service-123' }),
-      deployConfigMap: jest.fn().mockResolvedValue({ configMapName: 'config-123' }),
+      deployService: jest
+        .fn()
+        .mockResolvedValue({ serviceName: 'service-123' }),
+      deployConfigMap: jest
+        .fn()
+        .mockResolvedValue({ configMapName: 'config-123' }),
       deploySecret: jest.fn().mockResolvedValue({ secretName: 'secret-123' }),
     };
 
@@ -63,14 +69,18 @@ describe('Deployment', () => {
       });
 
       expect(deploymentService.buildImage).toHaveBeenCalledWith(
-        expect.objectContaining({ buildArgs: expect.anything() })
+        expect.objectContaining({ buildArgs: expect.anything() }),
       );
     });
 
     it('should handle build failures', async () => {
-      deploymentService.buildImage = jest.fn().mockRejectedValue(new Error('Build failed'));
+      deploymentService.buildImage = jest
+        .fn()
+        .mockRejectedValue(new Error('Build failed'));
 
-      await expect(deploymentService.buildImage({})).rejects.toThrow('Build failed');
+      await expect(deploymentService.buildImage({})).rejects.toThrow(
+        'Build failed',
+      );
     });
 
     it('should support multi-stage builds', async () => {
@@ -101,7 +111,9 @@ describe('Deployment', () => {
     });
 
     it('should start services from compose file', async () => {
-      deploymentService.upCompose = jest.fn().mockResolvedValue({ success: true });
+      deploymentService.upCompose = jest
+        .fn()
+        .mockResolvedValue({ success: true });
 
       const result = await deploymentService.upCompose({
         file: 'docker-compose.yml',
@@ -111,7 +123,9 @@ describe('Deployment', () => {
     });
 
     it('should stop services from compose file', async () => {
-      deploymentService.downCompose = jest.fn().mockResolvedValue({ stopped: 3 });
+      deploymentService.downCompose = jest
+        .fn()
+        .mockResolvedValue({ stopped: 3 });
 
       const result = await deploymentService.downCompose({
         file: 'docker-compose.yml',
@@ -139,10 +153,7 @@ describe('Deployment', () => {
       const compose = {
         services: {
           assistant: {
-            volumes: [
-              './logs:/app/logs',
-              './data:/app/data',
-            ],
+            volumes: ['./logs:/app/logs', './data:/app/data'],
           },
         },
       };
@@ -162,7 +173,9 @@ describe('Deployment', () => {
         },
       };
 
-      expect(compose.services.assistant.environment.NODE_ENV).toBe('production');
+      expect(compose.services.assistant.environment.NODE_ENV).toBe(
+        'production',
+      );
     });
 
     it('should define networks', () => {
@@ -207,7 +220,9 @@ describe('Deployment', () => {
       };
 
       expect(compose.services.assistant.deploy.resources.limits.cpus).toBe('1');
-      expect(compose.services.assistant.deploy.resources.limits.memory).toBe('512M');
+      expect(compose.services.assistant.deploy.resources.limits.memory).toBe(
+        '512M',
+      );
     });
   });
 
@@ -316,14 +331,11 @@ describe('Deployment', () => {
     it('should mount volumes in container', async () => {
       await deploymentService.runContainer({
         image: 'assistant-worker:1.0.0',
-        volumes: [
-          '/host/logs:/container/logs',
-          '/host/data:/container/data',
-        ],
+        volumes: ['/host/logs:/container/logs', '/host/data:/container/data'],
       });
 
       expect(deploymentService.runContainer).toHaveBeenCalledWith(
-        expect.objectContaining({ volumes: expect.anything() })
+        expect.objectContaining({ volumes: expect.anything() }),
       );
     });
 
@@ -337,7 +349,7 @@ describe('Deployment', () => {
       });
 
       expect(deploymentService.runContainer).toHaveBeenCalledWith(
-        expect.objectContaining({ env: expect.anything() })
+        expect.objectContaining({ env: expect.anything() }),
       );
     });
 
@@ -374,7 +386,9 @@ describe('Deployment', () => {
         stderr: '',
       });
 
-      const logs = await deploymentService.getLogs({ containerId: 'container-123' });
+      const logs = await deploymentService.getLogs({
+        containerId: 'container-123',
+      });
       expect(logs.stdout).toContain('Server running');
     });
 
@@ -388,7 +402,9 @@ describe('Deployment', () => {
         },
       });
 
-      const info = await deploymentService.inspectContainer({ containerId: 'container-123' });
+      const info = await deploymentService.inspectContainer({
+        containerId: 'container-123',
+      });
       expect(info.State.Health.Status).toBe('healthy');
     });
   });
@@ -429,7 +445,7 @@ describe('Deployment', () => {
       const result = await deploymentService.deploySecret({
         name: 'assistant-secret',
         data: {
-          'apiKey': 'secret-value',
+          apiKey: 'secret-value',
         },
       });
 
@@ -461,7 +477,7 @@ describe('Deployment', () => {
       });
 
       expect(deploymentService.deployDeployment).toHaveBeenCalledWith(
-        expect.objectContaining({ replicas: 3 })
+        expect.objectContaining({ replicas: 3 }),
       );
     });
 
@@ -553,21 +569,33 @@ describe('Deployment', () => {
   // ===== ERROR HANDLING TESTS =====
   describe('Error Handling', () => {
     it('should handle build timeout', async () => {
-      deploymentService.buildImage = jest.fn().mockRejectedValue(new Error('Build timeout'));
+      deploymentService.buildImage = jest
+        .fn()
+        .mockRejectedValue(new Error('Build timeout'));
 
-      await expect(deploymentService.buildImage({})).rejects.toThrow('Build timeout');
+      await expect(deploymentService.buildImage({})).rejects.toThrow(
+        'Build timeout',
+      );
     });
 
     it('should handle push failure', async () => {
-      deploymentService.pushImage = jest.fn().mockRejectedValue(new Error('Push failed'));
+      deploymentService.pushImage = jest
+        .fn()
+        .mockRejectedValue(new Error('Push failed'));
 
-      await expect(deploymentService.pushImage({})).rejects.toThrow('Push failed');
+      await expect(deploymentService.pushImage({})).rejects.toThrow(
+        'Push failed',
+      );
     });
 
     it('should handle deployment failure', async () => {
-      deploymentService.deployPod = jest.fn().mockRejectedValue(new Error('Deployment failed'));
+      deploymentService.deployPod = jest
+        .fn()
+        .mockRejectedValue(new Error('Deployment failed'));
 
-      await expect(deploymentService.deployPod({})).rejects.toThrow('Deployment failed');
+      await expect(deploymentService.deployPod({})).rejects.toThrow(
+        'Deployment failed',
+      );
     });
 
     it('should handle resource conflicts', async () => {
@@ -575,7 +603,9 @@ describe('Deployment', () => {
         .fn()
         .mockRejectedValue(new Error('Service already exists'));
 
-      await expect(deploymentService.deployService({})).rejects.toThrow('already exists');
+      await expect(deploymentService.deployService({})).rejects.toThrow(
+        'already exists',
+      );
     });
 
     it('should handle insufficient resources', async () => {
@@ -583,13 +613,19 @@ describe('Deployment', () => {
         .fn()
         .mockRejectedValue(new Error('Insufficient resources'));
 
-      await expect(deploymentService.deployPod({})).rejects.toThrow('Insufficient resources');
+      await expect(deploymentService.deployPod({})).rejects.toThrow(
+        'Insufficient resources',
+      );
     });
 
     it('should handle network connectivity issues', async () => {
-      deploymentService.pushImage = jest.fn().mockRejectedValue(new Error('Connection refused'));
+      deploymentService.pushImage = jest
+        .fn()
+        .mockRejectedValue(new Error('Connection refused'));
 
-      await expect(deploymentService.pushImage({})).rejects.toThrow('Connection refused');
+      await expect(deploymentService.pushImage({})).rejects.toThrow(
+        'Connection refused',
+      );
     });
   });
 
@@ -636,7 +672,9 @@ CMD ["npm", "start"]
     it('should check image exists before deployment', async () => {
       deploymentService.imageExists = jest.fn().mockResolvedValue(true);
 
-      const exists = await deploymentService.imageExists({ image: 'assistant-worker:1.0.0' });
+      const exists = await deploymentService.imageExists({
+        image: 'assistant-worker:1.0.0',
+      });
       expect(exists).toBe(true);
     });
 
@@ -644,7 +682,9 @@ CMD ["npm", "start"]
       const required = ['NODE_ENV', 'LOG_LEVEL', 'DATABASE_URL'];
       const provided = { NODE_ENV: 'prod', LOG_LEVEL: 'info' };
 
-      const missing = required.filter((v) => !Object.keys(provided).includes(v));
+      const missing = required.filter(
+        (v) => !Object.keys(provided).includes(v),
+      );
       expect(missing).toContain('DATABASE_URL');
     });
   });

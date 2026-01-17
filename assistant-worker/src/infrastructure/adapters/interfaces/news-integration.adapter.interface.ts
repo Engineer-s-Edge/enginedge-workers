@@ -1,6 +1,6 @@
 /**
  * News Integration Adapter Interface
- * 
+ *
  * Port interface for external news/data integration
  * Abstracts external NewsIntegrationService implementation
  */
@@ -38,7 +38,9 @@ export interface INewsIntegrationAdapter {
   /**
    * Get trending topics in news
    */
-  getTrendingTopics(limit?: number): Promise<Array<{ topic: string; frequency: number }>>;
+  getTrendingTopics(
+    limit?: number,
+  ): Promise<Array<{ topic: string; frequency: number }>>;
 
   /**
    * Search news by query
@@ -48,7 +50,10 @@ export interface INewsIntegrationAdapter {
   /**
    * Get news for multiple topics
    */
-  fetchNewsForTopics(topics: string[], limit?: number): Promise<Map<string, NewsArticle[]>>;
+  fetchNewsForTopics(
+    topics: string[],
+    limit?: number,
+  ): Promise<Map<string, NewsArticle[]>>;
 
   /**
    * Detect emerging topics from news

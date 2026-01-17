@@ -28,10 +28,10 @@ The **EnginEdge Workers** repository contains six specialized worker nodes that 
 
 ## Worker Types
 
-### 1. LLM Worker (`assistant-worker/`)
-**Purpose**: Large Language Model interactions and text generation
+### 1. Assistant Worker (`assistant-worker/`)
+**Purpose**: AI Assistant lifecycles and LLM orchestration
 **Port**: 3001
-**Domain**: Text generation, prompt engineering, multi-provider LLM orchestration
+**Domain**: Text generation, prompt engineering, multi-agent workflows
 
 ### 2. Agent Tool Worker (`agent-tool-worker/`)
 **Purpose**: AI agent execution and tool orchestration
@@ -39,24 +39,44 @@ The **EnginEdge Workers** repository contains six specialized worker nodes that 
 **Domain**: Agent lifecycle management, tool integration, workflow execution
 
 ### 3. Data Processing Worker (`data-processing-worker/`)
-**Purpose**: Document processing and vector operations
+**Purpose**: Heavy data processing and document extraction
 **Port**: 3003
-**Domain**: Document ingestion, text chunking, vector embeddings, retrieval
+**Domain**: OCR, text chunking, vector embeddings, retrieval
 
 ### 4. Interview Worker (`interview-worker/`)
 **Purpose**: Interview processing and candidate assessment
 **Port**: 3004
-**Domain**: Interview scheduling, question generation, response analysis
+**Domain**: Speech-to-text, question generation, response analysis
 
 ### 5. LaTeX Worker (`latex-worker/`)
-**Purpose**: Mathematical document processing
+**Purpose**: Document generation and typesetting
 **Port**: 3005
-**Domain**: LaTeX compilation, mathematical rendering, formula processing
+**Domain**: LaTeX compilation, mathematical rendering, PDF generation
 
-### 6. RNLE Worker (`rnle-worker/`)
-**Purpose**: Symbolic mathematics and computation
+### 6. Resume Worker (`resume-worker/`)
+**Purpose**: Resume parsing and matching
 **Port**: 3006
-**Domain**: Symbolic equation solving, computational kernels, mathematical reasoning
+**Domain**: Resume NLP, candidate matching, profile enrichment
+
+### 7. Scheduling Worker (`scheduling-worker/`)
+**Purpose**: Calendar management and task scheduling
+**Port**: 3007
+**Domain**: Interview scheduling, calendar integration, time zone management
+
+### 8. Identity Worker (`identity-worker/`)
+**Purpose**: User identity and profile enrichment
+**Port**: 3008
+**Domain**: User profiles, social graph integration, data enrichment
+
+### 9. News Worker (`news-worker/`)
+**Purpose**: Market intelligence and news aggregation
+**Port**: 3009
+**Domain**: News aggregation, trend analysis, market signals
+
+### 10. SpaCy Service (`spacy-service/`)
+**Purpose**: Advanced NLP and linguistics (Python)
+**Port**: 8001
+**Domain**: Topic categorization, text analysis, grammar checking
 
 ## Shared Architecture
 

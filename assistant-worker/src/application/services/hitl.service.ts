@@ -1,14 +1,19 @@
 /**
  * Human-in-the-Loop (HITL) Service
- * 
+ *
  * Manages user interactions during agent execution.
  * Supports input nodes, approval nodes, and escalations.
  */
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { ILogger } from '@application/ports/logger.port';
+import { NotificationService } from './notification.service';
 
-export type HITLRequestType = 'input' | 'approval' | 'escalation' | 'clarification';
+export type HITLRequestType =
+  | 'input'
+  | 'approval'
+  | 'escalation'
+  | 'clarification';
 export type HITLStatus = 'pending' | 'completed' | 'rejected' | 'timeout';
 
 export interface HITLRequest {
@@ -36,6 +41,8 @@ export class HITLService {
   constructor(
     @Inject('ILogger')
     private readonly logger: ILogger,
+    @Optional()
+    private readonly notificationService?: NotificationService,
   ) {}
 
   /**
@@ -47,7 +54,7 @@ export class HITLService {
     type: HITLRequestType,
     prompt: string,
     context?: any,
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<HITLRequest> {
     const request: HITLRequest = {
       id: `hitl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -75,6 +82,26 @@ export class HITLService {
       type,
     });
 
+    // Send notification for escalations
+    if (type === 'escalation' && this.notificationService) {
+      try {
+        await this.notificationService.sendEscalationNotification(
+          userId,
+          'agent-escalation',
+          {
+            agentId,
+            requestId: request.id,
+            prompt,
+            context,
+          },
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to send escalation notification: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
     // Set timeout if specified
     if (timeoutMs) {
       setTimeout(() => {
@@ -97,10 +124,13 @@ export class HITLService {
    */
   async listPendingRequests(agentId: string): Promise<HITLRequest[]> {
     const requestIds = this.pendingRequests.get(agentId) || [];
-    
+
     return requestIds
       .map((id) => this.requests.get(id))
-      .filter((req): req is HITLRequest => req !== undefined && req.status === 'pending');
+      .filter(
+        (req): req is HITLRequest =>
+          req !== undefined && req.status === 'pending',
+      );
   }
 
   /**
@@ -118,7 +148,7 @@ export class HITLService {
   async respondToRequest(
     requestId: string,
     response: any,
-    approved: boolean = true
+    approved: boolean = true,
   ): Promise<HITLRequest> {
     const request = this.requests.get(requestId);
 
@@ -127,7 +157,9 @@ export class HITLService {
     }
 
     if (request.status !== 'pending') {
-      throw new Error(`HITL request ${requestId} is not pending (status: ${request.status})`);
+      throw new Error(
+        `HITL request ${requestId} is not pending (status: ${request.status})`,
+      );
     }
 
     request.response = response;
@@ -157,7 +189,7 @@ export class HITLService {
   async waitForResponse(
     requestId: string,
     pollIntervalMs: number = 1000,
-    maxWaitMs?: number
+    maxWaitMs?: number,
   ): Promise<HITLRequest> {
     const startTime = Date.now();
 
@@ -261,7 +293,10 @@ export class HITLService {
     }
 
     this.pendingRequests.delete(agentId);
-    this.logger.info('Agent HITL requests cleared', { agentId, count: clearedCount });
+    this.logger.info('Agent HITL requests cleared', {
+      agentId,
+      count: clearedCount,
+    });
 
     return clearedCount;
   }
@@ -313,4 +348,3 @@ export class HITLService {
     return stats;
   }
 }
-

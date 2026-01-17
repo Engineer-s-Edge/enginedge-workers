@@ -4,10 +4,14 @@
  * Manages agent todo lists and task tracking for internal workflow management.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
+import { Db } from 'mongodb';
 
 export type TodoOperation = 'create' | 'update' | 'list' | 'delete' | 'get';
 
@@ -66,20 +70,28 @@ export interface TodoOutput extends ToolOutput {
 @Injectable()
 export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
   readonly name = 'internal-todo-actor';
-  readonly description = 'Manages agent todo lists and task tracking for internal workflow management';
+  readonly description =
+    'Manages agent todo lists and task tracking for internal workflow management';
 
   readonly errorEvents: ErrorEvent[];
 
   readonly metadata: ActorConfig;
 
-  // In-memory storage for todos (in production, this would be a database)
-  private todos: Map<string, TodoItem> = new Map();
+  private readonly collection;
 
-  constructor() {
+  constructor(@Inject('MONGODB_DB') private readonly db: Db) {
     const errorEvents = [
-      new ErrorEvent('TodoNotFound', 'The specified todo item was not found', false),
+      new ErrorEvent(
+        'TodoNotFound',
+        'The specified todo item was not found',
+        false,
+      ),
       new ErrorEvent('ValidationError', 'Invalid todo data provided', false),
-      new ErrorEvent('DuplicateTodo', 'A todo with this ID already exists', false),
+      new ErrorEvent(
+        'DuplicateTodo',
+        'A todo with this ID already exists',
+        false,
+      ),
     ];
 
     const metadata = new ActorConfig(
@@ -94,93 +106,96 @@ export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
           operation: {
             type: 'string',
             enum: ['create', 'update', 'list', 'delete', 'get'],
-            description: 'The operation to perform'
+            description: 'The operation to perform',
           },
           title: {
             type: 'string',
             minLength: 1,
             maxLength: 200,
-            description: 'Todo title (required for create)'
+            description: 'Todo title (required for create)',
           },
           description: {
             type: 'string',
             maxLength: 1000,
-            description: 'Todo description'
+            description: 'Todo description',
           },
           priority: {
             type: 'string',
             enum: ['low', 'medium', 'high'],
-            description: 'Todo priority level'
+            description: 'Todo priority level',
           },
           tags: {
             type: 'array',
             items: { type: 'string', maxLength: 50 },
             maxItems: 10,
-            description: 'Tags for categorization'
+            description: 'Tags for categorization',
           },
           dueDate: {
             type: 'string',
             format: 'date-time',
-            description: 'Due date in ISO format'
+            description: 'Due date in ISO format',
           },
           assignee: {
             type: 'string',
             maxLength: 100,
-            description: 'Person assigned to this todo'
+            description: 'Person assigned to this todo',
           },
           id: {
             type: 'string',
             minLength: 1,
             maxLength: 100,
-            description: 'Todo ID (required for update/delete/get)'
+            description: 'Todo ID (required for update/delete/get)',
           },
           status: {
             type: 'string',
             enum: ['pending', 'in-progress', 'completed', 'cancelled'],
-            description: 'Todo status (for update)'
+            description: 'Todo status (for update)',
           },
           filter: {
             type: 'object',
             properties: {
               status: {
                 type: 'array',
-                items: { type: 'string', enum: ['pending', 'in-progress', 'completed', 'cancelled'] }
+                items: {
+                  type: 'string',
+                  enum: ['pending', 'in-progress', 'completed', 'cancelled'],
+                },
               },
               priority: {
                 type: 'array',
-                items: { type: 'string', enum: ['low', 'medium', 'high'] }
+                items: { type: 'string', enum: ['low', 'medium', 'high'] },
               },
               tags: {
                 type: 'array',
-                items: { type: 'string' }
+                items: { type: 'string' },
               },
               assignee: {
-                type: 'string'
+                type: 'string',
               },
               dueBefore: {
                 type: 'string',
-                format: 'date-time'
+                format: 'date-time',
               },
               dueAfter: {
                 type: 'string',
-                format: 'date-time'
-              }
-            }
+                format: 'date-time',
+              },
+            },
           },
           limit: {
             type: 'number',
             minimum: 1,
             maximum: 100,
             default: 50,
-            description: 'Maximum number of todos to return'
+            description: 'Maximum number of todos to return',
           },
           offset: {
             type: 'number',
             minimum: 0,
             default: 0,
-            description: 'Number of todos to skip'
-          }
-        }
+            description: 'Number of todos to skip',
+          },
+        },
       },
       {
         type: 'object',
@@ -199,16 +214,16 @@ export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
               createdAt: { type: 'string', format: 'date-time' },
               updatedAt: { type: 'string', format: 'date-time' },
               dueDate: { type: 'string', format: 'date-time' },
-              assignee: { type: 'string' }
-            }
+              assignee: { type: 'string' },
+            },
           },
           todos: {
             type: 'array',
-            items: { $ref: '#/properties/todo' }
+            items: { $ref: '#/properties/todo' },
           },
           total: { type: 'number' },
-          found: { type: 'boolean' }
-        }
+          found: { type: 'boolean' },
+        },
       },
       [
         {
@@ -216,26 +231,42 @@ export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
           title: 'Review pull request #123',
           description: 'Review the changes in the authentication module',
           priority: 'high',
-          tags: ['review', 'auth']
+          tags: ['review', 'auth'],
         },
         {
           operation: 'list',
           filter: { status: ['pending', 'in-progress'] },
-          limit: 10
+          limit: 10,
         },
         {
           operation: 'update',
           id: 'todo-123',
-          status: 'completed'
-        }
+          status: 'completed',
+        },
       ],
       ActorCategory.INTERNAL_SANDBOX,
-      false
+      false,
     );
 
     super(metadata, errorEvents);
     this.metadata = metadata;
     this.errorEvents = errorEvents;
+
+    this.collection = this.db.collection<TodoItem>('todos');
+
+    // Create indexes for better query performance
+    this.collection
+      .createIndexes([
+        { key: { id: 1 }, unique: true },
+        { key: { status: 1 } },
+        { key: { priority: 1 } },
+        { key: { assignee: 1 } },
+        { key: { dueDate: 1 } },
+        { key: { createdAt: -1 } },
+      ])
+      .catch(() => {
+        // Indexes may already exist, ignore errors
+      });
   }
 
   get category(): ActorCategory {
@@ -249,26 +280,29 @@ export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
   protected async act(args: TodoArgs): Promise<TodoOutput> {
     switch (args.operation) {
       case 'create':
-        return this.createTodo(args);
+        return await this.createTodo(args);
       case 'update':
-        return this.updateTodo(args);
+        return await this.updateTodo(args);
       case 'list':
-        return this.listTodos(args);
+        return await this.listTodos(args);
       case 'delete':
-        return this.deleteTodo(args);
+        return await this.deleteTodo(args);
       case 'get':
-        return this.getTodo(args);
+        return await this.getTodo(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
-  private createTodo(args: TodoArgs): TodoOutput {
+  private async createTodo(args: TodoArgs): Promise<TodoOutput> {
     if (!args.title) {
       throw Object.assign(new Error('Title is required for todo creation'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -285,149 +319,155 @@ export class InternalTodoActor extends BaseActor<TodoArgs, TodoOutput> {
       createdAt: now,
       updatedAt: now,
       dueDate: args.dueDate ? new Date(args.dueDate) : undefined,
-      assignee: args.assignee
+      assignee: args.assignee,
     };
 
-    this.todos.set(id, todo);
+    await this.collection.insertOne(todo);
 
     return {
       success: true,
       operation: 'create',
-      todo
+      todo,
     };
   }
 
-  private updateTodo(args: TodoArgs): TodoOutput {
+  private async updateTodo(args: TodoArgs): Promise<TodoOutput> {
     if (!args.id) {
       throw Object.assign(new Error('Todo ID is required for update'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
-    const todo = this.todos.get(args.id);
-    if (!todo) {
-      throw Object.assign(new Error(`Todo with ID ${args.id} not found`), {
-        name: 'TodoNotFound'
-      });
-    }
+    const updateData: Partial<TodoItem> = {
+      updatedAt: new Date(),
+    };
 
-    // Update fields
     if (args.status !== undefined) {
-      todo.status = args.status;
+      updateData.status = args.status;
     }
     if (args.title !== undefined) {
-      todo.title = args.title;
+      updateData.title = args.title;
     }
     if (args.description !== undefined) {
-      todo.description = args.description;
+      updateData.description = args.description;
     }
     if (args.priority !== undefined) {
-      todo.priority = args.priority;
+      updateData.priority = args.priority;
     }
     if (args.tags !== undefined) {
-      todo.tags = args.tags;
+      updateData.tags = args.tags;
     }
     if (args.dueDate !== undefined) {
-      todo.dueDate = args.dueDate ? new Date(args.dueDate) : undefined;
+      updateData.dueDate = args.dueDate ? new Date(args.dueDate) : undefined;
     }
     if (args.assignee !== undefined) {
-      todo.assignee = args.assignee;
+      updateData.assignee = args.assignee;
     }
 
-    todo.updatedAt = new Date();
-    this.todos.set(args.id, todo);
+    const result = await this.collection.findOneAndUpdate(
+      { id: args.id },
+      { $set: updateData },
+      { returnDocument: 'after' },
+    );
+
+    if (!result) {
+      throw Object.assign(new Error(`Todo with ID ${args.id} not found`), {
+        name: 'TodoNotFound',
+      });
+    }
 
     return {
       success: true,
       operation: 'update',
-      todo
+      todo: result,
     };
   }
 
-  private listTodos(args: TodoArgs): TodoOutput {
-    let todos = Array.from(this.todos.values());
+  private async listTodos(args: TodoArgs): Promise<TodoOutput> {
+    const query: any = {};
 
     // Apply filters
     if (args.filter) {
-      todos = todos.filter(todo => {
-        if (args.filter!.status && !args.filter!.status.includes(todo.status)) {
-          return false;
+      if (args.filter.status && args.filter.status.length > 0) {
+        query.status = { $in: args.filter.status };
+      }
+      if (args.filter.priority && args.filter.priority.length > 0) {
+        query.priority = { $in: args.filter.priority };
+      }
+      if (args.filter.tags && args.filter.tags.length > 0) {
+        query.tags = { $in: args.filter.tags };
+      }
+      if (args.filter.assignee) {
+        query.assignee = args.filter.assignee;
+      }
+      if (args.filter.dueBefore || args.filter.dueAfter) {
+        query.dueDate = {};
+        if (args.filter.dueBefore) {
+          query.dueDate.$lte = new Date(args.filter.dueBefore);
         }
-        if (args.filter!.priority && !args.filter!.priority.includes(todo.priority || 'medium')) {
-          return false;
+        if (args.filter.dueAfter) {
+          query.dueDate.$gte = new Date(args.filter.dueAfter);
         }
-        if (args.filter!.tags && args.filter!.tags.length > 0) {
-          const hasMatchingTag = args.filter!.tags.some(tag =>
-            todo.tags?.includes(tag)
-          );
-          if (!hasMatchingTag) return false;
-        }
-        if (args.filter!.assignee && todo.assignee !== args.filter!.assignee) {
-          return false;
-        }
-        if (args.filter!.dueBefore && todo.dueDate && todo.dueDate > new Date(args.filter!.dueBefore)) {
-          return false;
-        }
-        if (args.filter!.dueAfter && todo.dueDate && todo.dueDate < new Date(args.filter!.dueAfter)) {
-          return false;
-        }
-        return true;
-      });
+      }
     }
 
-    // Sort by creation date (newest first)
-    todos.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-    // Apply pagination
     const limit = args.limit || 50;
     const offset = args.offset || 0;
-    const paginatedTodos = todos.slice(offset, offset + limit);
+
+    const [todos, total] = await Promise.all([
+      this.collection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .toArray(),
+      this.collection.countDocuments(query),
+    ]);
 
     return {
       success: true,
       operation: 'list',
-      todos: paginatedTodos,
-      total: todos.length
+      todos,
+      total,
     };
   }
 
-  private deleteTodo(args: TodoArgs): TodoOutput {
+  private async deleteTodo(args: TodoArgs): Promise<TodoOutput> {
     if (!args.id) {
       throw Object.assign(new Error('Todo ID is required for deletion'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
-    const todo = this.todos.get(args.id);
+    const todo = await this.collection.findOneAndDelete({ id: args.id });
+
     if (!todo) {
       throw Object.assign(new Error(`Todo with ID ${args.id} not found`), {
-        name: 'TodoNotFound'
+        name: 'TodoNotFound',
       });
     }
-
-    this.todos.delete(args.id);
 
     return {
       success: true,
       operation: 'delete',
-      todo
+      todo,
     };
   }
 
-  private getTodo(args: TodoArgs): TodoOutput {
+  private async getTodo(args: TodoArgs): Promise<TodoOutput> {
     if (!args.id) {
       throw Object.assign(new Error('Todo ID is required'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
-    const todo = this.todos.get(args.id);
+    const todo = await this.collection.findOne({ id: args.id });
 
     return {
       success: true,
       operation: 'get',
-      todo,
-      found: !!todo
+      todo: todo || undefined,
+      found: !!todo,
     };
   }
 

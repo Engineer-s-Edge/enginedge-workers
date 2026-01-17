@@ -1,6 +1,6 @@
 /**
  * LaTeXCompilerService (Application Layer)
- * 
+ *
  * Orchestrates LaTeX compilation with XeLaTeX engine.
  * Uses worker threads for isolated compilation.
  */

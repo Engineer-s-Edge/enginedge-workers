@@ -7,8 +7,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseRetriever } from '@domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '@domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '@domain/entities/tool.entities';
 import axios, { AxiosResponse } from 'axios';
 
 export interface OCRArgs {
@@ -42,7 +49,8 @@ export interface OCROutput extends ToolOutput {
 @Injectable()
 export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
   readonly name = 'ocr-retriever';
-  readonly description = 'Extract text from images using Optical Character Recognition via OCR worker';
+  readonly description =
+    'Extract text from images using Optical Character Recognition via OCR worker';
 
   readonly metadata: RetrieverConfig;
 
@@ -50,10 +58,26 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('ocr-request-failed', 'Failed to send OCR request to worker node', false),
-      new ErrorEvent('ocr-timeout', 'OCR request timed out waiting for response', true),
-      new ErrorEvent('ocr-worker-unavailable', 'OCR worker node is not available', false),
-      new ErrorEvent('ocr-processing-error', 'OCR worker reported processing error', false)
+      new ErrorEvent(
+        'ocr-request-failed',
+        'Failed to send OCR request to worker node',
+        false,
+      ),
+      new ErrorEvent(
+        'ocr-timeout',
+        'OCR request timed out waiting for response',
+        true,
+      ),
+      new ErrorEvent(
+        'ocr-worker-unavailable',
+        'OCR worker node is not available',
+        false,
+      ),
+      new ErrorEvent(
+        'ocr-processing-error',
+        'OCR worker reported processing error',
+        false,
+      ),
     ];
 
     const metadata = new RetrieverConfig(
@@ -68,30 +92,30 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
           operation: {
             type: 'string',
             enum: ['extract', 'analyze'],
-            description: 'The OCR operation to perform'
+            description: 'The OCR operation to perform',
           },
           imagePath: {
             type: 'string',
-            description: 'Path to the image file for OCR processing'
+            description: 'Path to the image file for OCR processing',
           },
           imageData: {
             type: 'string',
-            description: 'Base64 encoded image data (alternative to imagePath)'
+            description: 'Base64 encoded image data (alternative to imagePath)',
           },
           language: {
             type: 'string',
             description: 'Language code for OCR (default: eng)',
             default: 'eng',
-            examples: ['eng', 'spa', 'fra', 'deu']
+            examples: ['eng', 'spa', 'fra', 'deu'],
           },
           confidence: {
             type: 'number',
             description: 'Minimum confidence threshold (0-100)',
             default: 60,
             minimum: 0,
-            maximum: 100
-          }
-        }
+            maximum: 100,
+          },
+        },
       },
       {
         type: 'object',
@@ -112,32 +136,36 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
                 x: { type: 'number' },
                 y: { type: 'number' },
                 width: { type: 'number' },
-                height: { type: 'number' }
-              }
-            }
+                height: { type: 'number' },
+              },
+            },
           },
           wordCount: { type: 'number' },
           processingTime: { type: 'number' },
-          message: { type: 'string' }
-        }
+          message: { type: 'string' },
+        },
       },
       [
         {
           name: 'ocr-retriever',
-          args: { operation: 'extract', imagePath: 'document.png' }
+          args: { operation: 'extract', imagePath: 'document.png' },
         },
         {
           name: 'ocr-retriever',
-          args: { operation: 'analyze', imagePath: 'receipt.jpg', language: 'eng' }
-        }
+          args: {
+            operation: 'analyze',
+            imagePath: 'receipt.jpg',
+            language: 'eng',
+          },
+        },
       ],
       RetrievalType.OCR,
       false, // no caching for external service calls
       {
         similarity: 0.0,
         topK: 100,
-        includeMetadata: true
-      }
+        includeMetadata: true,
+      },
     );
 
     super(metadata, errorEvents);
@@ -154,27 +182,41 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
     return false; // Don't cache external service calls
   }
 
-  protected async retrieve(args: OCRArgs & { ragConfig: RAGConfig }): Promise<OCROutput> {
-    const { operation, imagePath, imageData, language = 'eng', confidence = 60 } = args;
+  protected async retrieve(
+    args: OCRArgs & { ragConfig: RAGConfig },
+  ): Promise<OCROutput> {
+    const {
+      operation,
+      imagePath,
+      imageData,
+      language = 'eng',
+      confidence = 60,
+    } = args;
 
     // Validate operation
     if (operation !== 'extract' && operation !== 'analyze') {
       throw Object.assign(new Error('Unknown operation'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
     // Validate required parameters
     if (!imagePath && !imageData) {
-      throw Object.assign(new Error('Either imagePath or imageData parameter is required'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Either imagePath or imageData parameter is required'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     if (imagePath && imageData) {
-      throw Object.assign(new Error('Cannot specify both imagePath and imageData'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Cannot specify both imagePath and imageData'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     // Send request to OCR worker via Kafka
@@ -183,7 +225,7 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
       imagePath,
       imageData,
       language,
-      confidence
+      confidence,
     });
   }
 
@@ -198,20 +240,26 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
 
     try {
       // Make HTTP call to data-processing-worker (port 3003 in K8s)
-      const DATA_PROCESSING_URL = process.env.DATA_PROCESSING_WORKER_URL || 'http://data-processing-worker:3003';
-      const response: AxiosResponse = await axios.post(`${DATA_PROCESSING_URL}/command/process`, {
-        type: 'ocr',
-        operation: request.operation,
-        imagePath: request.imagePath,
-        imageData: request.imageData,
-        language: request.language,
-        confidence: request.confidence
-      }, {
-        timeout: 30000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const DATA_PROCESSING_URL =
+        process.env.DATA_PROCESSING_WORKER_URL ||
+        'http://data-processing-worker:3003';
+      const response: AxiosResponse = await axios.post(
+        `${DATA_PROCESSING_URL}/command/process`,
+        {
+          type: 'ocr',
+          operation: request.operation,
+          imagePath: request.imagePath,
+          imageData: request.imageData,
+          language: request.language,
+          confidence: request.confidence,
+        },
+        {
+          timeout: 30000,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
 
       const processingTime = Date.now() - startTime;
 
@@ -224,36 +272,48 @@ export class OCRRetriever extends BaseRetriever<OCRArgs, OCROutput> {
           language: request.language,
           boundingBoxes: response.data.boundingBoxes,
           wordCount: response.data.wordCount,
-          processingTime
+          processingTime,
         };
       } else {
         return {
           success: false,
           operation: request.operation,
           message: response.data.error || 'OCR processing failed',
-          processingTime
+          processingTime,
         };
       }
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      const axiosError = error as { code?: string; response?: { status?: number; data?: { error?: string } }; message?: string };
+      const axiosError = error as {
+        code?: string;
+        response?: { status?: number; data?: { error?: string } };
+        message?: string;
+      };
 
-      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ENOTFOUND') {
+      if (
+        axiosError.code === 'ECONNREFUSED' ||
+        axiosError.code === 'ENOTFOUND'
+      ) {
         throw Object.assign(new Error('OCR service is not available'), {
-          name: 'ServiceUnavailableError'
+          name: 'ServiceUnavailableError',
         });
       }
 
-      if (axiosError.response?.status === 408 || axiosError.code === 'ETIMEDOUT') {
+      if (
+        axiosError.response?.status === 408 ||
+        axiosError.code === 'ETIMEDOUT'
+      ) {
         throw Object.assign(new Error('OCR request timed out'), {
-          name: 'TimeoutError'
+          name: 'TimeoutError',
         });
       }
 
-      const errorMessage = axiosError.response?.data?.error || axiosError.message || 'Unknown error';
+      const errorMessage =
+        axiosError.response?.data?.error ||
+        axiosError.message ||
+        'Unknown error';
       throw Object.assign(new Error(`OCR request failed: ${errorMessage}`), {
-        name: 'OCRError'
+        name: 'OCRError',
       });
     }
   }
@@ -279,7 +339,7 @@ Language: ${request.language}`;
         text: mockText,
         confidence: 85,
         language: request.language,
-        wordCount: words
+        wordCount: words,
       };
     } else {
       // analyze operation
@@ -290,7 +350,7 @@ Language: ${request.language}`;
           x: 10,
           y: 20,
           width: 150,
-          height: 15
+          height: 15,
         },
         {
           text: 'from the image',
@@ -298,8 +358,8 @@ Language: ${request.language}`;
           x: 10,
           y: 40,
           width: 100,
-          height: 15
-        }
+          height: 15,
+        },
       ];
 
       return {
@@ -309,7 +369,7 @@ Language: ${request.language}`;
         confidence: 90,
         language: request.language,
         boundingBoxes: mockBoundingBoxes,
-        wordCount: words
+        wordCount: words,
       };
     }
   }

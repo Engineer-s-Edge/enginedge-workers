@@ -72,19 +72,19 @@ export class CharacterSplitterAdapter extends TextSplitterPort {
   ): string[] {
     const chunks: string[] = [];
     const splits = text.split(separator);
-    
+
     let currentChunk = '';
-    
+
     for (let i = 0; i < splits.length; i++) {
       const part = keepSeparator && i > 0 ? separator + splits[i] : splits[i];
-      
+
       if ((currentChunk + part).length <= chunkSize) {
         currentChunk += part;
       } else {
         if (currentChunk) {
           chunks.push(currentChunk.trim());
         }
-        
+
         // Handle overlap
         if (chunkOverlap > 0 && currentChunk.length > chunkOverlap) {
           currentChunk = currentChunk.slice(-chunkOverlap) + part;
@@ -93,11 +93,11 @@ export class CharacterSplitterAdapter extends TextSplitterPort {
         }
       }
     }
-    
+
     if (currentChunk) {
       chunks.push(currentChunk.trim());
     }
-    
-    return chunks.filter(c => c.length > 0);
+
+    return chunks.filter((c) => c.length > 0);
   }
 }

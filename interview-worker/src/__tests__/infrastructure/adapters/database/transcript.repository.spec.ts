@@ -38,7 +38,9 @@ describe('MongoTranscriptRepository', () => {
       ],
     }).compile();
 
-    repository = module.get<MongoTranscriptRepository>(MongoTranscriptRepository);
+    repository = module.get<MongoTranscriptRepository>(
+      MongoTranscriptRepository,
+    );
 
     await repository.onModuleInit();
   });
@@ -122,4 +124,3 @@ describe('MongoTranscriptRepository', () => {
     expect(retrieved?.messages[0].text).toBe('New message');
   });
 });
-

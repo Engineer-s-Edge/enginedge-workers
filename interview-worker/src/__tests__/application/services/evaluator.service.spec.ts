@@ -4,9 +4,16 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { EvaluatorService } from '../../../application/services/evaluator.service';
+import { WebhookService } from '../../../application/services/webhook.service';
+import { NotificationService } from '../../../application/services/notification.service';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { InterviewSession, InterviewReport, CandidateProfile, Transcript } from '../../../domain/entities';
+import {
+  InterviewSession,
+  InterviewReport,
+  CandidateProfile,
+  Transcript,
+} from '../../../domain/entities';
 import { Interview } from '../../../domain/entities';
 import { mock } from 'jest-mock-extended';
 import {
@@ -39,11 +46,25 @@ describe('EvaluatorService', () => {
       providers: [
         EvaluatorService,
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: 'IInterviewSessionRepository', useValue: mockSessionRepository },
-        { provide: 'ICandidateProfileRepository', useValue: mockProfileRepository },
-        { provide: 'ITranscriptRepository', useValue: mockTranscriptRepository },
-        { provide: 'IInterviewReportRepository', useValue: mockReportRepository },
+        {
+          provide: 'IInterviewSessionRepository',
+          useValue: mockSessionRepository,
+        },
+        {
+          provide: 'ICandidateProfileRepository',
+          useValue: mockProfileRepository,
+        },
+        {
+          provide: 'ITranscriptRepository',
+          useValue: mockTranscriptRepository,
+        },
+        {
+          provide: 'IInterviewReportRepository',
+          useValue: mockReportRepository,
+        },
         { provide: 'IInterviewRepository', useValue: mockInterviewRepository },
+        { provide: WebhookService, useValue: mock<WebhookService>() },
+        { provide: NotificationService, useValue: mock<NotificationService>() },
       ],
     }).compile();
 
@@ -63,6 +84,7 @@ describe('EvaluatorService', () => {
 
     const mockInterview = new Interview({
       id: 'i1',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -110,7 +132,8 @@ describe('EvaluatorService', () => {
     mockedAxios.post.mockResolvedValue({
       data: {
         content: JSON.stringify({
-          score: { overall: 85, byPhase: { technical: 85 } } },
+          overall: 85,
+          byPhase: { technical: 85 },
           feedback: 'Strong candidate',
         }),
       },
@@ -193,4 +216,3 @@ describe('EvaluatorService', () => {
     expect(mockedAxios.post).not.toHaveBeenCalled();
   });
 });
-

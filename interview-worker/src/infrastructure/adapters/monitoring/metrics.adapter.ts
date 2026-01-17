@@ -1,6 +1,6 @@
 /**
  * Metrics Adapter
- * 
+ *
  * Provides Prometheus metrics for monitoring and observability.
  */
 
@@ -14,12 +14,8 @@ import { Counter, Histogram, Gauge, Registry } from 'prom-client';
 export class MetricsAdapter {
   public readonly registry: Registry;
 
-
-
   constructor() {
     this.registry = new Registry();
-
-    
 
     // Start collecting system metrics
     this.startSystemMetricsCollection();
@@ -35,8 +31,5 @@ export class MetricsAdapter {
   /**
    * Start collecting system metrics
    */
-  private startSystemMetricsCollection(): void {
-    
-  }
+  private startSystemMetricsCollection(): void {}
 }
-

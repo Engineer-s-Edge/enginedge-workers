@@ -1,14 +1,16 @@
 /**
  * Coordination Validator Service
- * 
+ *
  * Validates Collective agent configurations for deadlocks and inconsistencies.
  * Ensures coordination context is well-formed before execution.
  */
 
-import { Injectable } from '@nestjs/common';
 import { CoordinationContext } from '../value-objects/coordination-context.vo';
 import { TaskConfig } from '../value-objects/task-config.vo';
 import { AgentReference } from '../value-objects/agent-reference.vo';
+import { IDeadlockDetectionService } from '../ports/deadlock-detection.port';
+import { CollectiveTask } from '../entities/collective-task.entity';
+import { ILogger } from '../ports/logger.port';
 
 export interface ValidationResult {
   valid: boolean;
@@ -18,13 +20,19 @@ export interface ValidationResult {
 
 /**
  * Service for validating Collective agent coordination
+ * Enhanced with deadlock detection integration
  */
-@Injectable()
 export class CoordinationValidatorService {
+  constructor(
+    private readonly deadlockDetection?: IDeadlockDetectionService,
+    private readonly logger?: ILogger,
+  ) {}
   /**
    * Validate a coordination context
    */
-  validateContext(context: CoordinationContext): ValidationResult {
+  async validateContext(
+    context: CoordinationContext,
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -36,15 +44,39 @@ export class CoordinationValidatorService {
       );
     }
 
-    // Check for potential deadlocks
+    // Enhanced deadlock detection using DeadlockDetectionService (if available)
+    if (this.deadlockDetection) {
+      const tasks = this.convertContextToTasks(context);
+      const deadlocks = await this.deadlockDetection.detectDeadlocks(tasks);
+
+      if (deadlocks.length > 0) {
+        for (const deadlock of deadlocks) {
+          errors.push(
+            `Deadlock detected: ${deadlock.cycle.join(' → ')} (severity: ${deadlock.severity}, involved agents: ${deadlock.involvedAgents.join(', ')})`,
+          );
+        }
+      }
+
+      // Check for potential deadlock risks
+      const risks = await this.deadlockDetection.findDeadlockRisks(tasks);
+      if (risks.length > 0) {
+        warnings.push(
+          `Potential deadlock risks detected in tasks: ${risks.join(', ')}`,
+        );
+      }
+    }
+
+    // Check for potential deadlocks (legacy check)
     if (context.detectDeadlock()) {
-      errors.push('All tasks have dependencies - potential deadlock detected');
+      warnings.push(
+        'All tasks have dependencies - potential deadlock detected',
+      );
     }
 
     // Check for orphaned tasks
     const assignedTasks = new Set<string>();
     for (const tasks of context.childAgentAssignments.values()) {
-      tasks.forEach(t => assignedTasks.add(t));
+      tasks.forEach((t) => assignedTasks.add(t));
     }
 
     for (const taskId of context.taskGraph.keys()) {
@@ -120,7 +152,9 @@ export class CoordinationValidatorService {
     }
 
     if (childAgents.length > maxChildren) {
-      errors.push(`Collective exceeds maximum child agents: ${childAgents.length} > ${maxChildren}`);
+      errors.push(
+        `Collective exceeds maximum child agents: ${childAgents.length} > ${maxChildren}`,
+      );
     }
 
     // Check for duplicates
@@ -203,18 +237,17 @@ export class CoordinationValidatorService {
     const issues: string[] = [];
 
     // Check if all tasks have same priority
-    const priorities = new Set(
-      context
-        .getTasks()
-        .map(t => t.priority),
-    );
+    const priorities = new Set(context.getTasks().map((t) => t.priority));
     if (priorities.size === 1 && priorities.has(50)) {
-      issues.push('All tasks have default priority - consider setting differentiated priorities');
+      issues.push(
+        'All tasks have default priority - consider setting differentiated priorities',
+      );
     }
 
     // Check if any task has very long timeout
     for (const task of context.getTasks()) {
-      if (task.timeoutMs > 600000) { // 10 minutes
+      if (task.timeoutMs > 600000) {
+        // 10 minutes
         issues.push(
           `Task "${task.taskId}" has very long timeout (${task.timeoutMs}ms) - may cause coordination delays`,
         );
@@ -249,9 +282,20 @@ export class CoordinationValidatorService {
   /**
    * Get a full validation report
    */
-  getFullReport(context: CoordinationContext): Record<string, unknown> {
-    const contextValidation = this.validateContext(context);
+  async getFullReport(
+    context: CoordinationContext,
+  ): Promise<Record<string, unknown>> {
+    const contextValidation = await this.validateContext(context);
     const issues = this.identifyIssues(context);
+
+    // Get deadlock information (if service available)
+    let deadlocks: any[] = [];
+    let risks: string[] = [];
+    if (this.deadlockDetection) {
+      const tasks = this.convertContextToTasks(context);
+      deadlocks = await this.deadlockDetection.detectDeadlocks(tasks);
+      risks = await this.deadlockDetection.findDeadlockRisks(tasks);
+    }
 
     return {
       timestamp: new Date().toISOString(),
@@ -270,19 +314,85 @@ export class CoordinationValidatorService {
             (sum, task) => sum + task.dependencies.length,
             0,
           ),
-          hasCycles: contextValidation.errors.some(e =>
+          hasCycles: contextValidation.errors.some((e) =>
             e.includes('Circular dependency'),
           ),
         },
         coordination: {
-          hasDeadlock: contextValidation.errors.some(e =>
+          hasDeadlock: contextValidation.errors.some((e) =>
             e.includes('deadlock'),
           ),
-          isBalanced: contextValidation.warnings.every(w =>
-            !w.includes('Unbalanced'),
+          isBalanced: contextValidation.warnings.every(
+            (w) => !w.includes('Unbalanced'),
           ),
+          deadlockCount: deadlocks.length,
+          deadlockSeverity:
+            deadlocks.length > 0
+              ? deadlocks
+                  .map((d) => d.severity)
+                  .reduce((a, b) =>
+                    a === 'high' || b === 'high'
+                      ? 'high'
+                      : a === 'medium' || b === 'medium'
+                        ? 'medium'
+                        : 'low',
+                  )
+              : null,
+          riskCount: risks.length,
         },
       },
     };
+  }
+
+  /**
+   * Convert CoordinationContext to CollectiveTask array for deadlock detection
+   */
+  private convertContextToTasks(
+    context: CoordinationContext,
+  ): CollectiveTask[] {
+    const tasks: CollectiveTask[] = [];
+
+    for (const taskConfig of context.getTasks()) {
+      // Find assigned agent
+      let assignedAgentId: string | undefined;
+      for (const [
+        agentId,
+        agentTasks,
+      ] of context.childAgentAssignments.entries()) {
+        if (agentTasks.includes(taskConfig.taskId)) {
+          assignedAgentId = agentId;
+          break;
+        }
+      }
+
+      // Convert dependencies
+      const blockedBy = taskConfig.dependencies
+        .map((depId) => {
+          // Check if dependency exists in context
+          const depTask = context.getTasks().find((t) => t.taskId === depId);
+          return depTask ? depId : null;
+        })
+        .filter((id): id is string => id !== null);
+
+      tasks.push({
+        id: taskConfig.taskId,
+        collectiveId: '', // Will be set by caller
+        level: 6, // TASK level (default)
+        title: taskConfig.description,
+        description: taskConfig.description,
+        state:
+          blockedBy.length > 0 ? ('blocked' as any) : ('unassigned' as any),
+        assignedAgentId,
+        allowedAgentIds: taskConfig.assignedAgentTypes.map((t) => t.toString()),
+        dependencies: [...taskConfig.dependencies],
+        blockedBy,
+        priority: taskConfig.priority,
+        childTaskIds: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    return tasks;
   }
 }

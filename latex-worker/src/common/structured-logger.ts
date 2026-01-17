@@ -21,7 +21,12 @@ export class StructuredLogger implements LoggerService {
   /**
    * Write a log entry in structured JSON format
    */
-  private writeLog(level: LogLevel, message: string, context?: LogContext, error?: Error) {
+  private writeLog(
+    level: LogLevel,
+    message: string,
+    context?: LogContext,
+    error?: Error,
+  ) {
     const timestamp = new Date().toISOString();
     const logEntry = {
       timestamp,
@@ -52,7 +57,10 @@ export class StructuredLogger implements LoggerService {
         break;
       case 'debug':
       case 'verbose':
-        if (process.env.LOG_LEVEL === 'debug' || process.env.LOG_LEVEL === 'verbose') {
+        if (
+          process.env.LOG_LEVEL === 'debug' ||
+          process.env.LOG_LEVEL === 'verbose'
+        ) {
           console.log(logString);
         }
         break;
@@ -102,7 +110,12 @@ export class StructuredLogger implements LoggerService {
   /**
    * Log compilation success
    */
-  logCompilationSuccess(jobId: string, userId: string, documentType: string, duration: number) {
+  logCompilationSuccess(
+    jobId: string,
+    userId: string,
+    documentType: string,
+    duration: number,
+  ) {
     this.log('Compilation completed successfully', {
       jobId,
       userId,
@@ -135,13 +148,22 @@ export class StructuredLogger implements LoggerService {
   /**
    * Log package installation
    */
-  logPackageInstallation(packageName: string, success: boolean, duration: number) {
-    this.log(success ? 'Package installed successfully' : 'Package installation failed', {
-      packageName,
-      success,
-      duration,
-      event: 'package.installation',
-    });
+  logPackageInstallation(
+    packageName: string,
+    success: boolean,
+    duration: number,
+  ) {
+    this.log(
+      success
+        ? 'Package installed successfully'
+        : 'Package installation failed',
+      {
+        packageName,
+        success,
+        duration,
+        event: 'package.installation',
+      },
+    );
   }
 
   /**
@@ -159,7 +181,11 @@ export class StructuredLogger implements LoggerService {
   /**
    * Log performance warning
    */
-  logPerformanceWarning(operation: string, duration: number, threshold: number) {
+  logPerformanceWarning(
+    operation: string,
+    duration: number,
+    threshold: number,
+  ) {
     this.warn(`Operation exceeded performance threshold`, {
       operation,
       duration,

@@ -4,12 +4,16 @@
  * Configures adapters, controllers, and external integrations for document processing.
  */
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ApplicationModule } from '../application/application.module';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 
 // Database Schemas
-import { DocumentModel, DocumentSchema } from './database/schemas/document.schema';
+import {
+  DocumentModel,
+  DocumentSchema,
+} from './database/schemas/document.schema';
 
 // Controllers
 import { DocumentController } from './controllers/document.controller';
@@ -75,10 +79,13 @@ import { ChromaDBVectorStoreAdapter } from './adapters/vectorstores/chromadb.vec
 
 // Messaging
 import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-processing.adapter';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - All adapters and implementations
- * 
+ *
  * Phase 1: Document Loaders (10 filesystem loaders) ✅
  * Phase 2: Web Loaders (2+ web loaders) ✅
  * Phase 3: Text Splitters ✅
@@ -86,7 +93,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
  * Phase 5: Vector Stores (MongoDB) ✅
  * Phase 6: Kafka Integration ✅
  * Phase 7: REST API Controllers ✅
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -95,14 +102,15 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     MongooseModule.forFeature([
       { name: DocumentModel.name, schema: DocumentSchema },
     ]),
-    ApplicationModule,
+    forwardRef(() => ApplicationModule),
   ],
-  controllers: [
-    DocumentController,
-    VectorStoreController,
-    EmbedderController,
-  ],
+  controllers: [DocumentController, VectorStoreController, EmbedderController],
   providers: [
+    // Logger
+    {
+      provide: 'ILogger',
+      useClass: KafkaLoggerAdapter,
+    },
     // Filesystem Loaders
     PdfLoaderAdapter,
     DocxLoaderAdapter,
@@ -114,7 +122,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     ObsidianLoaderAdapter,
     WhisperAudioLoaderAdapter,
     UnstructuredLoaderAdapter,
-    
+
     // Web Loaders (13 total)
     CheerioWebLoaderAdapter,
     PlaywrightWebLoaderAdapter,
@@ -129,7 +137,7 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     YoutubeLoaderAdapter,
     HtmlLoaderAdapter,
     NotionApiLoaderAdapter,
-    
+
     // Text Splitters (13 total)
     RecursiveCharacterSplitterAdapter,
     CharacterSplitterAdapter,
@@ -144,14 +152,49 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     LatexSplitterAdapter,
     MarkdownSplitterAdapter,
     HtmlSplitterAdapter,
-    
+    // Text Splitter tokens for application layer
+    {
+      provide: 'TextSplitter.recursive',
+      useExisting: RecursiveCharacterSplitterAdapter,
+    },
+    {
+      provide: 'TextSplitter.character',
+      useExisting: CharacterSplitterAdapter,
+    },
+    { provide: 'TextSplitter.token', useExisting: TokenSplitterAdapter },
+    { provide: 'TextSplitter.semantic', useExisting: SemanticSplitterAdapter },
+    { provide: 'TextSplitter.python', useExisting: PythonSplitterAdapter },
+    {
+      provide: 'TextSplitter.javascript',
+      useExisting: JavaScriptSplitterAdapter,
+    },
+    {
+      provide: 'TextSplitter.typescript',
+      useExisting: TypeScriptSplitterAdapter,
+    },
+    { provide: 'TextSplitter.java', useExisting: JavaSplitterAdapter },
+    { provide: 'TextSplitter.cpp', useExisting: CppSplitterAdapter },
+    { provide: 'TextSplitter.go', useExisting: GoSplitterAdapter },
+    { provide: 'TextSplitter.latex', useExisting: LatexSplitterAdapter },
+    { provide: 'TextSplitter.markdown', useExisting: MarkdownSplitterAdapter },
+    { provide: 'TextSplitter.html', useExisting: HtmlSplitterAdapter },
+
     // Embedders
     OpenAIEmbedderAdapter,
     GoogleEmbedderAdapter,
     CohereEmbedderAdapter,
     HuggingFaceEmbedderAdapter,
     LocalEmbedderAdapter,
-    
+    // Embedder tokens for application layer
+    { provide: 'Embedder.openai', useExisting: OpenAIEmbedderAdapter },
+    { provide: 'Embedder.google', useExisting: GoogleEmbedderAdapter },
+    { provide: 'Embedder.cohere', useExisting: CohereEmbedderAdapter },
+    {
+      provide: 'Embedder.huggingface',
+      useExisting: HuggingFaceEmbedderAdapter,
+    },
+    { provide: 'Embedder.local', useExisting: LocalEmbedderAdapter },
+
     // Vector Stores (6 total - MongoDB ENABLED, others disabled)
     MongoDBVectorStoreAdapter,
     PineconeVectorStoreAdapter,
@@ -159,9 +202,22 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     PgVectorStoreAdapter,
     QdrantVectorStoreAdapter,
     ChromaDBVectorStoreAdapter,
-    
+
     // Messaging
     KafkaDataProcessingAdapter,
+
+    // Cache adapter
+    RedisCacheAdapter,
+
+    // Provide VectorStorePort alias for dependency injection
+    {
+      provide: 'VectorStorePort',
+      useExisting: MongoDBVectorStoreAdapter,
+    },
+
+    // Global filter/interceptor providers for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [
     // Export all loaders and infrastructure
@@ -173,6 +229,29 @@ import { KafkaDataProcessingAdapter } from './adapters/messaging/kafka-data-proc
     GoogleEmbedderAdapter,
     MongoDBVectorStoreAdapter,
     KafkaDataProcessingAdapter,
+    RedisCacheAdapter,
+    // Export TextSplitter tokens for ApplicationModule
+    'TextSplitter.recursive',
+    'TextSplitter.character',
+    'TextSplitter.token',
+    'TextSplitter.semantic',
+    'TextSplitter.python',
+    'TextSplitter.javascript',
+    'TextSplitter.typescript',
+    'TextSplitter.java',
+    'TextSplitter.cpp',
+    'TextSplitter.go',
+    'TextSplitter.latex',
+    'TextSplitter.markdown',
+    'TextSplitter.html',
+    // Export Embedder tokens for ApplicationModule
+    'Embedder.openai',
+    'Embedder.google',
+    'Embedder.cohere',
+    'Embedder.huggingface',
+    'Embedder.local',
+    // Export VectorStorePort for ApplicationModule
+    'VectorStorePort',
   ],
 })
 export class InfrastructureModule {}

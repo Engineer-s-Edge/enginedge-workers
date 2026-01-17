@@ -9,7 +9,7 @@ export interface ToolCall {
   args: Record<string, unknown>;
 }
 
-export interface ToolResult<TArgs = unknown, TOutput = unknown> {
+export interface ToolResult<TOutput = unknown> {
   success: boolean;
   call: ToolCall;
   output?: TOutput;
@@ -20,12 +20,12 @@ export interface ToolResult<TArgs = unknown, TOutput = unknown> {
   durationMs: number;
 }
 
-export interface ToolSuccess<TArgs = unknown, TOutput = unknown> extends ToolResult<TArgs, TOutput> {
+export interface ToolSuccess<TOutput = unknown> extends ToolResult<TOutput> {
   success: true;
   output: TOutput;
 }
 
-export interface ToolFailure<TArgs = unknown> extends ToolResult<TArgs> {
+export interface ToolFailure extends ToolResult {
   success: false;
   error: ToolError;
 }
@@ -59,6 +59,8 @@ export enum ActorCategory {
   EXTERNAL_VISUALIZATION = 'EXTERNAL_VISUALIZATION',
 }
 
+import { ToolConfig } from '../value-objects/tool-config.value-objects';
+
 export enum RetrievalType {
   WEB_SEARCH = 'WEB_SEARCH',
   FILE_SYSTEM = 'FILE_SYSTEM',
@@ -67,4 +69,12 @@ export enum RetrievalType {
   COMPUTATION = 'COMPUTATION',
   OCR = 'OCR',
   VIDEO_TRANSCRIPT = 'VIDEO_TRANSCRIPT',
+  SEMANTIC = 'SEMANTIC',
+}
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  version: string;
+  config: ToolConfig;
 }

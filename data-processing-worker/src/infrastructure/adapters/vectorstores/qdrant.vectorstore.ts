@@ -4,10 +4,10 @@ import { Document } from '@domain/entities/document.entity';
 
 /**
  * Qdrant Vector Store Adapter (DISABLED - Placeholder)
- * 
+ *
  * Qdrant is an open-source vector similarity search engine.
  * To enable: Install @qdrant/js-client-rest and configure endpoint.
- * 
+ *
  * Installation: npm install @qdrant/js-client-rest
  */
 @Injectable()
@@ -18,7 +18,9 @@ export class QdrantVectorStoreAdapter implements VectorStorePort {
 
   constructor() {
     if (!this.enabled) {
-      this.logger.warn('Qdrant vector store is DISABLED. To enable, set QDRANT_URL and install dependencies.');
+      this.logger.warn(
+        'Qdrant vector store is DISABLED. To enable, set QDRANT_URL and install dependencies.',
+      );
     }
   }
 
@@ -28,12 +30,14 @@ export class QdrantVectorStoreAdapter implements VectorStorePort {
     metadata?: Record<string, unknown>,
   ): Promise<string[]> {
     if (!this.enabled) {
-      throw new Error('Qdrant vector store is disabled. Enable it by setting QDRANT_URL.');
+      throw new Error(
+        'Qdrant vector store is disabled. Enable it by setting QDRANT_URL.',
+      );
     }
 
     /*
     const { QdrantClient } = require('@qdrant/js-client-rest');
-    
+
     const client = new QdrantClient({
       url: process.env.QDRANT_URL || 'http://localhost:6333',
     });
@@ -84,7 +88,7 @@ export class QdrantVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { QdrantClient } = require('@qdrant/js-client-rest');
-    
+
     const client = new QdrantClient({
       url: process.env.QDRANT_URL || 'http://localhost:6333',
     });
@@ -120,7 +124,7 @@ export class QdrantVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { QdrantClient } = require('@qdrant/js-client-rest');
-    
+
     const client = new QdrantClient({
       url: process.env.QDRANT_URL || 'http://localhost:6333',
     });
@@ -141,7 +145,7 @@ export class QdrantVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { QdrantClient } = require('@qdrant/js-client-rest');
-    
+
     const client = new QdrantClient({
       url: process.env.QDRANT_URL || 'http://localhost:6333',
     });

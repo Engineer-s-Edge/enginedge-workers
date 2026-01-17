@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { CalendarSyncService, ConflictResolutionStrategy } from '../infrastructure/adapters/sync/calendar-sync.service';
+import {
+  CalendarSyncService,
+  ConflictResolutionStrategy,
+} from '../infrastructure/adapters/sync/calendar-sync.service';
 import { CalendarEvent } from '../domain/entities/calendar-event.entity';
 
 describe('CalendarSyncService', () => {
@@ -45,7 +48,10 @@ describe('CalendarSyncService', () => {
 
     await svc.fullSync('user1', 'primary');
 
-    expect(mockCalendarApi.listEvents).toHaveBeenCalledWith('primary', expect.any(Object));
+    expect(mockCalendarApi.listEvents).toHaveBeenCalledWith(
+      'primary',
+      expect.any(Object),
+    );
     expect(mockEventRepo.save).toHaveBeenCalledWith(remoteEvent);
   });
 
@@ -63,11 +69,41 @@ describe('CalendarSyncService', () => {
     const t2 = new Date(Date.now());
 
     // local is newer: start before end, created/updated accordingly
-    const local = new CalendarEvent('e1', 'primary', 'Local', null, t1, t2, null, [], [], null, t1, t2);
+    const local = new CalendarEvent(
+      'e1',
+      'primary',
+      'Local',
+      null,
+      t1,
+      t2,
+      null,
+      [],
+      [],
+      null,
+      t1,
+      t2,
+    );
     // remote is older
-    const remote = new CalendarEvent('e1', 'primary', 'Remote', null, new Date(t1.getTime() - 20000), new Date(t1.getTime() - 10000), null, [], [], null, new Date(t1.getTime() - 20000), new Date(t1.getTime() - 10000));
+    const remote = new CalendarEvent(
+      'e1',
+      'primary',
+      'Remote',
+      null,
+      new Date(t1.getTime() - 20000),
+      new Date(t1.getTime() - 10000),
+      null,
+      [],
+      [],
+      null,
+      new Date(t1.getTime() - 20000),
+      new Date(t1.getTime() - 10000),
+    );
 
-    const chosen = svc.resolveConflict(local, remote, ConflictResolutionStrategy.LAST_WRITE_WINS);
+    const chosen = svc.resolveConflict(
+      local,
+      remote,
+      ConflictResolutionStrategy.LAST_WRITE_WINS,
+    );
     expect(chosen).toBe(local);
   });
 

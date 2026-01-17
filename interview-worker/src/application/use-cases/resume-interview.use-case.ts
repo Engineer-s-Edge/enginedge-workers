@@ -32,4 +32,3 @@ export class ResumeInterviewUseCase {
     return updated;
   }
 }
-

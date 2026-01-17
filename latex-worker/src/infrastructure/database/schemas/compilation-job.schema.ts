@@ -7,7 +7,7 @@ import { Document } from 'mongoose';
 
 export type CompilationJobDocument = CompilationJobSchema & Document;
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, suppressReservedKeysWarning: true })
 export class CompilationJobSchema {
   @Prop({ required: true, unique: true, index: true })
   jobId!: string;
@@ -21,7 +21,11 @@ export class CompilationJobSchema {
   @Prop({ index: true })
   projectId?: string;
 
-  @Prop({ required: true, enum: ['pending', 'compiling', 'completed', 'failed'], index: true })
+  @Prop({
+    required: true,
+    enum: ['pending', 'compiling', 'completed', 'failed'],
+    index: true,
+  })
   status!: string;
 
   @Prop({ type: [String], default: [] })
@@ -48,7 +52,8 @@ export class CompilationJobSchema {
   };
 }
 
-export const CompilationJobSchemaFactory = SchemaFactory.createForClass(CompilationJobSchema);
+export const CompilationJobSchemaFactory =
+  SchemaFactory.createForClass(CompilationJobSchema);
 
 // Create indexes
 CompilationJobSchemaFactory.index({ userId: 1, createdAt: -1 });

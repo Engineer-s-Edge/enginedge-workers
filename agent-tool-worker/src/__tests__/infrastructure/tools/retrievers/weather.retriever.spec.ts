@@ -5,7 +5,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { WeatherRetriever, WeatherArgs } from '@infrastructure/tools/retrievers/weather.retriever';
+import {
+  WeatherRetriever,
+  WeatherArgs,
+} from '@infrastructure/tools/retrievers/weather.retriever';
 
 describe('WeatherRetriever', () => {
   let retriever: WeatherRetriever;
@@ -43,20 +46,26 @@ describe('WeatherRetriever', () => {
   describe('Input Validation', () => {
     it('should reject empty location', async () => {
       const args: WeatherArgs = {
-        location: ''
+        location: '',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Location cannot be empty');
     });
 
     it('should reject location that is only whitespace', async () => {
       const args: WeatherArgs = {
-        location: '   '
+        location: '   ',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Location cannot be empty');
     });
@@ -64,10 +73,13 @@ describe('WeatherRetriever', () => {
     it('should reject location longer than 100 characters', async () => {
       const longLocation = 'a'.repeat(101);
       const args: WeatherArgs = {
-        location: longLocation
+        location: longLocation,
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Location too long');
     });
@@ -76,12 +88,17 @@ describe('WeatherRetriever', () => {
       const args: WeatherArgs = {
         location: 'London',
         type: 'historical',
-        date: '2023/12/25' // Invalid format
+        date: '2023/12/25', // Invalid format
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('Date must be in YYYY-MM-DD format');
+      expect(result.error!.message).toContain(
+        'Date must be in YYYY-MM-DD format',
+      );
     });
   });
 
@@ -89,10 +106,13 @@ describe('WeatherRetriever', () => {
     it('should handle current weather requests (will fail due to network)', async () => {
       const args: WeatherArgs = {
         location: 'London',
-        type: 'current'
+        type: 'current',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -101,10 +121,13 @@ describe('WeatherRetriever', () => {
       const args: WeatherArgs = {
         location: 'New York',
         type: 'forecast',
-        days: 5
+        days: 5,
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -113,10 +136,13 @@ describe('WeatherRetriever', () => {
       const args: WeatherArgs = {
         location: 'Tokyo',
         type: 'historical',
-        date: '2023-12-25'
+        date: '2023-12-25',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -126,10 +152,13 @@ describe('WeatherRetriever', () => {
     it('should handle different units (will fail due to network)', async () => {
       const args: WeatherArgs = {
         location: 'Paris',
-        units: 'imperial'
+        units: 'imperial',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -138,10 +167,13 @@ describe('WeatherRetriever', () => {
       const args: WeatherArgs = {
         location: 'Sydney',
         type: 'forecast',
-        days: 10
+        days: 10,
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -150,10 +182,13 @@ describe('WeatherRetriever', () => {
       const args: WeatherArgs = {
         location: 'Berlin',
         type: 'forecast',
-        include_hourly: true
+        include_hourly: true,
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -162,10 +197,13 @@ describe('WeatherRetriever', () => {
       const args: WeatherArgs = {
         location: 'Miami',
         type: 'forecast',
-        include_alerts: true
+        include_alerts: true,
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -173,10 +211,13 @@ describe('WeatherRetriever', () => {
     it('should handle language configuration (will fail due to network)', async () => {
       const args: WeatherArgs = {
         location: 'Madrid',
-        language: 'es'
+        language: 'es',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
@@ -185,18 +226,18 @@ describe('WeatherRetriever', () => {
   describe('RAG Configuration', () => {
     it('should handle RAG configuration parameters (will fail due to network)', async () => {
       const args: WeatherArgs = {
-        location: 'Toronto'
+        location: 'Toronto',
       };
 
       const ragConfig = {
         similarity: 0.8,
         topK: 50,
-        includeMetadata: false
+        includeMetadata: false,
       };
 
       const result = await retriever.execute({
         name: 'weather-retriever',
-        args: { ...args, ragConfig }
+        args: { ...args, ragConfig },
       });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -206,10 +247,13 @@ describe('WeatherRetriever', () => {
   describe('Error Handling', () => {
     it('should handle network connectivity issues', async () => {
       const args: WeatherArgs = {
-        location: 'non-existent-location-12345'
+        location: 'non-existent-location-12345',
       };
 
-      const result = await retriever.execute({ name: 'weather-retriever', args });
+      const result = await retriever.execute({
+        name: 'weather-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });

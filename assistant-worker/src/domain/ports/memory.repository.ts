@@ -1,6 +1,6 @@
 /**
  * Memory Repository Port
- * 
+ *
  * Interface defining the persistence contract for agent memory.
  * Implementation provided by infrastructure layer (Phase 5).
  */
@@ -30,7 +30,10 @@ export interface IMemoryRepository {
   /**
    * Get recent messages for an agent
    */
-  getRecentMessages(agentId: AgentId, count: number): Promise<readonly unknown[]>;
+  getRecentMessages(
+    agentId: AgentId,
+    count: number,
+  ): Promise<readonly unknown[]>;
 
   /**
    * Clear memory for an agent

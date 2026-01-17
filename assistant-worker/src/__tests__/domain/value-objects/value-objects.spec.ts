@@ -1,4 +1,8 @@
-import { AgentCapability, ExecutionModel, MemoryType } from '../../../domain/value-objects/agent-capability.vo';
+import {
+  AgentCapability,
+  ExecutionModel,
+  MemoryType,
+} from '../../../domain/value-objects/agent-capability.vo';
 import { AgentConfig } from '../../../domain/value-objects/agent-config.vo';
 import { Message } from '../../../domain/value-objects/message.vo';
 
@@ -455,7 +459,9 @@ describe('Value Objects', () => {
         const msg = Message.user('Hello');
         const after = new Date();
         expect(msg.timestamp).toBeDefined();
-        expect(msg.timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime());
+        expect(msg.timestamp.getTime()).toBeGreaterThanOrEqual(
+          before.getTime(),
+        );
         expect(msg.timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
       });
 
@@ -466,7 +472,8 @@ describe('Value Objects', () => {
       });
 
       it('should preserve content exactly', () => {
-        const content = 'This is a long message with special characters: @#$%^&*()';
+        const content =
+          'This is a long message with special characters: @#$%^&*()';
         const msg = Message.user(content);
         expect(msg.content).toBe(content);
       });
@@ -477,11 +484,15 @@ describe('Value Objects', () => {
       });
 
       it('should throw on empty content', () => {
-        expect(() => Message.user('')).toThrow('Message content cannot be empty');
+        expect(() => Message.user('')).toThrow(
+          'Message content cannot be empty',
+        );
       });
 
       it('should throw on whitespace-only content', () => {
-        expect(() => Message.user('   ')).toThrow('Message content cannot be empty');
+        expect(() => Message.user('   ')).toThrow(
+          'Message content cannot be empty',
+        );
       });
 
       it('should handle very long content', () => {

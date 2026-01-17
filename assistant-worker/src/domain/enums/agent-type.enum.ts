@@ -1,6 +1,6 @@
 /**
  * Agent Type Enumeration
- * 
+ *
  * Defines all supported agent types in the system.
  * Each type represents a distinct execution model and behavior pattern.
  */
@@ -8,22 +8,22 @@
 export const AgentType = {
   /** Chain-of-Thought reasoning with tool use */
   REACT: 'react',
-  
+
   /** Directed Acyclic Graph workflow execution */
   GRAPH: 'graph',
-  
+
   /** ICS Bear Hunter research pattern (AIM → SHOOT → SKIN) */
   EXPERT: 'expert',
-  
+
   /** Autonomous learning agent with scheduling */
   GENIUS: 'genius',
-  
+
   /** Multi-agent coordination and orchestration */
   COLLECTIVE: 'collective',
-  
+
   /** Hierarchical task decomposition and delegation */
   MANAGER: 'manager',
-  
+
   /** AI-powered interview conducting agent */
   INTERVIEW: 'interview',
 } as const;
@@ -32,13 +32,15 @@ export const AgentType = {
  * Type-safe agent type
  * Prevents string typos and ensures compile-time safety
  */
-export type AgentTypeValue = typeof AgentType[keyof typeof AgentType];
+export type AgentTypeValue = (typeof AgentType)[keyof typeof AgentType];
 
 /**
  * Branded type to prevent accidental string usage
  * Usage: const agentType: BrandedAgentType = AgentType.REACT as BrandedAgentType;
  */
-export type BrandedAgentType = AgentTypeValue & { readonly __brand: 'AgentType' };
+export type BrandedAgentType = AgentTypeValue & {
+  readonly __brand: 'AgentType';
+};
 
 /**
  * Check if a string is a valid agent type
@@ -82,8 +84,24 @@ export function getAgentTypeDisplayName(type: AgentTypeValue): string {
  */
 export function getExecutionModel(
   type: AgentTypeValue,
-): 'chain-of-thought' | 'dag' | 'research' | 'learning' | 'coordination' | 'hierarchical' | 'interview' {
-  const models: Record<AgentTypeValue, 'chain-of-thought' | 'dag' | 'research' | 'learning' | 'coordination' | 'hierarchical' | 'interview'> = {
+):
+  | 'chain-of-thought'
+  | 'dag'
+  | 'research'
+  | 'learning'
+  | 'coordination'
+  | 'hierarchical'
+  | 'interview' {
+  const models: Record<
+    AgentTypeValue,
+    | 'chain-of-thought'
+    | 'dag'
+    | 'research'
+    | 'learning'
+    | 'coordination'
+    | 'hierarchical'
+    | 'interview'
+  > = {
     [AgentType.REACT]: 'chain-of-thought',
     [AgentType.GRAPH]: 'dag',
     [AgentType.EXPERT]: 'research',

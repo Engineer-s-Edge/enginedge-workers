@@ -1,17 +1,17 @@
 /**
  * Knowledge Graph Integration Tests
- * 
+ *
  * End-to-end tests for knowledge graph operations.
  */
 
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, testFixtures } from './test-utils';
-import * as request from 'supertest';
+import request from 'supertest';
 
 describe('Knowledge Graph Integration Tests', () => {
   let app: INestApplication;
-  let createdNodeIds: string[] = [];
-  let createdEdgeIds: string[] = [];
+  const createdNodeIds: string[] = [];
+  const createdEdgeIds: string[] = [];
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -21,16 +21,20 @@ describe('Knowledge Graph Integration Tests', () => {
     // Clean up created nodes and edges
     for (const edgeId of createdEdgeIds) {
       try {
-        await request(app.getHttpServer()).delete(`/knowledge-graph/edges/${edgeId}`);
-      } catch (error) {
+        await request(app.getHttpServer()).delete(
+          `/knowledge-graph/edges/${edgeId}`,
+        );
+      } catch {
         // Ignore cleanup errors
       }
     }
 
     for (const nodeId of createdNodeIds) {
       try {
-        await request(app.getHttpServer()).delete(`/knowledge-graph/nodes/${nodeId}`);
-      } catch (error) {
+        await request(app.getHttpServer()).delete(
+          `/knowledge-graph/nodes/${nodeId}`,
+        );
+      } catch {
         // Ignore cleanup errors
       }
     }
@@ -184,4 +188,3 @@ describe('Knowledge Graph Integration Tests', () => {
     });
   });
 });
-

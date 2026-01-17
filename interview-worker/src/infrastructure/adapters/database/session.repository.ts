@@ -44,7 +44,10 @@ export class MongoInterviewSessionRepository
       );
       return session;
     } catch (error) {
-      this.logger.error(`Failed to save session: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save session: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -54,14 +57,15 @@ export class MongoInterviewSessionRepository
       const doc = await this.collection.findOne({ sessionId });
       return doc ? InterviewSession.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find session: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find session: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
-  async findByCandidateId(
-    candidateId: string,
-  ): Promise<InterviewSession[]> {
+  async findByCandidateId(candidateId: string): Promise<InterviewSession[]> {
     try {
       const docs = await this.collection
         .find({ candidateId })
@@ -69,14 +73,15 @@ export class MongoInterviewSessionRepository
         .toArray();
       return docs.map((doc) => InterviewSession.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find sessions by candidate: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find sessions by candidate: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 
-  async findByInterviewId(
-    interviewId: string,
-  ): Promise<InterviewSession[]> {
+  async findByInterviewId(interviewId: string): Promise<InterviewSession[]> {
     try {
       const docs = await this.collection
         .find({ interviewId })
@@ -84,7 +89,10 @@ export class MongoInterviewSessionRepository
         .toArray();
       return docs.map((doc) => InterviewSession.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find sessions by interview: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find sessions by interview: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -109,7 +117,10 @@ export class MongoInterviewSessionRepository
 
       return result ? InterviewSession.fromObject(result) : null;
     } catch (error) {
-      this.logger.error(`Failed to update session: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to update session: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -119,9 +130,11 @@ export class MongoInterviewSessionRepository
       const result = await this.collection.deleteOne({ sessionId });
       return result.deletedCount > 0;
     } catch (error) {
-      this.logger.error(`Failed to delete session: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to delete session: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

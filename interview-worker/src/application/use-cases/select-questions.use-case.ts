@@ -66,4 +66,3 @@ export class SelectQuestionsUseCase {
     return this.selectionService.selectQuestions(questions, criteria);
   }
 }
-

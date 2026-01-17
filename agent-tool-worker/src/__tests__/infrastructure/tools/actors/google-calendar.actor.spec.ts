@@ -3,7 +3,11 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoogleCalendarActor, GoogleCalendarArgs, GoogleCalendarOutput } from '@infrastructure/tools/actors/google-calendar.actor';
+import {
+  GoogleCalendarActor,
+  GoogleCalendarArgs,
+  GoogleCalendarOutput,
+} from '@infrastructure/tools/actors/google-calendar.actor';
 
 describe('GoogleCalendarActor', () => {
   let actor: GoogleCalendarActor;
@@ -19,7 +23,9 @@ describe('GoogleCalendarActor', () => {
   describe('Basic Properties', () => {
     it('should have correct name and description', () => {
       expect(actor.name).toBe('google-calendar-actor');
-      expect(actor.description).toBe('Provides integration with Google Calendar API for event management');
+      expect(actor.description).toBe(
+        'Provides integration with Google Calendar API for event management',
+      );
     });
 
     it('should have correct category and auth requirements', () => {
@@ -33,13 +39,18 @@ describe('GoogleCalendarActor', () => {
       const args: GoogleCalendarArgs = {
         operation: 'create-event',
         calendarId: 'primary',
-        summary: 'Test Event'
+        summary: 'Test Event',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Google Calendar access token is required');
+      expect(result.error?.message).toBe(
+        'Google Calendar access token is required',
+      );
       expect(result.error?.name).toBe('AuthenticationError');
     });
   });
@@ -55,16 +66,25 @@ describe('GoogleCalendarActor', () => {
       endDateTime: '2024-01-15T11:00:00Z',
       timeZone: 'America/New_York',
       attendees: ['user1@example.com', 'user2@example.com'],
-      location: 'Conference Room A'
+      location: 'Conference Room A',
     };
 
     it('should create an event successfully', async () => {
-      const result = await actor.execute({ name: 'google-calendar-actor', args: validArgs as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: validArgs as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
-      expect((result.output as GoogleCalendarOutput).operation).toBe('create-event');
-      expect((result.output as GoogleCalendarOutput).eventId).toMatch(/^event-\d+$/);
-      expect((result.output as GoogleCalendarOutput).htmlLink).toContain('https://calendar.google.com/calendar/event?eid=');
+      expect((result.output as GoogleCalendarOutput).operation).toBe(
+        'create-event',
+      );
+      expect((result.output as GoogleCalendarOutput).eventId).toMatch(
+        /^event-\d+$/,
+      );
+      expect((result.output as GoogleCalendarOutput).htmlLink).toContain(
+        'https://calendar.google.com/calendar/event?eid=',
+      );
     });
 
     it('should return error when calendarId is missing', async () => {
@@ -73,13 +93,18 @@ describe('GoogleCalendarActor', () => {
         accessToken: 'test-access-token',
         summary: 'Test Event',
         startDateTime: '2024-01-15T10:00:00Z',
-        endDateTime: '2024-01-15T11:00:00Z'
+        endDateTime: '2024-01-15T11:00:00Z',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID, summary, start time, and end time are required for event creation');
+      expect(result.error?.message).toBe(
+        'Calendar ID, summary, start time, and end time are required for event creation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
@@ -89,13 +114,18 @@ describe('GoogleCalendarActor', () => {
         accessToken: 'test-access-token',
         calendarId: 'primary',
         startDateTime: '2024-01-15T10:00:00Z',
-        endDateTime: '2024-01-15T11:00:00Z'
+        endDateTime: '2024-01-15T11:00:00Z',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID, summary, start time, and end time are required for event creation');
+      expect(result.error?.message).toBe(
+        'Calendar ID, summary, start time, and end time are required for event creation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
@@ -105,13 +135,18 @@ describe('GoogleCalendarActor', () => {
         accessToken: 'test-access-token',
         calendarId: 'primary',
         summary: 'Test Event',
-        endDateTime: '2024-01-15T11:00:00Z'
+        endDateTime: '2024-01-15T11:00:00Z',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID, summary, start time, and end time are required for event creation');
+      expect(result.error?.message).toBe(
+        'Calendar ID, summary, start time, and end time are required for event creation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
@@ -121,13 +156,18 @@ describe('GoogleCalendarActor', () => {
         accessToken: 'test-access-token',
         calendarId: 'primary',
         summary: 'Test Event',
-        startDateTime: '2024-01-15T10:00:00Z'
+        startDateTime: '2024-01-15T10:00:00Z',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID, summary, start time, and end time are required for event creation');
+      expect(result.error?.message).toBe(
+        'Calendar ID, summary, start time, and end time are required for event creation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -139,28 +179,40 @@ describe('GoogleCalendarActor', () => {
         accessToken: 'test-access-token',
         calendarId: 'primary',
         eventId: 'event-123',
-        summary: 'Updated Meeting Title'
+        summary: 'Updated Meeting Title',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
-      expect((result.output as GoogleCalendarOutput).operation).toBe('update-event');
+      expect((result.output as GoogleCalendarOutput).operation).toBe(
+        'update-event',
+      );
       expect((result.output as GoogleCalendarOutput).eventId).toBe('event-123');
-      expect((result.output as GoogleCalendarOutput).htmlLink).toContain('https://calendar.google.com/calendar/event?eid=event-123');
+      expect((result.output as GoogleCalendarOutput).htmlLink).toContain(
+        'https://calendar.google.com/calendar/event?eid=event-123',
+      );
     });
 
     it('should return error when calendarId is missing', async () => {
       const args: GoogleCalendarArgs = {
         operation: 'update-event',
         accessToken: 'test-access-token',
-        eventId: 'event-123'
+        eventId: 'event-123',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID and event ID are required for event update');
+      expect(result.error?.message).toBe(
+        'Calendar ID and event ID are required for event update',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
@@ -168,13 +220,18 @@ describe('GoogleCalendarActor', () => {
       const args: GoogleCalendarArgs = {
         operation: 'update-event',
         accessToken: 'test-access-token',
-        calendarId: 'primary'
+        calendarId: 'primary',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID and event ID are required for event update');
+      expect(result.error?.message).toBe(
+        'Calendar ID and event ID are required for event update',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -185,13 +242,18 @@ describe('GoogleCalendarActor', () => {
         operation: 'delete-event',
         accessToken: 'test-access-token',
         calendarId: 'primary',
-        eventId: 'event-123'
+        eventId: 'event-123',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
-      expect((result.output as GoogleCalendarOutput).operation).toBe('delete-event');
+      expect((result.output as GoogleCalendarOutput).operation).toBe(
+        'delete-event',
+      );
       expect((result.output as GoogleCalendarOutput).deleted).toBe(true);
     });
 
@@ -199,13 +261,18 @@ describe('GoogleCalendarActor', () => {
       const args: GoogleCalendarArgs = {
         operation: 'delete-event',
         accessToken: 'test-access-token',
-        eventId: 'event-123'
+        eventId: 'event-123',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID and event ID are required for event deletion');
+      expect(result.error?.message).toBe(
+        'Calendar ID and event ID are required for event deletion',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
@@ -213,13 +280,18 @@ describe('GoogleCalendarActor', () => {
       const args: GoogleCalendarArgs = {
         operation: 'delete-event',
         accessToken: 'test-access-token',
-        calendarId: 'primary'
+        calendarId: 'primary',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID and event ID are required for event deletion');
+      expect(result.error?.message).toBe(
+        'Calendar ID and event ID are required for event deletion',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -230,15 +302,23 @@ describe('GoogleCalendarActor', () => {
         operation: 'get-event',
         accessToken: 'test-access-token',
         calendarId: 'primary',
-        eventId: 'event-123'
+        eventId: 'event-123',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
-      expect((result.output as GoogleCalendarOutput).operation).toBe('get-event');
+      expect((result.output as GoogleCalendarOutput).operation).toBe(
+        'get-event',
+      );
       expect((result.output as GoogleCalendarOutput).event).toBeDefined();
-      const event = (result.output as GoogleCalendarOutput).event as { id: string; summary: string };
+      const event = (result.output as GoogleCalendarOutput).event as {
+        id: string;
+        summary: string;
+      };
       expect(event.id).toBe('event-123');
       expect(event.summary).toBe('Sample Event');
     });
@@ -247,13 +327,18 @@ describe('GoogleCalendarActor', () => {
       const args: GoogleCalendarArgs = {
         operation: 'get-event',
         accessToken: 'test-access-token',
-        eventId: 'event-123'
+        eventId: 'event-123',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID and event ID are required');
+      expect(result.error?.message).toBe(
+        'Calendar ID and event ID are required',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
 
@@ -261,13 +346,18 @@ describe('GoogleCalendarActor', () => {
       const args: GoogleCalendarArgs = {
         operation: 'get-event',
         accessToken: 'test-access-token',
-        calendarId: 'primary'
+        calendarId: 'primary',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID and event ID are required');
+      expect(result.error?.message).toBe(
+        'Calendar ID and event ID are required',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -281,28 +371,42 @@ describe('GoogleCalendarActor', () => {
         maxResults: 10,
         timeMin: '2024-01-01T00:00:00Z',
         timeMax: '2024-12-31T23:59:59Z',
-        q: 'meeting'
+        q: 'meeting',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
-      expect((result.output as GoogleCalendarOutput).operation).toBe('list-events');
+      expect((result.output as GoogleCalendarOutput).operation).toBe(
+        'list-events',
+      );
       expect((result.output as GoogleCalendarOutput).events).toBeDefined();
-      expect(Array.isArray((result.output as GoogleCalendarOutput).events)).toBe(true);
-      expect((result.output as GoogleCalendarOutput).events!.length).toBeGreaterThan(0);
+      expect(
+        Array.isArray((result.output as GoogleCalendarOutput).events),
+      ).toBe(true);
+      expect(
+        (result.output as GoogleCalendarOutput).events!.length,
+      ).toBeGreaterThan(0);
     });
 
     it('should return error when calendarId is missing', async () => {
       const args: GoogleCalendarArgs = {
         operation: 'list-events',
-        accessToken: 'test-access-token'
+        accessToken: 'test-access-token',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Calendar ID is required for listing events');
+      expect(result.error?.message).toBe(
+        'Calendar ID is required for listing events',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });
@@ -311,13 +415,18 @@ describe('GoogleCalendarActor', () => {
     it('should return error for unsupported operation', async () => {
       const args = {
         operation: 'invalid-operation' as unknown as 'create-event',
-        accessToken: 'test-access-token'
+        accessToken: 'test-access-token',
       };
 
-      const result = await actor.execute({ name: 'google-calendar-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'google-calendar-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(false);
-      expect(result.error?.message).toBe('Unsupported operation: invalid-operation');
+      expect(result.error?.message).toBe(
+        'Unsupported operation: invalid-operation',
+      );
       expect(result.error?.name).toBe('ValidationError');
     });
   });

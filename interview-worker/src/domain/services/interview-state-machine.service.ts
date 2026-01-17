@@ -1,11 +1,14 @@
 /**
  * Interview State Machine Service
- * 
+ *
  * Domain service managing interview session state transitions.
  * Pure business logic for state management.
  */
 
-import { InterviewSession, SessionStatus } from '../entities/interview-session.entity';
+import {
+  InterviewSession,
+  SessionStatus,
+} from '../entities/interview-session.entity';
 
 export class InterviewStateMachineService {
   /**
@@ -98,13 +101,9 @@ export class InterviewStateMachineService {
   /**
    * Check if session can move to next phase
    */
-  canMoveToNextPhase(
-    session: InterviewSession,
-    totalPhases: number,
-  ): boolean {
+  canMoveToNextPhase(session: InterviewSession, totalPhases: number): boolean {
     return (
-      session.status === 'in-progress' &&
-      session.currentPhase < totalPhases - 1
+      session.status === 'in-progress' && session.currentPhase < totalPhases - 1
     );
   }
 
@@ -158,4 +157,3 @@ export class InterviewStateMachineService {
     return elapsedMinutes >= phaseTimeLimit;
   }
 }
-

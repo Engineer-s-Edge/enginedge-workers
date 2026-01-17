@@ -1,12 +1,13 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { Habit, HabitFrequency, HabitPriority } from '../../domain/entities';
 import { IHabitRepository } from '../ports/repositories.port';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 /**
  * Habit Application Service
- * 
+ *
  * Business logic for habit management
- * 
+ *
  * Application Layer - Orchestrates domain logic
  */
 @Injectable()
@@ -16,6 +17,8 @@ export class HabitService {
   constructor(
     @Inject('IHabitRepository')
     private readonly habitRepository: IHabitRepository,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {
     this.logger.log('HabitService initialized');
   }
@@ -53,6 +56,12 @@ export class HabitService {
 
     const saved = await this.habitRepository.save(habit);
     this.logger.log(`Created habit: ${saved.id}`);
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      this.metricsAdapter.incrementHabitsCreated();
+    }
+
     return saved;
   }
 
@@ -100,6 +109,11 @@ export class HabitService {
       completions: updated.completions,
       updatedAt: updated.updatedAt,
     });
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      this.metricsAdapter.incrementHabitsCompleted();
+    }
 
     this.logger.log(`Completed habit: ${id}`);
     return updated;

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IFileSystem } from '../../domain/ports';
 import * as path from 'path';
 
@@ -44,9 +44,12 @@ export class MultiFileService {
   private readonly includePattern = /\\include\{([^}]+)\}/g;
   private readonly inputPattern = /\\input\{([^}]+)\}/g;
   private readonly bibliographyPattern = /\\bibliography\{([^}]+)\}/g;
-  private readonly graphicsPattern = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
+  private readonly graphicsPattern =
+    /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
 
-  constructor(private readonly fileSystem: IFileSystem) {}
+  constructor(
+    @Inject('IFileSystem') private readonly fileSystem: IFileSystem,
+  ) {}
 
   /**
    * Analyze a multi-file LaTeX project and build dependency graph
@@ -55,9 +58,7 @@ export class MultiFileService {
     mainFile: string,
     projectDir: string,
   ): Promise<DependencyGraph> {
-    this.logger.log(
-      `Analyzing dependencies for ${mainFile} in ${projectDir}`,
-    );
+    this.logger.log(`Analyzing dependencies for ${mainFile} in ${projectDir}`);
 
     const dependencies: FileDependency[] = [];
     const allFiles = new Set<string>();
@@ -286,9 +287,7 @@ export class MultiFileService {
     const errors: string[] = [];
 
     if (graph.missingFiles.length > 0) {
-      errors.push(
-        `Missing files: ${graph.missingFiles.join(', ')}`,
-      );
+      errors.push(`Missing files: ${graph.missingFiles.join(', ')}`);
     }
 
     // Check for broken dependencies

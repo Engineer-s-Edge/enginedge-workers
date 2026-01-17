@@ -38,7 +38,7 @@ export class JavaSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -62,9 +62,14 @@ export class JavaSplitterAdapter extends TextSplitterPort {
       braceDepth -= (line.match(/}/g) || []).length;
 
       // Check for class/method/interface definition
-      const isDefinition = /^(public|private|protected|class|interface|enum)\s+/.test(line.trim());
+      const isDefinition =
+        /^(public|private|protected|class|interface|enum)\s+/.test(line.trim());
 
-      if (currentSize + lineSize > chunkSize && currentChunk.length > 0 && braceDepth === 0) {
+      if (
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0 &&
+        braceDepth === 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -78,6 +83,6 @@ export class JavaSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

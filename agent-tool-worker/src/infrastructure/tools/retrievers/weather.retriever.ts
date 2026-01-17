@@ -7,8 +7,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseRetriever } from '@domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '@domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '@domain/entities/tool.entities';
 import axios, { AxiosResponse } from 'axios';
 
 export interface WeatherArgs {
@@ -81,9 +88,13 @@ export interface WeatherOutput extends ToolOutput {
 }
 
 @Injectable()
-export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> {
+export class WeatherRetriever extends BaseRetriever<
+  WeatherArgs,
+  WeatherOutput
+> {
   readonly name = 'weather-retriever';
-  readonly description = 'Retrieve weather data including current conditions, forecasts, and historical weather for any location';
+  readonly description =
+    'Retrieve weather data including current conditions, forecasts, and historical weather for any location';
   readonly retrievalType: RetrievalType = RetrievalType.API_DATA;
   readonly caching = false;
 
@@ -93,50 +104,51 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
     properties: {
       location: {
         type: 'string',
-        description: 'Location for weather data (city name, coordinates, or address)',
+        description:
+          'Location for weather data (city name, coordinates, or address)',
         minLength: 1,
-        maxLength: 100
+        maxLength: 100,
       },
       type: {
         type: 'string',
         enum: ['current', 'forecast', 'historical'],
         description: 'Type of weather data to retrieve',
-        default: 'current'
+        default: 'current',
       },
       units: {
         type: 'string',
         enum: ['metric', 'imperial', 'kelvin'],
         description: 'Temperature units for the response',
-        default: 'metric'
+        default: 'metric',
       },
       days: {
         type: 'number',
         description: 'Number of forecast days (1-14)',
         minimum: 1,
         maximum: 14,
-        default: 7
+        default: 7,
       },
       date: {
         type: 'string',
         description: 'Date for historical data (YYYY-MM-DD format)',
-        pattern: '^\\d{4}-\\d{2}-\\d{2}$'
+        pattern: '^\\d{4}-\\d{2}-\\d{2}$',
       },
       include_hourly: {
         type: 'boolean',
         description: 'Include hourly forecast data',
-        default: false
+        default: false,
       },
       include_alerts: {
         type: 'boolean',
         description: 'Include weather alerts and warnings',
-        default: false
+        default: false,
       },
       language: {
         type: 'string',
         description: 'Language for weather descriptions',
-        default: 'en'
-      }
-    }
+        default: 'en',
+      },
+    },
   };
 
   readonly outputSchema = {
@@ -162,8 +174,8 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
           cloud_cover: { type: 'number' },
           condition: { type: 'string' },
           icon: { type: 'string' },
-          last_updated: { type: 'string' }
-        }
+          last_updated: { type: 'string' },
+        },
       },
       forecast: {
         type: 'array',
@@ -184,9 +196,9 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
             wind_direction: { type: 'number' },
             uv_index: { type: 'number' },
             sunrise: { type: 'string' },
-            sunset: { type: 'string' }
-          }
-        }
+            sunset: { type: 'string' },
+          },
+        },
       },
       alerts: {
         type: 'array',
@@ -199,13 +211,13 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
             urgency: { type: 'string' },
             areas: { type: 'string' },
             effective: { type: 'string' },
-            expires: { type: 'string' }
-          }
-        }
+            expires: { type: 'string' },
+          },
+        },
       },
       processingTime: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   };
 
   readonly metadata = new RetrieverConfig(
@@ -217,17 +229,31 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
-    new ErrorEvent('weather-service-unavailable', 'Weather service is not available', false),
-    new ErrorEvent('weather-location-not-found', 'Weather location not found', false),
-    new ErrorEvent('weather-invalid-request', 'Invalid weather request parameters', false),
-    new ErrorEvent('weather-api-error', 'Weather API returned an error', true)
+    new ErrorEvent(
+      'weather-service-unavailable',
+      'Weather service is not available',
+      false,
+    ),
+    new ErrorEvent(
+      'weather-location-not-found',
+      'Weather location not found',
+      false,
+    ),
+    new ErrorEvent(
+      'weather-invalid-request',
+      'Invalid weather request parameters',
+      false,
+    ),
+    new ErrorEvent('weather-api-error', 'Weather API returned an error', true),
   ];
 
-  protected async retrieve(args: WeatherArgs & { ragConfig: RAGConfig }): Promise<WeatherOutput> {
+  protected async retrieve(
+    args: WeatherArgs & { ragConfig: RAGConfig },
+  ): Promise<WeatherOutput> {
     // Validate input
     this.validateInput(args);
 
@@ -239,19 +265,19 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
       date,
       include_hourly = false,
       include_alerts = false,
-      language = 'en'
+      language = 'en',
     } = args;
 
     // Validate location
     if (!location || location.trim().length === 0) {
       throw Object.assign(new Error('Location cannot be empty'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
     if (location.length > 100) {
       throw Object.assign(new Error('Location too long (max 100 characters)'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -260,7 +286,7 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(date)) {
         throw Object.assign(new Error('Date must be in YYYY-MM-DD format'), {
-          name: 'ValidationError'
+          name: 'ValidationError',
         });
       }
     }
@@ -274,7 +300,7 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
       date,
       include_hourly,
       include_alerts,
-      language
+      language,
     });
   }
 
@@ -293,7 +319,7 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
       const params: Record<string, string | number | boolean> = {
         key: process.env.WEATHER_API_KEY || '',
         q: request.location,
-        lang: request.language
+        lang: request.language,
       };
 
       let endpoint = 'current.json';
@@ -317,9 +343,9 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
           params,
           timeout: 30000,
           headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       if (response.data && response.status === 200) {
@@ -328,15 +354,22 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
           success: true,
           location: request.location,
           type: request.type,
-          units: request.units
+          units: request.units,
         };
 
         if (request.type === 'current' && response.data.current) {
-          result.current = this.transformCurrentWeather(response.data.current, request.units);
+          result.current = this.transformCurrentWeather(
+            response.data.current,
+            request.units,
+          );
         }
 
         if (request.type === 'forecast' && response.data.forecast) {
-          result.forecast = this.transformForecast(response.data.forecast.forecastday, request.units, request.include_hourly);
+          result.forecast = this.transformForecast(
+            response.data.forecast.forecastday,
+            request.units,
+            request.include_hourly,
+          );
         }
 
         if (request.include_alerts && response.data.alerts) {
@@ -350,51 +383,66 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
           location: request.location,
           type: request.type,
           units: request.units,
-          message: 'Weather request failed'
+          message: 'Weather request failed',
         };
       }
-
     } catch (error) {
       const axiosError = error as {
         code?: string;
         response?: { status?: number; data?: { error?: { message?: string } } };
-        message?: string
+        message?: string;
       };
 
-      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ENOTFOUND') {
+      if (
+        axiosError.code === 'ECONNREFUSED' ||
+        axiosError.code === 'ENOTFOUND'
+      ) {
         throw Object.assign(new Error('Weather service is not available'), {
-          name: 'ServiceUnavailableError'
+          name: 'ServiceUnavailableError',
         });
       }
 
-      if (axiosError.response?.status === 408 || axiosError.code === 'ETIMEDOUT') {
+      if (
+        axiosError.response?.status === 408 ||
+        axiosError.code === 'ETIMEDOUT'
+      ) {
         throw Object.assign(new Error('Weather request timed out'), {
-          name: 'TimeoutError'
+          name: 'TimeoutError',
         });
       }
 
       if (axiosError.response?.status === 401) {
-        throw Object.assign(new Error('Weather API key is invalid or missing'), {
-          name: 'AuthenticationError'
-        });
+        throw Object.assign(
+          new Error('Weather API key is invalid or missing'),
+          {
+            name: 'AuthenticationError',
+          },
+        );
       }
 
       if (axiosError.response?.status === 400) {
         throw Object.assign(new Error('Weather location not found'), {
-          name: 'LocationNotFoundError'
+          name: 'LocationNotFoundError',
         });
       }
 
-      const errorMessage = axiosError.response?.data?.error?.message ||
-                          axiosError.message ||
-                          'Unknown error';
-      throw Object.assign(new Error(`Weather request failed: ${errorMessage}`), {
-        name: 'WeatherError'
-      });
+      const errorMessage =
+        axiosError.response?.data?.error?.message ||
+        axiosError.message ||
+        'Unknown error';
+      throw Object.assign(
+        new Error(`Weather request failed: ${errorMessage}`),
+        {
+          name: 'WeatherError',
+        },
+      );
     }
   }
 
-  private transformCurrentWeather(current: Record<string, unknown>, units: string): WeatherOutput['current'] {
+  private transformCurrentWeather(
+    current: Record<string, unknown>,
+    units: string,
+  ): WeatherOutput['current'] {
     const data = current as any;
     return {
       temperature: data.temp_c || data.temp_f || data.temp_k || 0,
@@ -409,12 +457,16 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
       cloud_cover: data.cloud || 0,
       condition: data.condition?.text || '',
       icon: data.condition?.icon || '',
-      last_updated: data.last_updated || ''
+      last_updated: data.last_updated || '',
     };
   }
 
-  private transformForecast(forecastDays: Record<string, unknown>[], units: string, includeHourly: boolean): WeatherOutput['forecast'] {
-    return forecastDays.map(day => {
+  private transformForecast(
+    forecastDays: Record<string, unknown>[],
+    units: string,
+    includeHourly: boolean,
+  ): WeatherOutput['forecast'] {
+    return forecastDays.map((day) => {
       const data = day as any;
       return {
         date: data.date || '',
@@ -425,36 +477,43 @@ export class WeatherRetriever extends BaseRetriever<WeatherArgs, WeatherOutput> 
         icon: data.day?.condition?.icon || '',
         chance_of_rain: data.day?.daily_chance_of_rain || 0,
         chance_of_snow: data.day?.daily_chance_of_snow || 0,
-        precipitation: data.day?.totalprecip_mm || data.day?.totalprecip_in || 0,
+        precipitation:
+          data.day?.totalprecip_mm || data.day?.totalprecip_in || 0,
         humidity: data.day?.avghumidity || 0,
         wind_speed: data.day?.maxwind_kph || data.day?.maxwind_mph || 0,
         wind_direction: data.day?.wind_degree || 0,
         uv_index: data.day?.uv || 0,
         sunrise: data.astro?.sunrise,
         sunset: data.astro?.sunset,
-        hourly: includeHourly ? data.hour?.map((hour: any) => ({
-          time: hour.time || '',
-          temperature: hour.temp_c || hour.temp_f || 0,
-          condition: hour.condition?.text || '',
-          chance_of_rain: hour.chance_of_rain || 0,
-          wind_speed: hour.wind_kph || hour.wind_mph || 0
-        })) : undefined
+        hourly: includeHourly
+          ? data.hour?.map((hour: any) => ({
+              time: hour.time || '',
+              temperature: hour.temp_c || hour.temp_f || 0,
+              condition: hour.condition?.text || '',
+              chance_of_rain: hour.chance_of_rain || 0,
+              wind_speed: hour.wind_kph || hour.wind_mph || 0,
+            }))
+          : undefined,
       };
     });
   }
 
-  private transformAlerts(alerts: Record<string, unknown>[]): WeatherOutput['alerts'] {
-    return alerts?.map(alert => {
-      const data = alert as any;
-      return {
-        headline: data.headline || '',
-        message: data.msg || '',
-        severity: data.severity || 'Unknown',
-        urgency: data.urgency || 'Unknown',
-        areas: data.areas || '',
-        effective: data.effective || '',
-        expires: data.expires || ''
-      };
-    }) || [];
+  private transformAlerts(
+    alerts: Record<string, unknown>[],
+  ): WeatherOutput['alerts'] {
+    return (
+      alerts?.map((alert) => {
+        const data = alert as any;
+        return {
+          headline: data.headline || '',
+          message: data.msg || '',
+          severity: data.severity || 'Unknown',
+          urgency: data.urgency || 'Unknown',
+          areas: data.areas || '',
+          effective: data.effective || '',
+          expires: data.expires || '',
+        };
+      }) || []
+    );
   }
 }

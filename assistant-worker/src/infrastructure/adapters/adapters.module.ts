@@ -1,11 +1,12 @@
 /**
  * Adapters Module
- * 
+ *
  * Infrastructure layer module that exports all adapter implementations
  * Provides dependency injection setup for all external service integrations
  */
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { ApplicationModule } from '@application/application.module';
 import {
   KnowledgeGraphAdapter,
   ValidationAdapter,
@@ -18,6 +19,10 @@ import {
 } from './implementations';
 
 @Module({
+  imports: [
+    // Import ApplicationModule to access TopicCatalogService and use cases
+    forwardRef(() => ApplicationModule),
+  ],
   providers: [
     KnowledgeGraphAdapter,
     ValidationAdapter,

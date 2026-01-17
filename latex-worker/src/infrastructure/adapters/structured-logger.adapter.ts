@@ -1,6 +1,6 @@
 /**
  * Structured Logger Adapter
- * 
+ *
  * Implements ILogger port for the LaTeX worker.
  * Wraps NestJS Logger for structured logging.
  */

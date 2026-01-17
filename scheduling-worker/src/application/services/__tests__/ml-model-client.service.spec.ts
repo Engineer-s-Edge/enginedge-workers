@@ -11,6 +11,8 @@ describe('MLModelClient', () => {
   let configService: ConfigService;
 
   beforeEach(async () => {
+    mockedAxios.create.mockReturnValue(mockedAxios);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MLModelClient,
@@ -31,20 +33,19 @@ describe('MLModelClient', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   describe('healthCheck', () => {
     it('should return true when ML service is healthy', async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: { status: 'healthy' } });
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { status: 'ok', models_initialized: true },
+      });
 
       const result = await service.healthCheck();
 
       expect(result).toBe(true);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        'http://localhost:8000/health',
-        expect.any(Object),
-      );
+      expect(mockedAxios.get).toHaveBeenCalledWith('/health');
     });
 
     it('should return false when ML service is down', async () => {
@@ -68,9 +69,12 @@ describe('MLModelClient', () => {
     it('should map deliverable text to features successfully', async () => {
       const mockResponse = {
         embedding: [0.1, 0.2, 0.3],
-        task_type: 'review',
-        estimated_duration: 45,
-        priority_score: 0.8,
+        category: 'review',
+        category_confidence: 0.9,
+        urgency: 'medium',
+        priority: 'high',
+        estimated_duration_hours: 0.75,
+        semantic_features: {},
       };
 
       mockedAxios.post.mockResolvedValueOnce({ data: mockResponse });
@@ -80,14 +84,10 @@ describe('MLModelClient', () => {
       });
 
       expect(result).toEqual(mockResponse);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:8000/map-deliverable',
-        {
-          text: 'Review PR #123',
-          context: { userId: 'user1' },
-        },
-        expect.any(Object),
-      );
+      expect(mockedAxios.post).toHaveBeenCalledWith('/map-deliverable', {
+        deliverable_text: 'Review PR #123',
+        context: { userId: 'user1' },
+      });
     });
 
     it('should throw error when ML service fails', async () => {
@@ -101,9 +101,12 @@ describe('MLModelClient', () => {
     it('should handle empty text gracefully', async () => {
       const mockResponse = {
         embedding: [],
-        task_type: 'unknown',
-        estimated_duration: 30,
-        priority_score: 0.5,
+        category: 'unknown',
+        category_confidence: 0,
+        urgency: 'low',
+        priority: 'low',
+        estimated_duration_hours: 0.5,
+        semantic_features: {},
       };
 
       mockedAxios.post.mockResolvedValueOnce({ data: mockResponse });
@@ -132,15 +135,11 @@ describe('MLModelClient', () => {
       );
 
       expect(result).toEqual(mockResponse.recommendations);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:8000/predict-slots',
-        {
-          user_id: 'user1',
-          deliverable: { text: 'Code review', priority: 'high' },
-          context: { workingHours: [9, 17] },
-        },
-        expect.any(Object),
-      );
+      expect(mockedAxios.post).toHaveBeenCalledWith('/predict-slots', {
+        user_id: 'user1',
+        deliverable: { text: 'Code review', priority: 'high' },
+        context: { workingHours: [9, 17] },
+      });
     });
 
     it('should return empty array when no slots predicted', async () => {
@@ -173,9 +172,12 @@ describe('MLModelClient', () => {
 
       const mockResponses = tasks.map((task, i) => ({
         embedding: [i, i, i],
-        task_type: 'review',
-        estimated_duration: 30 + i * 10,
-        priority_score: 0.5 + i * 0.1,
+        category: 'review',
+        category_confidence: 0.8,
+        urgency: 'low',
+        priority: 'low',
+        estimated_duration_hours: 0.5 + i * 0.1,
+        semantic_features: {},
       }));
 
       mockedAxios.post
@@ -186,8 +188,8 @@ describe('MLModelClient', () => {
       const results = await service.batchMapDeliverables(tasks);
 
       expect(results).toHaveLength(3);
-      expect(results[0].estimated_duration).toBe(30);
-      expect(results[2].estimated_duration).toBe(50);
+      expect(results[0].estimated_duration_hours).toBe(0.5);
+      expect(results[2].estimated_duration_hours).toBe(0.7);
     });
 
     it('should handle empty batch', async () => {
@@ -205,16 +207,19 @@ describe('MLModelClient', () => {
         .mockResolvedValueOnce({
           data: {
             embedding: [1],
-            task_type: 'review',
-            estimated_duration: 30,
-            priority_score: 0.5,
+            category: 'review',
+            category_confidence: 0.8,
+            urgency: 'low',
+            priority: 'low',
+            estimated_duration_hours: 0.5,
+            semantic_features: {},
           },
         });
 
       const results = await service.batchMapDeliverables(tasks);
 
       expect(results).toHaveLength(1);
-      expect(results[0].task_type).toBe('review');
+      expect(results[0].category).toBe('review');
     });
   });
 
@@ -251,15 +256,10 @@ describe('MLModelClient', () => {
       expect(configService.get).toHaveBeenCalledWith('ML_SERVICE_URL');
     });
 
-    it('should have timeout configured', async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: { status: 'healthy' } });
-
-      await service.healthCheck();
-
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.any(String),
+    it('should have timeout configured', () => {
+      expect(mockedAxios.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          timeout: expect.any(Number),
+          timeout: 10000,
         }),
       );
     });

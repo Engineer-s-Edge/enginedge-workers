@@ -1,12 +1,17 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { TimeSlotService, WorkingHours } from './time-slot.service';
-import { TaskSchedulerService, Task, ScheduledTask } from './task-scheduler.service';
+import {
+  TaskSchedulerService,
+  Task,
+  ScheduledTask,
+} from './task-scheduler.service';
 import { HabitService } from './habit.service';
 import { GoalService } from './goal.service';
 import { ICalendarEventRepository } from '../ports/repositories.port';
 import { CalendarEvent } from '../../domain/entities/calendar-event.entity';
 import { IGoogleCalendarApiService } from '../ports/google-calendar.port';
 import { TimeSlot } from '../../domain/value-objects/time-slot.value-object';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 export interface ScheduleOptions {
   userId: string;
@@ -42,6 +47,8 @@ export class SchedulingService {
     private readonly eventRepository: ICalendarEventRepository,
     @Inject('IGoogleCalendarApiService')
     private readonly calendarApi: IGoogleCalendarApiService,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {}
 
   /**
@@ -58,7 +65,9 @@ export class SchedulingService {
       maxTaskDuration = 120,
     } = options;
 
-    this.logger.log(`Scheduling tasks for user ${userId} on ${date.toDateString()}`);
+    this.logger.log(
+      `Scheduling tasks for user ${userId} on ${date.toDateString()}`,
+    );
 
     // Step 1: Get existing calendar events
     const startOfDay = new Date(date);
@@ -127,6 +136,16 @@ export class SchedulingService {
       `Scheduling complete: ${result.scheduled.length}/${processedTasks.length} tasks scheduled (${utilizationRate.toFixed(1)}% utilization)`,
     );
 
+    // Record metrics
+    if (this.metricsAdapter) {
+      result.scheduled.forEach((task) => {
+        this.metricsAdapter!.incrementTasksScheduled(task.type);
+      });
+      if (result.conflicts.length > 0) {
+        this.metricsAdapter.incrementSchedulingConflicts();
+      }
+    }
+
     return {
       date,
       scheduledTasks: result.scheduled,
@@ -175,7 +194,14 @@ export class SchedulingService {
       createdEvents.push(savedEvent);
     }
 
-    this.logger.log(`Successfully committed ${createdEvents.length} events to calendar`);
+    this.logger.log(
+      `Successfully committed ${createdEvents.length} events to calendar`,
+    );
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      // Tasks are already counted in scheduleForDate, but we can track commits here if needed
+    }
 
     return createdEvents;
   }
@@ -274,12 +300,17 @@ export class SchedulingService {
     lines.push(`🤖 Auto-scheduled by EnginEdge`);
     lines.push('');
 
-    if (scheduledTask.metadata?.description && typeof scheduledTask.metadata.description === 'string') {
+    if (
+      scheduledTask.metadata?.description &&
+      typeof scheduledTask.metadata.description === 'string'
+    ) {
       lines.push(scheduledTask.metadata.description);
       lines.push('');
     }
 
-    lines.push(`Type: ${scheduledTask.type === 'habit' ? '🔄 Habit' : '🎯 Goal'}`);
+    lines.push(
+      `Type: ${scheduledTask.type === 'habit' ? '🔄 Habit' : '🎯 Goal'}`,
+    );
     lines.push(`Priority: ${'⭐'.repeat(scheduledTask.priority)}`);
     lines.push(`Duration: ${scheduledTask.durationMinutes} minutes`);
 
@@ -370,7 +401,9 @@ export class SchedulingService {
       await this.calendarApi.deleteEvent(calendarId, event.id);
     }
 
-    this.logger.debug(`Removed ${autoScheduledEvents.length} auto-scheduled events`);
+    this.logger.debug(
+      `Removed ${autoScheduledEvents.length} auto-scheduled events`,
+    );
 
     // Re-run scheduling
     return this.scheduleForDate(options);

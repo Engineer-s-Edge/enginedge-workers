@@ -79,7 +79,7 @@ export class TimeSlotService {
     const currentDate = new Date(startDate);
 
     while (currentDate < endDate) {
-      const dayOfWeek = currentDate.getDay();
+      const dayOfWeek = currentDate.getUTCDay();
 
       // Check if this day should be included
       const shouldInclude =
@@ -88,23 +88,34 @@ export class TimeSlotService {
 
       if (shouldInclude) {
         const slotStart = new Date(currentDate);
-        slotStart.setHours(workingHours.startHour, 0, 0, 0);
+        slotStart.setUTCHours(workingHours.startHour, 0, 0, 0);
 
         const slotEnd = new Date(currentDate);
-        slotEnd.setHours(workingHours.endHour, 0, 0, 0);
+        slotEnd.setUTCHours(workingHours.endHour, 0, 0, 0);
 
         // Make sure we don't exceed the end date
         if (slotStart < endDate) {
           const actualEnd = slotEnd > endDate ? endDate : slotEnd;
-          if (slotStart < actualEnd) {
-            slots.push(new TimeSlot(slotStart, actualEnd));
+          // Ensure we don't create slots ending before they start (due to start clamp)
+          // Also clamp start if it's before startDate?
+          // Technically generateWorkingHourSlots checks currentDate which starts at startDate.
+          // But if startDate has minutes, setUTCHours(9,0,0,0) might go back in time if startDate was 09:30.
+          // But for now let's just use UTC.
+
+          // Wait, if startDate is 10:00, and startHour is 9.
+          // slotStart becomes 09:00. This is BEFORE startDate.
+          // We should clamp slotStart to startDate if it is the first day.
+          const actualStart = slotStart < startDate ? startDate : slotStart;
+
+          if (actualStart < actualEnd) {
+            slots.push(new TimeSlot(actualStart, actualEnd));
           }
         }
       }
 
       // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-      currentDate.setHours(0, 0, 0, 0);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+      currentDate.setUTCHours(0, 0, 0, 0);
     }
 
     return slots;
@@ -153,10 +164,15 @@ export class TimeSlotService {
       const current = sorted[i];
       const previous = merged[merged.length - 1];
 
-      if (current.overlapsWith(previous) || this.isAdjacent(previous, current)) {
+      if (
+        current.overlapsWith(previous) ||
+        this.isAdjacent(previous, current)
+      ) {
         // Merge with previous slot
         const newEnd =
-          current.endTime > previous.endTime ? current.endTime : previous.endTime;
+          current.endTime > previous.endTime
+            ? current.endTime
+            : previous.endTime;
         merged[merged.length - 1] = new TimeSlot(previous.startTime, newEnd);
       } else {
         merged.push(current);

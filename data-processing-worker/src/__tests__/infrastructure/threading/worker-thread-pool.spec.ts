@@ -14,11 +14,18 @@ describe('WorkerThreadPool', () => {
     loggerStub.setLevel.mockImplementation(() => {});
     loggerStub.getLevel.mockReturnValue('info');
 
-    const pool = new WorkerThreadPool(loggerStub, { minWorkers: 1, maxWorkers: 1, idleTimeout: 1000, taskTimeout: 5000 });
+    const pool = new WorkerThreadPool(loggerStub, {
+      minWorkers: 1,
+      maxWorkers: 1,
+      idleTimeout: 1000,
+      taskTimeout: 5000,
+    });
 
     const result = await pool.executeTask({ foo: 'bar' }, 0);
     expect(result).toBeDefined();
-    expect((result as unknown as { completed: boolean }).completed).toBeTruthy();
+    expect(
+      (result as unknown as { completed: boolean }).completed,
+    ).toBeTruthy();
 
     // cleanup
     await pool.onModuleDestroy();

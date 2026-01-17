@@ -1,8 +1,10 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { HabitService } from './habit.service';
 import { GoalService } from './goal.service';
 import { ScheduledTask } from './task-scheduler.service';
 import { ICalendarEventRepository } from '../ports/repositories.port';
+import { ActivityModelService } from './activity-model.service';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 export interface CompletionRecord {
   taskId: string;
@@ -38,6 +40,10 @@ export class TaskCompletionService {
     private readonly goalService: GoalService,
     @Inject('ICalendarEventRepository')
     private readonly eventRepository: ICalendarEventRepository,
+    @Optional()
+    private readonly activityModelService?: ActivityModelService,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {}
 
   /**
@@ -80,6 +86,38 @@ export class TaskCompletionService {
 
     this.logger.debug(`Task completion recorded: ${scheduledTask.id}`);
 
+    // Record metrics
+    if (this.metricsAdapter) {
+      this.metricsAdapter.incrementTasksCompleted(scheduledTask.type);
+    }
+
+    // Track activity if ActivityModelService is available
+    if (this.activityModelService) {
+      try {
+        // Extract userId from scheduledTask (assuming it's in metadata or we need to get it from the task)
+        const userId =
+          (scheduledTask as any).userId ||
+          (scheduledTask as any).metadata?.userId;
+        if (userId) {
+          await this.activityModelService.trackEventCompletion(
+            scheduledTask.id,
+            userId,
+            scheduledTask.scheduledSlot.startTime,
+            {
+              actualStartTime: actualStart,
+              actualEndTime: actualEnd,
+              productivityScore: completionRate / 100, // Convert to 0-1 scale
+            },
+          );
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Failed to track activity: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+        // Don't fail the completion if activity tracking fails
+      }
+    }
+
     return record;
   }
 
@@ -90,14 +128,9 @@ export class TaskCompletionService {
     scheduledTask: ScheduledTask,
     notes?: string,
   ): Promise<void> {
-    await this.habitService.completeHabit(
-      scheduledTask.sourceId,
-      notes,
-    );
+    await this.habitService.completeHabit(scheduledTask.sourceId, notes);
 
-    this.logger.debug(
-      `Habit ${scheduledTask.sourceId} marked complete`,
-    );
+    this.logger.debug(`Habit ${scheduledTask.sourceId} marked complete`);
   }
 
   /**
@@ -130,7 +163,9 @@ export class TaskCompletionService {
     scheduledTask: ScheduledTask,
     reason?: string,
   ): Promise<CompletionRecord> {
-    this.logger.log(`Skipping task "${scheduledTask.title}": ${reason || 'No reason provided'}`);
+    this.logger.log(
+      `Skipping task "${scheduledTask.title}": ${reason || 'No reason provided'}`,
+    );
 
     const record: CompletionRecord = {
       taskId: scheduledTask.id,
@@ -160,6 +195,11 @@ export class TaskCompletionService {
     this.logger.log(
       `Rescheduling task "${scheduledTask.title}" to ${newStartTime.toISOString()}`,
     );
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      this.metricsAdapter.incrementTasksRescheduled(scheduledTask.type);
+    }
 
     const record: CompletionRecord = {
       taskId: scheduledTask.id,
@@ -217,7 +257,9 @@ export class TaskCompletionService {
     const records = this.getCompletionHistory(startDate, endDate);
 
     const totalScheduled = records.length;
-    const totalCompleted = records.filter((r) => r.completionRate === 100).length;
+    const totalCompleted = records.filter(
+      (r) => r.completionRate === 100,
+    ).length;
     const totalPartiallyCompleted = records.filter(
       (r) => r.completionRate > 0 && r.completionRate < 100,
     ).length;
@@ -279,7 +321,9 @@ export class TaskCompletionService {
 
     if (records.length === 0) return 0;
 
-    const completedCount = records.filter((r) => r.completionRate === 100).length;
+    const completedCount = records.filter(
+      (r) => r.completionRate === 100,
+    ).length;
     return (completedCount / records.length) * 100;
   }
 

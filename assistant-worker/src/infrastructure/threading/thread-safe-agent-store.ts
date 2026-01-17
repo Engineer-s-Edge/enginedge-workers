@@ -1,6 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Agent } from '@domain/entities/agent.entity';
-import { ILogger } from '@application/ports/logger.port';
+
+// Logger interface for infrastructure use (matches ILogger from application ports)
+interface Logger {
+  debug(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+}
 
 interface LockHandle {
   agentId: string;
@@ -14,14 +21,17 @@ export class ThreadSafeAgentStore {
   private locks = new Map<string, LockHandle>();
   private readonly lockTimeout = 30000; // 30s default
 
-  constructor(
-    @Inject('ILogger') private readonly logger: ILogger,
-  ) {}
+  constructor(@Inject('ILogger') private readonly logger: Logger) {}
 
-  async acquireLock(agentId: string, timeout: number = this.lockTimeout): Promise<boolean> {
+  async acquireLock(
+    agentId: string,
+    timeout: number = this.lockTimeout,
+  ): Promise<boolean> {
     // Check if already locked
     if (this.locks.has(agentId)) {
-      this.logger.debug('ThreadSafeAgentStore: Agent already locked', { agentId });
+      this.logger.debug('ThreadSafeAgentStore: Agent already locked', {
+        agentId,
+      });
       return false;
     }
 
@@ -69,10 +79,12 @@ export class ThreadSafeAgentStore {
       }
 
       // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
 
-    throw new Error(`Failed to acquire lock for agent ${agentId} after ${maxRetries} retries`);
+    throw new Error(
+      `Failed to acquire lock for agent ${agentId} after ${maxRetries} retries`,
+    );
   }
 
   async set(agentId: string, agent: Agent): Promise<void> {
@@ -105,7 +117,10 @@ export class ThreadSafeAgentStore {
   async delete(agentId: string): Promise<boolean> {
     return this.withLock(agentId, async () => {
       const deleted = this.agents.delete(agentId);
-      this.logger.debug('ThreadSafeAgentStore: Agent deleted', { agentId, deleted });
+      this.logger.debug('ThreadSafeAgentStore: Agent deleted', {
+        agentId,
+        deleted,
+      });
       return deleted;
     });
   }
@@ -117,16 +132,14 @@ export class ThreadSafeAgentStore {
   async clear(): Promise<void> {
     // Acquire locks for all agents
     const agentIds = Array.from(this.agents.keys());
-    const locks = await Promise.all(
-      agentIds.map(id => this.acquireLock(id)),
-    );
+    const locks = await Promise.all(agentIds.map((id) => this.acquireLock(id)));
 
     try {
       this.agents.clear();
       this.logger.info('ThreadSafeAgentStore: All agents cleared');
     } finally {
       // Release all locks
-      agentIds.forEach(id => this.releaseLock(id));
+      agentIds.forEach((id) => this.releaseLock(id));
     }
   }
 

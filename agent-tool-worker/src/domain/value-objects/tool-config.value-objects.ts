@@ -4,7 +4,11 @@
  * Immutable objects representing tool metadata and configuration.
  */
 
-import { ActorCategory, RetrievalType, RAGConfig } from '../entities/tool.entities';
+import {
+  ActorCategory,
+  RetrievalType,
+  RAGConfig,
+} from '../entities/tool.entities';
 
 export class ToolId {
   constructor(private readonly value: string) {
@@ -121,4 +125,13 @@ export class ErrorEvent {
     public readonly guidance: string,
     public readonly retryable: boolean = false,
   ) {}
+}
+
+export interface ToolConfig {
+  timeoutMs: number;
+  retry: {
+    maxAttempts: number;
+    backoffMs: number;
+  };
+  cacheTtlMs: number;
 }

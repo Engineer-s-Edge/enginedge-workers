@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Data Processing Worker**: Document loading, text splitting, embeddings, and vector storage
 - **Interview Worker**: AI-powered interview processing and analysis
 - **LaTeX Worker**: XeLaTeX-based document compilation service
-- **RNLE Worker**: Reverse Natural Language Engineering and code analysis
+- **resume Worker**: Reverse Natural Language Engineering and code analysis
 - **Scheduling Worker**: Google Calendar sync, habits, goals, and ML-based task scheduling
 
 ## [1.0.0] - 2025-10-27

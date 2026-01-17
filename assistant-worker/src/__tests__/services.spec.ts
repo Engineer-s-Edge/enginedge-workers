@@ -37,7 +37,10 @@ describe('Infrastructure Layer - Services', () => {
         const errors: string[] = [];
         if (!config.name) errors.push('Name required');
         if (!config.model) errors.push('Model required');
-        if (config.temperature && (config.temperature < 0 || config.temperature > 2)) {
+        if (
+          config.temperature &&
+          (config.temperature < 0 || config.temperature > 2)
+        ) {
           errors.push('Temperature must be between 0 and 2');
         }
         return { valid: errors.length === 0, errors };
@@ -74,13 +77,21 @@ describe('Infrastructure Layer - Services', () => {
     });
 
     it('should validate config', () => {
-      const result = service.validateConfig({ name: 'Test', model: 'gpt-4', temperature: 0.5 });
+      const result = service.validateConfig({
+        name: 'Test',
+        model: 'gpt-4',
+        temperature: 0.5,
+      });
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
     it('should catch invalid temperature', () => {
-      const result = service.validateConfig({ name: 'Test', model: 'gpt-4', temperature: 3 });
+      const result = service.validateConfig({
+        name: 'Test',
+        model: 'gpt-4',
+        temperature: 3,
+      });
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Temperature must be between 0 and 2');
     });
@@ -445,7 +456,9 @@ describe('Infrastructure Layer - Services', () => {
       }
 
       parseList(response: string, delimiter: string = '\n'): string[] {
-        return response.split(delimiter).filter((item) => item.trim().length > 0);
+        return response
+          .split(delimiter)
+          .filter((item) => item.trim().length > 0);
       }
     }
 
@@ -518,7 +531,10 @@ describe('Infrastructure Layer - Services', () => {
         }
       })();
 
-      const result = builder.set('name', 'Agent').set('status', 'ready').build();
+      const result = builder
+        .set('name', 'Agent')
+        .set('status', 'ready')
+        .build();
       expect(result).toContain('Agent');
       expect(result).toContain('ready');
     });

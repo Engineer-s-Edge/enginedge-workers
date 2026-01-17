@@ -2,7 +2,7 @@ import { Document } from '../entities/document.entity';
 
 /**
  * Base Loader Port - Abstract interface for all document loaders
- * 
+ *
  * All loaders (filesystem and web) must implement this interface
  * following the hexagonal architecture pattern.
  */
@@ -13,7 +13,10 @@ export abstract class BaseLoaderPort {
    * @param options - Loader-specific options
    * @returns Promise<Document[]> - Array of loaded documents
    */
-  abstract load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]>;
+  abstract load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]>;
 
   /**
    * Check if this loader supports the given source
@@ -41,11 +44,14 @@ export abstract class FilesystemLoaderPort extends BaseLoaderPort {
     fileName: string,
     options?: Record<string, unknown>,
   ): Promise<Document[]>;
-  
+
   /**
    * Default implementation - delegates to loadBlob for Blob input
    */
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (source instanceof Blob) {
       const fileName = (options?.fileName as string) || 'file';
       return this.loadBlob(source, fileName, options);
@@ -65,11 +71,14 @@ export abstract class WebLoaderPort extends BaseLoaderPort {
     url: string,
     options?: Record<string, unknown>,
   ): Promise<Document[]>;
-  
+
   /**
    * Default implementation - delegates to loadUrl for string input
    */
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (typeof source === 'string') {
       return this.loadUrl(source, options);
     }

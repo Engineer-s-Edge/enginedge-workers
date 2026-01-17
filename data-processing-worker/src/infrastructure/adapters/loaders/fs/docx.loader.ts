@@ -1,19 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DocxLoader } from '@langchain/community/document_loaders/fs/docx';
 import { FilesystemLoaderPort } from '../../../../domain/ports/loader.port';
-import { Document, DocumentMetadata } from '../../../../domain/entities/document.entity';
+import {
+  Document,
+  DocumentMetadata,
+} from '../../../../domain/entities/document.entity';
 import * as crypto from 'crypto';
 
 /**
  * DOCX Document Loader (Infrastructure Layer)
- * 
+ *
  * Loads and parses Microsoft Word (.docx) files using LangChain's DocxLoader.
  */
 @Injectable()
 export class DocxLoaderAdapter extends FilesystemLoaderPort {
   private readonly logger = new Logger(DocxLoaderAdapter.name);
 
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (source instanceof Blob) {
       const fileName = (options?.fileName as string) || 'document.docx';
       return this.loadBlob(source, fileName, options);
@@ -40,7 +46,8 @@ export class DocxLoaderAdapter extends FilesystemLoaderPort {
         const docMetadata: DocumentMetadata = {
           source: fileName,
           sourceType: 'file',
-          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           fileName,
           fileExtension: '.docx',
           ...metadata,
@@ -50,17 +57,27 @@ export class DocxLoaderAdapter extends FilesystemLoaderPort {
         return new Document(docId, doc.pageContent, docMetadata);
       });
 
-      this.logger.log(`Successfully loaded ${documents.length} documents from DOCX`);
+      this.logger.log(
+        `Successfully loaded ${documents.length} documents from DOCX`,
+      );
       return documents;
     } catch (error) {
-      this.logger.error(`Error loading DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`, error instanceof Error ? error.stack : undefined);
-      throw new Error(`Failed to load DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Error loading DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new Error(
+        `Failed to load DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
   supports(source: string | Blob): boolean {
     if (source instanceof Blob) {
-      return source.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      return (
+        source.type ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      );
     }
     return source.toLowerCase().endsWith('.docx');
   }
@@ -70,7 +87,10 @@ export class DocxLoaderAdapter extends FilesystemLoaderPort {
   }
 
   private generateDocumentId(fileName: string, index: number): string {
-    const hash = crypto.createHash('md5').update(`${fileName}-${index}-${Date.now()}`).digest('hex');
+    const hash = crypto
+      .createHash('md5')
+      .update(`${fileName}-${index}-${Date.now()}`)
+      .digest('hex');
     return `docx-${hash}`;
   }
 }

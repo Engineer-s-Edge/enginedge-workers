@@ -6,6 +6,31 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { GoogleSpeechAdapter } from '../../../../infrastructure/adapters/voice/google-speech.adapter';
 import { ConfigService } from '@nestjs/config';
 
+// Mock Google Cloud Speech
+jest.mock('@google-cloud/speech', () => ({
+  SpeechClient: jest.fn().mockImplementation(() => ({
+    recognize: jest.fn().mockResolvedValue([{ results: [] }]),
+    streamingRecognize: jest.fn().mockReturnValue({
+      write: jest.fn(),
+      on: jest.fn(),
+      end: jest.fn(),
+      destroy: jest.fn(),
+      removeListener: jest.fn(),
+    }),
+    close: jest.fn(),
+  })),
+}));
+
+// Mock Google Cloud Text-to-Speech
+jest.mock('@google-cloud/text-to-speech', () => ({
+  TextToSpeechClient: jest.fn().mockImplementation(() => ({
+    synthesizeSpeech: jest
+      .fn()
+      .mockResolvedValue([{ audioContent: Buffer.from('test-audio') }]),
+    close: jest.fn(),
+  })),
+}));
+
 describe('GoogleSpeechAdapter', () => {
   let adapter: GoogleSpeechAdapter;
   let mockConfigService: any;
@@ -14,6 +39,19 @@ describe('GoogleSpeechAdapter', () => {
     mockConfigService = {
       get: jest.fn(),
     };
+
+    // Mock global fetch
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('mock_error'),
+        json: () =>
+          Promise.resolve({
+            results: [{ alternatives: [{ transcript: 'Mock transcription' }] }],
+          }),
+        arrayBuffer: () => Promise.resolve(Buffer.from('mock_audio')),
+      }),
+    ) as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -70,4 +108,3 @@ describe('GoogleSpeechAdapter', () => {
     expect(Buffer.isBuffer(result)).toBe(true);
   });
 });
-

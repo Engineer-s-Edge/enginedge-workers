@@ -18,19 +18,71 @@ describe('TextSplitterFactoryService Advanced (Phase 4 - Splitters Extended)', (
   let mockHtml: any;
 
   beforeEach(() => {
-    mockRecursive = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockCharacter = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockToken = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockSemantic = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockPython = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockJavaScript = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockTypeScript = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockJava = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockCpp = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockGo = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockLatex = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockMarkdown = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
-    mockHtml = { split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']), logger: {}, generateChunkId: jest.fn() };
+    mockRecursive = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockCharacter = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockToken = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockSemantic = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockPython = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockJavaScript = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockTypeScript = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockJava = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockCpp = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockGo = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockLatex = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockMarkdown = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
+    mockHtml = {
+      split: jest.fn().mockResolvedValue(['chunk1', 'chunk2']),
+      logger: {},
+      generateChunkId: jest.fn(),
+    };
 
     service = new TextSplitterFactoryService(
       mockRecursive as any,
@@ -225,8 +277,22 @@ describe('TextSplitterFactoryService Advanced (Phase 4 - Splitters Extended)', (
   });
 
   it('fact-adv-036: all splitters have split method', () => {
-    const types = ['recursive-character', 'character', 'token', 'semantic', 'python', 'javascript', 'typescript', 'java', 'cpp', 'go', 'latex', 'markdown', 'html'];
-    types.forEach(type => {
+    const types = [
+      'recursive-character',
+      'character',
+      'token',
+      'semantic',
+      'python',
+      'javascript',
+      'typescript',
+      'java',
+      'cpp',
+      'go',
+      'latex',
+      'markdown',
+      'html',
+    ];
+    types.forEach((type) => {
       const splitter = service.getSplitterByType(type);
       expect(splitter).toHaveProperty('split');
     });
@@ -307,7 +373,7 @@ describe('TextSplitterFactoryService Advanced (Phase 4 - Splitters Extended)', (
 
   it('fact-adv-048: getSplitterByType available for all language extensions', () => {
     const langs = ['py', 'js', 'ts', 'java', 'cpp', 'go', 'tex', 'md', 'html'];
-    langs.forEach(lang => {
+    langs.forEach((lang) => {
       const filename = `test.${lang}`;
       const splitter = service.getSplitterByFileExtension(filename);
       expect(splitter).toBeDefined();
@@ -334,8 +400,8 @@ describe('TextSplitterFactoryService Advanced (Phase 4 - Splitters Extended)', (
       service.getSplitterByType('latex'),
       service.getSplitterByType('markdown'),
       service.getSplitterByType('html'),
-    ].filter(s => s).length;
-    
+    ].filter((s) => s).length;
+
     expect(accessCount).toBe(13);
   });
 });

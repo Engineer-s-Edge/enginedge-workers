@@ -15,6 +15,16 @@ describe('AzureSpeechAdapter', () => {
       get: jest.fn(),
     };
 
+    // Mock global fetch
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve('mock_token'),
+        json: () => Promise.resolve({ DisplayText: 'Mock transcription' }),
+        arrayBuffer: () => Promise.resolve(Buffer.from('mock_audio')),
+      }),
+    ) as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AzureSpeechAdapter,
@@ -70,4 +80,3 @@ describe('AzureSpeechAdapter', () => {
     expect(Buffer.isBuffer(result)).toBe(true);
   });
 });
-

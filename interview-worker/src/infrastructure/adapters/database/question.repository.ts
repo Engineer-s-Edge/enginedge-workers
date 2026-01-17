@@ -28,7 +28,11 @@ export class MongoInterviewQuestionRepository
     await this.collection.createIndex({ category: 1, difficulty: 1 });
     await this.collection.createIndex({ subcategory: 1 });
     await this.collection.createIndex({ tags: 1 });
-    await this.collection.createIndex({ category: 1, subcategory: 1, difficulty: 1 });
+    await this.collection.createIndex({
+      category: 1,
+      subcategory: 1,
+      difficulty: 1,
+    });
 
     this.logger.log('MongoInterviewQuestionRepository initialized');
   }
@@ -43,7 +47,10 @@ export class MongoInterviewQuestionRepository
       );
       return question;
     } catch (error) {
-      this.logger.error(`Failed to save question: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to save question: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -53,7 +60,10 @@ export class MongoInterviewQuestionRepository
       const doc = await this.collection.findOne({ questionId });
       return doc ? InterviewQuestion.fromObject(doc) : null;
     } catch (error) {
-      this.logger.error(`Failed to find question: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find question: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -77,7 +87,10 @@ export class MongoInterviewQuestionRepository
       const docs = await cursor.toArray();
       return docs.map((doc) => InterviewQuestion.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find questions by category: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find questions by category: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -89,7 +102,10 @@ export class MongoInterviewQuestionRepository
         .toArray();
       return docs.map((doc) => InterviewQuestion.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find questions by tags: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find questions by tags: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -99,7 +115,10 @@ export class MongoInterviewQuestionRepository
       const docs = await this.collection.find({}).toArray();
       return docs.map((doc) => InterviewQuestion.fromObject(doc));
     } catch (error) {
-      this.logger.error(`Failed to find all questions: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to find all questions: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -122,7 +141,10 @@ export class MongoInterviewQuestionRepository
 
       return result ? InterviewQuestion.fromObject(result) : null;
     } catch (error) {
-      this.logger.error(`Failed to update question: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to update question: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -132,9 +154,11 @@ export class MongoInterviewQuestionRepository
       const result = await this.collection.deleteOne({ questionId });
       return result.deletedCount > 0;
     } catch (error) {
-      this.logger.error(`Failed to delete question: ${error}`, error instanceof Error ? error.stack : undefined);
+      this.logger.error(
+        `Failed to delete question: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
 }
-

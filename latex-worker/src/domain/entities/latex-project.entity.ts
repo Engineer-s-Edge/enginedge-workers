@@ -1,6 +1,6 @@
 /**
  * LaTeXProject Entity
- * 
+ *
  * Represents a multi-file LaTeX project with dependencies.
  * Supports complex documents with \include, \input, bibliography, images, etc.
  */
@@ -240,9 +240,6 @@ export class LaTeXProject {
    * Get project size in bytes
    */
   getSize(): number {
-    return this.files.reduce(
-      (total, file) => total + file.content.length,
-      0,
-    );
+    return this.files.reduce((total, file) => total + file.content.length, 0);
   }
 }

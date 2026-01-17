@@ -3,7 +3,7 @@ import { LoaderRegistryService } from './loader-registry.service';
 
 /**
  * URL Detection Service
- * 
+ *
  * Automatically detects the type of URL and selects the appropriate loader
  * Based on URL patterns, domain names, and file extensions
  */
@@ -31,7 +31,10 @@ export class UrlDetectionService {
       }
 
       // GitHub URLs
-      if (hostname === 'github.com' || hostname === 'raw.githubusercontent.com') {
+      if (
+        hostname === 'github.com' ||
+        hostname === 'raw.githubusercontent.com'
+      ) {
         return 'github';
       }
 
@@ -123,11 +126,22 @@ export class UrlDetectionService {
   /**
    * Detect if a URL is a search engine query
    */
-  private _isSearchEngineUrl(hostname: string, searchParams: URLSearchParams): boolean {
-    const searchEngines = ['google.com', 'bing.com', 'yahoo.com', 'duckduckgo.com'];
+  private _isSearchEngineUrl(
+    hostname: string,
+    searchParams: URLSearchParams,
+  ): boolean {
+    const searchEngines = [
+      'google.com',
+      'bing.com',
+      'yahoo.com',
+      'duckduckgo.com',
+    ];
     const hasSearchQuery = searchParams.has('q') || searchParams.has('query');
-    
-    return searchEngines.some(engine => hostname.includes(engine)) && hasSearchQuery;
+
+    return (
+      searchEngines.some((engine) => hostname.includes(engine)) &&
+      hasSearchQuery
+    );
   }
 
   /**
@@ -146,7 +160,7 @@ export class UrlDetectionService {
       'slack.com',
     ];
 
-    return jsSites.some(site => hostname.includes(site));
+    return jsSites.some((site) => hostname.includes(site));
   }
 
   /**
@@ -160,20 +174,68 @@ export class UrlDetectionService {
   /**
    * Get all supported URL patterns
    */
-  getSupportedPatterns(): Array<{ pattern: string; loader: string; description: string }> {
+  getSupportedPatterns(): Array<{
+    pattern: string;
+    loader: string;
+    description: string;
+  }> {
     return [
       { pattern: 's3://*', loader: 's3', description: 'AWS S3 URLs' },
-      { pattern: 'https://*.s3.amazonaws.com/*', loader: 's3', description: 'AWS S3 HTTPS URLs' },
-      { pattern: 'https://github.com/*', loader: 'github', description: 'GitHub repositories' },
-      { pattern: 'https://youtube.com/watch?v=*', loader: 'youtube', description: 'YouTube videos' },
-      { pattern: 'https://youtu.be/*', loader: 'youtube', description: 'YouTube short URLs' },
-      { pattern: 'https://*.notion.so/*', loader: 'notion-api', description: 'Notion pages' },
-      { pattern: 'https://*/sitemap*.xml', loader: 'sitemap', description: 'XML sitemaps' },
-      { pattern: 'https://*.pdf', loader: 'curl', description: 'PDF documents' },
-      { pattern: 'https://*.docx', loader: 'curl', description: 'Word documents' },
-      { pattern: 'https://google.com/search?q=*', loader: 'tavily', description: 'Google search (via Tavily/SerpAPI)' },
-      { pattern: 'https://*', loader: 'cheerio', description: 'General web pages (static)' },
-      { pattern: 'https://*', loader: 'playwright', description: 'JavaScript-heavy sites' },
+      {
+        pattern: 'https://*.s3.amazonaws.com/*',
+        loader: 's3',
+        description: 'AWS S3 HTTPS URLs',
+      },
+      {
+        pattern: 'https://github.com/*',
+        loader: 'github',
+        description: 'GitHub repositories',
+      },
+      {
+        pattern: 'https://youtube.com/watch?v=*',
+        loader: 'youtube',
+        description: 'YouTube videos',
+      },
+      {
+        pattern: 'https://youtu.be/*',
+        loader: 'youtube',
+        description: 'YouTube short URLs',
+      },
+      {
+        pattern: 'https://*.notion.so/*',
+        loader: 'notion-api',
+        description: 'Notion pages',
+      },
+      {
+        pattern: 'https://*/sitemap*.xml',
+        loader: 'sitemap',
+        description: 'XML sitemaps',
+      },
+      {
+        pattern: 'https://*.pdf',
+        loader: 'curl',
+        description: 'PDF documents',
+      },
+      {
+        pattern: 'https://*.docx',
+        loader: 'curl',
+        description: 'Word documents',
+      },
+      {
+        pattern: 'https://google.com/search?q=*',
+        loader: 'tavily',
+        description: 'Google search (via Tavily/SerpAPI)',
+      },
+      {
+        pattern: 'https://*',
+        loader: 'cheerio',
+        description: 'General web pages (static)',
+      },
+      {
+        pattern: 'https://*',
+        loader: 'playwright',
+        description: 'JavaScript-heavy sites',
+      },
     ];
   }
 

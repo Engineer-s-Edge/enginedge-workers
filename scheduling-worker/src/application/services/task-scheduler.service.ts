@@ -34,10 +34,7 @@ export class TaskSchedulerService {
   /**
    * Schedule tasks into available time slots
    */
-  scheduleTasks(
-    tasks: Task[],
-    availableSlots: TimeSlot[],
-  ): SchedulingResult {
+  scheduleTasks(tasks: Task[], availableSlots: TimeSlot[]): SchedulingResult {
     this.logger.debug(
       `Scheduling ${tasks.length} tasks into ${availableSlots.length} available slots`,
     );
@@ -73,7 +70,10 @@ export class TaskSchedulerService {
       } else {
         // Could not schedule
         unscheduled.push(task);
-        conflicts.push({ task, reason: result.reason || 'No suitable slot found' });
+        conflicts.push({
+          task,
+          reason: result.reason || 'No suitable slot found',
+        });
 
         this.logger.warn(
           `Could not schedule task "${task.title}": ${result.reason}`,
@@ -203,7 +203,8 @@ export class TaskSchedulerService {
 
     // Bonus for matching preferred time of day
     if (task.preferredTimeOfDay) {
-      const matchesPreference = this.filterByPreferredTime(task, [slot]).length > 0;
+      const matchesPreference =
+        this.filterByPreferredTime(task, [slot]).length > 0;
       if (matchesPreference) {
         score += 100;
       }
@@ -212,7 +213,8 @@ export class TaskSchedulerService {
     // Penalty for scheduling too far in the future (if deadline exists)
     if (task.deadline) {
       const daysUntilDeadline = Math.floor(
-        (task.deadline.getTime() - slot.startTime.getTime()) / (1000 * 60 * 60 * 24),
+        (task.deadline.getTime() - slot.startTime.getTime()) /
+          (1000 * 60 * 60 * 24),
       );
       if (daysUntilDeadline < 0) {
         score -= 1000; // Heavily penalize past-deadline slots

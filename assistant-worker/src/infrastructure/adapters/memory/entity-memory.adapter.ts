@@ -1,6 +1,6 @@
 /**
  * Entity Memory Adapter
- * 
+ *
  * Extracts and stores facts about entities (people, places, things) from conversations.
  * Maintains a knowledge base of entity attributes and relationships.
  */
@@ -48,7 +48,10 @@ export class EntityMemoryAdapter implements IMemoryAdapter {
   /**
    * Get messages
    */
-  async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     const messages = this.memory.get(conversationId) || [];
 
     if (limit && limit > 0) {
@@ -89,9 +92,7 @@ export class EntityMemoryAdapter implements IMemoryAdapter {
 
     // Add recent messages
     parts.push('Recent messages:');
-    parts.push(
-      messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n')
-    );
+    parts.push(messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n'));
 
     return parts.join('\n');
   }
@@ -120,7 +121,7 @@ export class EntityMemoryAdapter implements IMemoryAdapter {
    */
   private async extractEntities(
     conversationId: string,
-    message: Message
+    message: Message,
   ): Promise<void> {
     // Initialize entity map if needed
     if (!this.entities.has(conversationId)) {
@@ -158,7 +159,7 @@ export class EntityMemoryAdapter implements IMemoryAdapter {
    * Use LLM to extract entities from text
    */
   private async llmExtractEntities(
-    text: string
+    text: string,
   ): Promise<Omit<Entity, 'mentions' | 'lastMentioned'>[]> {
     try {
       const prompt = `Extract entities (people, places, things, concepts) from the following text. For each entity, provide its name, type, and any attributes mentioned.
@@ -179,7 +180,8 @@ Format your response as JSON array:
         messages: [
           {
             role: 'system',
-            content: 'You are an entity extraction assistant. Extract entities and their attributes from text.',
+            content:
+              'You are an entity extraction assistant. Extract entities and their attributes from text.',
           },
           {
             role: 'user',
@@ -206,10 +208,7 @@ Format your response as JSON array:
   /**
    * Search entities by name or attribute
    */
-  searchEntities(
-    conversationId: string,
-    query: string
-  ): Entity[] {
+  searchEntities(conversationId: string, query: string): Entity[] {
     const entities = this.getEntities(conversationId);
     const lowerQuery = query.toLowerCase();
 
@@ -221,9 +220,8 @@ Format your response as JSON array:
 
       // Check attributes
       return Object.values(entity.attributes).some((value) =>
-        value.toLowerCase().includes(lowerQuery)
+        value.toLowerCase().includes(lowerQuery),
       );
     });
   }
 }
-

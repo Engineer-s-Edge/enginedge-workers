@@ -1,14 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SRTLoader } from '@langchain/community/document_loaders/fs/srt';
 import { FilesystemLoaderPort } from '../../../../domain/ports/loader.port';
-import { Document, DocumentMetadata } from '../../../../domain/entities/document.entity';
+import {
+  Document,
+  DocumentMetadata,
+} from '../../../../domain/entities/document.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class SrtLoaderAdapter extends FilesystemLoaderPort {
   private readonly logger = new Logger(SrtLoaderAdapter.name);
 
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (source instanceof Blob) {
       const fileName = (options?.fileName as string) || 'document.srt';
       return this.loadBlob(source, fileName, options);
@@ -16,7 +22,11 @@ export class SrtLoaderAdapter extends FilesystemLoaderPort {
     throw new Error('SRT loader only supports Blob input.');
   }
 
-  async loadBlob(blob: Blob, fileName: string, options?: Record<string, unknown>): Promise<Document[]> {
+  async loadBlob(
+    blob: Blob,
+    fileName: string,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     this.logger.log(`Loading SRT blob: ${fileName}`);
     const metadata = (options?.metadata as Record<string, unknown>) || {};
 
@@ -28,14 +38,26 @@ export class SrtLoaderAdapter extends FilesystemLoaderPort {
         return new Document(
           this.generateDocumentId(fileName, index),
           doc.pageContent,
-          { source: fileName, sourceType: 'file', mimeType: 'application/x-subrip', fileName, fileExtension: '.srt', ...metadata, ...doc.metadata } as DocumentMetadata,
+          {
+            source: fileName,
+            sourceType: 'file',
+            mimeType: 'application/x-subrip',
+            fileName,
+            fileExtension: '.srt',
+            ...metadata,
+            ...doc.metadata,
+          } as DocumentMetadata,
         );
       });
       this.logger.log(`Loaded ${documents.length} subtitle entries from SRT`);
       return documents;
     } catch (error) {
-      this.logger.error(`Error loading SRT: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw new Error(`Failed to load SRT: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Error loading SRT: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new Error(
+        `Failed to load SRT: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

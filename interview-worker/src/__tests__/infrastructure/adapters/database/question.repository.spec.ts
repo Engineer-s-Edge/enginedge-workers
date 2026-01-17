@@ -113,7 +113,10 @@ describe('MongoInterviewQuestionRepository', () => {
     await repository.save(q1);
     await repository.save(q2);
 
-    const easyQuestions = await repository.findByCategory('tech-trivia', 'easy');
+    const easyQuestions = await repository.findByCategory(
+      'tech-trivia',
+      'easy',
+    );
 
     expect(easyQuestions.length).toBeGreaterThan(0);
     expect(easyQuestions.every((q) => q.difficulty === 'easy')).toBe(true);
@@ -160,4 +163,3 @@ describe('MongoInterviewQuestionRepository', () => {
     expect(updated?.difficulty).toBe('medium');
   });
 });
-

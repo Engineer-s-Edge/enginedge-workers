@@ -1,8 +1,8 @@
 /**
  * Habit Entity
- * 
+ *
  * Represents a recurring habit that the user wants to complete regularly
- * 
+ *
  * Domain Entity - No infrastructure dependencies
  */
 
@@ -121,7 +121,7 @@ export class Habit {
     }
 
     let streak = 0;
-    let currentDate = new Date();
+    const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
     // Check if completed today or yesterday (for daily habits)
@@ -131,7 +131,8 @@ export class Habit {
         completionDate.setHours(0, 0, 0, 0);
 
         const daysDiff = Math.floor(
-          (currentDate.getTime() - completionDate.getTime()) / (1000 * 60 * 60 * 24),
+          (currentDate.getTime() - completionDate.getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         if (daysDiff === streak) {
@@ -169,7 +170,8 @@ export class Habit {
         currentStreak = 1;
       } else {
         const daysDiff = Math.floor(
-          (completionDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24),
+          (completionDate.getTime() - previousDate.getTime()) /
+            (1000 * 60 * 60 * 24),
         );
 
         if (daysDiff === 1) {
@@ -193,13 +195,17 @@ export class Habit {
     const now = new Date();
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-    const relevantCompletions = this.completions.filter((c) => c.date >= startDate);
+    const relevantCompletions = this.completions.filter(
+      (c) => c.date >= startDate,
+    );
 
     if (relevantCompletions.length === 0) {
       return 0;
     }
 
-    const completedCount = relevantCompletions.filter((c) => c.completed).length;
+    const completedCount = relevantCompletions.filter(
+      (c) => c.completed,
+    ).length;
     return completedCount / days;
   }
 
@@ -251,7 +257,9 @@ export class Habit {
       this.id,
       this.userId,
       updates.name ?? this.name,
-      updates.description !== undefined ? updates.description : this.description,
+      updates.description !== undefined
+        ? updates.description
+        : this.description,
       updates.frequency ?? this.frequency,
       updates.priority ?? this.priority,
       updates.estimatedDurationMinutes ?? this.estimatedDurationMinutes,

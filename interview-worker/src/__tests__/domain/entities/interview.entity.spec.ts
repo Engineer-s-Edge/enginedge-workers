@@ -8,6 +8,7 @@ describe('Interview Entity', () => {
   it('should create interview with required fields', () => {
     const interview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -33,6 +34,7 @@ describe('Interview Entity', () => {
   it('should convert to object for MongoDB', () => {
     const interview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [
         {
@@ -68,6 +70,7 @@ describe('Interview Entity', () => {
   it('should create from MongoDB object', () => {
     const data = {
       id: 'test-id',
+      userId: 'test-user',
       title: 'Test Interview',
       description: 'Test description',
       phases: [
@@ -106,6 +109,7 @@ describe('Interview Entity', () => {
   it('should handle optional fields', () => {
     const interview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Test Interview',
       description: 'Optional description',
       phases: [],
@@ -126,4 +130,3 @@ describe('Interview Entity', () => {
     expect(interview.description).toBe('Optional description');
   });
 });
-

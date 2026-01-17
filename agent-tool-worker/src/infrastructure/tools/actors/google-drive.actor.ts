@@ -6,10 +6,19 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
 
-export type GoogleDriveOperation = 'upload-file' | 'download-file' | 'list-files' | 'delete-file' | 'create-folder' | 'get-file-metadata';
+export type GoogleDriveOperation =
+  | 'upload-file'
+  | 'download-file'
+  | 'list-files'
+  | 'delete-file'
+  | 'create-folder'
+  | 'get-file-metadata';
 
 export interface GoogleDriveArgs {
   operation: GoogleDriveOperation;
@@ -51,9 +60,13 @@ export interface GoogleDriveOutput extends ToolOutput {
 }
 
 @Injectable()
-export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutput> {
+export class GoogleDriveActor extends BaseActor<
+  GoogleDriveArgs,
+  GoogleDriveOutput
+> {
   readonly name = 'google-drive-actor';
-  readonly description = 'Provides integration with Google Drive API for file management';
+  readonly description =
+    'Provides integration with Google Drive API for file management';
 
   readonly errorEvents: ErrorEvent[];
 
@@ -69,7 +82,11 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('AuthenticationError', 'Invalid or expired access token', false),
+      new ErrorEvent(
+        'AuthenticationError',
+        'Invalid or expired access token',
+        false,
+      ),
       new ErrorEvent('RateLimitError', 'API rate limit exceeded', true),
       new ErrorEvent('NetworkError', 'Network connectivity issue', true),
       new ErrorEvent('ValidationError', 'Invalid request parameters', false),
@@ -85,7 +102,14 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
         properties: {
           operation: {
             type: 'string',
-            enum: ['upload-file', 'download-file', 'list-files', 'delete-file', 'create-folder', 'get-file-metadata']
+            enum: [
+              'upload-file',
+              'download-file',
+              'list-files',
+              'delete-file',
+              'create-folder',
+              'get-file-metadata',
+            ],
           },
           accessToken: { type: 'string' },
           refreshToken: { type: 'string' },
@@ -97,9 +121,9 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
           folderId: { type: 'string' },
           query: { type: 'string' },
           pageSize: { type: 'number', minimum: 1, maximum: 1000 },
-          folderName: { type: 'string' }
+          folderName: { type: 'string' },
         },
-        required: ['operation']
+        required: ['operation'],
       },
       {
         type: 'object',
@@ -107,7 +131,14 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
           success: { type: 'boolean' },
           operation: {
             type: 'string',
-            enum: ['upload-file', 'download-file', 'list-files', 'delete-file', 'create-folder', 'get-file-metadata']
+            enum: [
+              'upload-file',
+              'download-file',
+              'list-files',
+              'delete-file',
+              'create-folder',
+              'get-file-metadata',
+            ],
           },
           fileId: { type: 'string' },
           webViewLink: { type: 'string', format: 'uri' },
@@ -116,13 +147,13 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
           files: { type: 'array', items: { type: 'object' } },
           nextPageToken: { type: 'string' },
           metadata: { type: 'object' },
-          deleted: { type: 'boolean' }
+          deleted: { type: 'boolean' },
         },
-        required: ['success', 'operation']
+        required: ['success', 'operation'],
       },
       [],
       ActorCategory.EXTERNAL_PRODUCTIVITY,
-      true
+      true,
     );
 
     super(metadata, errorEvents);
@@ -135,7 +166,7 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
     // Validate authentication
     if (!args.accessToken) {
       throw Object.assign(new Error('Google Drive access token is required'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
@@ -153,17 +184,23 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
       case 'get-file-metadata':
         return this.getFileMetadata(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
   private async uploadFile(args: GoogleDriveArgs): Promise<GoogleDriveOutput> {
     if (!args.fileName || !args.fileContent) {
-      throw Object.assign(new Error('File name and content are required for file upload'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('File name and content are required for file upload'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -175,17 +212,19 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
         success: true,
         operation: 'upload-file',
         fileId,
-        webViewLink
+        webViewLink,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async downloadFile(args: GoogleDriveArgs): Promise<GoogleDriveOutput> {
+  private async downloadFile(
+    args: GoogleDriveArgs,
+  ): Promise<GoogleDriveOutput> {
     if (!args.fileId) {
       throw Object.assign(new Error('File ID is required for file download'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -198,7 +237,7 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
         success: true,
         operation: 'download-file',
         fileContent: mockContent,
-        mimeType
+        mimeType,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -214,20 +253,21 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
           id: 'file-1',
           name: 'Document.pdf',
           mimeType: 'application/pdf',
-          webViewLink: 'https://drive.google.com/file/d/file-1/view'
+          webViewLink: 'https://drive.google.com/file/d/file-1/view',
         },
         {
           id: 'file-2',
           name: 'Spreadsheet.xlsx',
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          webViewLink: 'https://drive.google.com/file/d/file-2/view'
-        }
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          webViewLink: 'https://drive.google.com/file/d/file-2/view',
+        },
       ];
 
       return {
         success: true,
         operation: 'list-files',
-        files: mockFiles
+        files: mockFiles,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -237,7 +277,7 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
   private async deleteFile(args: GoogleDriveArgs): Promise<GoogleDriveOutput> {
     if (!args.fileId) {
       throw Object.assign(new Error('File ID is required for file deletion'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -246,18 +286,23 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
       return {
         success: true,
         operation: 'delete-file',
-        deleted: true
+        deleted: true,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async createFolder(args: GoogleDriveArgs): Promise<GoogleDriveOutput> {
+  private async createFolder(
+    args: GoogleDriveArgs,
+  ): Promise<GoogleDriveOutput> {
     if (!args.folderName) {
-      throw Object.assign(new Error('Folder name is required for folder creation'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Folder name is required for folder creation'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -269,18 +314,23 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
         success: true,
         operation: 'create-folder',
         fileId: folderId,
-        webViewLink
+        webViewLink,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
     }
   }
 
-  private async getFileMetadata(args: GoogleDriveArgs): Promise<GoogleDriveOutput> {
+  private async getFileMetadata(
+    args: GoogleDriveArgs,
+  ): Promise<GoogleDriveOutput> {
     if (!args.fileId) {
-      throw Object.assign(new Error('File ID is required for metadata retrieval'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('File ID is required for metadata retrieval'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     try {
@@ -291,13 +341,13 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
         mimeType: 'application/pdf',
         size: '1024000',
         modifiedTime: '2024-01-15T10:00:00.000Z',
-        webViewLink: `https://drive.google.com/file/d/${args.fileId}/view`
+        webViewLink: `https://drive.google.com/file/d/${args.fileId}/view`,
       };
 
       return {
         success: true,
         operation: 'get-file-metadata',
-        metadata: mockMetadata
+        metadata: mockMetadata,
       };
     } catch (error: unknown) {
       throw this.handleApiError(error);
@@ -306,40 +356,41 @@ export class GoogleDriveActor extends BaseActor<GoogleDriveArgs, GoogleDriveOutp
 
   private handleApiError(error: unknown): Error {
     // In a real implementation, this would parse Google Drive API errors
-    const errorMessage = error instanceof Error ? error.message : 'Unknown API error';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown API error';
 
     if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
       return Object.assign(new Error('Invalid or expired access token'), {
-        name: 'AuthenticationError'
+        name: 'AuthenticationError',
       });
     }
 
     if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
       return Object.assign(new Error('Insufficient permissions'), {
-        name: 'PermissionError'
+        name: 'PermissionError',
       });
     }
 
     if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
       return Object.assign(new Error('File or folder not found'), {
-        name: 'NotFoundError'
+        name: 'NotFoundError',
       });
     }
 
     if (errorMessage.includes('429') || errorMessage.includes('quota')) {
       return Object.assign(new Error('API rate limit exceeded'), {
-        name: 'RateLimitError'
+        name: 'RateLimitError',
       });
     }
 
     if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
       return Object.assign(new Error('Network connectivity issue'), {
-        name: 'NetworkError'
+        name: 'NetworkError',
       });
     }
 
     return Object.assign(new Error(`Google Drive API error: ${errorMessage}`), {
-      name: 'ApiError'
+      name: 'ApiError',
     });
   }
 }

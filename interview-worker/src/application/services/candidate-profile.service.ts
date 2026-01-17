@@ -1,6 +1,6 @@
 /**
  * Candidate Profile Service
- * 
+ *
  * Application service for managing candidate profiles.
  */
 
@@ -96,4 +96,3 @@ export class CandidateProfileService {
     return profile;
   }
 }
-

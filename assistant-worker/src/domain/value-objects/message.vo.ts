@@ -1,6 +1,6 @@
 /**
  * Message Value Object - Represents a single message in conversation
- * 
+ *
  * Immutable by design
  */
 
@@ -46,7 +46,10 @@ export class Message {
   /**
    * Create assistant message
    */
-  static assistant(content: string, metadata?: Record<string, unknown>): Message {
+  static assistant(
+    content: string,
+    metadata?: Record<string, unknown>,
+  ): Message {
     return Message.create('assistant', content, metadata);
   }
 

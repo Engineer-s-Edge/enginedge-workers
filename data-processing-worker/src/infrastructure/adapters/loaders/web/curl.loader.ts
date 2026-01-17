@@ -46,7 +46,7 @@ export class CurlWebLoaderAdapter extends WebLoaderPort {
 
       // Determine content type
       const contentType = response.headers['content-type'] || 'text/plain';
-      
+
       let content: string;
       if (typeof response.data === 'string') {
         content = response.data;
@@ -57,27 +57,21 @@ export class CurlWebLoaderAdapter extends WebLoaderPort {
       }
 
       const documentId = `curl-${crypto.createHash('md5').update(`${url}-${Date.now()}`).digest('hex')}`;
-      const document = new Document(
-        documentId,
-        content,
-        {
-          source: url,
-          sourceType: 'url',
-          loader: this.name,
-          contentType,
-          statusCode: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          method: config.method,
-          timestamp: new Date().toISOString(),
-        },
-      );
+      const document = new Document(documentId, content, {
+        source: url,
+        sourceType: 'url',
+        loader: this.name,
+        contentType,
+        statusCode: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        method: config.method,
+        timestamp: new Date().toISOString(),
+      });
 
       return [document];
     } catch (error: any) {
-      throw new Error(
-        `Failed to load URL with curl loader: ${error.message}`,
-      );
+      throw new Error(`Failed to load URL with curl loader: ${error.message}`);
     }
   }
 
@@ -97,8 +91,10 @@ export class CurlWebLoaderAdapter extends WebLoaderPort {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

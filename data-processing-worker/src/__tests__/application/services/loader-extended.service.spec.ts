@@ -11,9 +11,7 @@ describe('LoaderService Extended Tests (Phase 3)', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        { provide: 'LoaderService', useValue: mockService },
-      ],
+      providers: [{ provide: 'LoaderService', useValue: mockService }],
     }).compile();
 
     service = module.get('LoaderService') as Record<string, unknown>;

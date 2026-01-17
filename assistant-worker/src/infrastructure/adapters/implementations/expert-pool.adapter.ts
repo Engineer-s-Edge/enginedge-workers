@@ -16,16 +16,21 @@ import {
   ExpertPoolManager,
   ExpertAgentInstance,
 } from '../../../domain/services/expert-pool-manager.service';
+import { AgentId } from '../../../domain/entities/agent.entity';
 
 @Injectable()
 export class ExpertPoolAdapter implements IExpertPoolAdapter {
   private readonly logger = new Logger(ExpertPoolAdapter.name);
 
   constructor(private readonly expertPoolManager: ExpertPoolManager) {
-    this.logger.log('Expert Pool Adapter initialized with real ExpertPoolManager');
+    this.logger.log(
+      'Expert Pool Adapter initialized with real ExpertPoolManager',
+    );
   }
 
-  async allocateExperts(request: ExpertAllocationRequest): Promise<AllocationResult> {
+  async allocateExperts(
+    request: ExpertAllocationRequest,
+  ): Promise<AllocationResult> {
     try {
       this.logger.log(
         `Allocating ${request.count} experts with specialization: ${request.specialization || 'any'}`,
@@ -35,13 +40,15 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       const result = await this.expertPoolManager.allocateExperts(request);
 
       // Convert internal representation to adapter interface
-      const allocated: ExpertAgent[] = result.allocated.map((expert: ExpertAgentInstance) => ({
-        id: expert.id,
-        specialization: expert.specialization,
-        complexity: expert.complexity,
-        availability: expert.availability,
-        expertise: expert.expertise,
-      }));
+      const allocated: ExpertAgent[] = result.allocated.map(
+        (expert: ExpertAgentInstance) => ({
+          id: expert.id,
+          specialization: expert.specialization,
+          complexity: expert.complexity,
+          availability: expert.availability,
+          expertise: expert.expertise,
+        }),
+      );
 
       return {
         allocated,
@@ -58,7 +65,8 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
   async releaseExperts(expertIds: string[]): Promise<boolean> {
     try {
       this.logger.log(`Releasing ${expertIds.length} experts`);
-      return await this.expertPoolManager.releaseExperts(expertIds);
+      const agentIds = expertIds.map((id) => id as AgentId);
+      return await this.expertPoolManager.releaseExperts(agentIds);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.logger.error(`Expert release failed: ${err.message}`, err.stack);
@@ -71,14 +79,19 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       return await this.expertPoolManager.getAvailableCount();
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get available count: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get available count: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 
   async getExpert(expertId: string): Promise<ExpertAgent | null> {
     try {
-      const expert = await this.expertPoolManager.getExpert(expertId);
+      const expert = await this.expertPoolManager.getExpert(
+        expertId as AgentId,
+      );
       if (!expert) return null;
 
       return {
@@ -107,19 +120,26 @@ export class ExpertPoolAdapter implements IExpertPoolAdapter {
       }));
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to get available experts: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to get available experts: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 
   async isExpertAvailable(expertId: string): Promise<boolean> {
     try {
-      return await this.expertPoolManager.isExpertAvailable(expertId);
+      return await this.expertPoolManager.isExpertAvailable(
+        expertId as AgentId,
+      );
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to check expert availability: ${err.message}`, err.stack);
+      this.logger.error(
+        `Failed to check expert availability: ${err.message}`,
+        err.stack,
+      );
       throw error;
     }
   }
 }
-

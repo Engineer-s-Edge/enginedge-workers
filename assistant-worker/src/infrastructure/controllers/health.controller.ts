@@ -41,7 +41,11 @@ export class HealthController {
     const backpressureMetrics = this.backpressure.getMetrics();
     const memUsage = process.memoryUsage();
 
-    const status = this.determineStatus(workerMetrics, queueMetrics, storeMetrics);
+    const status = this.determineStatus(
+      workerMetrics,
+      queueMetrics,
+      storeMetrics,
+    );
 
     return {
       status,

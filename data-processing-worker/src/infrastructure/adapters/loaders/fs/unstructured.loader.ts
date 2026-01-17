@@ -1,14 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UnstructuredLoader } from '@langchain/community/document_loaders/fs/unstructured';
 import { FilesystemLoaderPort } from '../../../../domain/ports/loader.port';
-import { Document, DocumentMetadata } from '../../../../domain/entities/document.entity';
+import {
+  Document,
+  DocumentMetadata,
+} from '../../../../domain/entities/document.entity';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class UnstructuredLoaderAdapter extends FilesystemLoaderPort {
   private readonly logger = new Logger(UnstructuredLoaderAdapter.name);
 
-  async load(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async load(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     if (source instanceof Blob) {
       const fileName = (options?.fileName as string) || 'document';
       return this.loadBlob(source, fileName, options);
@@ -16,7 +22,11 @@ export class UnstructuredLoaderAdapter extends FilesystemLoaderPort {
     throw new Error('Unstructured loader only supports Blob input.');
   }
 
-  async loadBlob(blob: Blob, fileName: string, options?: Record<string, unknown>): Promise<Document[]> {
+  async loadBlob(
+    blob: Blob,
+    fileName: string,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     this.logger.log(`Loading unstructured document blob: ${fileName}`);
     const metadata = (options?.metadata as Record<string, unknown>) || {};
 
@@ -24,7 +34,7 @@ export class UnstructuredLoaderAdapter extends FilesystemLoaderPort {
       // UnstructuredLoader expects a file path, not a Blob
       // For now, we'll use the fileName as path (caller should provide actual path)
       const tempPath = (options?.filePath as string) || fileName;
-      
+
       const loader = new UnstructuredLoader(tempPath);
       const langchainDocs = await loader.load();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,14 +42,26 @@ export class UnstructuredLoaderAdapter extends FilesystemLoaderPort {
         return new Document(
           this.generateDocumentId(fileName, index),
           doc.pageContent,
-          { source: fileName, sourceType: 'file', fileName, ...metadata, ...doc.metadata } as DocumentMetadata,
+          {
+            source: fileName,
+            sourceType: 'file',
+            fileName,
+            ...metadata,
+            ...doc.metadata,
+          } as DocumentMetadata,
         );
       });
-      this.logger.log(`Loaded ${documents.length} documents using Unstructured`);
+      this.logger.log(
+        `Loaded ${documents.length} documents using Unstructured`,
+      );
       return documents;
     } catch (error) {
-      this.logger.error(`Error loading with Unstructured: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw new Error(`Failed to load with Unstructured: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Error loading with Unstructured: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new Error(
+        `Failed to load with Unstructured: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

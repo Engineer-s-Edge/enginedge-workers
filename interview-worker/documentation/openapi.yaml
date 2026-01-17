@@ -1,2123 +1,1172 @@
-openapi: 3.0.3
-info:
-  title: Interview Worker API
-  description: AI-powered interview processing and analysis service
-  version: 1.0.0
-  contact:
-    name: EnginEdge Team
-    email: dev@enginedge.com
-  license:
-    name: Proprietary
-
-servers:
-  - url: http://localhost:3004
-    description: Local development server
-  - url: https://interview.enginedge.com
-    description: Production server
-
-security:
-  - bearerAuth: []
-
-paths:
-  /health:
-    get:
-      summary: Health check
-      description: Returns the health status of the service and its dependencies
-      tags:
-        - Health
-      responses:
-        '200':
-          description: Service is healthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-        '503':
-          description: Service is unhealthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /interviews:
-    post:
-      summary: Create interview
-      description: Schedule a new interview with candidate and interviewers
-      tags:
-        - Interviews
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateInterviewRequest'
-      responses:
-        '201':
-          description: Interview created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewResponse'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '422':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ValidationErrorResponse'
-
-    get:
-      summary: List interviews
-      description: Retrieve a paginated list of interviews with optional filtering
-      tags:
-        - Interviews
-      parameters:
-        - name: userId
-          in: query
-          schema:
-            type: string
-          description: Filter by user ID
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [scheduled, in_progress, completed, cancelled]
-          description: Filter by interview status
-        - name: candidateId
-          in: query
-          schema:
-            type: string
-          description: Filter by candidate ID
-        - name: scheduledAfter
-          in: query
-          schema:
-            type: string
-            format: date-time
-          description: Filter interviews scheduled after this date
-        - name: scheduledBefore
-          in: query
-          schema:
-            type: string
-            format: date-time
-          description: Filter interviews scheduled before this date
-        - name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Page number
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-          description: Number of results per page
-      responses:
-        '200':
-          description: List of interviews
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewListResponse'
-
-  /interviews/{interviewId}:
-    get:
-      summary: Get interview
-      description: Retrieve detailed information about a specific interview
-      tags:
-        - Interviews
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique interview identifier
-      responses:
-        '200':
-          description: Interview details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewResponse'
-        '404':
-          description: Interview not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    put:
-      summary: Update interview
-      description: Modify interview details such as scheduling or participants
-      tags:
-        - Interviews
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique interview identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateInterviewRequest'
-      responses:
-        '200':
-          description: Interview updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewResponse'
-        '404':
-          description: Interview not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: Interview cannot be updated (already started or completed)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    delete:
-      summary: Cancel interview
-      description: Cancel a scheduled interview
-      tags:
-        - Interviews
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique interview identifier
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CancelInterviewRequest'
-      responses:
-        '204':
-          description: Interview cancelled successfully
-        '404':
-          description: Interview not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: Interview cannot be cancelled (already in progress or completed)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions:
-    post:
-      summary: Start interview session
-      description: Create and start a new interview session
-      tags:
-        - Sessions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StartSessionRequest'
-      responses:
-        '201':
-          description: Session created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewSession'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}:
-    get:
-      summary: Get session
-      description: Retrieve session details by session ID
-      tags:
-        - Sessions
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '200':
-          description: Session details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewSession'
-        '404':
-          description: Session not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/pause:
-    post:
-      summary: Pause session
-      description: Pause an active interview session
-      tags:
-        - Sessions
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '200':
-          description: Session paused successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewSession'
-        '404':
-          description: Session not found
-        '409':
-          description: Cannot pause session (not in-progress)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/resume:
-    post:
-      summary: Resume session
-      description: Resume a paused interview session
-      tags:
-        - Sessions
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '200':
-          description: Session resumed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewSession'
-        '404':
-          description: Session not found
-        '409':
-          description: Cannot resume session (not paused)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/skip/{questionId}:
-    post:
-      summary: Skip question
-      description: Skip the current question (penalized in evaluation)
-      tags:
-        - Sessions
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-        - name: questionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Question ID to skip
-      responses:
-        '200':
-          description: Question skipped successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewSession'
-        '404':
-          description: Session not found
-        '409':
-          description: Cannot skip question (session not in-progress)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/submit-response:
-    post:
-      summary: Submit response
-      description: Submit candidate's response to a question
-      tags:
-        - Sessions
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SubmitResponseRequest'
-      responses:
-        '200':
-          description: Response submitted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-        '404':
-          description: Session not found
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/profile:
-    get:
-      summary: Get candidate profile
-      description: Retrieve the candidate profile for a session
-      tags:
-        - Profiles
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '200':
-          description: Candidate profile
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateProfile'
-        '404':
-          description: Profile not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/profile/recall:
-    get:
-      summary: Recall profile summary
-      description: Get a summary of the candidate profile (for agent use)
-      tags:
-        - Profiles
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '200':
-          description: Profile summary
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileRecallResponse'
-
-  /sessions/{sessionId}/profile/observation:
-    post:
-      summary: Append observation
-      description: Add an observation to the candidate profile
-      tags:
-        - Profiles
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AppendObservationRequest'
-      responses:
-        '200':
-          description: Observation appended successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateProfile'
-
-  /sessions/{sessionId}/profile/resume-findings:
-    post:
-      summary: Update resume findings
-      description: Update resume-related findings (verified, questioned, deepDived)
-      tags:
-        - Profiles
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateResumeFindingsRequest'
-      responses:
-        '200':
-          description: Resume findings updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateProfile'
-
-  /sessions/{sessionId}/report:
-    get:
-      summary: Get interview report
-      description: Retrieve or generate the interview report
-      tags:
-        - Reports
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '200':
-          description: Interview report
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewReport'
-        '404':
-          description: Report not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /sessions/{sessionId}/report/generate:
-    post:
-      summary: Generate interview report
-      description: Generate interview report on candidate request
-      tags:
-        - Reports
-      parameters:
-        - name: sessionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique session identifier
-      responses:
-        '201':
-          description: Report generated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewReport'
-        '404':
-          description: Session not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /questions:
-    post:
-      summary: Create question
-      description: Create a new interview question
-      tags:
-        - Questions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateQuestionRequest'
-      responses:
-        '201':
-          description: Question created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewQuestion'
-        '400':
-          description: Invalid request data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    get:
-      summary: List or select questions
-      description: Get all questions or select questions based on criteria
-      tags:
-        - Questions
-      parameters:
-        - name: category
-          in: query
-          schema:
-            type: string
-            enum: [tech-trivia, system-design, behavioral, coding]
-          description: Filter by category
-        - name: difficulty
-          in: query
-          schema:
-            type: string
-            enum: [easy, medium, hard]
-          description: Filter by difficulty
-        - name: subcategory
-          in: query
-          schema:
-            type: string
-          description: Filter by subcategory
-        - name: tags
-          in: query
-          schema:
-            type: string
-          description: Comma-separated tags
-        - name: excludeQuestionIds
-          in: query
-          schema:
-            type: string
-          description: Comma-separated question IDs to exclude
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-          description: Maximum number of questions to return
-      responses:
-        '200':
-          description: List of questions
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InterviewQuestion'
-
-  /questions/{questionId}:
-    get:
-      summary: Get question
-      description: Retrieve a question by ID
-      tags:
-        - Questions
-      parameters:
-        - name: questionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique question identifier
-      responses:
-        '200':
-          description: Question details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewQuestion'
-        '404':
-          description: Question not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    put:
-      summary: Update question
-      description: Update an existing question
-      tags:
-        - Questions
-      parameters:
-        - name: questionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique question identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateQuestionRequest'
-      responses:
-        '200':
-          description: Question updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewQuestion'
-        '404':
-          description: Question not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-    delete:
-      summary: Delete question
-      description: Delete a question
-      tags:
-        - Questions
-      parameters:
-        - name: questionId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Unique question identifier
-      responses:
-        '204':
-          description: Question deleted successfully
-        '404':
-          description: Question not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /questions/category/{category}:
-    get:
-      summary: Get questions by category
-      description: Retrieve questions filtered by category
-      tags:
-        - Questions
-      parameters:
-        - name: category
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [tech-trivia, system-design, behavioral, coding]
-          description: Question category
-        - name: difficulty
-          in: query
-          schema:
-            type: string
-            enum: [easy, medium, hard]
-          description: Optional difficulty filter
-      responses:
-        '200':
-          description: List of questions
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InterviewQuestion'
-
-  /admin/questions/seed:
-    post:
-      summary: Seed question bank
-      description: Seed the question bank with sample questions (admin/development endpoint)
-      tags:
-        - Admin
-      responses:
-        '201':
-          description: Questions seeded successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  count:
-                    type: integer
-
-  /transcription/upload:
-    post:
-      summary: Upload audio/video for transcription
-      description: Upload interview recording for transcription processing
-      tags:
-        - Transcription
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: Audio or video file (WAV, MP3, MP4, WebM)
-                interviewId:
-                  type: string
-                  description: Associated interview ID
-                format:
-                  type: string
-                  enum: [audio, video]
-                  description: Media format
-                language:
-                  type: string
-                  default: en-US
-                  description: Language code for transcription
-      responses:
-        '202':
-          description: Transcription job accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TranscriptionJobResponse'
-        '400':
-          description: Invalid file or parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '413':
-          description: File too large
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /transcription/{interviewId}:
-    get:
-      summary: Get transcription results
-      description: Retrieve transcription results for an interview
-      tags:
-        - Transcription
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Interview identifier
-        - name: format
-          in: query
-          schema:
-            type: string
-            enum: [json, srt, vtt]
-            default: json
-          description: Output format
-      responses:
-        '200':
-          description: Transcription results
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TranscriptionResponse'
-            text/plain:
-              schema:
-                type: string
-        '202':
-          description: Transcription in progress
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TranscriptionStatusResponse'
-        '404':
-          description: Transcription not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /analysis/{interviewId}/analyze:
-    post:
-      summary: Analyze interview
-      description: Trigger AI-powered analysis of interview content
-      tags:
-        - Analysis
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Interview identifier
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AnalysisRequest'
-      responses:
-        '202':
-          description: Analysis job accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AnalysisJobResponse'
-        '400':
-          description: Invalid analysis parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Interview not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /analysis/{interviewId}/results:
-    get:
-      summary: Get analysis results
-      description: Retrieve AI analysis results for an interview
-      tags:
-        - Analysis
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Interview identifier
-      responses:
-        '200':
-          description: Analysis results
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AnalysisResponse'
-        '202':
-          description: Analysis in progress
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AnalysisStatusResponse'
-        '404':
-          description: Analysis not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /analysis/{interviewId}/feedback:
-    post:
-      summary: Generate feedback
-      description: Generate structured feedback based on analysis results
-      tags:
-        - Analysis
-      parameters:
-        - name: interviewId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Interview identifier
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FeedbackRequest'
-      responses:
-        '200':
-          description: Feedback generated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedbackResponse'
-        '404':
-          description: Analysis results not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /scheduling/availability:
-    get:
-      summary: Check availability
-      description: Check calendar availability for scheduling
-      tags:
-        - Scheduling
-      parameters:
-        - name: userIds
-          in: query
-          required: true
-          schema:
-            type: array
-            items:
-              type: string
-          description: User IDs to check availability for
-        - name: start
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: Start of time range
-        - name: end
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: End of time range
-        - name: duration
-          in: query
-          schema:
-            type: integer
-            default: 60
-          description: Meeting duration in minutes
-      responses:
-        '200':
-          description: Availability information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AvailabilityResponse'
-
-  /scheduling/schedule:
-    post:
-      summary: Schedule interview
-      description: Find optimal time and schedule interview
-      tags:
-        - Scheduling
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ScheduleInterviewRequest'
-      responses:
-        '201':
-          description: Interview scheduled
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ScheduleInterviewResponse'
-        '400':
-          description: No available time slots
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
 components:
   schemas:
-    HealthResponse:
+    AppendObservationDto:
+      properties: {}
       type: object
-      properties:
-        status:
-          type: string
-          enum: [ok, degraded, unhealthy]
-        timestamp:
-          type: string
-          format: date-time
-        version:
-          type: string
-        uptime:
-          type: number
-        checks:
-          type: object
-          properties:
-            database:
-              type: string
-              enum: [ok, error]
-            redis:
-              type: string
-              enum: [ok, error]
-            kafka:
-              type: string
-              enum: [ok, error]
-            external_apis:
-              type: string
-              enum: [ok, degraded, error]
-
-    ErrorResponse:
+    CreateInterviewDto:
+      properties: {}
       type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: object
-          properties:
-            code:
-              type: string
-            message:
-              type: string
-            details:
-              type: object
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    ValidationErrorResponse:
-      allOf:
-        - $ref: '#/components/schemas/ErrorResponse'
-        - type: object
-          properties:
-            error:
-              type: object
-              properties:
-                code:
-                  example: VALIDATION_ERROR
-                message:
-                  example: Invalid input parameters
-                details:
-                  type: object
-                  properties:
-                    field:
-                      type: string
-                    message:
-                      type: string
-                    value:
-                      type: string
-
-    CreateInterviewRequest:
+    CreateQuestionDto:
+      properties: {}
       type: object
-      required:
-        - title
-        - phases
-        - config
-        - rubric
-      properties:
-        title:
-          type: string
-          description: Interview title
-        description:
-          type: string
-          description: Optional interview description
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/InterviewPhase'
-        config:
-          $ref: '#/components/schemas/InterviewConfig'
-        rubric:
-          $ref: '#/components/schemas/ScoringRubric'
-
-    InterviewPhase:
+    StartSessionDto:
+      properties: {}
       type: object
-      required:
-        - phaseId
-        - type
-        - duration
-        - difficulty
-        - questionCount
-      properties:
-        phaseId:
-          type: string
-        type:
-          type: string
-          enum: [behavioral, technical, coding, system-design]
-        duration:
-          type: integer
-          minimum: 1
-          description: Duration in minutes
-        difficulty:
-          type: string
-          enum: [easy, medium, hard]
-        questionCount:
-          type: integer
-          minimum: 1
-        promptOverride:
-          type: string
-          description: Optional prompt override for this phase
-        config:
-          type: object
-          properties:
-            allowPause:
-              type: boolean
-            allowSkip:
-              type: boolean
-            maxFollowupsPerQuestion:
-              type: integer
-
-    InterviewConfig:
+    SubmitResponseDto:
+      properties: {}
       type: object
-      required:
-        - totalTimeLimit
-      properties:
-        allowPause:
-          type: boolean
-        maxPauseDuration:
-          type: integer
-          nullable: true
-          description: Maximum pause duration in minutes (null = unlimited)
-        allowSkip:
-          type: boolean
-        maxSkips:
-          type: integer
-          nullable: true
-          description: Maximum number of skips allowed (null = unlimited)
-        totalTimeLimit:
-          type: integer
-          minimum: 1
-          description: Total interview time limit in minutes
-
-    ScoringRubric:
+    UpdateQuestionDto:
+      properties: {}
       type: object
-      required:
-        - overall
-      properties:
-        overall:
-          type: object
-          properties:
-            weights:
-              type: object
-              properties:
-                behavioral:
-                  type: number
-                technical:
-                  type: number
-                coding:
-                  type: number
-                systemDesign:
-                  type: number
-        byPhase:
-          type: object
-          additionalProperties:
-            type: object
-            properties:
-              criteria:
-                type: array
-                items:
-                  type: string
-              weights:
-                type: object
-                additionalProperties:
-                  type: number
-
-    StartSessionRequest:
+    UpdateResumeFindingsDto:
+      properties: {}
       type: object
-      required:
-        - interviewId
-        - candidateId
-        - communicationMode
-      properties:
-        interviewId:
-          type: string
-          description: Interview configuration ID
-        candidateId:
-          type: string
-          description: Candidate identifier
-        communicationMode:
-          type: string
-          enum: [voice, text]
-          description: Communication mode for the interview
-
-    SubmitResponseRequest:
-      type: object
-      required:
-        - questionId
-        - candidateResponse
-      properties:
-        questionId:
-          type: string
-        candidateResponse:
-          type: string
-          description: Candidate's response text
-        skipped:
-          type: boolean
-          description: Whether the question was skipped
-
-    AppendObservationRequest:
-      type: object
-      required:
-        - category
-        - text
-      properties:
-        category:
-          type: string
-          enum: [strengths, concerns, keyInsights]
-        text:
-          type: string
-
-    UpdateResumeFindingsRequest:
-      type: object
-      required:
-        - type
-        - finding
-      properties:
-        type:
-          type: string
-          enum: [verified, questioned, deepDived]
-        finding:
-          type: string
-
-    CreateQuestionRequest:
-      type: object
-      required:
-        - questionId
-        - category
-        - difficulty
-        - question
-      properties:
-        questionId:
-          type: string
-        category:
-          type: string
-          enum: [tech-trivia, system-design, behavioral, coding]
-        subcategory:
-          type: string
-        difficulty:
-          type: string
-          enum: [easy, medium, hard]
-        tags:
-          type: array
-          items:
-            type: string
-        question:
-          type: string
-        expectedDuration:
-          type: integer
-          description: Expected answer time in seconds
-
-    UpdateQuestionRequest:
-      type: object
-      properties:
-        subcategory:
-          type: string
-        difficulty:
-          type: string
-          enum: [easy, medium, hard]
-        tags:
-          type: array
-          items:
-            type: string
-        question:
-          type: string
-        expectedDuration:
-          type: integer
-
-    InterviewQuestion:
-      type: object
-      required:
-        - questionId
-        - category
-        - difficulty
-        - question
-      properties:
-        questionId:
-          type: string
-        category:
-          type: string
-          enum: [tech-trivia, system-design, behavioral, coding]
-        subcategory:
-          type: string
-        difficulty:
-          type: string
-          enum: [easy, medium, hard]
-        tags:
-          type: array
-          items:
-            type: string
-        question:
-          type: string
-        expectedDuration:
-          type: integer
-          description: Expected answer time in seconds
-
-    InterviewSession:
-      type: object
-      required:
-        - sessionId
-        - interviewId
-        - candidateId
-        - status
-        - communicationMode
-        - startedAt
-      properties:
-        sessionId:
-          type: string
-        interviewId:
-          type: string
-        candidateId:
-          type: string
-        currentPhase:
-          type: integer
-        currentQuestion:
-          type: string
-        status:
-          type: string
-          enum: [in-progress, paused, completed, abandoned]
-        communicationMode:
-          type: string
-          enum: [voice, text]
-        startedAt:
-          type: string
-          format: date-time
-        completedAt:
-          type: string
-          format: date-time
-        pausedCount:
-          type: integer
-        totalPauseDuration:
-          type: integer
-        pausedAt:
-          type: string
-          format: date-time
-        skippedQuestions:
-          type: array
-          items:
-            type: string
-        timeElapsed:
-          type: integer
-        phaseStartTime:
-          type: string
-          format: date-time
-        phaseTimeElapsed:
-          type: integer
-
-    CandidateProfile:
-      type: object
-      required:
-        - profileId
-        - sessionId
-        - observations
-      properties:
-        profileId:
-          type: string
-        sessionId:
-          type: string
-        observations:
-          $ref: '#/components/schemas/CandidateObservations'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    CandidateObservations:
-      type: object
-      properties:
-        strengths:
-          type: array
-          items:
-            type: string
-        concerns:
-          type: array
-          items:
-            type: string
-        resumeFindings:
-          $ref: '#/components/schemas/ResumeFindings'
-        adaptability:
-          type: string
-        communicationStyle:
-          type: string
-        interviewFlow:
-          $ref: '#/components/schemas/InterviewFlow'
-        keyInsights:
-          type: string
-
-    ResumeFindings:
-      type: object
-      properties:
-        verified:
-          type: array
-          items:
-            type: string
-        questioned:
-          type: array
-          items:
-            type: string
-        deepDived:
-          type: array
-          items:
-            type: string
-
-    InterviewFlow:
-      type: object
-      properties:
-        pausedAt:
-          type: array
-          items:
-            type: string
-        skippedQuestions:
-          type: integer
-        pauseDuration:
-          type: integer
-
-    ProfileRecallResponse:
-      type: object
-      properties:
-        strengths:
-          type: array
-          items:
-            type: string
-        concerns:
-          type: array
-          items:
-            type: string
-        resumeFindings:
-          $ref: '#/components/schemas/ResumeFindings'
-        keyInsights:
-          type: string
-        interviewFlow:
-          $ref: '#/components/schemas/InterviewFlow'
-
-    InterviewReport:
-      type: object
-      required:
-        - reportId
-        - sessionId
-        - score
-        - feedback
-        - observations
-        - transcript
-        - generatedAt
-      properties:
-        reportId:
-          type: string
-        sessionId:
-          type: string
-        score:
-          $ref: '#/components/schemas/InterviewScore'
-        feedback:
-          type: string
-        observations:
-          $ref: '#/components/schemas/CandidateObservations'
-        transcript:
-          $ref: '#/components/schemas/Transcript'
-        generatedAt:
-          type: string
-          format: date-time
-
-    InterviewScore:
-      type: object
-      required:
-        - overall
-        - byPhase
-      properties:
-        overall:
-          type: number
-          minimum: 0
-          maximum: 100
-        byPhase:
-          type: object
-          properties:
-            behavioral:
-              type: number
-            technical:
-              type: number
-            coding:
-              type: number
-            systemDesign:
-              type: number
-
-    Transcript:
-      type: object
-      required:
-        - sessionId
-        - messages
-      properties:
-        sessionId:
-          type: string
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/TranscriptMessage'
-
-    TranscriptMessage:
-      type: object
-      required:
-        - timestamp
-        - speaker
-        - text
-        - type
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-        speaker:
-          type: string
-          enum: [candidate, agent]
-        text:
-          type: string
-        type:
-          type: string
-          enum: [user-input, voice-transcription, agent-response, followup]
-        followupForQuestionId:
-          type: string
-
-    InterviewResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          $ref: '#/components/schemas/Interview'
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    Interview:
-      type: object
-      required:
-        - id
-        - title
-        - phases
-        - config
-        - rubric
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/InterviewPhase'
-        config:
-          $ref: '#/components/schemas/InterviewConfig'
-        rubric:
-          $ref: '#/components/schemas/ScoringRubric'
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    InterviewListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            interviews:
-              type: array
-              items:
-                $ref: '#/components/schemas/Interview'
-            pagination:
-              type: object
-              properties:
-                page:
-                  type: integer
-                limit:
-                  type: integer
-                total:
-                  type: integer
-                totalPages:
-                  type: integer
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    UpdateInterviewRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/InterviewPhase'
-        config:
-          $ref: '#/components/schemas/InterviewConfig'
-        rubric:
-          $ref: '#/components/schemas/ScoringRubric'
-
-    CancelInterviewRequest:
-      type: object
-      properties:
-        reason:
-          type: string
-          enum: [candidate_no_show, interviewer_unavailable, technical_issues, other]
-        notes:
-          type: string
-
-    EndInterviewRequest:
-      type: object
-      properties:
-        actualDuration:
-          type: integer
-          description: Actual interview duration in minutes
-        notes:
-          type: string
-
-    TranscriptionJobResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            jobId:
-              type: string
-            status:
-              type: string
-              enum: [queued, processing, completed, failed]
-            estimatedDuration:
-              type: integer
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    TranscriptionResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            transcriptionId:
-              type: string
-            status:
-              type: string
-              enum: [completed, partial]
-            segments:
-              type: array
-              items:
-                $ref: '#/components/schemas/TranscriptionSegment'
-            confidence:
-              type: number
-              minimum: 0
-              maximum: 1
-            duration:
-              type: integer
-            language:
-              type: string
-            provider:
-              type: string
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    TranscriptionSegment:
-      type: object
-      properties:
-        timestamp:
-          type: string
-          description: "HH:MM:SS format"
-        speaker:
-          type: string
-          enum: [interviewer, candidate, unknown]
-        text:
-          type: string
-        confidence:
-          type: number
-          minimum: 0
-          maximum: 1
-        startTime:
-          type: number
-          description: Start time in seconds
-        endTime:
-          type: number
-          description: End time in seconds
-
-    TranscriptionStatus:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [not_started, queued, processing, completed, failed]
-        transcriptionId:
-          type: string
-        progress:
-          type: number
-          minimum: 0
-          maximum: 1
-        error:
-          type: string
-
-    TranscriptionStatusResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          $ref: '#/components/schemas/TranscriptionStatus'
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    AnalysisRequest:
-      type: object
-      properties:
-        analysisTypes:
-          type: array
-          items:
-            type: string
-            enum: [sentiment, keywords, competency, overall]
-          default: [sentiment, keywords, competency, overall]
-        customPrompts:
-          type: object
-          properties:
-            competency:
-              type: string
-            overall:
-              type: string
-        priority:
-          type: string
-          enum: [low, normal, high]
-          default: normal
-
-    AnalysisJobResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            jobId:
-              type: string
-            status:
-              type: string
-              enum: [queued, processing, completed, failed]
-            estimatedDuration:
-              type: integer
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    AnalysisResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          $ref: '#/components/schemas/AnalysisResult'
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    AnalysisResult:
-      type: object
-      properties:
-        analysisId:
-          type: string
-        status:
-          type: string
-          enum: [completed, partial]
-        sentiment:
-          type: object
-          properties:
-            overall:
-              type: number
-              minimum: -1
-              maximum: 1
-            timeline:
-              type: array
-              items:
-                type: object
-                properties:
-                  timestamp:
-                    type: string
-                  score:
-                    type: number
-                    minimum: -1
-                    maximum: 1
-        keywords:
-          type: array
-          items:
-            type: object
-            properties:
-              word:
-                type: string
-              frequency:
-                type: integer
-              relevance:
-                type: number
-                minimum: 0
-                maximum: 1
-        competency:
-          type: object
-          properties:
-            technical:
-              type: number
-              minimum: 0
-              maximum: 10
-            communication:
-              type: number
-              minimum: 0
-              maximum: 10
-            problemSolving:
-              type: number
-              minimum: 0
-              maximum: 10
-            leadership:
-              type: number
-              minimum: 0
-              maximum: 10
-        overall:
-          type: object
-          properties:
-            score:
-              type: number
-              minimum: 0
-              maximum: 10
-            recommendation:
-              type: string
-            strengths:
-              type: array
-              items:
-                type: string
-            areasForImprovement:
-              type: array
-              items:
-                type: string
-        processingTime:
-          type: integer
-        confidence:
-          type: number
-          minimum: 0
-          maximum: 1
-
-    AnalysisStatus:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [not_started, queued, processing, completed, failed]
-        analysisId:
-          type: string
-        progress:
-          type: number
-          minimum: 0
-          maximum: 1
-        error:
-          type: string
-
-    AnalysisStatusResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          $ref: '#/components/schemas/AnalysisStatus'
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    FeedbackRequest:
-      type: object
-      properties:
-        template:
-          type: string
-          enum: [comprehensive, brief, technical, executive]
-          default: comprehensive
-        recipients:
-          type: array
-          items:
-            type: string
-            enum: [candidate, hiring_manager, interviewers, all]
-          default: [candidate, hiring_manager]
-        includeScores:
-          type: boolean
-          default: true
-        customSections:
-          type: array
-          items:
-            type: string
-        language:
-          type: string
-          default: en
-
-    FeedbackResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            feedbackId:
-              type: string
-            candidateFeedback:
-              type: string
-            managerFeedback:
-              type: string
-            interviewerFeedback:
-              type: string
-            generatedAt:
-              type: string
-              format: date-time
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    AvailabilityResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            availability:
-              type: array
-              items:
-                type: object
-                properties:
-                  start:
-                    type: string
-                    format: date-time
-                  end:
-                    type: string
-                    format: date-time
-                  available:
-                    type: boolean
-                  confidence:
-                    type: number
-                    minimum: 0
-                    maximum: 1
-            conflicts:
-              type: array
-              items:
-                type: object
-                properties:
-                  start:
-                    type: string
-                    format: date-time
-                  end:
-                    type: string
-                    format: date-time
-                  title:
-                    type: string
-                  type:
-                    type: string
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
-    ScheduleInterviewRequest:
-      type: object
-      required:
-        - candidateId
-        - interviewers
-        - duration
-      properties:
-        candidateId:
-          type: string
-        interviewers:
-          type: array
-          items:
-            type: string
-        duration:
-          type: integer
-          minimum: 15
-          maximum: 480
-        preferredTimes:
-          type: array
-          items:
-            type: object
-            properties:
-              start:
-                type: string
-                format: date-time
-              end:
-                type: string
-                format: date-time
-        timezone:
-          type: string
-          default: UTC
-        bufferTime:
-          type: integer
-          default: 15
-          description: Buffer time between interviews in minutes
-
-    ScheduleInterviewResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            interviewId:
-              type: string
-            scheduledAt:
-              type: string
-              format: date-time
-            meetingUrl:
-              type: string
-            calendarEventId:
-              type: string
-        timestamp:
-          type: string
-          format: date-time
-        requestId:
-          type: string
-
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
+    jwt:
       bearerFormat: JWT
+      scheme: bearer
+      type: http
+info:
+  contact: {}
+  description: AI-powered interview sessions, question management, and candidate profiling
+  title: Interview Worker API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /admin/questions/seed:
+    post:
+      operationId: QuestionSeedController_seedQuestions
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - QuestionSeed
+  /executions/{id}:
+    get:
+      operationId: CodeExecutionController_getExecution
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CodeExecution
+  /executions/{id}/cancel:
+    post:
+      operationId: CodeExecutionController_cancelExecution
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CodeExecution
+  /health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /interviews:
+    get:
+      operationId: InterviewController_getAllInterviews
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+    post:
+      operationId: InterviewController_createInterview
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInterviewDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Interview
+  /interviews/favorites:
+    get:
+      operationId: InterviewController_getFavoriteInterviews
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+  /interviews/public:
+    get:
+      operationId: InterviewController_getPublicInterviews
+      parameters:
+        - in: query
+          name: page
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sortBy
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: difficulty
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: search
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+  /interviews/{id}:
+    delete:
+      operationId: InterviewController_deleteInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Interview
+    get:
+      operationId: InterviewController_getInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+    put:
+      operationId: InterviewController_updateInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+  /interviews/{id}/duplicate:
+    post:
+      operationId: InterviewController_duplicateInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Interview
+  /interviews/{id}/favorite:
+    delete:
+      operationId: InterviewController_unfavoriteInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+    post:
+      operationId: InterviewController_favoriteInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Interview
+  /interviews/{id}/phases/reorder:
+    put:
+      operationId: InterviewController_reorderPhases
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Interview
+  /interviews/{id}/publish:
+    post:
+      operationId: InterviewController_publishInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Interview
+  /interviews/{id}/unpublish:
+    post:
+      operationId: InterviewController_unpublishInterview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Interview
+  /questions:
+    get:
+      operationId: QuestionController_getQuestions
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+    post:
+      operationId: QuestionController_createQuestion
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuestionDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Question
+  /questions/bulk-delete:
+    post:
+      operationId: QuestionController_bulkDeleteQuestions
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+  /questions/bulk-update:
+    put:
+      operationId: QuestionController_bulkUpdateQuestions
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+  /questions/category/{category}:
+    get:
+      operationId: QuestionController_getQuestionsByCategory
+      parameters:
+        - in: path
+          name: category
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: difficulty
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+  /questions/export:
+    get:
+      operationId: QuestionController_exportQuestions
+      parameters:
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeTestCases
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeStarterCode
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: includeCorrectWorkingCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+  /questions/import:
+    post:
+      operationId: QuestionController_importQuestions
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Question
+  /questions/{questionId}:
+    delete:
+      operationId: QuestionController_deleteQuestion
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Question
+    get:
+      operationId: QuestionController_getQuestion
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+    put:
+      operationId: QuestionController_updateQuestion
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQuestionDto'
+        required: true
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+  /questions/{questionId}/statistics:
+    get:
+      operationId: QuestionController_getQuestionStatistics
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Question
+  /questions/{questionId}/test-cases:
+    get:
+      operationId: CodeExecutionController_getTestCases
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CodeExecution
+    post:
+      operationId: CodeExecutionController_createTestCase
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CodeExecution
+  /questions/{questionId}/test-cases/admin:
+    get:
+      operationId: CodeExecutionController_getTestCasesAdmin
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CodeExecution
+  /questions/{questionId}/test-cases/bulk-import:
+    post:
+      operationId: CodeExecutionController_bulkImportTestCases
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CodeExecution
+  /questions/{questionId}/test-cases/validate:
+    post:
+      operationId: CodeExecutionController_validateTestCases
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CodeExecution
+  /questions/{questionId}/test-cases/{testCaseId}:
+    delete:
+      operationId: CodeExecutionController_deleteTestCase
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: testCaseId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - CodeExecution
+    put:
+      operationId: CodeExecutionController_updateTestCase
+      parameters:
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: testCaseId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CodeExecution
+  /sessions:
+    post:
+      operationId: SessionController_startSession
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSessionDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId1}/compare/{sessionId2}:
+    get:
+      operationId: AnalyticsController_compareSessions
+      parameters:
+        - in: path
+          name: sessionId1
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: sessionId2
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Analytics
+  /sessions/{sessionId}:
+    get:
+      operationId: SessionController_getSession
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/agent/context:
+    get:
+      operationId: AgentController_getAgentContext
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Agent
+  /sessions/{sessionId}/agent/execute:
+    post:
+      operationId: AgentController_executeAgent
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Agent
+  /sessions/{sessionId}/agent/stream:
+    post:
+      operationId: AgentController_streamAgent
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Agent
+  /sessions/{sessionId}/code-executions:
+    get:
+      operationId: CodeExecutionController_getCodeExecutions
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - CodeExecution
+  /sessions/{sessionId}/completion-status:
+    get:
+      operationId: SessionController_getCompletionStatus
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/end:
+    post:
+      operationId: SessionController_endSession
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/pause:
+    post:
+      operationId: SessionController_pauseSession
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/profile:
+    get:
+      operationId: ProfileController_getProfile
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Profile
+  /sessions/{sessionId}/profile/observation:
+    post:
+      operationId: ProfileController_appendObservation
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppendObservationDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Profile
+  /sessions/{sessionId}/profile/recall:
+    get:
+      operationId: ProfileController_recallProfile
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Profile
+  /sessions/{sessionId}/profile/resume-findings:
+    post:
+      operationId: ProfileController_updateResumeFindings
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResumeFindingsDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Profile
+  /sessions/{sessionId}/report:
+    get:
+      operationId: ReportController_getReport
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Report
+  /sessions/{sessionId}/report/generate:
+    post:
+      operationId: ReportController_generateReport
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Report
+  /sessions/{sessionId}/report/pdf:
+    get:
+      operationId: ReportController_getReportPdf
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Report
+  /sessions/{sessionId}/report/questions/{questionId}/analysis:
+    get:
+      operationId: ReportController_getQuestionAnalysis
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Report
+  /sessions/{sessionId}/responses/{responseId}/execute:
+    post:
+      operationId: CodeExecutionController_executeCode
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: responseId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - CodeExecution
+  /sessions/{sessionId}/resume:
+    post:
+      operationId: SessionController_resumeSession
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/skip/{questionId}:
+    post:
+      operationId: SessionController_skipQuestion
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/submit-response:
+    post:
+      operationId: SessionController_submitResponse
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitResponseDto'
+        required: true
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/test-cases:
+    get:
+      operationId: SessionController_getUserTestCases
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Session
+    post:
+      operationId: SessionController_addUserTestCase
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/test-cases/{testCaseId}:
+    delete:
+      operationId: SessionController_removeUserTestCase
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: testCaseId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/whiteboard/history:
+    get:
+      operationId: SessionController_getWhiteboardHistory
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/whiteboard/state:
+    get:
+      operationId: SessionController_getWhiteboardState
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: questionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Session
+    post:
+      operationId: SessionController_saveWhiteboardState
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{sessionId}/whiteboard/state/send-to-agent:
+    post:
+      operationId: SessionController_sendWhiteboardToAgent
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Session
+  /sessions/{userId}/analytics/phases:
+    get:
+      operationId: AnalyticsController_getPhasePerformance
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Analytics
+  /sessions/{userId}/analytics/question-types:
+    get:
+      operationId: AnalyticsController_getQuestionTypePerformance
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Analytics
+  /sessions/{userId}/analytics/time-efficiency:
+    get:
+      operationId: AnalyticsController_getTimeEfficiency
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Analytics
+  /sessions/{userId}/analytics/trends:
+    get:
+      operationId: AnalyticsController_getScoreTrends
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: days
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Analytics
+  /webhooks:
+    get:
+      operationId: WebhookController_listWebhooks
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Webhook
+    post:
+      operationId: WebhookController_createWebhook
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+        - Webhook
+  /webhooks/{id}:
+    delete:
+      operationId: WebhookController_deleteWebhook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: ''
+      tags:
+        - Webhook
+    get:
+      operationId: WebhookController_getWebhook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Webhook
+    put:
+      operationId: WebhookController_updateWebhook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Webhook
+  /webhooks/{id}/test:
+    post:
+      operationId: WebhookController_testWebhook
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Webhook
+servers: []
+tags:
+  - description: Interview session management
+    name: Interviews
+  - description: Interview session operations
+    name: Sessions
+  - description: Question management
+    name: Questions
+  - description: Candidate profile management
+    name: Profiles
+  - description: Interview reports and analytics
+    name: Reports
+  - description: Code execution for technical interviews
+    name: Code Execution
+  - description: Webhook endpoints
+    name: Webhooks
+  - description: Health checks
+    name: Health

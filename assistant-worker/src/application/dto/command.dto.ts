@@ -21,4 +21,3 @@ export interface WorkerStatusDto {
   timestamp: string;
   status: 'CONNECTED' | 'DISCONNECTED' | 'BUSY' | 'IDLE';
 }
-

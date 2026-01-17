@@ -22,9 +22,18 @@ describe('SubmitResponseUseCase', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         SubmitResponseUseCase,
-        { provide: 'IInterviewSessionRepository', useValue: mockSessionRepository },
-        { provide: 'IInterviewResponseRepository', useValue: mockResponseRepository },
-        { provide: 'ITranscriptRepository', useValue: mockTranscriptRepository },
+        {
+          provide: 'IInterviewSessionRepository',
+          useValue: mockSessionRepository,
+        },
+        {
+          provide: 'IInterviewResponseRepository',
+          useValue: mockResponseRepository,
+        },
+        {
+          provide: 'ITranscriptRepository',
+          useValue: mockTranscriptRepository,
+        },
       ],
     }).compile();
 

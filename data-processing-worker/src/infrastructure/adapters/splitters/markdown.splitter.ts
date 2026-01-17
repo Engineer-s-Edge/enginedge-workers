@@ -23,7 +23,11 @@ export class MarkdownSplitterAdapter extends TextSplitterPort {
     const chunks: DocumentChunk[] = [];
 
     for (const doc of documents) {
-      const docChunks = this._splitMarkdown(doc.content, chunkSize, respectHeadings);
+      const docChunks = this._splitMarkdown(
+        doc.content,
+        chunkSize,
+        respectHeadings,
+      );
 
       for (let i = 0; i < docChunks.length; i++) {
         chunks.push(
@@ -40,7 +44,7 @@ export class MarkdownSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -48,7 +52,11 @@ export class MarkdownSplitterAdapter extends TextSplitterPort {
     return chunks;
   }
 
-  private _splitMarkdown(markdown: string, chunkSize: number, respectHeadings: boolean): string[] {
+  private _splitMarkdown(
+    markdown: string,
+    chunkSize: number,
+    respectHeadings: boolean,
+  ): string[] {
     const lines = markdown.split('\n');
     const chunks: string[] = [];
     let currentChunk: string[] = [];
@@ -61,11 +69,20 @@ export class MarkdownSplitterAdapter extends TextSplitterPort {
       // Check for heading
       const isHeading = /^#{1,6}\s+/.test(line.trim());
 
-      if (respectHeadings && isHeading && currentSize + lineSize > chunkSize && currentChunk.length > 0) {
+      if (
+        respectHeadings &&
+        isHeading &&
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
-      } else if (!respectHeadings && currentSize + lineSize > chunkSize && currentChunk.length > 0) {
+      } else if (
+        !respectHeadings &&
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -79,6 +96,6 @@ export class MarkdownSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

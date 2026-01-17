@@ -7,14 +7,27 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseRetriever } from '../../../domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '../../../domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '../../../domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '../../../domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '../../../domain/entities/tool.entities';
 import axios, { AxiosResponse } from 'axios';
 
 export interface YouTubeArgs {
   query: string;
   max_results?: number;
-  order?: 'relevance' | 'date' | 'rating' | 'title' | 'videoCount' | 'viewCount';
+  order?:
+    | 'relevance'
+    | 'date'
+    | 'rating'
+    | 'title'
+    | 'videoCount'
+    | 'viewCount';
   type?: 'video' | 'channel' | 'playlist';
   published_after?: string; // ISO 8601 date
   published_before?: string; // ISO 8601 date
@@ -92,9 +105,13 @@ export interface YouTubeOutput extends ToolOutput {
 }
 
 @Injectable()
-export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> {
+export class YouTubeRetriever extends BaseRetriever<
+  YouTubeArgs,
+  YouTubeOutput
+> {
   readonly name = 'youtube-retriever';
-  readonly description = 'Search YouTube for videos, channels, and playlists using YouTube Data API with comprehensive metadata';
+  readonly description =
+    'Search YouTube for videos, channels, and playlists using YouTube Data API with comprehensive metadata';
   readonly retrievalType: RetrievalType = RetrievalType.VIDEO_TRANSCRIPT;
   readonly caching = false;
 
@@ -106,70 +123,77 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
         type: 'string',
         description: 'Search query for YouTube content',
         minLength: 1,
-        maxLength: 500
+        maxLength: 500,
       },
       max_results: {
         type: 'number',
         description: 'Maximum number of results to return',
         minimum: 1,
         maximum: 50,
-        default: 25
+        default: 25,
       },
       order: {
         type: 'string',
-        enum: ['relevance', 'date', 'rating', 'title', 'videoCount', 'viewCount'],
+        enum: [
+          'relevance',
+          'date',
+          'rating',
+          'title',
+          'videoCount',
+          'viewCount',
+        ],
         description: 'Sort order for results',
-        default: 'relevance'
+        default: 'relevance',
       },
       type: {
         type: 'string',
         enum: ['video', 'channel', 'playlist'],
         description: 'Type of content to search for',
-        default: 'video'
+        default: 'video',
       },
       published_after: {
         type: 'string',
         description: 'Return results published after this date (ISO 8601)',
-        format: 'date-time'
+        format: 'date-time',
       },
       published_before: {
         type: 'string',
         description: 'Return results published before this date (ISO 8601)',
-        format: 'date-time'
+        format: 'date-time',
       },
       region_code: {
         type: 'string',
         description: 'Region code for localized results',
-        pattern: '^[A-Z]{2}$'
+        pattern: '^[A-Z]{2}$',
       },
       relevance_language: {
         type: 'string',
         description: 'Language for relevance ranking',
-        pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+        pattern: '^[a-z]{2}(-[A-Z]{2})?$',
       },
       safe_search: {
         type: 'string',
         enum: ['moderate', 'none', 'strict'],
         description: 'Safe search filtering',
-        default: 'moderate'
+        default: 'moderate',
       },
       video_definition: {
         type: 'string',
         enum: ['any', 'high', 'standard'],
         description: 'Video definition filter',
-        default: 'any'
+        default: 'any',
       },
       video_duration: {
         type: 'string',
         enum: ['any', 'long', 'medium', 'short'],
         description: 'Video duration filter',
-        default: 'any'
+        default: 'any',
       },
       channel_id: {
         type: 'string',
-        description: 'Restrict search to a specific channel'
-      }
-    }
+        description: 'Restrict search to a specific channel',
+      },
+    },
   };
 
   readonly outputSchema = {
@@ -199,9 +223,9 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
             like_count: { type: 'string' },
             comment_count: { type: 'string' },
             tags: { type: 'array', items: { type: 'string' } },
-            category_id: { type: 'string' }
-          }
-        }
+            category_id: { type: 'string' },
+          },
+        },
       },
       channels: {
         type: 'array',
@@ -215,9 +239,9 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
             thumbnails: { type: 'object' },
             subscriber_count: { type: 'string' },
             video_count: { type: 'string' },
-            view_count: { type: 'string' }
-          }
-        }
+            view_count: { type: 'string' },
+          },
+        },
       },
       playlists: {
         type: 'array',
@@ -231,13 +255,13 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
             channel_id: { type: 'string' },
             published_at: { type: 'string' },
             thumbnails: { type: 'object' },
-            item_count: { type: 'number' }
-          }
-        }
+            item_count: { type: 'number' },
+          },
+        },
       },
       processingTime: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   };
 
   readonly metadata = new RetrieverConfig(
@@ -249,17 +273,35 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
-    new ErrorEvent('youtube-service-unavailable', 'YouTube API service is not available', false),
-    new ErrorEvent('youtube-search-failed', 'YouTube search request failed', true),
-    new ErrorEvent('youtube-invalid-query', 'Invalid YouTube search query', false),
-    new ErrorEvent('youtube-api-quota-exceeded', 'YouTube API quota exceeded', true)
+    new ErrorEvent(
+      'youtube-service-unavailable',
+      'YouTube API service is not available',
+      false,
+    ),
+    new ErrorEvent(
+      'youtube-search-failed',
+      'YouTube search request failed',
+      true,
+    ),
+    new ErrorEvent(
+      'youtube-invalid-query',
+      'Invalid YouTube search query',
+      false,
+    ),
+    new ErrorEvent(
+      'youtube-api-quota-exceeded',
+      'YouTube API quota exceeded',
+      true,
+    ),
   ];
 
-  protected async retrieve(args: YouTubeArgs & { ragConfig: RAGConfig }): Promise<YouTubeOutput> {
+  protected async retrieve(
+    args: YouTubeArgs & { ragConfig: RAGConfig },
+  ): Promise<YouTubeOutput> {
     // Validate input
     const {
       query,
@@ -273,53 +315,75 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
       safe_search = 'moderate',
       video_definition = 'any',
       video_duration = 'any',
-      channel_id
+      channel_id,
     } = args;
 
     // Validate query
     if (!query || query.trim().length === 0) {
       throw Object.assign(new Error('Search query cannot be empty'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
     if (query.length > 500) {
-      throw Object.assign(new Error('Search query too long (max 500 characters)'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Search query too long (max 500 characters)'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     // Validate max_results
     if (max_results < 1 || max_results > 50) {
       throw Object.assign(new Error('max_results must be between 1 and 50'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
     // Validate date formats if provided
-    if (published_after && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(published_after)) {
-      throw Object.assign(new Error('published_after must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)'), {
-        name: 'ValidationError'
-      });
+    if (
+      published_after &&
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(published_after)
+    ) {
+      throw Object.assign(
+        new Error(
+          'published_after must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)',
+        ),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
-    if (published_before && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(published_before)) {
-      throw Object.assign(new Error('published_before must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)'), {
-        name: 'ValidationError'
-      });
+    if (
+      published_before &&
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(published_before)
+    ) {
+      throw Object.assign(
+        new Error(
+          'published_before must be in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ)',
+        ),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     // Validate query
     if (!query || query.trim().length === 0) {
       throw Object.assign(new Error('Search query cannot be empty'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
     if (query.length > 500) {
-      throw Object.assign(new Error('Search query too long (max 500 characters)'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Search query too long (max 500 characters)'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
     // Send request to YouTube API
@@ -335,7 +399,7 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
       safe_search,
       video_definition,
       video_duration,
-      channel_id
+      channel_id,
     });
   }
 
@@ -362,14 +426,17 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
         maxResults: request.max_results,
         order: request.order,
         type: request.type,
-        safeSearch: request.safe_search
+        safeSearch: request.safe_search,
       };
 
       // Add optional parameters
-      if (request.published_after) params.publishedAfter = request.published_after;
-      if (request.published_before) params.publishedBefore = request.published_before;
+      if (request.published_after)
+        params.publishedAfter = request.published_after;
+      if (request.published_before)
+        params.publishedBefore = request.published_before;
       if (request.region_code) params.regionCode = request.region_code;
-      if (request.relevance_language) params.relevanceLanguage = request.relevance_language;
+      if (request.relevance_language)
+        params.relevanceLanguage = request.relevance_language;
       if (request.channel_id) params.channelId = request.channel_id;
 
       // Video-specific parameters
@@ -384,9 +451,9 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
           params,
           timeout: 30000,
           headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       if (response.data && response.status === 200) {
@@ -397,7 +464,7 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
           total_results: response.data.pageInfo?.totalResults || 0,
           results_per_page: response.data.pageInfo?.resultsPerPage || 0,
           next_page_token: response.data.nextPageToken,
-          prev_page_token: response.data.prevPageToken
+          prev_page_token: response.data.prevPageToken,
         };
 
         if (request.type === 'video') {
@@ -415,89 +482,142 @@ export class YouTubeRetriever extends BaseRetriever<YouTubeArgs, YouTubeOutput> 
           query: request.query,
           total_results: 0,
           results_per_page: 0,
-          message: 'YouTube search request failed'
+          message: 'YouTube search request failed',
         };
       }
-
     } catch (error) {
       const axiosError = error as {
         code?: string;
         response?: { status?: number; data?: { error?: { message?: string } } };
-        message?: string
+        message?: string;
       };
 
-      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ENOTFOUND') {
+      if (
+        axiosError.code === 'ECONNREFUSED' ||
+        axiosError.code === 'ENOTFOUND'
+      ) {
         throw Object.assign(new Error('YouTube API service is not available'), {
-          name: 'ServiceUnavailableError'
+          name: 'ServiceUnavailableError',
         });
       }
 
-      if (axiosError.response?.status === 408 || axiosError.code === 'ETIMEDOUT') {
+      if (
+        axiosError.response?.status === 408 ||
+        axiosError.code === 'ETIMEDOUT'
+      ) {
         throw Object.assign(new Error('YouTube search timed out'), {
-          name: 'TimeoutError'
+          name: 'TimeoutError',
         });
       }
 
       if (axiosError.response?.status === 403) {
-        throw Object.assign(new Error('YouTube API quota exceeded or access denied'), {
-          name: 'QuotaExceededError'
-        });
+        throw Object.assign(
+          new Error('YouTube API quota exceeded or access denied'),
+          {
+            name: 'QuotaExceededError',
+          },
+        );
       }
 
       if (axiosError.response?.status === 400) {
-        throw Object.assign(new Error('Invalid YouTube API request parameters'), {
-          name: 'InvalidRequestError'
-        });
+        throw Object.assign(
+          new Error('Invalid YouTube API request parameters'),
+          {
+            name: 'InvalidRequestError',
+          },
+        );
       }
 
-      const errorMessage = axiosError.response?.data?.error?.message ||
-                          axiosError.message ||
-                          'Unknown error';
+      const errorMessage =
+        axiosError.response?.data?.error?.message ||
+        axiosError.message ||
+        'Unknown error';
       throw Object.assign(new Error(`YouTube search failed: ${errorMessage}`), {
-        name: 'YouTubeError'
+        name: 'YouTubeError',
       });
     }
   }
 
-  private transformVideos(items: Record<string, unknown>[]): YouTubeOutput['videos'] {
-    return items.map(item => {
+  private transformVideos(
+    items: Record<string, unknown>[],
+  ): YouTubeOutput['videos'] {
+    return items.map((item) => {
       const data = item as Record<string, unknown>;
       return {
-        video_id: (data.id as Record<string, unknown>)?.videoId as string || '',
-        title: (data.snippet as Record<string, unknown>)?.title as string || '',
-        description: (data.snippet as Record<string, unknown>)?.description as string || '',
-        channel_title: (data.snippet as Record<string, unknown>)?.channelTitle as string || '',
-        channel_id: (data.snippet as Record<string, unknown>)?.channelId as string || '',
-        published_at: (data.snippet as Record<string, unknown>)?.publishedAt as string || '',
-        thumbnails: (data.snippet as Record<string, unknown>)?.thumbnails as YouTubeThumbnails || { default: { url: '', width: 0, height: 0 } }
+        video_id:
+          ((data.id as Record<string, unknown>)?.videoId as string) || '',
+        title:
+          ((data.snippet as Record<string, unknown>)?.title as string) || '',
+        description:
+          ((data.snippet as Record<string, unknown>)?.description as string) ||
+          '',
+        channel_title:
+          ((data.snippet as Record<string, unknown>)?.channelTitle as string) ||
+          '',
+        channel_id:
+          ((data.snippet as Record<string, unknown>)?.channelId as string) ||
+          '',
+        published_at:
+          ((data.snippet as Record<string, unknown>)?.publishedAt as string) ||
+          '',
+        thumbnails: ((data.snippet as Record<string, unknown>)
+          ?.thumbnails as YouTubeThumbnails) || {
+          default: { url: '', width: 0, height: 0 },
+        },
       };
     });
   }
 
-  private transformChannels(items: Record<string, unknown>[]): YouTubeOutput['channels'] {
-    return items.map(item => {
+  private transformChannels(
+    items: Record<string, unknown>[],
+  ): YouTubeOutput['channels'] {
+    return items.map((item) => {
       const data = item as Record<string, unknown>;
       return {
-        channel_id: (data.id as Record<string, unknown>)?.channelId as string || '',
-        title: (data.snippet as Record<string, unknown>)?.title as string || '',
-        description: (data.snippet as Record<string, unknown>)?.description as string || '',
-        published_at: (data.snippet as Record<string, unknown>)?.publishedAt as string || '',
-        thumbnails: (data.snippet as Record<string, unknown>)?.thumbnails as YouTubeThumbnails || { default: { url: '', width: 0, height: 0 } }
+        channel_id:
+          ((data.id as Record<string, unknown>)?.channelId as string) || '',
+        title:
+          ((data.snippet as Record<string, unknown>)?.title as string) || '',
+        description:
+          ((data.snippet as Record<string, unknown>)?.description as string) ||
+          '',
+        published_at:
+          ((data.snippet as Record<string, unknown>)?.publishedAt as string) ||
+          '',
+        thumbnails: ((data.snippet as Record<string, unknown>)
+          ?.thumbnails as YouTubeThumbnails) || {
+          default: { url: '', width: 0, height: 0 },
+        },
       };
     });
   }
 
-  private transformPlaylists(items: Record<string, unknown>[]): YouTubeOutput['playlists'] {
-    return items.map(item => {
+  private transformPlaylists(
+    items: Record<string, unknown>[],
+  ): YouTubeOutput['playlists'] {
+    return items.map((item) => {
       const data = item as Record<string, unknown>;
       return {
-        playlist_id: (data.id as Record<string, unknown>)?.playlistId as string || '',
-        title: (data.snippet as Record<string, unknown>)?.title as string || '',
-        description: (data.snippet as Record<string, unknown>)?.description as string || '',
-        channel_title: (data.snippet as Record<string, unknown>)?.channelTitle as string || '',
-        channel_id: (data.snippet as Record<string, unknown>)?.channelId as string || '',
-        published_at: (data.snippet as Record<string, unknown>)?.publishedAt as string || '',
-        thumbnails: (data.snippet as Record<string, unknown>)?.thumbnails as YouTubeThumbnails || { default: { url: '', width: 0, height: 0 } }
+        playlist_id:
+          ((data.id as Record<string, unknown>)?.playlistId as string) || '',
+        title:
+          ((data.snippet as Record<string, unknown>)?.title as string) || '',
+        description:
+          ((data.snippet as Record<string, unknown>)?.description as string) ||
+          '',
+        channel_title:
+          ((data.snippet as Record<string, unknown>)?.channelTitle as string) ||
+          '',
+        channel_id:
+          ((data.snippet as Record<string, unknown>)?.channelId as string) ||
+          '',
+        published_at:
+          ((data.snippet as Record<string, unknown>)?.publishedAt as string) ||
+          '',
+        thumbnails: ((data.snippet as Record<string, unknown>)
+          ?.thumbnails as YouTubeThumbnails) || {
+          default: { url: '', width: 0, height: 0 },
+        },
       };
     });
   }

@@ -68,4 +68,3 @@ export class SkipQuestionUseCase {
     return updated;
   }
 }
-

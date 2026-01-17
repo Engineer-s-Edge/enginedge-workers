@@ -5,12 +5,9 @@
  * Provides templates, system prompts, and prompt customization.
  */
 
-import { Injectable } from '@nestjs/common';
-
 /**
  * Service for building prompts
  */
-@Injectable()
 export class PromptBuilder {
   /**
    * Build system prompt for different agent types
@@ -181,9 +178,7 @@ Focus on achieving consensus and high-quality results.`;
   /**
    * Build Manager system prompt
    */
-  private buildManagerSystemPrompt(
-    context?: Record<string, unknown>,
-  ): string {
+  private buildManagerSystemPrompt(context?: Record<string, unknown>): string {
     const strategy = context?.strategy || 'hierarchical';
     return `You are a task manager responsible for decomposing and coordinating complex tasks.
 
@@ -314,7 +309,7 @@ Provide clear, actionable output suitable for downstream processing.`;
     }>,
   ): string {
     return messages
-      .map(msg => `${msg.role.toUpperCase()}: ${msg.content}`)
+      .map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
       .join('\n\n');
   }
 

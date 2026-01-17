@@ -1,6 +1,6 @@
 /**
  * Agent State Entity - Represents the current state of an agent
- * 
+ *
  * State machine implementation:
  * IDLE → PROCESSING → WAITING → COMPLETE
  *        ↓              ↓ (for Collective)
@@ -40,7 +40,10 @@ export class AgentState {
     return new AgentState('complete', undefined, metadata);
   }
 
-  static error(errorMessage: string, metadata?: Record<string, unknown>): AgentState {
+  static error(
+    errorMessage: string,
+    metadata?: Record<string, unknown>,
+  ): AgentState {
     return new AgentState('error', errorMessage, metadata);
   }
 
@@ -97,7 +100,10 @@ export class AgentState {
   /**
    * Attempt state transition
    */
-  transitionTo(targetState: AgentStateType, metadata?: Record<string, unknown>): AgentState {
+  transitionTo(
+    targetState: AgentStateType,
+    metadata?: Record<string, unknown>,
+  ): AgentState {
     if (!this.canTransitionTo(targetState)) {
       throw new Error(
         `Invalid state transition: ${this.currentState} → ${targetState}`,
@@ -119,9 +125,15 @@ export class AgentState {
           metadata,
         );
       case 'coordinating':
-        return AgentState.processing({ ...metadata, __variant: 'coordinating' });
+        return AgentState.processing({
+          ...metadata,
+          __variant: 'coordinating',
+        });
       case 'sub-agents-waiting':
-        return AgentState.waiting({ ...metadata, __variant: 'sub-agents-waiting' });
+        return AgentState.waiting({
+          ...metadata,
+          __variant: 'sub-agents-waiting',
+        });
       default:
         throw new Error(`Unknown target state: ${targetState}`);
     }

@@ -2,7 +2,14 @@
  * Repository Ports - Interfaces for data persistence
  */
 
-import { CalendarEvent, Habit, Goal } from '../../domain/entities';
+import {
+  CalendarEvent,
+  Habit,
+  Goal,
+  ActivityPattern,
+  ActivityEvent,
+  Task,
+} from '../../domain/entities';
 
 /**
  * Calendar Event Repository Port
@@ -146,4 +153,204 @@ export interface IGoalRepository {
    * Delete a goal
    */
   delete(id: string): Promise<void>;
+}
+
+/**
+ * Activity Pattern Repository Port
+ */
+export interface IActivityPatternRepository {
+  /**
+   * Save an activity pattern
+   */
+  save(pattern: ActivityPattern): Promise<ActivityPattern>;
+
+  /**
+   * Find pattern by ID
+   */
+  findById(id: string): Promise<ActivityPattern | null>;
+
+  /**
+   * Find pattern by user ID
+   */
+  findByUserId(userId: string): Promise<ActivityPattern | null>;
+
+  /**
+   * Find patterns by user ID and pattern type
+   */
+  findByUserIdAndType(
+    userId: string,
+    patternType: ActivityPattern['patternType'],
+  ): Promise<ActivityPattern | null>;
+
+  /**
+   * Update a pattern
+   */
+  update(
+    id: string,
+    pattern: Partial<ActivityPattern>,
+  ): Promise<ActivityPattern>;
+
+  /**
+   * Delete a pattern
+   */
+  delete(id: string): Promise<void>;
+}
+
+/**
+ * Activity Event Repository Port
+ */
+export interface IActivityEventRepository {
+  /**
+   * Save an activity event
+   */
+  save(event: ActivityEvent): Promise<ActivityEvent>;
+
+  /**
+   * Find event by ID
+   */
+  findById(id: string): Promise<ActivityEvent | null>;
+
+  /**
+   * Find events by user ID
+   */
+  findByUserId(userId: string): Promise<ActivityEvent[]>;
+
+  /**
+   * Find events by event ID (calendar event ID)
+   */
+  findByEventId(eventId: string): Promise<ActivityEvent | null>;
+
+  /**
+   * Find events in a date range
+   */
+  findByDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ActivityEvent[]>;
+
+  /**
+   * Find completed events
+   */
+  findCompletedByUserId(userId: string): Promise<ActivityEvent[]>;
+
+  /**
+   * Delete an event
+   */
+  delete(id: string): Promise<void>;
+}
+
+/**
+ * Task Repository Port
+ */
+export interface ITaskRepository {
+  /**
+   * Save a task
+   */
+  save(task: Task): Promise<Task>;
+
+  /**
+   * Find task by ID
+   */
+  findById(id: string): Promise<Task | null>;
+
+  /**
+   * Find tasks by date range
+   */
+  findByDateRange(
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]>;
+
+  /**
+   * Find tasks by category
+   */
+  findByCategory(
+    category: string,
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]>;
+
+  /**
+   * Find locked tasks in date range
+   */
+  findLockedTasks(
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]>;
+
+  /**
+   * Find unlocked tasks in date range
+   */
+  findUnlockedTasks(
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]>;
+
+  /**
+   * Find tasks by status
+   */
+  findByStatus(
+    status: Task['completionStatus'],
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]>;
+
+  /**
+   * Find tasks by priority
+   */
+  findByPriority(
+    priority: Task['priority'],
+    startDate: Date,
+    endDate: Date,
+    userId?: string,
+  ): Promise<Task[]>;
+
+  /**
+   * Find tasks by user ID
+   */
+  findByUserId(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<Task[]>;
+
+  /**
+   * Find tasks by parent task ID (for split tasks)
+   */
+  findByParentTaskId(parentTaskId: string): Promise<Task[]>;
+
+  /**
+   * Find tasks by split from task ID
+   */
+  findBySplitFromTaskId(splitFromTaskId: string): Promise<Task[]>;
+
+  /**
+   * Update a task
+   */
+  update(task: Task): Promise<Task>;
+
+  /**
+   * Delete a task
+   */
+  delete(id: string): Promise<boolean>;
+
+  /**
+   * Find tasks with filters
+   */
+  findWithFilters(filters: {
+    userId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    category?: string;
+    priority?: Task['priority'];
+    status?: Task['completionStatus'];
+    isLocked?: boolean;
+    tags?: string[];
+  }): Promise<Task[]>;
 }

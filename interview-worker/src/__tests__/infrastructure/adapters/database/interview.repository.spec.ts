@@ -55,6 +55,7 @@ describe('MongoInterviewRepository', () => {
   it('should save and retrieve interview', async () => {
     const interview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -77,6 +78,7 @@ describe('MongoInterviewRepository', () => {
   it('should find all interviews', async () => {
     const interview1 = new Interview({
       id: 'i1',
+      userId: 'test-user',
       title: 'Interview 1',
       phases: [],
       config: {
@@ -90,6 +92,7 @@ describe('MongoInterviewRepository', () => {
 
     const interview2 = new Interview({
       id: 'i2',
+      userId: 'test-user',
       title: 'Interview 2',
       phases: [],
       config: {
@@ -112,6 +115,7 @@ describe('MongoInterviewRepository', () => {
   it('should update interview', async () => {
     const interview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Original Title',
       phases: [],
       config: {
@@ -135,6 +139,7 @@ describe('MongoInterviewRepository', () => {
   it('should delete interview', async () => {
     const interview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -155,4 +160,3 @@ describe('MongoInterviewRepository', () => {
     expect(retrieved).toBeNull();
   });
 });
-

@@ -1,12 +1,16 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { KafkaMessageBrokerAdapter } from './kafka-message-broker.adapter';
 import { ProcessCommandUseCase } from '../../../application/use-cases/process-command.use-case';
-import { CommandDto, CommandResultDto, WorkerStatusDto } from '../../../application/dto/command.dto';
+import {
+  CommandDto,
+  CommandResultDto,
+  WorkerStatusDto,
+} from '../../../application/dto/command.dto';
 import * as os from 'os';
 
 /**
  * Worker Kafka Service (Infrastructure Layer)
- * 
+ *
  * This service coordinates Kafka messaging for the worker node.
  * It acts as a bridge between the infrastructure adapter and application use cases.
  */
@@ -24,16 +28,22 @@ export class WorkerKafkaService implements OnModuleInit {
       this.logger.log('Initializing Worker Kafka Service...');
 
       // Subscribe to commands topic
-      await this.kafkaAdapter.subscribe('commands', async (message: unknown) => {
-        await this.handleCommand(message as CommandDto);
-      });
+      await this.kafkaAdapter.subscribe(
+        'commands',
+        async (message: unknown) => {
+          await this.handleCommand(message as CommandDto);
+        },
+      );
 
       // Notify that worker is connected
       await this.notifyWorkerConnected();
 
       this.logger.log('Worker Kafka Service initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize Worker Kafka Service:', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to initialize Worker Kafka Service:',
+        error as Record<string, unknown>,
+      );
       throw error;
     }
   }
@@ -46,7 +56,10 @@ export class WorkerKafkaService implements OnModuleInit {
       const result = await this.processCommandUseCase.execute(command);
       await this.sendResult(result);
     } catch (error) {
-      this.logger.error('Failed to handle command:', error as Record<string, unknown>);
+      this.logger.error(
+        'Failed to handle command:',
+        error as Record<string, unknown>,
+      );
       // Send failure result
       await this.sendResult({
         taskId: command?.taskId || 'unknown',
@@ -75,7 +88,8 @@ export class WorkerKafkaService implements OnModuleInit {
     };
 
     await this.kafkaAdapter.sendMessage('worker-status', workerInfo);
-    this.logger.log(`Worker connected notification sent: ${JSON.stringify(workerInfo)}`);
+    this.logger.log(
+      `Worker connected notification sent: ${JSON.stringify(workerInfo)}`,
+    );
   }
 }
-

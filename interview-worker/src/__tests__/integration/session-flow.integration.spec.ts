@@ -1,6 +1,6 @@
 /**
  * Session Flow Integration Tests
- * 
+ *
  * Tests the complete session lifecycle with real MongoDB
  */
 
@@ -12,6 +12,11 @@ import { QuestionService } from '@application/services/question.service';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
 
+let uuidCounter = 0;
+jest.mock('uuid', () => ({
+  v4: () => `test-uuid-${++uuidCounter}`,
+}));
+
 describe('Session Flow Integration', () => {
   let app: TestingModule;
   let sessionService: SessionService;
@@ -19,6 +24,7 @@ describe('Session Flow Integration', () => {
   let questionService: QuestionService;
   let mongoServer: MongoMemoryServer;
   let mongoClient: MongoClient;
+  const createdSessionIds: string[] = [];
 
   beforeAll(async () => {
     // Start MongoDB Memory Server
@@ -37,12 +43,15 @@ describe('Session Flow Integration', () => {
       imports: [AppModule],
     }).compile();
 
+    await app.init(); // Initialize module to run onModuleInit hooks
+
     sessionService = app.get<SessionService>(SessionService);
     interviewService = app.get<InterviewService>(InterviewService);
     questionService = app.get<QuestionService>(QuestionService);
 
     // Create test interview
     await interviewService.createInterview({
+      userId: 'test-user',
       title: 'Integration Test Interview',
       description: 'Test interview for integration tests',
       phases: [
@@ -71,7 +80,22 @@ describe('Session Flow Integration', () => {
     });
   });
 
+  afterEach(async () => {
+    // Clean up all sessions created during tests
+    for (const sessionId of createdSessionIds) {
+      try {
+        await sessionService.endSession(sessionId);
+      } catch (error) {
+        // Session might already be ended, ignore
+      }
+    }
+    createdSessionIds.length = 0;
+  });
+
   afterAll(async () => {
+    // Give timers a moment to clear
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    
     await app.close();
     if (mongoClient) {
       await mongoClient.close();
@@ -93,6 +117,7 @@ describe('Session Flow Integration', () => {
       candidateId: 'integration-test-candidate',
       communicationMode: 'text',
     });
+    createdSessionIds.push(session.sessionId);
 
     expect(session.status).toBe('in-progress');
     expect(session.sessionId).toBeDefined();
@@ -103,19 +128,25 @@ describe('Session Flow Integration', () => {
     expect(pausedSession.pausedAt).toBeDefined();
 
     // Resume session
-    const resumedSession = await sessionService.resumeSession(session.sessionId);
+    const resumedSession = await sessionService.resumeSession(
+      session.sessionId,
+    );
     expect(resumedSession.status).toBe('in-progress');
     expect(resumedSession.pausedAt).toBeUndefined();
     expect(resumedSession.pausedCount).toBeGreaterThan(0);
 
     // Submit a response
-    const questions = await questionService.getQuestionsByCategory('tech-trivia', 'medium');
+    const questions = await questionService.getQuestionsByCategory(
+      'tech-trivia',
+      'medium',
+    );
     if (questions.length > 0) {
       const question = questions[0];
       const response = await sessionService.submitResponse({
         sessionId: session.sessionId,
         questionId: question.questionId,
-        candidateResponse: 'This is my answer to the integration test question.',
+        candidateResponse:
+          'This is my answer to the integration test question.',
         communicationMode: 'text',
       });
 
@@ -147,8 +178,13 @@ describe('Session Flow Integration', () => {
         communicationMode: 'text',
       }),
     ]);
+    createdSessionIds.push(...sessions.map((s) => s.sessionId));
 
     expect(sessions).toHaveLength(3);
+    console.log(
+      'SessionIDs:',
+      sessions.map((s) => s.sessionId),
+    );
     expect(new Set(sessions.map((s) => s.sessionId)).size).toBe(3); // All unique
 
     // Verify each can be retrieved independently
@@ -159,4 +195,3 @@ describe('Session Flow Integration', () => {
     }
   });
 });
-

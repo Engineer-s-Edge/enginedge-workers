@@ -15,4 +15,3 @@ export class SubmitResponseDto {
   @IsBoolean()
   skipped?: boolean;
 }
-

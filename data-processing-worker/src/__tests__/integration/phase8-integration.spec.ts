@@ -1,14 +1,16 @@
 /**
  * Integration Tests - Phase 8
  * Simple integration tests to verify worker communication patterns
- * 
+ *
  * Test IDs: phase8-int-001 to phase8-int-010
  */
 
 describe('Phase 8 Integration Tests', () => {
   describe('phase8-int-001: Data Processing Worker service discovery', () => {
     it('should be accessible on port 3003', () => {
-      const expectedUrl = process.env.DATA_PROCESSING_WORKER_URL || 'http://data-processing-worker:3003';
+      const expectedUrl =
+        process.env.DATA_PROCESSING_WORKER_URL ||
+        'http://data-processing-worker:3003';
       expect(expectedUrl).toMatch(/3003$/);
     });
   });
@@ -125,9 +127,21 @@ describe('Phase 8 Integration Tests', () => {
   describe('phase8-int-008: Embedding model availability', () => {
     it('should list available embedding models', () => {
       const models = [
-        { provider: 'openai', model: 'text-embedding-3-small', dimensions: 1536 },
-        { provider: 'openai', model: 'text-embedding-3-large', dimensions: 3072 },
-        { provider: 'openai', model: 'text-embedding-ada-002', dimensions: 1536 },
+        {
+          provider: 'openai',
+          model: 'text-embedding-3-small',
+          dimensions: 1536,
+        },
+        {
+          provider: 'openai',
+          model: 'text-embedding-3-large',
+          dimensions: 3072,
+        },
+        {
+          provider: 'openai',
+          model: 'text-embedding-ada-002',
+          dimensions: 1536,
+        },
         { provider: 'google', model: 'text-embedding-004', dimensions: 768 },
         { provider: 'cohere', model: 'embed-english-v3.0', dimensions: 1024 },
         { provider: 'huggingface', model: 'all-MiniLM-L6-v2', dimensions: 384 },
@@ -146,7 +160,9 @@ describe('Phase 8 Integration Tests', () => {
       const metrics = ['cosine', 'euclidean', 'dotProduct'];
 
       metrics.forEach((metric) => {
-        expect(['cosine', 'euclidean', 'dotProduct', 'manhattan']).toContain(metric);
+        expect(['cosine', 'euclidean', 'dotProduct', 'manhattan']).toContain(
+          metric,
+        );
       });
     });
   });

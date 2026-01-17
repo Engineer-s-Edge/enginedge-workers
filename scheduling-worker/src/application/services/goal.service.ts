@@ -1,12 +1,18 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Goal, GoalPriority, GoalStatus, Milestone } from '../../domain/entities';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
+import {
+  Goal,
+  GoalPriority,
+  GoalStatus,
+  Milestone,
+} from '../../domain/entities';
 import { IGoalRepository } from '../ports/repositories.port';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 
 /**
  * Goal Application Service
- * 
+ *
  * Business logic for goal management
- * 
+ *
  * Application Layer - Orchestrates domain logic
  */
 @Injectable()
@@ -16,6 +22,8 @@ export class GoalService {
   constructor(
     @Inject('IGoalRepository')
     private readonly goalRepository: IGoalRepository,
+    @Optional()
+    private readonly metricsAdapter?: MetricsAdapter,
   ) {
     this.logger.log('GoalService initialized');
   }
@@ -57,6 +65,12 @@ export class GoalService {
 
     const saved = await this.goalRepository.save(goal);
     this.logger.log(`Created goal: ${saved.id}`);
+
+    // Record metrics
+    if (this.metricsAdapter) {
+      this.metricsAdapter.incrementGoalsCreated();
+    }
+
     return saved;
   }
 
@@ -84,7 +98,11 @@ export class GoalService {
   /**
    * Update goal progress
    */
-  async updateProgress(id: string, progress: number, note?: string): Promise<Goal> {
+  async updateProgress(
+    id: string,
+    progress: number,
+    note?: string,
+  ): Promise<Goal> {
     this.logger.log(`Updating progress for goal: ${id} to ${progress}%`);
 
     const goal = await this.goalRepository.findById(id);
@@ -99,6 +117,11 @@ export class GoalService {
       progressHistory: updated.progressHistory,
       updatedAt: updated.updatedAt,
     });
+
+    // Record metrics if goal is completed
+    if (this.metricsAdapter && updated.status === 'completed') {
+      this.metricsAdapter.incrementGoalsCompleted();
+    }
 
     this.logger.log(`Updated goal progress: ${id}`);
     return updated;
@@ -220,7 +243,10 @@ export class GoalService {
   /**
    * Get goals due soon
    */
-  async getGoalsDueSoon(userId: string, daysThreshold: number = 7): Promise<Goal[]> {
+  async getGoalsDueSoon(
+    userId: string,
+    daysThreshold: number = 7,
+  ): Promise<Goal[]> {
     return await this.goalRepository.findDueSoon(userId, daysThreshold);
   }
 
@@ -230,7 +256,7 @@ export class GoalService {
   async getUnmetGoals(userId: string): Promise<Goal[]> {
     const allGoals = await this.getUserGoals(userId);
     const activeGoals = await this.getActiveGoals(userId);
-    
+
     return activeGoals.filter((goal) => goal.shouldBeScheduled(allGoals));
   }
 

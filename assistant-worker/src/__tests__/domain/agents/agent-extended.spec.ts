@@ -1,6 +1,6 @@
 /**
  * Agent Extended Tests
- * 
+ *
  * Extended coverage tests for ReAct and Graph agents
  */
 
@@ -12,7 +12,10 @@ import { StateMachine } from '../../../domain/services/state-machine.service';
 import { ResponseParser } from '../../../domain/services/response-parser.service';
 import { PromptBuilder } from '../../../domain/services/prompt-builder.service';
 import { ILogger } from '@application/ports/logger.port';
-import { ILLMProvider, LLMResponse } from '@application/ports/llm-provider.port';
+import {
+  ILLMProvider,
+  LLMResponse,
+} from '@application/ports/llm-provider.port';
 
 describe('ReAct Agent - Extended Coverage', () => {
   let reactAgent: ReActAgent;
@@ -62,7 +65,7 @@ describe('ReAct Agent - Extended Coverage', () => {
         model: 'gpt-4',
         systemPrompt: 'Reason step by step',
         tools: ['calculator', 'search'],
-      }
+      },
     );
   });
 
@@ -77,7 +80,7 @@ describe('ReAct Agent - Extended Coverage', () => {
         promptBuilder,
         {
           systemPrompt: 'Custom system prompt',
-        }
+        },
       );
 
       await agent.execute('Test');
@@ -86,7 +89,8 @@ describe('ReAct Agent - Extended Coverage', () => {
 
     it('should respect max iterations configuration', async () => {
       mockLLMProvider.complete = jest.fn().mockResolvedValue({
-        content: 'Thought: Thinking\nAction: search\nAction Input: {"query": "test"}',
+        content:
+          'Thought: Thinking\nAction: search\nAction Input: {"query": "test"}',
         role: 'assistant',
       });
 
@@ -99,7 +103,7 @@ describe('ReAct Agent - Extended Coverage', () => {
         promptBuilder,
         {
           maxIterations: 2,
-        }
+        },
       );
 
       const result = await agent.execute('Test');
@@ -117,14 +121,14 @@ describe('ReAct Agent - Extended Coverage', () => {
         promptBuilder,
         {
           temperature: 0.9,
-        }
+        },
       );
 
       await agent.execute('Test');
       expect(mockLLMProvider.complete).toHaveBeenCalledWith(
         expect.objectContaining({
           temperature: 0.9,
-        })
+        }),
       );
     });
   });
@@ -147,12 +151,14 @@ describe('ReAct Agent - Extended Coverage', () => {
         callCount++;
         if (callCount === 1) {
           return {
-            content: 'Thought: Need more info\nAction: search\nAction Input: {"query": "test"}',
+            content:
+              'Thought: Need more info\nAction: search\nAction Input: {"query": "test"}',
             role: 'assistant',
           };
         } else if (callCount === 2) {
           return {
-            content: 'Thought: Now I can answer\nFinal Answer: Based on search, the answer is X',
+            content:
+              'Thought: Now I can answer\nFinal Answer: Based on search, the answer is X',
             role: 'assistant',
           };
         }
@@ -168,7 +174,8 @@ describe('ReAct Agent - Extended Coverage', () => {
       mockLLMProvider.complete = jest
         .fn()
         .mockResolvedValueOnce({
-          content: 'Thought: Analyzing\nAction: calculator\nAction Input: {"op": "add", "a": 2, "b": 2}',
+          content:
+            'Thought: Analyzing\nAction: calculator\nAction Input: {"op": "add", "a": 2, "b": 2}',
           role: 'assistant',
         })
         .mockResolvedValueOnce({
@@ -176,7 +183,7 @@ describe('ReAct Agent - Extended Coverage', () => {
           role: 'assistant',
         });
 
-      const result =       await reactAgent.execute('Calculate 2+2');
+      const result = await reactAgent.execute('Calculate 2+2');
       expect(result.metadata?.thoughts).toBeDefined();
       expect(result.metadata?.actions).toBeDefined();
       expect(result.metadata?.observations).toBeDefined();
@@ -187,7 +194,8 @@ describe('ReAct Agent - Extended Coverage', () => {
       mockLLMProvider.complete = jest
         .fn()
         .mockResolvedValueOnce({
-          content: 'Thought: Calculate\nAction: calculator\nAction Input: {"invalid": true}',
+          content:
+            'Thought: Calculate\nAction: calculator\nAction Input: {"invalid": true}',
           role: 'assistant',
         })
         .mockResolvedValueOnce({
@@ -208,10 +216,12 @@ describe('ReAct Agent - Extended Coverage', () => {
 
       const execution = reactAgent.execute('Test');
       // State should change during execution
-      
+
       await execution;
       const finalState = reactAgent.getState();
-      expect(['complete', 'processing', 'error']).toContain(finalState.getCurrentState());
+      expect(['complete', 'processing', 'error']).toContain(
+        finalState.getCurrentState(),
+      );
     });
 
     it('should track execution steps', async () => {
@@ -222,13 +232,14 @@ describe('ReAct Agent - Extended Coverage', () => {
 
     it('should provide ReAct-specific state', async () => {
       mockLLMProvider.complete = jest.fn().mockResolvedValue({
-        content: 'Thought: Thinking\nAction: search\nAction Input: {"query": "test"}\nFinal Answer: Done',
+        content:
+          'Thought: Thinking\nAction: search\nAction Input: {"query": "test"}\nFinal Answer: Done',
         role: 'assistant',
       });
 
       await reactAgent.execute('Test');
       const reactState = reactAgent.getReActState();
-      
+
       expect(reactState).toHaveProperty('thoughtCount');
       expect(reactState).toHaveProperty('actionCount');
       expect(reactState).toHaveProperty('observationCount');
@@ -238,7 +249,7 @@ describe('ReAct Agent - Extended Coverage', () => {
   describe('Streaming', () => {
     it('should stream execution updates', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of reactAgent.stream('Test')) {
         chunks.push(chunk);
       }
@@ -271,7 +282,7 @@ describe('ReAct Agent - Extended Coverage', () => {
 
     it('should stream thought process', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of reactAgent.stream('Explain your reasoning')) {
         chunks.push(chunk);
       }
@@ -303,7 +314,9 @@ describe('ReAct Agent - Extended Coverage', () => {
     });
 
     it('should emit error event on failure', async () => {
-      mockLLMProvider.complete = jest.fn().mockRejectedValue(new Error('Test error'));
+      mockLLMProvider.complete = jest
+        .fn()
+        .mockRejectedValue(new Error('Test error'));
 
       const eventPromise = new Promise((resolve) => {
         reactAgent.on('agent:error', resolve);
@@ -368,7 +381,7 @@ describe('Graph Agent - Extended Coverage', () => {
         allowParallel: true,
         temperature: 0.5,
         model: 'gpt-4',
-      }
+      },
     );
   });
 
@@ -379,8 +392,18 @@ describe('Graph Agent - Extended Coverage', () => {
         name: 'Linear Workflow',
         nodes: [
           { id: 'start', type: NodeType.START, name: 'Start', config: {} },
-          { id: 'task1', type: NodeType.TASK, name: 'Task 1', config: { prompt: 'Do task 1' } },
-          { id: 'task2', type: NodeType.TASK, name: 'Task 2', config: { prompt: 'Do task 2' } },
+          {
+            id: 'task1',
+            type: NodeType.TASK,
+            name: 'Task 1',
+            config: { prompt: 'Do task 1' },
+          },
+          {
+            id: 'task2',
+            type: NodeType.TASK,
+            name: 'Task 2',
+            config: { prompt: 'Do task 2' },
+          },
           { id: 'end', type: NodeType.END, name: 'End', config: {} },
         ],
         edges: [
@@ -403,7 +426,12 @@ describe('Graph Agent - Extended Coverage', () => {
         name: 'Branching Workflow',
         nodes: [
           { id: 'start', type: NodeType.START, name: 'Start', config: {} },
-          { id: 'decision', type: NodeType.DECISION, name: 'Decision', config: { condition: 'true' } },
+          {
+            id: 'decision',
+            type: NodeType.DECISION,
+            name: 'Decision',
+            config: { condition: 'true' },
+          },
           { id: 'branch1', type: NodeType.TASK, name: 'Branch 1', config: {} },
           { id: 'branch2', type: NodeType.TASK, name: 'Branch 2', config: {} },
           { id: 'end', type: NodeType.END, name: 'End', config: {} },
@@ -429,10 +457,20 @@ describe('Graph Agent - Extended Coverage', () => {
         name: 'Parallel Workflow',
         nodes: [
           { id: 'start', type: NodeType.START, name: 'Start', config: {} },
-          { id: 'split', type: NodeType.PARALLEL_SPLIT, name: 'Split', config: {} },
+          {
+            id: 'split',
+            type: NodeType.PARALLEL_SPLIT,
+            name: 'Split',
+            config: {},
+          },
           { id: 'task1', type: NodeType.TASK, name: 'Task 1', config: {} },
           { id: 'task2', type: NodeType.TASK, name: 'Task 2', config: {} },
-          { id: 'join', type: NodeType.PARALLEL_JOIN, name: 'Join', config: {} },
+          {
+            id: 'join',
+            type: NodeType.PARALLEL_JOIN,
+            name: 'Join',
+            config: {},
+          },
           { id: 'end', type: NodeType.END, name: 'End', config: {} },
         ],
         edges: [
@@ -476,7 +514,12 @@ describe('Graph Agent - Extended Coverage', () => {
         name: 'Task Test',
         nodes: [
           { id: 'start', type: NodeType.START, name: 'Start', config: {} },
-          { id: 'task', type: NodeType.TASK, name: 'Task', config: { prompt: 'Execute task' } },
+          {
+            id: 'task',
+            type: NodeType.TASK,
+            name: 'Task',
+            config: { prompt: 'Execute task' },
+          },
           { id: 'end', type: NodeType.END, name: 'End', config: {} },
         ],
         edges: [
@@ -498,7 +541,12 @@ describe('Graph Agent - Extended Coverage', () => {
         name: 'Decision Test',
         nodes: [
           { id: 'start', type: NodeType.START, name: 'Start', config: {} },
-          { id: 'decision', type: NodeType.DECISION, name: 'Decision', config: { condition: '1 === 1' } },
+          {
+            id: 'decision',
+            type: NodeType.DECISION,
+            name: 'Decision',
+            config: { condition: '1 === 1' },
+          },
           { id: 'end', type: NodeType.END, name: 'End', config: {} },
         ],
         edges: [
@@ -534,15 +582,15 @@ describe('Graph Agent - Extended Coverage', () => {
 
       await graphAgent.execute(JSON.stringify(graph));
       const graphState = graphAgent.getGraphState();
-      
-      expect(graphState.executedNodes).toBeGreaterThan(0);
+
+      expect(graphState.executedNodes?.length ?? 0).toBeGreaterThan(0);
       expect(graphState.graphDefinition).toBeDefined();
     });
 
     it('should provide graph definition in state', async () => {
       await graphAgent.execute('Test');
       const graphState = graphAgent.getGraphState();
-      
+
       expect(graphState.graphDefinition).toBeDefined();
       expect(graphState.graphDefinition?.nodes).toBeDefined();
     });
@@ -550,7 +598,9 @@ describe('Graph Agent - Extended Coverage', () => {
 
   describe('Error Handling', () => {
     it('should handle node execution failures', async () => {
-      mockLLMProvider.complete = jest.fn().mockRejectedValue(new Error('Node failed'));
+      mockLLMProvider.complete = jest
+        .fn()
+        .mockRejectedValue(new Error('Node failed'));
 
       const graph = {
         id: 'fail',
@@ -583,7 +633,7 @@ describe('Graph Agent - Extended Coverage', () => {
   describe('Streaming', () => {
     it('should stream graph execution', async () => {
       const chunks: string[] = [];
-      
+
       for await (const chunk of graphAgent.stream('Test')) {
         chunks.push(chunk);
       }

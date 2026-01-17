@@ -15,17 +15,21 @@ import { StructuredLogger } from './adapters/logging/structured-logger';
 import { ToolValidator } from './adapters/tool-validator.adapter';
 import { ToolCache } from './adapters/tool-cache.adapter';
 import { ToolMetrics } from './adapters/tool-metrics.adapter';
-
+import { CacheModule } from './adapters/cache/cache.module';
+import { MongoDbModule } from './adapters/memory/mongodb.module';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
  * Phase 5: Advanced features ⏳
- * 
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
@@ -36,13 +40,15 @@ import { ToolMetrics } from './adapters/tool-metrics.adapter';
     ToolsInfrastructureModule, // Provides all tool implementations
     CommandInfrastructureModule, // Provides command processing controller and services
     HealthModule, // Provides health check controller and service
+    CacheModule, // Provides RedisCacheAdapter for caching
+    MongoDbModule, // Provides MongoDB client and database connection
   ],
   controllers: [],
   providers: [
     // Logger provider - available globally via DI
     {
       provide: 'ILogger',
-      useFactory: () => new StructuredLogger('agent-tool-worker'),
+      useClass: KafkaLoggerAdapter,
     },
     // Tool Validator provider - available globally via DI
     {
@@ -60,12 +66,17 @@ import { ToolMetrics } from './adapters/tool-metrics.adapter';
       useClass: ToolMetrics,
     },
     MetricsAdapter,
+
+    // Global filter/interceptor for DI resolution
+    GlobalExceptionFilter,
+    LoggingInterceptor,
   ],
   exports: [
     'ILogger',
     'IToolValidator',
     'IToolCache',
     'IToolMetrics',
+    CacheModule, // Re-export CacheModule to make RedisCacheAdapter available globally
   ],
 })
 export class InfrastructureModule {}

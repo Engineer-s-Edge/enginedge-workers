@@ -6,7 +6,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { TodoistRetriever, TodoistArgs } from '@infrastructure/tools/retrievers/todoist.retriever';
+import {
+  TodoistRetriever,
+  TodoistArgs,
+} from '@infrastructure/tools/retrievers/todoist.retriever';
 import axios from 'axios';
 
 // Mock axios
@@ -48,8 +51,12 @@ describe('TodoistRetriever', () => {
     it('should have error events configured', () => {
       expect(retriever.errorEvents).toBeDefined();
       expect(retriever.errorEvents.length).toBeGreaterThan(0);
-      expect(retriever.errorEvents.some(e => e.name === 'todoist-auth-failed')).toBe(true);
-      expect(retriever.errorEvents.some(e => e.name === 'todoist-rate-limit')).toBe(true);
+      expect(
+        retriever.errorEvents.some((e) => e.name === 'todoist-auth-failed'),
+      ).toBe(true);
+      expect(
+        retriever.errorEvents.some((e) => e.name === 'todoist-rate-limit'),
+      ).toBe(true);
     });
 
     it('should have correct retrieval type and caching settings', () => {
@@ -62,32 +69,45 @@ describe('TodoistRetriever', () => {
     it('should reject max_results greater than 200', async () => {
       const args: TodoistArgs = {
         query: 'test',
-        max_results: 201
+        max_results: 201,
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('max_results must be between 1 and 200');
+      expect(result.error!.message).toContain(
+        'max_results must be between 1 and 200',
+      );
     });
 
     it('should reject max_results less than 1', async () => {
       const args: TodoistArgs = {
         query: 'test',
-        max_results: 0
+        max_results: 0,
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('max_results must be between 1 and 200');
+      expect(result.error!.message).toContain(
+        'max_results must be between 1 and 200',
+      );
     });
 
     it('should reject negative offset', async () => {
       const args: TodoistArgs = {
         query: 'test',
-        offset: -1
+        offset: -1,
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('offset must be non-negative');
     });
@@ -95,25 +115,33 @@ describe('TodoistRetriever', () => {
     it('should reject invalid priority values', async () => {
       const args: TodoistArgs = {
         query: 'test',
-        priority: [5]
+        priority: [5],
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('Priority levels must be between 1 and 4');
+      expect(result.error!.message).toContain(
+        'Priority levels must be between 1 and 4',
+      );
     });
 
     it('should accept valid max_results', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
         query: 'test',
-        max_results: 50
+        max_results: 50,
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
       expect(result.success).toBe(true);
     });
   });
@@ -134,17 +162,20 @@ describe('TodoistRetriever', () => {
               creator_id: 'user-1',
               order: 1,
               comment_count: 0,
-              url: 'https://todoist.com/app/task/task-123'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/task-123',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'groceries'
+        query: 'groceries',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_results).toBe(1);
@@ -154,12 +185,12 @@ describe('TodoistRetriever', () => {
     it('should filter tasks by project', async () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
-          tasks: []
-        }
+          tasks: [],
+        },
       });
 
       const args: TodoistArgs = {
-        project_id: 'proj-123'
+        project_id: 'proj-123',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -184,17 +215,20 @@ describe('TodoistRetriever', () => {
               creator_id: 'user-1',
               order: 1,
               comment_count: 0,
-              url: 'https://todoist.com/app/task/urgent-task'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/urgent-task',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        priority_level: 'urgent'
+        priority_level: 'urgent',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.tasks[0].priority_label).toBe('urgent');
@@ -202,11 +236,11 @@ describe('TodoistRetriever', () => {
 
     it('should filter tasks by specific priority values', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
-        priority: [1, 3]
+        priority: [1, 3],
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -232,17 +266,20 @@ describe('TodoistRetriever', () => {
               creator_id: 'user-1',
               order: 1,
               comment_count: 0,
-              url: 'https://todoist.com/app/task/task-comp'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/task-comp',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        status: 'completed'
+        status: 'completed',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.tasks[0].is_completed).toBe(true);
@@ -264,14 +301,14 @@ describe('TodoistRetriever', () => {
               creator_id: 'user-1',
               order: 1,
               comment_count: 0,
-              url: 'https://todoist.com/app/task/task-due'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/task-due',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        due_date: '2023-12-25'
+        due_date: '2023-12-25',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -283,12 +320,12 @@ describe('TodoistRetriever', () => {
 
     it('should filter by due date range', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
         due_after: '2023-12-01',
-        due_before: '2023-12-31'
+        due_before: '2023-12-31',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -303,12 +340,12 @@ describe('TodoistRetriever', () => {
   describe('Sorting', () => {
     it('should sort by due date ascending', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
         sort_by: 'due_date',
-        sort_order: 'asc'
+        sort_order: 'asc',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -321,12 +358,12 @@ describe('TodoistRetriever', () => {
 
     it('should sort by priority descending', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
         sort_by: 'priority',
-        sort_order: 'desc'
+        sort_order: 'desc',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -341,11 +378,11 @@ describe('TodoistRetriever', () => {
   describe('Pagination', () => {
     it('should support max_results limit', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
-        max_results: 50
+        max_results: 50,
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -357,11 +394,11 @@ describe('TodoistRetriever', () => {
 
     it('should support offset pagination', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
-        offset: 20
+        offset: 20,
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -377,10 +414,13 @@ describe('TodoistRetriever', () => {
       delete process.env.TODOIST_API_TOKEN;
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('token');
@@ -391,15 +431,18 @@ describe('TodoistRetriever', () => {
         isAxiosError: true,
         response: {
           status: 401,
-          data: { error: { message: 'Invalid token' } }
-        }
+          data: { error: { message: 'Invalid token' } },
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('authentication failed');
@@ -410,15 +453,18 @@ describe('TodoistRetriever', () => {
         isAxiosError: true,
         response: {
           status: 403,
-          data: { error: { message: 'Permission denied' } }
-        }
+          data: { error: { message: 'Permission denied' } },
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('authentication failed');
@@ -431,15 +477,18 @@ describe('TodoistRetriever', () => {
         isAxiosError: true,
         response: {
           status: 404,
-          data: { error: { message: 'Task not found' } }
-        }
+          data: { error: { message: 'Task not found' } },
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('not found');
@@ -452,15 +501,18 @@ describe('TodoistRetriever', () => {
         isAxiosError: true,
         response: {
           status: 429,
-          data: { error: { message: 'Rate limit exceeded' } }
-        }
+          data: { error: { message: 'Rate limit exceeded' } },
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('rate limit exceeded');
@@ -473,15 +525,18 @@ describe('TodoistRetriever', () => {
         isAxiosError: true,
         response: {
           status: 400,
-          data: { error: { message: 'Invalid filter format' } }
-        }
+          data: { error: { message: 'Invalid filter format' } },
+        },
       });
 
       const args: TodoistArgs = {
-        filter: 'invalid_filter'
+        filter: 'invalid_filter',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('API error');
@@ -491,14 +546,17 @@ describe('TodoistRetriever', () => {
   describe('Error Handling - Network', () => {
     it('should handle network timeout', async () => {
       mockedAxios.get.mockRejectedValueOnce(
-        new Error('timeout of 30000ms exceeded')
+        new Error('timeout of 30000ms exceeded'),
       );
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('timeout');
@@ -506,14 +564,17 @@ describe('TodoistRetriever', () => {
 
     it('should handle ECONNREFUSED network error', async () => {
       mockedAxios.get.mockRejectedValueOnce(
-        new Error('ECONNREFUSED: Connection refused')
+        new Error('ECONNREFUSED: Connection refused'),
       );
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Network connectivity');
@@ -538,22 +599,25 @@ describe('TodoistRetriever', () => {
                 date: '2023-12-25',
                 datetime: '2023-12-25T10:00:00Z',
                 string: 'Monday Dec 25',
-                is_recurring: false
+                is_recurring: false,
               },
               created_at: '2023-12-01T10:00:00Z',
               creator_id: 'user-1',
               comment_count: 3,
-              url: 'https://todoist.com/app/task/task-trans'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/task-trans',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'Complete'
+        query: 'Complete',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       const task = result.output!.tasks[0];
@@ -571,30 +635,69 @@ describe('TodoistRetriever', () => {
         data: {
           tasks: [
             {
-              id: 'p1', project_id: 'p', content: 'P1', is_completed: false, labels: [], priority: 1,
-              created_at: '2023-12-01T10:00:00Z', creator_id: 'u1', order: 1, comment_count: 0, url: 'https://todoist.com'
+              id: 'p1',
+              project_id: 'p',
+              content: 'P1',
+              is_completed: false,
+              labels: [],
+              priority: 1,
+              created_at: '2023-12-01T10:00:00Z',
+              creator_id: 'u1',
+              order: 1,
+              comment_count: 0,
+              url: 'https://todoist.com',
             },
             {
-              id: 'p2', project_id: 'p', content: 'P2', is_completed: false, labels: [], priority: 2,
-              created_at: '2023-12-01T10:00:00Z', creator_id: 'u1', order: 2, comment_count: 0, url: 'https://todoist.com'
+              id: 'p2',
+              project_id: 'p',
+              content: 'P2',
+              is_completed: false,
+              labels: [],
+              priority: 2,
+              created_at: '2023-12-01T10:00:00Z',
+              creator_id: 'u1',
+              order: 2,
+              comment_count: 0,
+              url: 'https://todoist.com',
             },
             {
-              id: 'p3', project_id: 'p', content: 'P3', is_completed: false, labels: [], priority: 3,
-              created_at: '2023-12-01T10:00:00Z', creator_id: 'u1', order: 3, comment_count: 0, url: 'https://todoist.com'
+              id: 'p3',
+              project_id: 'p',
+              content: 'P3',
+              is_completed: false,
+              labels: [],
+              priority: 3,
+              created_at: '2023-12-01T10:00:00Z',
+              creator_id: 'u1',
+              order: 3,
+              comment_count: 0,
+              url: 'https://todoist.com',
             },
             {
-              id: 'p4', project_id: 'p', content: 'P4', is_completed: false, labels: [], priority: 4,
-              created_at: '2023-12-01T10:00:00Z', creator_id: 'u1', order: 4, comment_count: 0, url: 'https://todoist.com'
-            }
-          ]
-        }
+              id: 'p4',
+              project_id: 'p',
+              content: 'P4',
+              is_completed: false,
+              labels: [],
+              priority: 4,
+              created_at: '2023-12-01T10:00:00Z',
+              creator_id: 'u1',
+              order: 4,
+              comment_count: 0,
+              url: 'https://todoist.com',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.tasks[0].priority_label).toBe('low');
@@ -619,17 +722,20 @@ describe('TodoistRetriever', () => {
               creator_id: 'user-1',
               order: 1,
               comment_count: 0,
-              url: 'https://todoist.com/app/task/task-sec'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/task-sec',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.tasks[0].section_id).toBe('sec-123');
@@ -637,14 +743,17 @@ describe('TodoistRetriever', () => {
 
     it('should handle empty results', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
-        query: 'nonexistent'
+        query: 'nonexistent',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.total_results).toBe(0);
@@ -666,23 +775,26 @@ describe('TodoistRetriever', () => {
               priority: 2,
               due: {
                 date: '2023-12-25',
-                is_recurring: true
+                is_recurring: true,
               },
               created_at: '2023-12-01T10:00:00Z',
               creator_id: 'user-1',
               order: 1,
               comment_count: 0,
-              url: 'https://todoist.com/app/task/recurring'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/recurring',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'weekly'
+        query: 'weekly',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       expect(result.output!.tasks[0].is_recurring).toBe(true);
@@ -690,11 +802,11 @@ describe('TodoistRetriever', () => {
 
     it('should apply custom Todoist filter', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
-        filter: '@work & !assigned'
+        filter: '@work & !assigned',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -706,13 +818,13 @@ describe('TodoistRetriever', () => {
 
     it('should combine multiple filters', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
         project_id: 'proj-1',
         priority_level: 'high',
-        status: 'active'
+        status: 'active',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -726,11 +838,11 @@ describe('TodoistRetriever', () => {
 
     it('should handle default pagination limits', async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: { tasks: [] }
+        data: { tasks: [] },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
       await retriever.execute({ name: 'todoist-retriever', args });
@@ -756,17 +868,20 @@ describe('TodoistRetriever', () => {
               creator_id: 'user-1',
               order: 1,
               comment_count: 2,
-              url: 'https://todoist.com/app/task/task-labels'
-            }
-          ]
-        }
+              url: 'https://todoist.com/app/task/task-labels',
+            },
+          ],
+        },
       });
 
       const args: TodoistArgs = {
-        query: 'test'
+        query: 'test',
       };
 
-      const result = await retriever.execute({ name: 'todoist-retriever', args });
+      const result = await retriever.execute({
+        name: 'todoist-retriever',
+        args,
+      });
 
       expect(result.success).toBe(true);
       const labels = result.output!.tasks[0].labels;

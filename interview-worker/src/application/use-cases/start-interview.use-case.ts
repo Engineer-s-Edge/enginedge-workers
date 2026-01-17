@@ -75,4 +75,3 @@ export class StartInterviewUseCase {
     return session;
   }
 }
-

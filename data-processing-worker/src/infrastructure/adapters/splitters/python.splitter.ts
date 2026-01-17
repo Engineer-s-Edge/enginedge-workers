@@ -38,7 +38,7 @@ export class PythonSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -76,6 +76,6 @@ export class PythonSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

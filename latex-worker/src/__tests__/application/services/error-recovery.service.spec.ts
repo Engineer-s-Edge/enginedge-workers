@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { 
-  ErrorRecoveryService, 
-  ErrorCategory, 
-  ErrorSeverity 
+import {
+  ErrorRecoveryService,
+  ErrorCategory,
+  ErrorSeverity,
 } from '../../../application/services/error-recovery.service';
 
 describe('ErrorRecoveryService', () => {
@@ -26,10 +26,10 @@ l.10 The command here
       const result = service.parseErrors(log);
 
       expect(result.errors.length).toBeGreaterThanOrEqual(1);
-      
+
       // Should find the undefined command error
-      const hasUndefinedCmd = result.errors.some(e => 
-        e.category === ErrorCategory.UNDEFINED_COMMAND
+      const hasUndefinedCmd = result.errors.some(
+        (e) => e.category === ErrorCategory.UNDEFINED_COMMAND,
       );
       expect(hasUndefinedCmd).toBe(true);
     });
@@ -205,7 +205,9 @@ Transcript written on document.log.
 
   describe('categorizeError', () => {
     it('should categorize undefined command', () => {
-      const category = service.categorizeError('Undefined control sequence. \\badcmd');
+      const category = service.categorizeError(
+        'Undefined control sequence. \\badcmd',
+      );
       expect(category).toBe(ErrorCategory.UNDEFINED_COMMAND);
     });
 
@@ -227,8 +229,10 @@ Transcript written on document.log.
 
   describe('getSuggestion', () => {
     it('should suggest fix for undefined command', () => {
-      const suggestion = service.getSuggestion('Undefined control sequence. \\mycommand');
-      
+      const suggestion = service.getSuggestion(
+        'Undefined control sequence. \\mycommand',
+      );
+
       expect(suggestion).toBeDefined();
       expect(suggestion).toContain('mycommand');
       expect(suggestion).toContain('not defined');
@@ -236,7 +240,7 @@ Transcript written on document.log.
 
     it('should suggest fix for missing package', () => {
       const suggestion = service.getSuggestion("File `geometry.sty' not found");
-      
+
       expect(suggestion).toBeDefined();
       expect(suggestion).toContain('geometry.sty');
       expect(suggestion).toContain('not installed');
@@ -244,7 +248,7 @@ Transcript written on document.log.
 
     it('should suggest fix for math mode error', () => {
       const suggestion = service.getSuggestion('Missing $ inserted');
-      
+
       expect(suggestion).toBeDefined();
       expect(suggestion).toContain('math mode');
     });
@@ -334,8 +338,9 @@ l.10 \\frac{1}{2}
     });
 
     it('should limit errors shown per category', () => {
-      const log = Array.from({ length: 5 }, (_, i) => 
-        `! Missing $ inserted.\nl.${i + 1} \\frac{${i}}{${i + 1}}`
+      const log = Array.from(
+        { length: 5 },
+        (_, i) => `! Missing $ inserted.\nl.${i + 1} \\frac{${i}}{${i + 1}}`,
       ).join('\n');
 
       const result = service.parseErrors(log);
@@ -459,7 +464,7 @@ LaTeX2e <2021-11-15>
 ! Missing $ inserted.
 l.15 The formula is \\frac
                                {test}.
-? 
+?
 ! Emergency stop.
 l.15 The formula is \\frac
                                {test}.
@@ -471,7 +476,9 @@ Transcript written on document.log.
 
       expect(result.errors.length).toBeGreaterThan(0);
       // Should find math mode error
-      expect(result.errors.some(e => e.category === ErrorCategory.MATH_MODE)).toBe(true);
+      expect(
+        result.errors.some((e) => e.category === ErrorCategory.MATH_MODE),
+      ).toBe(true);
     });
   });
 });

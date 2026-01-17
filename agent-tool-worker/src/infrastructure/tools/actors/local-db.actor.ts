@@ -4,12 +4,23 @@
  * Provides local database operations for data persistence and querying.
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { BaseActor } from '@domain/tools/base/base-actor';
-import { ActorConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ActorConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput, ActorCategory } from '@domain/entities/tool.entities';
+import { Db } from 'mongodb';
 
-export type DatabaseOperation = 'create' | 'read' | 'update' | 'delete' | 'query' | 'list-tables' | 'create-table';
+export type DatabaseOperation =
+  | 'create'
+  | 'read'
+  | 'update'
+  | 'delete'
+  | 'query'
+  | 'list-tables'
+  | 'create-table';
 
 export interface DatabaseRecord {
   id: string;
@@ -40,12 +51,15 @@ export interface DatabaseArgs {
   // For create-table
   schema?: {
     table: string;
-    fields: Record<string, {
-      type: 'string' | 'number' | 'boolean' | 'date' | 'json';
-      required?: boolean;
-      unique?: boolean;
-      default?: unknown;
-    }>;
+    fields: Record<
+      string,
+      {
+        type: 'string' | 'number' | 'boolean' | 'date' | 'json';
+        required?: boolean;
+        unique?: boolean;
+        default?: unknown;
+      }
+    >;
     primaryKey?: string;
   };
   [key: string]: unknown; // Index signature for compatibility
@@ -67,23 +81,43 @@ export interface DatabaseOutput extends ToolOutput {
 @Injectable()
 export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
   readonly name = 'local-db-actor';
-  readonly description = 'Provides local database operations for data persistence and querying';
+  readonly description =
+    'Provides local database operations for data persistence and querying';
 
   readonly errorEvents: ErrorEvent[];
 
   readonly metadata: ActorConfig;
 
-  // In-memory storage for tables and records (in production, this would be a real database)
-  private tables: Map<string, Map<string, DatabaseRecord>> = new Map();
+  private readonly db: Db;
   private tableSchemas: Map<string, DatabaseArgs['schema']> = new Map();
 
-  constructor() {
+  constructor(@Inject('MONGODB_DB') db: Db) {
     const errorEvents = [
-      new ErrorEvent('TableNotFound', 'The specified table was not found', false),
-      new ErrorEvent('RecordNotFound', 'The specified record was not found', false),
-      new ErrorEvent('ValidationError', 'Invalid database operation data provided', false),
-      new ErrorEvent('TableExists', 'A table with this name already exists', false),
-      new ErrorEvent('SchemaValidationError', 'Data does not match table schema', false),
+      new ErrorEvent(
+        'TableNotFound',
+        'The specified table was not found',
+        false,
+      ),
+      new ErrorEvent(
+        'RecordNotFound',
+        'The specified record was not found',
+        false,
+      ),
+      new ErrorEvent(
+        'ValidationError',
+        'Invalid database operation data provided',
+        false,
+      ),
+      new ErrorEvent(
+        'TableExists',
+        'A table with this name already exists',
+        false,
+      ),
+      new ErrorEvent(
+        'SchemaValidationError',
+        'Data does not match table schema',
+        false,
+      ),
     ];
 
     const metadata = new ActorConfig(
@@ -97,24 +131,32 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
         properties: {
           operation: {
             type: 'string',
-            enum: ['create', 'read', 'update', 'delete', 'query', 'list-tables', 'create-table'],
-            description: 'The database operation to perform'
+            enum: [
+              'create',
+              'read',
+              'update',
+              'delete',
+              'query',
+              'list-tables',
+              'create-table',
+            ],
+            description: 'The database operation to perform',
           },
           table: {
             type: 'string',
             minLength: 1,
             maxLength: 100,
-            description: 'Table name (required for most operations)'
+            description: 'Table name (required for most operations)',
           },
           id: {
             type: 'string',
             minLength: 1,
             maxLength: 100,
-            description: 'Record ID (required for read/update/delete)'
+            description: 'Record ID (required for read/update/delete)',
           },
           data: {
             type: 'object',
-            description: 'Data to store (required for create/update)'
+            description: 'Data to store (required for create/update)',
           },
           query: {
             type: 'object',
@@ -124,25 +166,25 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
               where: { type: 'object' },
               select: {
                 type: 'array',
-                items: { type: 'string' }
+                items: { type: 'string' },
               },
               limit: {
                 type: 'number',
                 minimum: 1,
-                maximum: 1000
+                maximum: 1000,
               },
               offset: {
                 type: 'number',
-                minimum: 0
+                minimum: 0,
               },
               orderBy: {
                 type: 'object',
                 properties: {
                   field: { type: 'string' },
-                  direction: { type: 'string', enum: ['asc', 'desc'] }
-                }
-              }
-            }
+                  direction: { type: 'string', enum: ['asc', 'desc'] },
+                },
+              },
+            },
           },
           schema: {
             type: 'object',
@@ -155,18 +197,21 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
                   '.*': {
                     type: 'object',
                     properties: {
-                      type: { type: 'string', enum: ['string', 'number', 'boolean', 'date', 'json'] },
+                      type: {
+                        type: 'string',
+                        enum: ['string', 'number', 'boolean', 'date', 'json'],
+                      },
                       required: { type: 'boolean' },
                       unique: { type: 'boolean' },
-                      default: {}
-                    }
-                  }
-                }
+                      default: {},
+                    },
+                  },
+                },
               },
-              primaryKey: { type: 'string' }
-            }
-          }
-        }
+              primaryKey: { type: 'string' },
+            },
+          },
+        },
       },
       {
         type: 'object',
@@ -180,20 +225,20 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
               table: { type: 'string' },
               data: { type: 'object' },
               createdAt: { type: 'string', format: 'date-time' },
-              updatedAt: { type: 'string', format: 'date-time' }
-            }
+              updatedAt: { type: 'string', format: 'date-time' },
+            },
           },
           records: {
             type: 'array',
-            items: { $ref: '#/properties/record' }
+            items: { $ref: '#/properties/record' },
           },
           tables: {
             type: 'array',
-            items: { type: 'string' }
+            items: { type: 'string' },
           },
           total: { type: 'number' },
-          tableCreated: { type: 'boolean' }
-        }
+          tableCreated: { type: 'boolean' },
+        },
       },
       [
         {
@@ -204,15 +249,15 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
               name: { type: 'string', required: true },
               email: { type: 'string', required: true, unique: true },
               age: { type: 'number' },
-              active: { type: 'boolean', default: true }
+              active: { type: 'boolean', default: true },
             },
-            primaryKey: 'email'
-          }
+            primaryKey: 'email',
+          },
         },
         {
           operation: 'create',
           table: 'users',
-          data: { name: 'John Doe', email: 'john@example.com', age: 30 }
+          data: { name: 'John Doe', email: 'john@example.com', age: 30 },
         },
         {
           operation: 'query',
@@ -221,23 +266,24 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
             where: { active: true },
             select: ['name', 'email'],
             limit: 10,
-            orderBy: { field: 'name', direction: 'asc' }
-          }
+            orderBy: { field: 'name', direction: 'asc' },
+          },
         },
         {
           operation: 'update',
           table: 'users',
           id: 'john@example.com',
-          data: { age: 31 }
-        }
+          data: { age: 31 },
+        },
       ],
       ActorCategory.INTERNAL_SANDBOX,
-      false
+      false,
     );
 
     super(metadata, errorEvents);
     this.metadata = metadata;
     this.errorEvents = errorEvents;
+    this.db = db;
   }
 
   get category(): ActorCategory {
@@ -251,67 +297,94 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
   protected async act(args: DatabaseArgs): Promise<DatabaseOutput> {
     switch (args.operation) {
       case 'create':
-        return this.createRecord(args);
+        return await this.createRecord(args);
       case 'read':
-        return this.readRecord(args);
+        return await this.readRecord(args);
       case 'update':
-        return this.updateRecord(args);
+        return await this.updateRecord(args);
       case 'delete':
-        return this.deleteRecord(args);
+        return await this.deleteRecord(args);
       case 'query':
-        return this.queryRecords(args);
+        return await this.queryRecords(args);
       case 'list-tables':
-        return this.listTables();
+        return await this.listTables();
       case 'create-table':
-        return this.createTable(args);
+        return await this.createTable(args);
       default:
-        throw Object.assign(new Error(`Unsupported operation: ${args.operation}`), {
-          name: 'ValidationError'
-        });
+        throw Object.assign(
+          new Error(`Unsupported operation: ${args.operation}`),
+          {
+            name: 'ValidationError',
+          },
+        );
     }
   }
 
-  private createTable(args: DatabaseArgs): DatabaseOutput {
+  private async createTable(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.schema) {
       throw Object.assign(new Error('Schema is required for table creation'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
     const { table, fields } = args.schema;
 
-    if (this.tables.has(table)) {
+    // Check if collection already exists
+    const collections = await this.db
+      .listCollections({ name: table })
+      .toArray();
+    if (collections.length > 0) {
       throw Object.assign(new Error(`Table '${table}' already exists`), {
-        name: 'TableExists'
+        name: 'TableExists',
       });
     }
 
     // Validate schema
     if (!fields || Object.keys(fields).length === 0) {
       throw Object.assign(new Error('Table must have at least one field'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
+    // Create collection (MongoDB table)
+    await this.db.createCollection(table);
+
     // Store schema
     this.tableSchemas.set(table, args.schema);
-    this.tables.set(table, new Map());
+
+    // Create indexes for unique fields
+    const indexSpecs: any[] = [];
+    for (const [fieldName, fieldDef] of Object.entries(fields)) {
+      if (fieldDef.unique) {
+        indexSpecs.push({
+          key: { [`data.${fieldName}`]: 1 },
+          unique: true,
+          name: `${table}_${fieldName}_unique`,
+        });
+      }
+    }
+    if (indexSpecs.length > 0) {
+      await this.db.collection(table).createIndexes(indexSpecs);
+    }
 
     return {
       success: true,
       operation: 'create-table',
-      tableCreated: true
+      tableCreated: true,
     };
   }
 
-  private createRecord(args: DatabaseArgs): DatabaseOutput {
+  private async createRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.data) {
-      throw Object.assign(new Error('Table and data are required for record creation'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Table and data are required for record creation'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
-    const table = this.getTable(args.table);
+    const collection = this.db.collection(args.table);
     const schema = this.tableSchemas.get(args.table);
 
     // Validate data against schema
@@ -327,57 +400,60 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       table: args.table,
       data: args.data,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
-    table.set(id, record);
+    await collection.insertOne(record);
 
     return {
       success: true,
       operation: 'create',
-      record
+      record,
     };
   }
 
-  private readRecord(args: DatabaseArgs): DatabaseOutput {
+  private async readRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.id) {
-      throw Object.assign(new Error('Table and ID are required for record reading'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Table and ID are required for record reading'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
-    const table = this.getTable(args.table);
-    const record = table.get(args.id);
+    const collection = this.db.collection(args.table);
+    const record = await collection.findOne({ id: args.id });
 
     if (!record) {
-      throw Object.assign(new Error(`Record with ID '${args.id}' not found in table '${args.table}'`), {
-        name: 'RecordNotFound'
-      });
+      throw Object.assign(
+        new Error(
+          `Record with ID '${args.id}' not found in table '${args.table}'`,
+        ),
+        {
+          name: 'RecordNotFound',
+        },
+      );
     }
 
     return {
       success: true,
       operation: 'read',
-      record
+      record: record as unknown as DatabaseRecord,
     };
   }
 
-  private updateRecord(args: DatabaseArgs): DatabaseOutput {
+  private async updateRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.id || !args.data) {
-      throw Object.assign(new Error('Table, ID, and data are required for record update'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Table, ID, and data are required for record update'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
-    const table = this.getTable(args.table);
-    const record = table.get(args.id);
-
-    if (!record) {
-      throw Object.assign(new Error(`Record with ID '${args.id}' not found in table '${args.table}'`), {
-        name: 'RecordNotFound'
-      });
-    }
-
+    const collection = this.db.collection(args.table);
     const schema = this.tableSchemas.get(args.table);
 
     // Validate data against schema (only for fields being updated)
@@ -385,140 +461,190 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       this.validateUpdateData(args.data, schema);
     }
 
-    // Update data
-    Object.assign(record.data, args.data);
-    record.updatedAt = new Date();
+    // Get existing record to merge data
+    const existing = await collection.findOne({ id: args.id });
+    if (!existing) {
+      throw Object.assign(
+        new Error(
+          `Record with ID '${args.id}' not found in table '${args.table}'`,
+        ),
+        {
+          name: 'RecordNotFound',
+        },
+      );
+    }
 
-    table.set(args.id, record);
+    // Merge data
+    const mergedData = { ...existing.data, ...args.data };
+
+    // Update data
+    const updateResult = await collection.findOneAndUpdate(
+      { id: args.id },
+      {
+        $set: {
+          data: mergedData,
+          updatedAt: new Date(),
+        },
+      },
+      { returnDocument: 'after' },
+    );
+
+    if (!updateResult) {
+      throw Object.assign(
+        new Error(
+          `Record with ID '${args.id}' not found in table '${args.table}'`,
+        ),
+        {
+          name: 'RecordNotFound',
+        },
+      );
+    }
 
     return {
       success: true,
       operation: 'update',
-      record
+      record: updateResult as unknown as DatabaseRecord,
     };
   }
 
-  private deleteRecord(args: DatabaseArgs): DatabaseOutput {
+  private async deleteRecord(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.table || !args.id) {
-      throw Object.assign(new Error('Table and ID are required for record deletion'), {
-        name: 'ValidationError'
-      });
+      throw Object.assign(
+        new Error('Table and ID are required for record deletion'),
+        {
+          name: 'ValidationError',
+        },
+      );
     }
 
-    const table = this.getTable(args.table);
-    const record = table.get(args.id);
+    const collection = this.db.collection(args.table);
+    const record = await collection.findOneAndDelete({ id: args.id });
 
     if (!record) {
-      throw Object.assign(new Error(`Record with ID '${args.id}' not found in table '${args.table}'`), {
-        name: 'RecordNotFound'
-      });
+      throw Object.assign(
+        new Error(
+          `Record with ID '${args.id}' not found in table '${args.table}'`,
+        ),
+        {
+          name: 'RecordNotFound',
+        },
+      );
     }
-
-    table.delete(args.id);
 
     return {
       success: true,
       operation: 'delete',
-      record
+      record: record as unknown as DatabaseRecord,
     };
   }
 
-  private queryRecords(args: DatabaseArgs): DatabaseOutput {
+  private async queryRecords(args: DatabaseArgs): Promise<DatabaseOutput> {
     if (!args.query) {
       throw Object.assign(new Error('Query is required for record querying'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
-    const { table: tableName, where, select, limit, offset, orderBy } = args.query;
-    const table = this.getTable(tableName);
+    const {
+      table: tableName,
+      where,
+      select,
+      limit,
+      offset,
+      orderBy,
+    } = args.query;
+    const collection = this.db.collection(tableName);
 
-    let records = Array.from(table.values());
-
-    // Apply where filter
+    // Build MongoDB query from where clause
+    const mongoQuery: any = {};
     if (where) {
-      records = records.filter(record => {
-        return Object.entries(where).every(([key, value]) => {
-          return record.data[key] === value;
-        });
-      });
+      for (const [key, value] of Object.entries(where)) {
+        mongoQuery[`data.${key}`] = value;
+      }
     }
 
-    // Apply select (field filtering)
+    // Build projection for select
+    const projection: any = {};
     if (select && select.length > 0) {
-      records = records.map(record => ({
-        ...record,
-        data: Object.fromEntries(
-          Object.entries(record.data).filter(([key]) => select.includes(key))
-        )
-      }));
-    }
-
-    // Apply ordering
-    if (orderBy) {
-      records.sort((a, b) => {
-        const aValue = a.data[orderBy.field];
-        const bValue = b.data[orderBy.field];
-
-        let comparison = 0;
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          comparison = aValue.localeCompare(bValue);
-        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-          comparison = aValue - bValue;
-        } else {
-          // For other types, convert to string for comparison
-          const aStr = String(aValue || '');
-          const bStr = String(bValue || '');
-          comparison = aStr.localeCompare(bStr);
-        }
-
-        return orderBy.direction === 'desc' ? -comparison : comparison;
+      projection.id = 1;
+      projection.table = 1;
+      projection.createdAt = 1;
+      projection.updatedAt = 1;
+      select.forEach((field) => {
+        projection[`data.${field}`] = 1;
       });
     }
 
-    // Apply pagination
+    // Build sort
+    const sort: any = {};
+    if (orderBy) {
+      sort[`data.${orderBy.field}`] = orderBy.direction === 'desc' ? -1 : 1;
+    }
+
     const queryLimit = limit || 100;
     const queryOffset = offset || 0;
-    const total = records.length;
-    const paginatedRecords = records.slice(queryOffset, queryOffset + queryLimit);
+
+    const [records, total] = await Promise.all([
+      collection
+        .find(mongoQuery, {
+          projection:
+            Object.keys(projection).length > 0 ? projection : undefined,
+        })
+        .sort(sort)
+        .skip(queryOffset)
+        .limit(queryLimit)
+        .toArray(),
+      collection.countDocuments(mongoQuery),
+    ]);
+
+    // Transform records to match expected format
+    const transformedRecords = records.map((record) => ({
+      id: record.id,
+      table: record.table,
+      data: record.data,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    })) as DatabaseRecord[];
 
     return {
       success: true,
       operation: 'query',
-      records: paginatedRecords,
-      total
+      records: transformedRecords,
+      total,
     };
   }
 
-  private listTables(): DatabaseOutput {
+  private async listTables(): Promise<DatabaseOutput> {
+    const collections = await this.db.listCollections().toArray();
+    const tables = collections.map((col) => col.name);
+
     return {
       success: true,
       operation: 'list-tables',
-      tables: Array.from(this.tables.keys())
+      tables,
     };
   }
 
-  private getTable(tableName: string): Map<string, DatabaseRecord> {
-    const table = this.tables.get(tableName);
-    if (!table) {
-      throw Object.assign(new Error(`Table '${tableName}' not found`), {
-        name: 'TableNotFound'
-      });
-    }
-    return table;
-  }
-
-  private validateData(data: Record<string, unknown>, schema: DatabaseArgs['schema']): void {
+  private validateData(
+    data: Record<string, unknown>,
+    schema: DatabaseArgs['schema'],
+  ): void {
     if (!schema) return;
 
     const { fields } = schema;
 
     // Check required fields
     for (const [fieldName, fieldDef] of Object.entries(fields)) {
-      if (fieldDef.required && (data[fieldName] === undefined || data[fieldName] === null)) {
-        throw Object.assign(new Error(`Required field '${fieldName}' is missing`), {
-          name: 'SchemaValidationError'
-        });
+      if (
+        fieldDef.required &&
+        (data[fieldName] === undefined || data[fieldName] === null)
+      ) {
+        throw Object.assign(
+          new Error(`Required field '${fieldName}' is missing`),
+          {
+            name: 'SchemaValidationError',
+          },
+        );
       }
     }
 
@@ -531,30 +657,42 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       switch (fieldDef.type) {
         case 'string':
           if (typeof value !== 'string') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a string`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a string`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'number':
           if (typeof value !== 'number') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a number`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a number`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'boolean':
           if (typeof value !== 'boolean') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a boolean`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a boolean`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'date':
           if (!(value instanceof Date) && typeof value !== 'string') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a date`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a date`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'json':
@@ -564,7 +702,10 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
     }
   }
 
-  private validateUpdateData(data: Record<string, unknown>, schema: DatabaseArgs['schema']): void {
+  private validateUpdateData(
+    data: Record<string, unknown>,
+    schema: DatabaseArgs['schema'],
+  ): void {
     if (!schema) return;
 
     const { fields } = schema;
@@ -578,30 +719,42 @@ export class LocalDBActor extends BaseActor<DatabaseArgs, DatabaseOutput> {
       switch (fieldDef.type) {
         case 'string':
           if (typeof value !== 'string') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a string`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a string`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'number':
           if (typeof value !== 'number') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a number`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a number`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'boolean':
           if (typeof value !== 'boolean') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a boolean`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a boolean`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'date':
           if (!(value instanceof Date) && typeof value !== 'string') {
-            throw Object.assign(new Error(`Field '${fieldName}' must be a date`), {
-              name: 'SchemaValidationError'
-            });
+            throw Object.assign(
+              new Error(`Field '${fieldName}' must be a date`),
+              {
+                name: 'SchemaValidationError',
+              },
+            );
           }
           break;
         case 'json':

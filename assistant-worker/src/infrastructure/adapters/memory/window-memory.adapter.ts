@@ -1,6 +1,6 @@
 /**
  * Window Memory Adapter
- * 
+ *
  * Sliding window memory that keeps only the last N messages.
  * Automatically discards older messages to maintain a fixed window size.
  */
@@ -26,7 +26,7 @@ export class WindowMemoryAdapter implements IMemoryAdapter {
     if (!this.memory.has(conversationId)) {
       this.memory.set(conversationId, []);
     }
-    
+
     const messages = this.memory.get(conversationId)!;
     messages.push(message);
 
@@ -39,13 +39,16 @@ export class WindowMemoryAdapter implements IMemoryAdapter {
   /**
    * Get messages in the current window
    */
-  async getMessages(conversationId: string, limit?: number): Promise<Message[]> {
+  async getMessages(
+    conversationId: string,
+    limit?: number,
+  ): Promise<Message[]> {
     const messages = this.memory.get(conversationId) || [];
-    
+
     if (limit && limit > 0) {
       return messages.slice(-Math.min(limit, this.windowSize));
     }
-    
+
     return messages;
   }
 
@@ -61,10 +64,8 @@ export class WindowMemoryAdapter implements IMemoryAdapter {
    */
   async getContext(conversationId: string): Promise<string> {
     const messages = await this.getMessages(conversationId);
-    
-    return messages
-      .map((msg) => `${msg.role}: ${msg.content}`)
-      .join('\n');
+
+    return messages.map((msg) => `${msg.role}: ${msg.content}`).join('\n');
   }
 
   /**
@@ -82,4 +83,3 @@ export class WindowMemoryAdapter implements IMemoryAdapter {
     return messages.length >= this.windowSize;
   }
 }
-

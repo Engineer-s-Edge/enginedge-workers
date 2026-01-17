@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { WebLoaderPort } from '@domain/ports/loader.port';
 import { Document } from '@domain/entities/document.entity';
 
@@ -6,7 +7,7 @@ import { Document } from '@domain/entities/document.entity';
  * S3 Web Loader Adapter
  * Loads files from AWS S3 buckets
  * Supports public and authenticated access
- * 
+ *
  * Note: Requires AWS SDK v3
  * Install with: npm install @aws-sdk/client-s3
  */
@@ -14,6 +15,11 @@ import { Document } from '@domain/entities/document.entity';
 export class S3LoaderAdapter extends WebLoaderPort {
   readonly name = 's3';
   readonly supportedProtocols = ['s3', 'https'];
+  private readonly logger = new Logger(S3LoaderAdapter.name);
+
+  constructor(private readonly configService?: ConfigService) {
+    super();
+  }
 
   /**
    * Load content from S3
@@ -28,21 +34,46 @@ export class S3LoaderAdapter extends WebLoaderPort {
     },
   ): Promise<Document[]> {
     try {
-      // Placeholder implementation
-      // TODO: Implement when @aws-sdk/client-s3 is added to dependencies
-      /*
-      const { S3Client, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
-      
+      // Try to use AWS SDK if available
+      let S3Client: any;
+      let GetObjectCommand: any;
+      let ListObjectsV2Command: any;
+
+      try {
+        const s3Module = require('@aws-sdk/client-s3');
+        S3Client = s3Module.S3Client;
+        GetObjectCommand = s3Module.GetObjectCommand;
+        ListObjectsV2Command = s3Module.ListObjectsV2Command;
+      } catch (requireError) {
+        this.logger.warn(
+          '@aws-sdk/client-s3 not available, using HTTP fallback for public S3 objects',
+        );
+        return this.loadViaHttp(url, options);
+      }
+
       const { bucket, key, isDirectory } = this._parseS3Url(url);
-      
+
+      const region =
+        options?.region ||
+        this.configService?.get<string>('AWS_REGION') ||
+        'us-east-1';
+
+      const accessKeyId =
+        options?.accessKeyId ||
+        this.configService?.get<string>('AWS_ACCESS_KEY_ID');
+      const secretAccessKey =
+        options?.secretAccessKey ||
+        this.configService?.get<string>('AWS_SECRET_ACCESS_KEY');
+
       const s3Client = new S3Client({
-        region: options?.region || 'us-east-1',
-        credentials: options?.accessKeyId && options?.secretAccessKey
-          ? {
-              accessKeyId: options.accessKeyId,
-              secretAccessKey: options.secretAccessKey,
-            }
-          : undefined,
+        region,
+        credentials:
+          accessKeyId && secretAccessKey
+            ? {
+                accessKeyId,
+                secretAccessKey,
+              }
+            : undefined,
       });
 
       const documents: Document[] = [];
@@ -59,7 +90,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
 
         for (const item of contents) {
           if (!item.Key) continue;
-          
+
           const doc = await this._loadS3Object(s3Client, bucket, item.Key);
           if (doc) documents.push(doc);
         }
@@ -70,22 +101,68 @@ export class S3LoaderAdapter extends WebLoaderPort {
       }
 
       return documents;
-      */
-
-      throw new Error(
-        'S3 loader not yet implemented. Please install @aws-sdk/client-s3 package and uncomment implementation.',
-      );
     } catch (error: any) {
+      this.logger.error(`Failed to load from S3: ${error.message}`);
+      // Fallback to HTTP if SDK fails
+      try {
+        return this.loadViaHttp(url, options);
+      } catch (httpError: any) {
+        throw new Error(
+          `Failed to load from S3: ${error.message}. HTTP fallback also failed: ${httpError.message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Fallback: Load public S3 objects via HTTP
+   */
+  private async loadViaHttp(
+    url: string,
+    options?: {
+      region?: string;
+    },
+  ): Promise<Document[]> {
+    const { bucket, key } = this._parseS3Url(url);
+    const region = options?.region || 'us-east-1';
+
+    // Construct public S3 URL
+    const publicUrl = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+    this.logger.log(`Loading S3 object via HTTP: ${publicUrl}`);
+
+    const response = await fetch(publicUrl);
+    if (!response.ok) {
       throw new Error(
-        `Failed to load from S3: ${error.message}`,
+        `Failed to fetch S3 object via HTTP: ${response.status} ${response.statusText}`,
       );
     }
+
+    const content = await response.text();
+
+    return [
+      new Document(
+        `s3-${bucket}-${key}`.replace(/[^a-zA-Z0-9-]/g, '-'),
+        content,
+        {
+          source: url,
+          sourceType: 'url',
+          loader: this.name,
+          bucket,
+          key,
+          contentType: response.headers.get('content-type') || undefined,
+          size: response.headers.get('content-length')
+            ? parseInt(response.headers.get('content-length')!, 10)
+            : undefined,
+          timestamp: new Date().toISOString(),
+        },
+      ),
+    ];
   }
 
   /**
    * Load a single S3 object
    */
-  /*
   private async _loadS3Object(
     s3Client: any,
     bucket: string,
@@ -93,7 +170,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
   ): Promise<Document | null> {
     try {
       const { GetObjectCommand } = require('@aws-sdk/client-s3');
-      
+
       const command = new GetObjectCommand({
         Bucket: bucket,
         Key: key,
@@ -101,7 +178,7 @@ export class S3LoaderAdapter extends WebLoaderPort {
 
       const response = await s3Client.send(command);
       const stream = response.Body;
-      
+
       // Read stream to string
       const chunks: Buffer[] = [];
       for await (const chunk of stream) {
@@ -109,10 +186,12 @@ export class S3LoaderAdapter extends WebLoaderPort {
       }
       const content = Buffer.concat(chunks).toString('utf-8');
 
-      return new Document({
+      return new Document(
+        `s3-${bucket}-${key}`.replace(/[^a-zA-Z0-9-]/g, '-'),
         content,
-        metadata: {
+        {
           source: `s3://${bucket}/${key}`,
+          sourceType: 'url',
           loader: this.name,
           bucket,
           key,
@@ -122,13 +201,12 @@ export class S3LoaderAdapter extends WebLoaderPort {
           etag: response.ETag,
           timestamp: new Date().toISOString(),
         },
-      });
+      );
     } catch (error: any) {
-      console.warn(`Failed to load S3 object ${key}: ${error.message}`);
+      this.logger.warn(`Failed to load S3 object ${key}: ${error.message}`);
       return null;
     }
   }
-  */
 
   /**
    * Parse S3 URL
@@ -170,17 +248,23 @@ export class S3LoaderAdapter extends WebLoaderPort {
         return true;
       }
       const urlObj = new URL(url);
-      return urlObj.hostname.includes('s3') && urlObj.hostname.includes('amazonaws.com');
+      return (
+        urlObj.hostname.includes('s3') &&
+        urlObj.hostname.includes('amazonaws.com')
+      );
     } catch {
       return false;
     }
-  }
+  }
+
   supports(source: string | Blob): boolean {
     if (typeof source !== 'string') return false;
     try {
       const url = new URL(source);
-      return this.supportedProtocols?.includes(url.protocol.replace(':', '')) ?? 
-             ['http', 'https'].includes(url.protocol.replace(':', ''));
+      return (
+        this.supportedProtocols?.includes(url.protocol.replace(':', '')) ??
+        ['http', 'https'].includes(url.protocol.replace(':', ''))
+      );
     } catch {
       return false;
     }

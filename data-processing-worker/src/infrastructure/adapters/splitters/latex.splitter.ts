@@ -38,7 +38,7 @@ export class LatexSplitterAdapter extends TextSplitterPort {
             doc.id, // parentDocumentId
             i, // chunkIndex
             docChunks.length, // totalChunks
-            ),
+          ),
         );
       }
     }
@@ -66,9 +66,15 @@ export class LatexSplitterAdapter extends TextSplitterPort {
       }
 
       // Check for section boundaries
-      const isSection = /^\\(section|subsection|subsubsection|chapter)\{/.test(line.trim());
+      const isSection = /^\\(section|subsection|subsubsection|chapter)\{/.test(
+        line.trim(),
+      );
 
-      if (currentSize + lineSize > chunkSize && currentChunk.length > 0 && !inEnvironment) {
+      if (
+        currentSize + lineSize > chunkSize &&
+        currentChunk.length > 0 &&
+        !inEnvironment
+      ) {
         chunks.push(currentChunk.join('\n'));
         currentChunk = [];
         currentSize = 0;
@@ -82,6 +88,6 @@ export class LatexSplitterAdapter extends TextSplitterPort {
       chunks.push(currentChunk.join('\n'));
     }
 
-    return chunks.filter(c => c.trim().length > 0);
+    return chunks.filter((c) => c.trim().length > 0);
   }
 }

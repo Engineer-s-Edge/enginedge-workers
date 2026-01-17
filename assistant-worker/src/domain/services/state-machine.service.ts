@@ -1,11 +1,10 @@
 /**
  * State Machine Service
- * 
+ *
  * Centralized state transition validation and management.
  * Ensures all agents follow proper state machine rules.
  */
 
-import { Injectable } from '@nestjs/common';
 import { Agent } from '../entities/agent.entity';
 import { AgentState, AgentStateType } from '../entities/agent-state.entity';
 import { AgentType } from '../enums/agent-type.enum';
@@ -25,7 +24,6 @@ export interface StateTransitionResult {
 /**
  * Service for managing and validating state transitions
  */
-@Injectable()
 export class StateMachineService {
   /**
    * Check if a state transition is valid
@@ -46,7 +44,13 @@ export class StateMachineService {
     const currentState = request.agent.getState().getCurrentState();
 
     // Validate transition
-    if (!this.isTransitionValid(currentState, request.targetState, request.agent.agentType)) {
+    if (
+      !this.isTransitionValid(
+        currentState,
+        request.targetState,
+        request.agent.agentType,
+      )
+    ) {
       return {
         allowed: false,
         reason: `Cannot transition from '${currentState}' to '${request.targetState}'`,
@@ -56,10 +60,9 @@ export class StateMachineService {
     // Use AgentState's transitionTo method
     let newState: AgentState;
     try {
-      newState = request.agent.getState().transitionTo(
-        request.targetState,
-        request.metadata,
-      );
+      newState = request.agent
+        .getState()
+        .transitionTo(request.targetState, request.metadata);
     } catch (error) {
       return {
         allowed: false,
@@ -102,7 +105,9 @@ export class StateMachineService {
     };
 
     const transitions =
-      agentType === AgentType.COLLECTIVE ? collectiveTransitions : baseTransitions;
+      agentType === AgentType.COLLECTIVE
+        ? collectiveTransitions
+        : baseTransitions;
 
     return (transitions[from] || []).includes(to);
   }

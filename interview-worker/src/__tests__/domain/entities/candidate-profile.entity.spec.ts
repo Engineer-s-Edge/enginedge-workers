@@ -35,7 +35,9 @@ describe('CandidateProfile Entity', () => {
     });
 
     profile.appendObservation('concerns', 'Needs improvement in communication');
-    expect(profile.observations.concerns).toContain('Needs improvement in communication');
+    expect(profile.observations.concerns).toContain(
+      'Needs improvement in communication',
+    );
   });
 
   it('should append key insights', () => {
@@ -58,10 +60,14 @@ describe('CandidateProfile Entity', () => {
     });
 
     profile.updateResumeFindings('verified', '5 years confirmed');
-    expect(profile.observations.resumeFindings.verified).toContain('5 years confirmed');
+    expect(profile.observations.resumeFindings.verified).toContain(
+      '5 years confirmed',
+    );
 
     profile.updateResumeFindings('questioned', 'Claimed expert but struggled');
-    expect(profile.observations.resumeFindings.questioned).toContain('Claimed expert but struggled');
+    expect(profile.observations.resumeFindings.questioned).toContain(
+      'Claimed expert but struggled',
+    );
   });
 
   it('should update interview flow', () => {
@@ -125,4 +131,3 @@ describe('CandidateProfile Entity', () => {
     expect(profile.observations.strengths).toContain('Strength 1');
   });
 });
-

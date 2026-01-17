@@ -1,13 +1,14 @@
 /**
  * Phase 8 Cross-Worker Integration Tests
  * Tests: phase8-int-001 through phase8-int-032
- * 
+ *
  * Covers cross-worker communication, error handling, performance, and architecture validation
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { RAGServiceAdapter } from '../../infrastructure/adapters/implementations/rag-service.adapter';
+import { MetricsAdapter } from '../../infrastructure/adapters/monitoring/metrics.adapter';
 import {
   RAGDocument,
   RAGSearchRequest,
@@ -15,17 +16,29 @@ import {
 
 describe('Phase 8 Cross-Worker Integration Tests', () => {
   let ragAdapter: RAGServiceAdapter;
-  const DATA_PROCESSING_URL = process.env.DATA_PROCESSING_WORKER_URL || 'http://localhost:3003';
+  const DATA_PROCESSING_URL =
+    process.env.DATA_PROCESSING_WORKER_URL || 'http://localhost:3003';
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RAGServiceAdapter,
         {
+          provide: MetricsAdapter,
+          useValue: {
+            incrementRAGDocsProcessed: jest.fn(),
+            incrementRAGValidationErrors: jest.fn(),
+            recordRAGProcessingTime: jest.fn(),
+            incrementRAGSearchOperations: jest.fn(),
+            recordRAGSearchLatency: jest.fn(),
+          },
+        },
+        {
           provide: ConfigService,
           useValue: {
             get: jest.fn((key: string) => {
-              if (key === 'DATA_PROCESSING_WORKER_URL') return DATA_PROCESSING_URL;
+              if (key === 'DATA_PROCESSING_WORKER_URL')
+                return DATA_PROCESSING_URL;
               return undefined;
             }),
           },
@@ -89,8 +102,8 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
         metadata: { index: i },
       }));
 
-      const promises = documents.map(doc => 
-        ragAdapter.processDocument(doc).catch(e => ({ error: e.message }))
+      const promises = documents.map((doc) =>
+        ragAdapter.processDocument(doc).catch((e) => ({ error: e.message })),
       );
       const results = await Promise.allSettled(promises);
 
@@ -147,7 +160,9 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
 
   describe('Architecture Validation', () => {
     it('phase8-int-009: should enforce separation of concerns', () => {
-      const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(ragAdapter));
+      const methods = Object.getOwnPropertyNames(
+        Object.getPrototypeOf(ragAdapter),
+      );
 
       expect(methods).toContain('processDocument');
       expect(methods).toContain('searchConversation');
@@ -165,7 +180,7 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
 
     it('phase8-int-011: should use HTTP for external communication', () => {
       const constructor = ragAdapter.constructor.toString();
-      
+
       expect(constructor).not.toContain('DocumentProcessingService');
       expect(constructor).not.toContain('VectorStoreService');
     });
@@ -220,15 +235,18 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
 
   describe('Performance and Load Testing', () => {
     it('phase8-int-015: should handle multiple concurrent requests', async () => {
-      const requests: RAGSearchRequest[] = Array.from({ length: 10 }, (_, i) => ({
-        userId: 'test-user-015',
-        conversationId: `test-conv-015-${i}`,
-        query: `test query ${i}`,
-        similarityThreshold: 0.7,
-      }));
+      const requests: RAGSearchRequest[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          userId: 'test-user-015',
+          conversationId: `test-conv-015-${i}`,
+          query: `test query ${i}`,
+          similarityThreshold: 0.7,
+        }),
+      );
 
-      const promises = requests.map(req => 
-        ragAdapter.searchConversation(req).catch(e => ({ error: e.message }))
+      const promises = requests.map((req) =>
+        ragAdapter.searchConversation(req).catch((e) => ({ error: e.message })),
       );
       const results = await Promise.allSettled(promises);
 
@@ -244,7 +262,7 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
       };
 
       const startTime = Date.now();
-      
+
       try {
         await ragAdapter.processDocument(document);
         const duration = Date.now() - startTime;
@@ -263,7 +281,7 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
       };
 
       const startTime = Date.now();
-      
+
       try {
         await ragAdapter.searchConversation(request);
         const duration = Date.now() - startTime;
@@ -290,9 +308,13 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
     });
 
     it('phase8-int-021: should validate all required methods', () => {
-      const methods = ['processDocument', 'searchConversation', 'getEmbeddingModels'];
+      const methods = [
+        'processDocument',
+        'searchConversation',
+        'getEmbeddingModels',
+      ];
 
-      methods.forEach(method => {
+      methods.forEach((method) => {
         expect(typeof (ragAdapter as any)[method]).toBe('function');
       });
     });
@@ -378,7 +400,7 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
     it('phase8-int-031: should validate method signatures', () => {
       expect(ragAdapter.processDocument.length).toBe(1);
       expect(ragAdapter.searchConversation.length).toBe(1);
-      expect(ragAdapter.getEmbeddingModels.length).toBe(0);
+      expect(ragAdapter.getEmbeddingModels.length).toBe(1);
     });
 
     it('phase8-int-032: should validate Phase 8 integration complete', () => {
@@ -386,7 +408,7 @@ describe('Phase 8 Cross-Worker Integration Tests', () => {
       expect(typeof ragAdapter.processDocument).toBe('function');
       expect(typeof ragAdapter.searchConversation).toBe('function');
       expect(typeof ragAdapter.getEmbeddingModels).toBe('function');
-      
+
       // Phase 8 integration complete!
       expect(true).toBe(true);
     });

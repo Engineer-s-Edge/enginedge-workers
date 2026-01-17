@@ -95,7 +95,9 @@ describe('Integration Flows', () => {
 
       expect(updated.status).toBe('active');
       expect(updated.name).toBe('UpdatedAgent');
-      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(created.createdAt.getTime());
+      expect(updated.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        created.createdAt.getTime(),
+      );
 
       // Delete
       await repo.delete(created.id);
@@ -114,7 +116,9 @@ describe('Integration Flows', () => {
       const updated = await repo.update(created.id, { status: 'active' });
 
       expect(updated.createdAt).toEqual(originalCreatedAt);
-      expect(updated.updatedAt.getTime()).toBeGreaterThan(created.updatedAt.getTime());
+      expect(updated.updatedAt.getTime()).toBeGreaterThan(
+        created.updatedAt.getTime(),
+      );
     });
 
     it('should handle concurrent operations', async () => {
@@ -207,7 +211,7 @@ describe('Integration Flows', () => {
       }
 
       async executeMultiple(
-        contexts: ExecutionContext[]
+        contexts: ExecutionContext[],
       ): Promise<ExecutionResult[]> {
         return Promise.all(contexts.map((ctx) => this.execute(ctx)));
       }
@@ -250,7 +254,11 @@ describe('Integration Flows', () => {
       const results = await service.executeMultiple(contexts);
 
       expect(results).toHaveLength(3);
-      expect(results.map((r) => r.agentId)).toEqual(['agent-1', 'agent-2', 'agent-3']);
+      expect(results.map((r) => r.agentId)).toEqual([
+        'agent-1',
+        'agent-2',
+        'agent-3',
+      ]);
     });
 
     it('should maintain execution order with metadata', async () => {
@@ -464,7 +472,13 @@ describe('Integration Flows', () => {
 
       const history = service.getHistory();
 
-      expect(history).toEqual(['inactive', 'active', 'paused', 'active', 'inactive']);
+      expect(history).toEqual([
+        'inactive',
+        'active',
+        'paused',
+        'active',
+        'inactive',
+      ]);
       expect(history[0]).toBe('inactive');
       expect(history[history.length - 1]).toBe('inactive');
     });
@@ -500,7 +514,7 @@ describe('Integration Flows', () => {
         const caps = this.getCapabilities(agentType);
         this.capabilities.set(
           agentType,
-          caps.filter((c) => c !== capability)
+          caps.filter((c) => c !== capability),
         );
       }
 
@@ -585,7 +599,7 @@ describe('Integration Flows', () => {
     class ErrorRecoveryService {
       async executeWithRetry(
         operation: Operation,
-        maxRetries: number = 3
+        maxRetries: number = 3,
       ): Promise<any> {
         let lastError: Error | null = null;
 
@@ -596,7 +610,9 @@ describe('Integration Flows', () => {
             lastError = error as Error;
 
             if (attempt < maxRetries - 1) {
-              await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+              await new Promise((resolve) =>
+                setTimeout(resolve, 100 * (attempt + 1)),
+              );
             }
           }
         }
@@ -658,7 +674,7 @@ describe('Integration Flows', () => {
       };
 
       await expect(service.executeWithRetry(operation, 2)).rejects.toThrow(
-        'Persistent failure'
+        'Persistent failure',
       );
     });
 
@@ -687,7 +703,7 @@ describe('Integration Flows', () => {
       ];
 
       await expect(service.executeWithRollback(operations)).rejects.toThrow(
-        'Op2 failed'
+        'Op2 failed',
       );
 
       expect(rollbackLog).toContain('op1-executed');

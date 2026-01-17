@@ -1,13 +1,18 @@
 /**
  * Execution Result Value Object
- * 
+ *
  * Unified result format for all agent executions.
  * Enables consistent handling across all agent types.
  */
 
 import { Message } from './message.vo';
 
-export type ExecutionStatus = 'success' | 'partial' | 'failed' | 'timeout' | 'cancelled';
+export type ExecutionStatus =
+  | 'success'
+  | 'partial'
+  | 'failed'
+  | 'timeout'
+  | 'cancelled';
 
 export interface ExecutionResultProps {
   status: ExecutionStatus;
@@ -219,7 +224,7 @@ export class ExecutionResult {
       metadata: this.metadata,
       executionTimeMs: this.executionTimeMs,
       tokensUsed: this.tokensUsed,
-      childResults: this.childResults.map(cr => cr.toPlain()),
+      childResults: this.childResults.map((cr) => cr.toPlain()),
     };
   }
 }

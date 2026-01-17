@@ -1,6 +1,6 @@
 /**
  * Adapter Coordination Integration Tests
- * 
+ *
  * Tests message flow, data consistency, and coordination patterns
  * between all 7 adapters in the orchestrator ecosystem
  */
@@ -17,6 +17,11 @@ import {
   NewsIntegrationAdapter,
 } from '../../../infrastructure/adapters/implementations';
 import { ExpertPoolManager } from '../../../domain/services/expert-pool-manager.service';
+import { LearningModeService } from '../../../application/services/learning-mode.service';
+import { ResearchService } from '../../../application/services/research.service';
+import { ValidationService } from '../../../application/services/validation.service';
+import { TopicCatalogService } from '../../../application/services/topic-catalog.service';
+import { GetTopicsForResearchUseCase } from '../../../application/use-cases/get-topics-for-research.use-case';
 
 describe('Adapter Coordination Tests', () => {
   let orchestrator: GeniusAgentOrchestrator;
@@ -28,10 +33,23 @@ describe('Adapter Coordination Tests', () => {
   let scheduledLearningAdapter: ScheduledLearningAdapter;
   let newsIntegrationAdapter: NewsIntegrationAdapter;
 
+  const toBatchRequest = (items: any[]) => ({
+    expertReports: (items || []).map((item, index) => ({
+      reportId: item.reportId || `report-${index}`,
+      expertId: item.expertId || `expert-${index}`,
+      topic: item.topic || `topic-${index}`,
+      findings: item.findings || [],
+      sources: item.sources || [],
+      confidence: item.confidence ?? 0.7,
+    })),
+  });
+
   beforeEach(async () => {
     // Mock providers for testing
     const mockLLMProvider = {
-      complete: jest.fn().mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
+      complete: jest
+        .fn()
+        .mockResolvedValue({ content: 'Mock response', role: 'assistant' }),
     };
 
     const mockLogger = {
@@ -40,6 +58,62 @@ describe('Adapter Coordination Tests', () => {
       warn: jest.fn(),
       debug: jest.fn(),
       info: jest.fn(),
+    };
+
+    const mockResearchService = {
+      addResearchFinding: jest
+        .fn()
+        .mockResolvedValue({ success: true, nodesAdded: 1 }),
+      getRecentResearchReports: jest.fn().mockResolvedValue([]),
+      getStatistics: jest.fn().mockResolvedValue({
+        topicCount: 5,
+        sourceCount: 15,
+        avgConfidence: 0.9,
+        nodeCount: 10,
+        edgeCount: 20,
+        lastUpdated: new Date(),
+      }),
+    };
+
+    const mockValidationService = {
+      validate: jest
+        .fn()
+        .mockResolvedValue({ isValid: true, score: 0.9, notes: [] }),
+      validateBatch: jest.fn().mockResolvedValue({
+        batchId: 'batch-1',
+        totalItems: 0,
+        validCount: 0,
+        invalidCount: 0,
+        results: [],
+      }),
+    };
+
+    const mockTopicCatalogService = {
+      addTopic: jest.fn().mockResolvedValue({
+        topic: {
+          id: '123',
+          name: 'test-topic',
+          description: 'test description',
+          estimatedComplexity: 1,
+        },
+      }),
+      updateTopicStatus: jest.fn().mockResolvedValue(true),
+      getTopicByName: jest
+        .fn()
+        .mockResolvedValue({ id: '123', name: 'test-topic' }),
+      getTopicsByPriority: jest.fn().mockResolvedValue([
+        { id: '1', name: 'trending-topic-1', priority: 10 },
+        { id: '2', name: 'trending-topic-2', priority: 8 },
+      ]),
+    };
+
+    const mockGetTopicsUseCase = {
+      execute: jest.fn().mockResolvedValue([]),
+    };
+
+    const mockKnowledgeGraphPort = {
+      getNode: jest.fn().mockResolvedValue(null),
+      unlockNode: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -62,19 +136,44 @@ describe('Adapter Coordination Tests', () => {
           useValue: mockLogger,
         },
         ExpertPoolManager,
+        LearningModeService,
+        {
+          provide: ResearchService,
+          useValue: mockResearchService,
+        },
+        {
+          provide: ValidationService,
+          useValue: mockValidationService,
+        },
+        {
+          provide: TopicCatalogService,
+          useValue: mockTopicCatalogService,
+        },
+        {
+          provide: GetTopicsForResearchUseCase,
+          useValue: mockGetTopicsUseCase,
+        },
+        {
+          provide: 'KnowledgeGraphPort',
+          useValue: mockKnowledgeGraphPort,
+        },
       ],
     }).compile();
 
     orchestrator = module.get<GeniusAgentOrchestrator>(GeniusAgentOrchestrator);
-    knowledgeGraphAdapter = module.get<KnowledgeGraphAdapter>(KnowledgeGraphAdapter);
+    knowledgeGraphAdapter = module.get<KnowledgeGraphAdapter>(
+      KnowledgeGraphAdapter,
+    );
     validationAdapter = module.get<ValidationAdapter>(ValidationAdapter);
     expertPoolAdapter = module.get<ExpertPoolAdapter>(ExpertPoolAdapter);
     topicCatalogAdapter = module.get<TopicCatalogAdapter>(TopicCatalogAdapter);
     learningModeAdapter = module.get<LearningModeAdapter>(LearningModeAdapter);
     scheduledLearningAdapter = module.get<ScheduledLearningAdapter>(
-      ScheduledLearningAdapter
+      ScheduledLearningAdapter,
     );
-    newsIntegrationAdapter = module.get<NewsIntegrationAdapter>(NewsIntegrationAdapter);
+    newsIntegrationAdapter = module.get<NewsIntegrationAdapter>(
+      NewsIntegrationAdapter,
+    );
 
     // Spy on adapter methods
     jest.spyOn(knowledgeGraphAdapter, 'getRecentResearchReports');
@@ -90,15 +189,19 @@ describe('Adapter Coordination Tests', () => {
   describe('Adapter Communication Patterns', () => {
     it('should coordinate knowledge graph → validation flow', async () => {
       // Get research from graph
-      const research = await knowledgeGraphAdapter.getRecentResearchReports('user123', 10);
+      const research = await knowledgeGraphAdapter.getRecentResearchReports(
+        'user123',
+        10,
+      );
 
       expect(knowledgeGraphAdapter.getRecentResearchReports).toHaveBeenCalled();
 
       // Validate retrieved research
-      if (research && research.length > 0) {
-        const validation = await validationAdapter.validateBatch(research);
+      if (Array.isArray(research) && research.length > 0) {
+        const request = toBatchRequest(research);
+        const validation = await validationAdapter.validateBatch(request);
 
-        expect(validationAdapter.validateBatch).toHaveBeenCalledWith(research);
+        expect(validationAdapter.validateBatch).toHaveBeenCalledWith(request);
         expect(validation).toBeDefined();
       }
     });
@@ -228,15 +331,17 @@ describe('Adapter Coordination Tests', () => {
           source?: string;
           relevance?: number;
         }>;
-        const validated = await validationAdapter.validateBatch(
-          newsItems.map((item) => ({
+        const request = {
+          expertReports: newsItems.map((item, index) => ({
+            reportId: `news-${index}`,
+            expertId: `news-${index}`,
             topic,
             findings: [String(item.title || '')],
             sources: [String(item.source || '')],
             confidence: Number(item.relevance || 0.5),
-            timestamp: new Date(),
-          }))
-        );
+          })),
+        };
+        const validated = await validationAdapter.validateBatch(request);
 
         expect(validated).toBeDefined();
 
@@ -259,9 +364,9 @@ describe('Adapter Coordination Tests', () => {
   describe('Error Handling Across Adapters', () => {
     it('should isolate adapter failures', async () => {
       // One adapter failure should not cascade
-      jest.spyOn(expertPoolAdapter, 'allocateExperts').mockRejectedValueOnce(
-        new Error('Expert pool unavailable')
-      );
+      jest
+        .spyOn(expertPoolAdapter, 'allocateExperts')
+        .mockRejectedValueOnce(new Error('Expert pool unavailable'));
 
       // Should still be able to get news
       const news = await newsIntegrationAdapter.fetchRecentNews('AI');
@@ -292,7 +397,10 @@ describe('Adapter Coordination Tests', () => {
 
     it('should validate adapter responses match contracts', async () => {
       // Get research
-      const research = await knowledgeGraphAdapter.getRecentResearchReports('user123', 10);
+      const research = await knowledgeGraphAdapter.getRecentResearchReports(
+        'user123',
+        10,
+      );
 
       // Validate against expected structure
       if (research && Array.isArray(research)) {
@@ -359,7 +467,7 @@ describe('Adapter Coordination Tests', () => {
       const operations = Array.from({ length: 10 }, (_, i) =>
         topicCatalogAdapter.trackResearch(`Topic ${i}`, {
           status: 'active',
-        })
+        }),
       );
 
       const results = await Promise.all(operations);
@@ -378,11 +486,14 @@ describe('Adapter Coordination Tests', () => {
       const topics = ['AI', 'ML'];
 
       // 1. Get existing research
-      const existing = await knowledgeGraphAdapter.getRecentResearchReports(userId, 10);
+      const existing = await knowledgeGraphAdapter.getRecentResearchReports(
+        userId,
+        10,
+      );
 
       // 2. Validate
-      if (existing && existing.length > 0) {
-        await validationAdapter.validateBatch(existing);
+      if (Array.isArray(existing) && existing.length > 0) {
+        await validationAdapter.validateBatch(toBatchRequest(existing));
       }
 
       // 3. Allocate experts
@@ -446,7 +557,10 @@ describe('Adapter Coordination Tests', () => {
       ];
 
       // Full orchestrated workflow
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(result).toBeDefined();
       expect(result.success).toBe(true);
@@ -475,12 +589,13 @@ describe('Adapter Coordination Tests', () => {
   describe('Adapter Integration Metrics', () => {
     it('should track adapter call metrics', async () => {
       const userId = 'metric-test';
-      const topics = [
-        { topic: 'AI', complexity: 'L3' as const },
-      ];
+      const topics = [{ topic: 'AI', complexity: 'L3' as const }];
 
       // Execute workflow
-      const result = await orchestrator.executeUserDirectedLearning(userId, topics);
+      const result = await orchestrator.executeUserDirectedLearning(
+        userId,
+        topics,
+      );
 
       expect(result).toBeDefined();
     });

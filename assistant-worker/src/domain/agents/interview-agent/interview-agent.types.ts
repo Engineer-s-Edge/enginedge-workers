@@ -27,4 +27,3 @@ export interface InterviewContext {
   questionsRemainingTotal: number;
   communicationMode: 'voice' | 'text';
 }
-

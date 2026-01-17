@@ -68,7 +68,7 @@ The EnginEdge Workers are specialized microservices that handle domain-specific 
 ### 4. Interview Worker
 **Purpose**: Interview processing and assessment
 **Port**: 3004
-**External Dependencies**: Calendar APIs, video processing services
+**External Dependencies**: Speech-to-Text APIs, video processing services
 **Resource Requirements**: Moderate CPU, moderate memory
 
 ### 5. LaTeX Worker
@@ -77,11 +77,35 @@ The EnginEdge Workers are specialized microservices that handle domain-specific 
 **External Dependencies**: LaTeX distribution, math rendering engines
 **Resource Requirements**: High CPU for compilation, moderate memory
 
-### 6. RNLE Worker
-**Purpose**: Symbolic mathematics and computation
+### 6. Resume Worker
+**Purpose**: Resume parsing and matching
 **Port**: 3006
-**External Dependencies**: Wolfram Alpha API, symbolic computation libraries
-**Resource Requirements**: High CPU for computation, moderate memory
+**External Dependencies**: NLP libraries, data enrichment services
+**Resource Requirements**: High CPU for NLP, moderate memory
+
+### 7. Scheduling Worker
+**Purpose**: Calendar management and task scheduling
+**Port**: 3007
+**External Dependencies**: Google Calendar, Outlook Calendar, scheduling APIs
+**Resource Requirements**: Low CPU, moderate memory
+
+### 8. Identity Worker
+**Purpose**: User identity and profile management
+**Port**: 3008
+**External Dependencies**: OAuth providers (LinkedIn, GitHub), identity databases
+**Resource Requirements**: Low CPU, moderate memory
+
+### 9. News Worker
+**Purpose**: Market intelligence and news aggregation
+**Port**: 3009
+**External Dependencies**: News APIs, RSS feeds, content scrapers
+**Resource Requirements**: Moderate CPU, moderate memory
+
+### 10. SpaCy Service
+**Purpose**: Advanced NLP processing (Python)
+**Port**: 8001
+**External Dependencies**: SpaCy models, NLP libraries
+**Resource Requirements**: High CPU for NLP, high memory for models
 
 ## Prerequisites
 
@@ -89,12 +113,16 @@ The EnginEdge Workers are specialized microservices that handle domain-specific 
 
 | Worker Type | CPU Cores | Memory | Storage | Network |
 |-------------|-----------|--------|---------|---------|
-| LLM | 4+ | 8GB+ | 20GB+ | High bandwidth |
+| Assistant | 2+ | 4GB+ | 10GB+ | High |
 | Agent Tool | 2+ | 4GB+ | 10GB+ | Moderate |
-| Data Processing | 4+ | 16GB+ | 50GB+ | High bandwidth |
-| Interview | 2+ | 4GB+ | 20GB+ | Moderate |
+| Data Processing | 4+ | 8GB+ | 20GB+ | High |
+| Interview | 2+ | 4GB+ | 10GB+ | Moderate |
 | LaTeX | 2+ | 4GB+ | 10GB+ | Low |
-| RNLE | 4+ | 8GB+ | 15GB+ | Moderate |
+| Resume | 2+ | 4GB+ | 10GB+ | Moderate |
+| Scheduling | 1+ | 2GB+ | 5GB+ | Moderate |
+| Identity | 1+ | 2GB+ | 5GB+ | Low |
+| News | 2+ | 4GB+ | 10GB+ | High |
+| SpaCy Service | 2+ | 4GB+ | 10GB+ | Moderate |
 
 ### External Dependencies
 
@@ -304,7 +332,7 @@ ENV WORKER_TYPE=data_processing
 
 ```bash
 # Build all workers
-for worker in llm agent-tool data-processing interview latex rnle; do
+for worker in llm agent-tool data-processing interview latex resume; do
   docker build -t enginedge/${worker}-worker:latest ./enginedge-workers/${worker}-worker
 done
 

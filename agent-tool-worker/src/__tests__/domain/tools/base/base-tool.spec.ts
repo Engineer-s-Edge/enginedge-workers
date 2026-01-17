@@ -3,7 +3,10 @@
  */
 
 import { BaseTool } from '@domain/tools/base/base-tool';
-import { ToolMetadata, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
+import {
+  ToolMetadata,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
 import { ToolOutput } from '@domain/entities/tool.entities';
 
 // Mock concrete implementation for testing
@@ -90,7 +93,8 @@ describe('BaseTool', () => {
     it('should handle execution errors', async () => {
       // Create a tool that throws an error
       class FailingTool extends MockTool {
-        protected async executeTool(_args: unknown): Promise<ToolOutput> { // eslint-disable-line @typescript-eslint/no-unused-vars
+        protected async executeTool(_args: unknown): Promise<ToolOutput> {
+          // eslint-disable-line @typescript-eslint/no-unused-vars
           throw new Error('Test error');
         }
       }

@@ -1,11 +1,12 @@
 /**
  * PackageManagerService (Application Layer)
- * 
+ *
  * Manages LaTeX packages with caching to MongoDB.
  * Uses tlmgr (TeX Live Manager) for package installation.
  */
 
 import { Injectable, Inject } from '@nestjs/common';
+import { spawn } from 'child_process';
 import { LaTeXPackage } from '../../domain/entities';
 import { ILogger, IPackageCacheRepository } from '../../domain/ports';
 
@@ -46,12 +47,18 @@ export class PackageManagerService {
    * Install a LaTeX package
    */
   async install(packageName: string): Promise<LaTeXPackage> {
-    this.logger.log(`Installing package: ${packageName}`, 'PackageManagerService');
+    this.logger.log(
+      `Installing package: ${packageName}`,
+      'PackageManagerService',
+    );
 
     // Check cache first
     const cached = await this.cacheRepo.findByName(packageName);
     if (cached && cached.isInstalled()) {
-      this.logger.log(`Package ${packageName} already installed (cached)`, 'PackageManagerService');
+      this.logger.log(
+        `Package ${packageName} already installed (cached)`,
+        'PackageManagerService',
+      );
       await this.cacheRepo.touch(packageName);
       return cached;
     }
@@ -62,23 +69,44 @@ export class PackageManagerService {
         description: 'Common LaTeX package (pre-installed)',
       });
       await this.cacheRepo.save(pkg);
-      this.logger.log(`Package ${packageName} is pre-installed`, 'PackageManagerService');
+      this.logger.log(
+        `Package ${packageName} is pre-installed`,
+        'PackageManagerService',
+      );
       return pkg;
     }
 
     try {
-      // TODO: Execute tlmgr install command in worker thread
-      // For now, simulate installation
-      this.logger.log(`Installing ${packageName} via tlmgr...`, 'PackageManagerService');
+      this.logger.log(
+        `Installing ${packageName} via tlmgr...`,
+        'PackageManagerService',
+      );
 
-      // Simulate package installation
+      // Execute tlmgr install command
+      const result = await this.executeCommand('tlmgr', [
+        'install',
+        '--no-depends-at-all',
+        packageName,
+      ]);
+
+      if (result.exitCode !== 0) {
+        throw new Error(`tlmgr install failed: ${result.stderr}`);
+      }
+
+      // Extract version from output if available
+      const versionMatch = result.stdout.match(/version\s+([^\s]+)/i);
+      const version = versionMatch ? versionMatch[1] : '1.0.0';
+
       const pkg = LaTeXPackage.create(packageName).markInstalled({
         description: `Installed via tlmgr`,
-        version: '1.0.0',
+        version,
       });
 
       await this.cacheRepo.save(pkg);
-      this.logger.log(`Successfully installed: ${packageName}`, 'PackageManagerService');
+      this.logger.log(
+        `Successfully installed: ${packageName}`,
+        'PackageManagerService',
+      );
       return pkg;
     } catch (error) {
       this.logger.error(
@@ -109,9 +137,16 @@ export class PackageManagerService {
       return cached.isInstalled();
     }
 
-    // TODO: Check via kpsewhich command
-    // For now, assume not installed if not in cache
-    return false;
+    // Check via kpsewhich command
+    try {
+      const result = await this.executeCommand('kpsewhich', [
+        `-format=tex`,
+        `${packageName}.sty`,
+      ]);
+      return result.exitCode === 0 && result.stdout.trim().length > 0;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -131,7 +166,36 @@ export class PackageManagerService {
       });
     }
 
-    // TODO: Query tlmgr for package info
+    // Query tlmgr for package info
+    try {
+      const result = await this.executeCommand('tlmgr', [
+        'info',
+        '--only-installed',
+        packageName,
+      ]);
+
+      if (result.exitCode === 0 && result.stdout.includes(packageName)) {
+        // Parse package info from tlmgr output
+        const lines = result.stdout.split('\n');
+        const versionMatch = lines
+          .find((line) => line.includes('revision'))
+          ?.match(/revision\s+(\d+)/i);
+        const version = versionMatch ? versionMatch[1] : '1.0.0';
+
+        const pkg = LaTeXPackage.create(packageName).markInstalled({
+          description: 'Installed via tlmgr',
+          version,
+        });
+        await this.cacheRepo.save(pkg);
+        return pkg;
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to query package info for ${packageName}`,
+        'PackageManagerService',
+      );
+    }
+
     return null;
   }
 
@@ -141,13 +205,43 @@ export class PackageManagerService {
   async search(query: string): Promise<string[]> {
     this.logger.log(`Searching packages: ${query}`, 'PackageManagerService');
 
-    // TODO: Execute tlmgr search command
-    // For now, filter common packages
-    const results = Array.from(this.commonPackages).filter((pkg) =>
+    try {
+      const result = await this.executeCommand('tlmgr', [
+        'search',
+        '--global',
+        '--word',
+        query,
+      ]);
+
+      if (result.exitCode === 0) {
+        // Parse package names from tlmgr search output
+        const lines = result.stdout.split('\n');
+        const packages = lines
+          .filter((line) => line.trim().length > 0)
+          .map((line) => {
+            const match = line.match(/^([^\s:]+)/);
+            return match ? match[1] : null;
+          })
+          .filter((pkg): pkg is string => pkg !== null);
+
+        // Combine with common packages
+        const commonMatches = Array.from(this.commonPackages).filter((pkg) =>
+          pkg.includes(query.toLowerCase()),
+        );
+
+        return [...new Set([...commonMatches, ...packages])];
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to search packages: ${error instanceof Error ? error.message : String(error)}`,
+        'PackageManagerService',
+      );
+    }
+
+    // Fallback to common packages
+    return Array.from(this.commonPackages).filter((pkg) =>
       pkg.includes(query.toLowerCase()),
     );
-
-    return results;
   }
 
   /**
@@ -157,8 +251,16 @@ export class PackageManagerService {
     this.logger.log('Updating package cache...', 'PackageManagerService');
 
     try {
-      // TODO: Execute tlmgr update --self --all
-      this.logger.log('Package cache updated successfully', 'PackageManagerService');
+      // Update tlmgr itself first
+      await this.executeCommand('tlmgr', ['update', '--self']);
+
+      // Update all packages
+      await this.executeCommand('tlmgr', ['update', '--all']);
+
+      this.logger.log(
+        'Package cache updated successfully',
+        'PackageManagerService',
+      );
     } catch (error) {
       this.logger.error(
         'Failed to update package cache',
@@ -212,5 +314,43 @@ export class PackageManagerService {
     }
 
     this.logger.log('Package cache pre-warmed', 'PackageManagerService');
+  }
+
+  /**
+   * Execute a shell command
+   */
+  private async executeCommand(
+    command: string,
+    args: string[],
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    return new Promise((resolve, reject) => {
+      const process = spawn(command, args, {
+        shell: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      process.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      process.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      process.on('close', (code) => {
+        resolve({
+          stdout,
+          stderr,
+          exitCode: code || 0,
+        });
+      });
+
+      process.on('error', (error) => {
+        reject(error);
+      });
+    });
   }
 }

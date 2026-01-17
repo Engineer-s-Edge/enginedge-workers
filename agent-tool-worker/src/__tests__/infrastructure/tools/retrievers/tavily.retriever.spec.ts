@@ -5,7 +5,10 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { TavilyRetriever, TavilyArgs } from '@infrastructure/tools/retrievers/tavily.retriever';
+import {
+  TavilyRetriever,
+  TavilyArgs,
+} from '@infrastructure/tools/retrievers/tavily.retriever';
 import axios from 'axios';
 
 // Mock axios
@@ -53,14 +56,17 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
-        query: 'latest news about AI'
+        query: 'latest news about AI',
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -70,16 +76,19 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'machine learning tutorials',
         search_depth: 'advanced',
-        max_results: 15
+        max_results: 15,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -89,16 +98,19 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'beautiful landscapes',
         include_images: true,
-        max_results: 5
+        max_results: 5,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -108,20 +120,26 @@ describe('TavilyRetriever', () => {
   describe('Input Validation', () => {
     it('should reject empty query', async () => {
       const args: TavilyArgs = {
-        query: ''
+        query: '',
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Search query cannot be empty');
     });
 
     it('should reject query that is only whitespace', async () => {
       const args: TavilyArgs = {
-        query: '   '
+        query: '   ',
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
       expect(result.error!.message).toContain('Search query cannot be empty');
     });
@@ -129,12 +147,17 @@ describe('TavilyRetriever', () => {
     it('should reject query longer than 500 characters', async () => {
       const longQuery = 'a'.repeat(501);
       const args: TavilyArgs = {
-        query: longQuery
+        query: longQuery,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
       expect(result.success).toBe(false);
-      expect(result.error!.message).toContain('Search query too long (max 500 characters)');
+      expect(result.error!.message).toContain(
+        'Search query too long (max 500 characters)',
+      );
     });
   });
 
@@ -143,15 +166,18 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'JavaScript frameworks',
-        search_depth: 'basic'
+        search_depth: 'basic',
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -161,15 +187,18 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'quantum computing research',
-        search_depth: 'advanced'
+        search_depth: 'advanced',
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -179,15 +208,18 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'TypeScript best practices',
-        max_results: 20
+        max_results: 20,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -197,16 +229,19 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'web development',
         include_domains: ['developer.mozilla.org', 'stackoverflow.com'],
-        exclude_domains: ['wikipedia.org']
+        exclude_domains: ['wikipedia.org'],
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -218,15 +253,18 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'What is machine learning?',
-        include_answer: true
+        include_answer: true,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -236,15 +274,18 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
         query: 'climate change effects',
-        include_raw_content: true
+        include_raw_content: true,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -254,7 +295,7 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
@@ -263,10 +304,13 @@ describe('TavilyRetriever', () => {
         include_images: true,
         include_answer: true,
         include_raw_content: true,
-        max_results: 15
+        max_results: 15,
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');
@@ -278,22 +322,22 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
-        query: 'data science libraries'
+        query: 'data science libraries',
       };
 
       const ragConfig = {
         similarity: 0.8,
         topK: 50,
-        includeMetadata: false
+        includeMetadata: false,
       };
 
       const result = await retriever.execute({
         name: 'tavily-retriever',
-        args: { ...args, ragConfig }
+        args: { ...args, ragConfig },
       });
 
       expect(result.success).toBe(false);
@@ -306,14 +350,17 @@ describe('TavilyRetriever', () => {
       // Mock axios to reject with connection error (service unavailable)
       mockedAxios.post.mockRejectedValueOnce({
         code: 'ECONNREFUSED',
-        message: 'Connection refused'
+        message: 'Connection refused',
       });
 
       const args: TavilyArgs = {
-        query: 'test query'
+        query: 'test query',
       };
 
-      const result = await retriever.execute({ name: 'tavily-retriever', args });
+      const result = await retriever.execute({
+        name: 'tavily-retriever',
+        args,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error!.message).toBe('Tavily service is not available');

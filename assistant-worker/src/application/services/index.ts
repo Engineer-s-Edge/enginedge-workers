@@ -7,4 +7,7 @@ export { MemoryService } from './memory.service';
 export { KnowledgeGraphService } from './knowledge-graph.service';
 export { CheckpointService } from './checkpoint.service';
 export { HITLService } from './hitl.service';
-
+export { TopicCatalogService } from './topic-catalog.service';
+export { CategoryService } from './category.service';
+export { ManagerRuntimeService } from './manager/manager-runtime.service';
+export { GeniusExpertRuntimeService } from './genius/genius-expert-runtime.service';

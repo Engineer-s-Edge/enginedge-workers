@@ -17,11 +17,18 @@ export interface CreateAgentRequest {
   systemPrompt?: string;
   enableTools?: boolean;
   userId?: string;
+  agentType?:
+    | 'react'
+    | 'graph'
+    | 'expert'
+    | 'genius'
+    | 'collective'
+    | 'manager';
 }
 
 /**
  * Create Agent Use Case
- * 
+ *
  * Creates a new agent with validation
  */
 @Injectable()
@@ -42,7 +49,7 @@ export class CreateAgentUseCase {
     try {
       // 1. Check if agent with name already exists
       const existing = await this.agentRepository.findByName(request.name);
-      
+
       if (existing) {
         throw new Error(`Agent with name '${request.name}' already exists`);
       }
@@ -57,16 +64,40 @@ export class CreateAgentUseCase {
         enableTools: request.enableTools,
       });
 
-      // 3. Create agent (default to react type for backward compatibility)
-      // TODO: Update in Phase 3 to support agent type selection
-      const agent = Agent.create(
-        request.name,
-        'react',
-        config,
-        AgentCapability.forReAct(),
-      );
+      // 3. Determine agent type and create appropriate capability
+      const agentType = request.agentType || 'react';
+      let capability: AgentCapability;
 
-      // 4. Save to repository
+      switch (agentType) {
+        case 'react':
+          capability = AgentCapability.forReAct();
+          break;
+        case 'graph':
+          capability = AgentCapability.forGraph();
+          break;
+        case 'expert':
+          capability = AgentCapability.forExpert();
+          break;
+        case 'genius':
+          capability = AgentCapability.forGenius();
+          break;
+        case 'collective':
+          capability = AgentCapability.forCollective();
+          break;
+        case 'manager':
+          capability = AgentCapability.forManager();
+          break;
+        default:
+          this.logger.warn(
+            `Unknown agent type: ${agentType}, defaulting to react`,
+          );
+          capability = AgentCapability.forReAct();
+      }
+
+      // 4. Create agent with selected type
+      const agent = Agent.create(request.name, agentType, config, capability);
+
+      // 5. Save to repository
       await this.agentRepository.save(agent);
 
       this.logger.info('CreateAgentUseCase: Agent created successfully', {

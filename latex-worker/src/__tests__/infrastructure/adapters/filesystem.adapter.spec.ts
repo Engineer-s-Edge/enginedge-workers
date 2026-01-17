@@ -27,7 +27,11 @@ describe('NodeFileSystemAdapter', () => {
 
       await adapter.writeFile('/test/file.txt', 'content');
 
-      expect(fs.writeFile).toHaveBeenCalledWith('/test/file.txt', 'content', 'utf-8');
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '/test/file.txt',
+        'content',
+        'utf-8',
+      );
     });
 
     it('should write buffer data', async () => {
@@ -36,7 +40,11 @@ describe('NodeFileSystemAdapter', () => {
 
       await adapter.writeFile('/test/file.bin', buffer);
 
-      expect(fs.writeFile).toHaveBeenCalledWith('/test/file.bin', buffer, 'utf-8');
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '/test/file.bin',
+        buffer,
+        'utf-8',
+      );
     });
   });
 
@@ -58,7 +66,9 @@ describe('NodeFileSystemAdapter', () => {
 
       await adapter.mkdir('/test/deep/dir');
 
-      expect(fs.mkdir).toHaveBeenCalledWith('/test/deep/dir', { recursive: true });
+      expect(fs.mkdir).toHaveBeenCalledWith('/test/deep/dir', {
+        recursive: true,
+      });
     });
   });
 
@@ -68,7 +78,10 @@ describe('NodeFileSystemAdapter', () => {
 
       await adapter.rmdir('/test/dir');
 
-      expect(fs.rm).toHaveBeenCalledWith('/test/dir', { recursive: true, force: true });
+      expect(fs.rm).toHaveBeenCalledWith('/test/dir', {
+        recursive: true,
+        force: true,
+      });
     });
   });
 

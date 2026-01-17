@@ -6,7 +6,11 @@
  */
 
 import { Injectable, Inject } from '@nestjs/common';
-import { IToolValidator, IToolCache, IToolMetrics } from '@domain/ports/tool.ports';
+import {
+  IToolValidator,
+  IToolCache,
+  IToolMetrics,
+} from '@domain/ports/tool.ports';
 import { ToolCall, ToolResult } from '@domain/entities/tool.entities';
 import { ToolRegistry } from './tool-registry.service';
 
@@ -22,7 +26,10 @@ export class ToolService {
   /**
    * Execute a tool by name
    */
-  async executeTool(toolName: string, args: Record<string, unknown>): Promise<ToolResult> {
+  async executeTool(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<ToolResult> {
     const tool = this.toolRegistry.getTool(toolName);
     if (!tool) {
       throw new Error(`Tool '${toolName}' not found`);
@@ -42,15 +49,21 @@ export class ToolService {
   /**
    * Execute multiple tools in parallel
    */
-  async executeTools(tools: Array<{ name: string; args: Record<string, unknown> }>): Promise<ToolResult[]> {
-    const promises = tools.map(({ name, args }) => this.executeTool(name, args));
+  async executeTools(
+    tools: Array<{ name: string; args: Record<string, unknown> }>,
+  ): Promise<ToolResult[]> {
+    const promises = tools.map(({ name, args }) =>
+      this.executeTool(name, args),
+    );
     return await Promise.all(promises);
   }
 
   /**
    * Execute multiple tools sequentially
    */
-  async executeToolsSequential(tools: Array<{ name: string; args: Record<string, unknown> }>): Promise<ToolResult[]> {
+  async executeToolsSequential(
+    tools: Array<{ name: string; args: Record<string, unknown> }>,
+  ): Promise<ToolResult[]> {
     const results: ToolResult[] = [];
 
     for (const { name, args } of tools) {
@@ -125,7 +138,7 @@ export class ToolService {
     }>;
   } {
     const counts = this.toolRegistry.getToolCount();
-    const tools = this.toolRegistry.getToolInfos().map(info => ({
+    const tools = this.toolRegistry.getToolInfos().map((info) => ({
       name: info.name,
       description: info.description,
       type: info.type,

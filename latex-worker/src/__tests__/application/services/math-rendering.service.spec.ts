@@ -1,4 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+// Mock sharp before importing the service to prevent dependency errors
+jest.mock('sharp', () => {
+  const mockSharp = () => ({
+    resize: jest.fn().mockReturnThis(),
+    flatten: jest.fn().mockReturnThis(),
+    png: jest.fn().mockReturnThis(),
+    toFormat: jest.fn().mockReturnThis(),
+    toBuffer: jest.fn().mockResolvedValue(Buffer.from('mock-image')),
+    metadata: jest.fn().mockResolvedValue({ width: 100, height: 100 }),
+  });
+  return mockSharp;
+});
+
 import { MathRenderingService } from '../../../application/services/math-rendering.service';
 
 describe('MathRenderingService', () => {
@@ -32,7 +46,7 @@ describe('MathRenderingService', () => {
     it('should render display math to HTML', async () => {
       const result = await service.renderToHtml(
         '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
-        { displayMode: true }
+        { displayMode: true },
       );
 
       expect(result.displayMode).toBe(true);
@@ -75,19 +89,19 @@ describe('MathRenderingService', () => {
 
     it('should use cache for repeated renders', async () => {
       const latex = 'x^2 + y^2 = z^2';
-      
+
       const result1 = await service.renderToHtml(latex);
       const result2 = await service.renderToHtml(latex);
 
       expect(result1.output).toBe(result2.output);
-      
+
       const stats = service.getCacheStats();
       expect(stats.size).toBeGreaterThan(0);
     });
 
     it('should render with custom macros', async () => {
       const result = await service.renderToHtml('\\RR', {
-        macros: { '\\RR': '\\mathbb{R}' }
+        macros: { '\\RR': '\\mathbb{R}' },
       });
 
       expect(result.output).toContain('katex');
@@ -112,9 +126,12 @@ describe('MathRenderingService', () => {
     });
 
     it('should render display mode SVG', async () => {
-      const result = await service.renderToSvg('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}', {
-        displayMode: true
-      });
+      const result = await service.renderToSvg(
+        '\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}',
+        {
+          displayMode: true,
+        },
+      );
 
       expect(result.displayMode).toBe(true);
       expect(result.output).toContain('<svg');
@@ -131,7 +148,7 @@ describe('MathRenderingService', () => {
 
     it('should use cache for SVG renders', async () => {
       const latex = 'a^2 + b^2';
-      
+
       await service.renderToSvg(latex);
       await service.renderToSvg(latex); // Second call uses cache
 
@@ -151,7 +168,7 @@ describe('MathRenderingService', () => {
 
     it('should render display mode PNG', async () => {
       const result = await service.renderToPng('e^{i\\pi} + 1 = 0', {
-        displayMode: true
+        displayMode: true,
       });
 
       expect(result.displayMode).toBe(true);
@@ -160,7 +177,9 @@ describe('MathRenderingService', () => {
     });
 
     it('should render PNG with custom scale', async () => {
-      const result = await service.renderToPng('x + y', undefined, { scale: 3 });
+      const result = await service.renderToPng('x + y', undefined, {
+        scale: 3,
+      });
 
       expect(result.output).toContain('data:image/png;base64,');
       expect(result.error).toBeUndefined();
@@ -200,8 +219,8 @@ describe('MathRenderingService', () => {
       expect(result.failed).toBe(0);
       expect(result.rendered).toHaveLength(3);
       expect(result.totalTime).toBeGreaterThanOrEqual(0);
-      
-      result.rendered.forEach(r => {
+
+      result.rendered.forEach((r) => {
         expect(r.format).toBe('html');
         expect(r.error).toBeUndefined();
       });
@@ -287,7 +306,8 @@ describe('MathRenderingService', () => {
     });
 
     it('should extract display math from text', () => {
-      const text = 'The quadratic formula: $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$';
+      const text =
+        'The quadratic formula: $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$';
       const parsed = service.extractMath(text);
 
       expect(parsed.expressions).toHaveLength(1);
@@ -303,8 +323,8 @@ describe('MathRenderingService', () => {
       expect(parsed.expressions[0].content).toBe('a = 1');
       expect(parsed.expressions[1].content).toBe('b = 2');
       expect(parsed.expressions[2].content).toBe('c = a + b');
-      
-      parsed.expressions.forEach(expr => {
+
+      parsed.expressions.forEach((expr) => {
         expect(expr.displayMode).toBe(false);
       });
     });
@@ -322,7 +342,8 @@ describe('MathRenderingService', () => {
     });
 
     it('should extract LaTeX environments', () => {
-      const text = 'An equation: \\begin{equation} E = mc^2 \\end{equation} here.';
+      const text =
+        'An equation: \\begin{equation} E = mc^2 \\end{equation} here.';
       const parsed = service.extractMath(text);
 
       expect(parsed.expressions).toHaveLength(1);
@@ -337,8 +358,10 @@ describe('MathRenderingService', () => {
 
       // Should extract the math expression, not dollar amounts
       expect(parsed.expressions.length).toBeGreaterThanOrEqual(1);
-      
-      const mathExpr = parsed.expressions.find(e => e.content.trim() === 'x = 1');
+
+      const mathExpr = parsed.expressions.find(
+        (e) => e.content.trim() === 'x = 1',
+      );
       expect(mathExpr).toBeDefined();
       expect(mathExpr?.displayMode).toBe(false);
     });
@@ -381,10 +404,10 @@ For $a = 1$, $b = -5$, $c = 6$, we get $x = 2$ or $x = 3$.
       const parsed = service.extractMath(text);
 
       expect(parsed.expressions.length).toBeGreaterThan(5);
-      
-      const displayExprs = parsed.expressions.filter(e => e.displayMode);
-      const inlineExprs = parsed.expressions.filter(e => !e.displayMode);
-      
+
+      const displayExprs = parsed.expressions.filter((e) => e.displayMode);
+      const inlineExprs = parsed.expressions.filter((e) => !e.displayMode);
+
       expect(displayExprs.length).toBeGreaterThan(0);
       expect(inlineExprs.length).toBeGreaterThan(0);
     });
@@ -397,7 +420,7 @@ For $a = 1$, $b = -5$, $c = 6$, we get $x = 2$ or $x = 3$.
       // Should be sorted by startIndex
       for (let i = 1; i < parsed.expressions.length; i++) {
         expect(parsed.expressions[i].startIndex!).toBeGreaterThan(
-          parsed.expressions[i - 1].startIndex!
+          parsed.expressions[i - 1].startIndex!,
         );
       }
     });

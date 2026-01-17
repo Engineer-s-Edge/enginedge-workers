@@ -32,7 +32,11 @@ describe('CandidateProfileBuilderService', () => {
     });
 
     it('should append multiple strength observations', () => {
-      let result = service.appendObservation(mockProfile, 'strengths', 'Strength 1');
+      let result = service.appendObservation(
+        mockProfile,
+        'strengths',
+        'Strength 1',
+      );
       result = service.appendObservation(result, 'strengths', 'Strength 2');
 
       expect(result.observations.strengths).toHaveLength(2);
@@ -64,7 +68,11 @@ describe('CandidateProfileBuilderService', () => {
     });
 
     it('should concatenate multiple key insights with newline', () => {
-      let result = service.appendObservation(mockProfile, 'keyInsights', 'Insight 1');
+      let result = service.appendObservation(
+        mockProfile,
+        'keyInsights',
+        'Insight 1',
+      );
       result = service.appendObservation(result, 'keyInsights', 'Insight 2');
 
       expect(result.observations.keyInsights).toBe('Insight 1\nInsight 2');
@@ -116,7 +124,9 @@ describe('CandidateProfileBuilderService', () => {
         pausedAt: ['question-1'],
       });
 
-      expect(result.observations.interviewFlow.pausedAt).toContain('question-1');
+      expect(result.observations.interviewFlow.pausedAt).toContain(
+        'question-1',
+      );
     });
 
     it('should update skippedQuestions count', () => {
@@ -150,9 +160,17 @@ describe('CandidateProfileBuilderService', () => {
 
   describe('getProfileSummary', () => {
     it('should return profile summary', () => {
-      let profile = service.appendObservation(mockProfile, 'strengths', 'Strength 1');
+      let profile = service.appendObservation(
+        mockProfile,
+        'strengths',
+        'Strength 1',
+      );
       profile = service.appendObservation(profile, 'concerns', 'Concern 1');
-      profile = service.appendObservation(profile, 'keyInsights', 'Key insight');
+      profile = service.appendObservation(
+        profile,
+        'keyInsights',
+        'Key insight',
+      );
       profile = service.updateResumeFindings(profile, 'verified', 'Finding 1');
       profile = service.updateInterviewFlow(profile, {
         skippedQuestions: 1,
@@ -181,4 +199,3 @@ describe('CandidateProfileBuilderService', () => {
     });
   });
 });
-

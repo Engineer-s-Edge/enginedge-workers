@@ -7,16 +7,19 @@ import { InterviewService } from '../../../application/services/interview.servic
 import { Interview } from '../../../domain/entities';
 import { mock } from 'jest-mock-extended';
 import { IInterviewRepository } from '../../../application/ports/repositories.port';
+import { MongoFavoriteRepository } from '../../../infrastructure/adapters/database/favorite.repository';
 
 describe('InterviewService', () => {
   let service: InterviewService;
   const mockInterviewRepository = mock<IInterviewRepository>();
+  const mockFavoriteRepository = mock<MongoFavoriteRepository>();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InterviewService,
         { provide: 'IInterviewRepository', useValue: mockInterviewRepository },
+        { provide: MongoFavoriteRepository, useValue: mockFavoriteRepository },
       ],
     }).compile();
 
@@ -31,6 +34,7 @@ describe('InterviewService', () => {
   it('should create interview', async () => {
     const mockInterview = new Interview({
       id: 'test-interview',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -45,6 +49,7 @@ describe('InterviewService', () => {
     mockInterviewRepository.save.mockImplementation(async (i: any) => i);
 
     const result = await service.createInterview({
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -64,6 +69,7 @@ describe('InterviewService', () => {
     const mockInterviews = [
       new Interview({
         id: 'i1',
+        userId: 'test-user',
         title: 'Interview 1',
         phases: [],
         config: {
@@ -87,6 +93,7 @@ describe('InterviewService', () => {
   it('should get interview by ID', async () => {
     const mockInterview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Test Interview',
       phases: [],
       config: {
@@ -109,6 +116,7 @@ describe('InterviewService', () => {
   it('should update interview', async () => {
     const updatedInterview = new Interview({
       id: 'test-id',
+      userId: 'test-user',
       title: 'Updated Title',
       phases: [],
       config: {
@@ -139,4 +147,3 @@ describe('InterviewService', () => {
     expect(mockInterviewRepository.delete).toHaveBeenCalledWith('test-id');
   });
 });
-

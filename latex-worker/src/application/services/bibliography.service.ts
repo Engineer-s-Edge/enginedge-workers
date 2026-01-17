@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { IFileSystem } from '../../domain/ports';
 import * as path from 'path';
 
@@ -89,9 +89,12 @@ export class BibliographyService {
   private readonly entryPattern = /@(\w+)\{([^,]+),([^@]*?)(?=\n@|\n*$)/gs;
 
   // BibTeX field pattern
-  private readonly fieldPattern = /(\w+)\s*=\s*\{([^}]*)\}|(\w+)\s*=\s*"([^"]*)"/g;
+  private readonly fieldPattern =
+    /(\w+)\s*=\s*\{([^}]*)\}|(\w+)\s*=\s*"([^"]*)"/g;
 
-  constructor(private readonly fileSystem: IFileSystem) {}
+  constructor(
+    @Inject('IFileSystem') private readonly fileSystem: IFileSystem,
+  ) {}
 
   /**
    * Validate a .bib file
@@ -137,9 +140,7 @@ export class BibliographyService {
 
         // Validate required fields for common entry types
         const requiredFields = this.getRequiredFields(type);
-        const missingFields = requiredFields.filter(
-          (field) => !fields[field],
-        );
+        const missingFields = requiredFields.filter((field) => !fields[field]);
 
         if (missingFields.length > 0) {
           warnings.push(
@@ -179,7 +180,8 @@ export class BibliographyService {
         entries,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
         valid: false,
         errors: [`Failed to parse .bib file: ${errorMessage}`],
@@ -247,7 +249,9 @@ export class BibliographyService {
       const validation = await this.validateBibFile(bibPath);
 
       if (!validation.valid) {
-        errors.push(`Invalid .bib file ${bibFile}: ${validation.errors.join(', ')}`);
+        errors.push(
+          `Invalid .bib file ${bibFile}: ${validation.errors.join(', ')}`,
+        );
       }
 
       warnings.push(...validation.warnings.map((w) => `${bibFile}: ${w}`));
@@ -314,7 +318,8 @@ export class BibliographyService {
 
       return null;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.warn(`Failed to detect citation style: ${errorMessage}`);
       return null;
     }
@@ -339,7 +344,8 @@ export class BibliographyService {
       }
 
       // Match \citep, \citet (natbib) with optional arguments
-      const natbibPattern = /\\cite[pt](?:\[[^\]]*\])?(?:\[[^\]]*\])?\{([^}]+)\}/g;
+      const natbibPattern =
+        /\\cite[pt](?:\[[^\]]*\])?(?:\[[^\]]*\])?\{([^}]+)\}/g;
       while ((match = natbibPattern.exec(content)) !== null) {
         const citationKeys = match[1].split(',').map((k) => k.trim());
         citationKeys.forEach((k) => keys.add(k));
@@ -347,7 +353,8 @@ export class BibliographyService {
 
       return Array.from(keys);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.warn(`Failed to extract citation keys: ${errorMessage}`);
       return [];
     }
@@ -385,10 +392,7 @@ export class BibliographyService {
   /**
    * Merge multiple .bib files into one
    */
-  async mergeBibFiles(
-    bibPaths: string[],
-    outputPath: string,
-  ): Promise<void> {
+  async mergeBibFiles(bibPaths: string[], outputPath: string): Promise<void> {
     this.logger.log(`Merging ${bibPaths.length} .bib files into ${outputPath}`);
 
     const allEntries = new Map<string, BibEntry>();

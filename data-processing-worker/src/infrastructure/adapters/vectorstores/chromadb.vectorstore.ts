@@ -4,10 +4,10 @@ import { Document } from '@domain/entities/document.entity';
 
 /**
  * ChromaDB Vector Store Adapter (DISABLED - Placeholder)
- * 
+ *
  * ChromaDB is an open-source embedding database.
  * To enable: Install chromadb and configure endpoint.
- * 
+ *
  * Installation: npm install chromadb
  */
 @Injectable()
@@ -18,7 +18,9 @@ export class ChromaDBVectorStoreAdapter implements VectorStorePort {
 
   constructor() {
     if (!this.enabled) {
-      this.logger.warn('ChromaDB vector store is DISABLED. To enable, set CHROMADB_URL and install dependencies.');
+      this.logger.warn(
+        'ChromaDB vector store is DISABLED. To enable, set CHROMADB_URL and install dependencies.',
+      );
     }
   }
 
@@ -28,12 +30,14 @@ export class ChromaDBVectorStoreAdapter implements VectorStorePort {
     metadata?: Record<string, unknown>,
   ): Promise<string[]> {
     if (!this.enabled) {
-      throw new Error('ChromaDB vector store is disabled. Enable it by setting CHROMADB_URL.');
+      throw new Error(
+        'ChromaDB vector store is disabled. Enable it by setting CHROMADB_URL.',
+      );
     }
 
     /*
     const { ChromaClient } = require('chromadb');
-    
+
     const client = new ChromaClient({
       path: process.env.CHROMADB_URL || 'http://localhost:8000',
     });
@@ -66,7 +70,7 @@ export class ChromaDBVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { ChromaClient } = require('chromadb');
-    
+
     const client = new ChromaClient({
       path: process.env.CHROMADB_URL || 'http://localhost:8000',
     });
@@ -101,7 +105,7 @@ export class ChromaDBVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { ChromaClient } = require('chromadb');
-    
+
     const client = new ChromaClient({
       path: process.env.CHROMADB_URL || 'http://localhost:8000',
     });
@@ -121,7 +125,7 @@ export class ChromaDBVectorStoreAdapter implements VectorStorePort {
 
     /*
     const { ChromaClient } = require('chromadb');
-    
+
     const client = new ChromaClient({
       path: process.env.CHROMADB_URL || 'http://localhost:8000',
     });

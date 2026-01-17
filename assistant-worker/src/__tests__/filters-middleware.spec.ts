@@ -169,12 +169,14 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
 
     it('should measure request duration', () => {
       const context = { request: { method: 'GET', url: '/test' } };
-      const next = { handle: () => {
-        // Simulate some processing
-        const start = Date.now();
-        while (Date.now() - start < 10) {}
-        return { statusCode: 200 };
-      } };
+      const next = {
+        handle: () => {
+          // Simulate some processing
+          const start = Date.now();
+          while (Date.now() - start < 10) {}
+          return { statusCode: 200 };
+        },
+      };
 
       interceptor.intercept(context, next);
       const logs = interceptor.getLogs();
@@ -223,7 +225,8 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
       private correlationIds: Map<string, string> = new Map();
 
       async use(req: any, res: any, next: any): Promise<void> {
-        const correlationId = req.headers?.['x-correlation-id'] || this.generateId();
+        const correlationId =
+          req.headers?.['x-correlation-id'] || this.generateId();
         req.correlationId = correlationId;
         res.setHeader('x-correlation-id', correlationId);
         this.correlationIds.set(correlationId, new Date().toISOString());
@@ -263,7 +266,10 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
 
       expect(req.correlationId).toBeDefined();
       expect(req.correlationId).toMatch(/^corr-/);
-      expect(res.setHeader).toHaveBeenCalledWith('x-correlation-id', req.correlationId);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'x-correlation-id',
+        req.correlationId,
+      );
     });
 
     it('should use provided correlation ID', async () => {
@@ -274,7 +280,10 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
       await middleware.use(req, res, undefined);
 
       expect(req.correlationId).toBe(providedId);
-      expect(res.setHeader).toHaveBeenCalledWith('x-correlation-id', providedId);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'x-correlation-id',
+        providedId,
+      );
     });
 
     it('should store correlation IDs', async () => {
@@ -327,7 +336,10 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
       private requests: any[] = [];
 
       intercept(context: any, next: any): any {
-        this.requests.push({ method: context.request?.method, timestamp: Date.now() });
+        this.requests.push({
+          method: context.request?.method,
+          timestamp: Date.now(),
+        });
         return next.handle();
       }
 
@@ -390,7 +402,9 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
 
       // Simulate error
       const exception = { statusCode: 400, message: 'Bad request' };
-      const errorResponse = exceptionFilter.catch(exception, { correlationId: req.correlationId });
+      const errorResponse = exceptionFilter.catch(exception, {
+        correlationId: req.correlationId,
+      });
 
       expect(errorResponse.statusCode).toBe(400);
     });
@@ -404,7 +418,9 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
       expect(req.correlationId).toBe(correlationId);
 
       const exception = { message: 'Error' };
-      const response = exceptionFilter.catch(exception, { correlationId: req.correlationId });
+      const response = exceptionFilter.catch(exception, {
+        correlationId: req.correlationId,
+      });
 
       expect(response.message).toBeDefined();
     });
@@ -435,7 +451,10 @@ describe('Infrastructure Layer - Filters & Middleware', () => {
         };
 
         await dispatch(0);
-        this.requestLog.push({ path: req.path, middlewares: this.middlewares.length });
+        this.requestLog.push({
+          path: req.path,
+          middlewares: this.middlewares.length,
+        });
       }
 
       getRequestLog(): any[] {

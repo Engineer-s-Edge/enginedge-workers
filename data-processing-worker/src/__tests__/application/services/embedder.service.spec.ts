@@ -7,17 +7,27 @@ class DummyEmbedder {
     return [text.length, this.name.length];
   }
   async embedBatch(texts: string[]): Promise<number[][]> {
-    return texts.map(t => [t.length, this.name.length]);
+    return texts.map((t) => [t.length, this.name.length]);
   }
-  getDimensions(): number { return 2; }
-  getModelName(): string { return this.name; }
+  getDimensions(): number {
+    return 2;
+  }
+  getModelName(): string {
+    return this.name;
+  }
 }
 
 class DummyFactory {
   constructor(public defaultEmbedder: any) {}
-  getDefaultEmbedder() { return this.defaultEmbedder; }
-  getEmbedderByProvider(p: string) { return this.defaultEmbedder; }
-  getAvailableEmbedders() { return [ { provider: 'dummy' } ]; }
+  getDefaultEmbedder() {
+    return this.defaultEmbedder;
+  }
+  getEmbedderByProvider(p: string) {
+    return this.defaultEmbedder;
+  }
+  getAvailableEmbedders() {
+    return [{ provider: 'dummy' }];
+  }
 }
 
 describe('EmbedderService', () => {
@@ -25,7 +35,14 @@ describe('EmbedderService', () => {
 
   beforeEach(() => {
     const embedder = new DummyEmbedder('dummy');
-    service = new EmbedderService(new DummyFactory(embedder) as any);
+    const mockSimilarityHelper = {
+      calculateSimilarity: jest.fn(),
+      findMostSimilar: jest.fn(),
+    };
+    service = new EmbedderService(
+      new DummyFactory(embedder) as any,
+      mockSimilarityHelper as any,
+    );
   });
 
   it('embeds single text and caches result', async () => {

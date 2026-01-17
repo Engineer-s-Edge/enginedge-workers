@@ -1,14 +1,99 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from './infrastructure/filters/global-exception.filter';
+import { LoggingInterceptor } from './infrastructure/interceptors/logging.interceptor';
+import {
+  SwaggerModule,
+  DocumentBuilder,
+  OpenAPIObject,
+} from '@nestjs/swagger';
+import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
+import { createHash } from 'crypto';
+import * as path from 'path';
+import { dump } from 'js-yaml';
+
+const { readFile, writeFile, mkdir } = fs;
+
+async function syncOpenApiDocument(document: OpenAPIObject) {
+  try {
+    const documentationDir = path.resolve(process.cwd(), 'documentation');
+    const targetPath = path.join(documentationDir, 'openapi.yaml');
+    const nextContent = dump(document, {
+      noRefs: true,
+      sortKeys: true,
+      lineWidth: -1,
+    });
+    const nextChecksum = createHash('sha256')
+      .update(nextContent)
+      .digest('hex');
+
+    if (existsSync(targetPath)) {
+      const currentContent = await readFile(targetPath, 'utf8');
+      const currentChecksum = createHash('sha256')
+        .update(currentContent)
+        .digest('hex');
+      if (currentChecksum === nextChecksum) {
+        Logger.log('OpenAPI spec up to date; no changes detected', 'Swagger');
+        return;
+      }
+    }
+
+    await mkdir(documentationDir, { recursive: true });
+    await writeFile(targetPath, nextContent, 'utf8');
+    Logger.log(`OpenAPI spec updated at ${targetPath}`, 'Swagger');
+  } catch (error) {
+    Logger.warn(
+      `Failed to sync OpenAPI spec: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'Swagger',
+    );
+  }
+}
 
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
     app.enableCors();
+
+    // Global validation pipe (template default)
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+
+    // Global exception filter and logging interceptor (template default)
+    app.useGlobalFilters(new GlobalExceptionFilter());
+    app.useGlobalInterceptors(new LoggingInterceptor());
+
+    // Swagger/OpenAPI documentation
+    const config = new DocumentBuilder()
+      .setTitle('Worker Template API')
+      .setDescription('Template worker for creating new workers')
+      .setVersion('1.0.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'jwt',
+      )
+      .addTag('Health', 'Health checks')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      jsonDocumentUrl: 'api/docs-json',
+      customSiteTitle: 'Worker Template API Documentation',
+    });
+    await syncOpenApiDocument(document);
+
     const port = process.env.PORT || 3001;
     await app.listen(port);
     Logger.log(`Application running on port ${port}`, 'Bootstrap');
+    Logger.log(`Swagger documentation available at http://localhost:${port}/api/docs`, 'Bootstrap');
 
     // Handle termination signals
     const signals = ['SIGTERM', 'SIGINT'];

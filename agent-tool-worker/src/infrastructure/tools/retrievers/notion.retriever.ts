@@ -17,8 +17,15 @@
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import { BaseRetriever } from '../../../domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '../../../domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '../../../domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '../../../domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '../../../domain/entities/tool.entities';
 
 export interface NotionArgs extends Record<string, unknown> {
   query?: string;
@@ -91,15 +98,15 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
     properties: {
       query: {
         type: 'string',
-        description: 'Search query for page titles and content'
+        description: 'Search query for page titles and content',
       },
       database_id: {
         type: 'string',
-        description: 'Notion database ID to search within'
+        description: 'Notion database ID to search within',
       },
       filter: {
         type: 'object',
-        description: 'Notion filter object for advanced filtering'
+        description: 'Notion filter object for advanced filtering',
       },
       sort: {
         type: 'array',
@@ -107,30 +114,30 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
           type: 'object',
           properties: {
             property: { type: 'string' },
-            direction: { type: 'string', enum: ['ascending', 'descending'] }
-          }
+            direction: { type: 'string', enum: ['ascending', 'descending'] },
+          },
         },
-        description: 'Sort order for results'
+        description: 'Sort order for results',
       },
       max_results: {
         type: 'number',
         description: 'Maximum pages to return',
         minimum: 1,
         maximum: 100,
-        default: 10
+        default: 10,
       },
       start_cursor: {
         type: 'string',
-        description: 'Cursor for pagination'
+        description: 'Cursor for pagination',
       },
       search_in: {
         type: 'string',
         enum: ['title', 'content', 'all'],
         description: 'Where to search',
-        default: 'all'
-      }
+        default: 'all',
+      },
     },
-    required: []
+    required: [],
   };
 
   readonly outputSchema = {
@@ -155,16 +162,17 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
             archived: { type: 'boolean' },
             parent_id: { type: 'string' },
             properties_count: { type: 'number' },
-            preview: { type: 'string' }
-          }
-        }
-      }
+            preview: { type: 'string' },
+          },
+        },
+      },
     },
-    required: ['success', 'total_results', 'has_more', 'pages']
+    required: ['success', 'total_results', 'has_more', 'pages'],
   };
 
   readonly name = 'notion-retriever';
-  readonly description = 'Search Notion databases and pages with filtering, sorting, and property extraction';
+  readonly description =
+    'Search Notion databases and pages with filtering, sorting, and property extraction';
   readonly retrievalType: RetrievalType = RetrievalType.API_DATA;
 
   readonly metadata = new RetrieverConfig(
@@ -176,24 +184,37 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
     new ErrorEvent('notion-auth-failed', 'Notion authentication failed', false),
     new ErrorEvent('notion-api-error', 'Notion API request failed', true),
-    new ErrorEvent('notion-invalid-database', 'Invalid database ID provided', false),
-    new ErrorEvent('notion-network-error', 'Network connectivity issue with Notion API', true),
-    new ErrorEvent('notion-rate-limit', 'Notion API rate limit exceeded', true)
+    new ErrorEvent(
+      'notion-invalid-database',
+      'Invalid database ID provided',
+      false,
+    ),
+    new ErrorEvent(
+      'notion-network-error',
+      'Network connectivity issue with Notion API',
+      true,
+    ),
+    new ErrorEvent('notion-rate-limit', 'Notion API rate limit exceeded', true),
   ];
 
   public get caching(): boolean {
     return false; // Notion content changes frequently
   }
 
-  protected async retrieve(args: NotionArgs & { ragConfig: RAGConfig }): Promise<NotionOutput> {
+  protected async retrieve(
+    args: NotionArgs & { ragConfig: RAGConfig },
+  ): Promise<NotionOutput> {
     // Manual input validation
-    if (args.max_results !== undefined && (args.max_results < 1 || args.max_results > 100)) {
+    if (
+      args.max_results !== undefined &&
+      (args.max_results < 1 || args.max_results > 100)
+    ) {
       throw new Error('max_results must be between 1 and 100');
     }
 
@@ -207,14 +228,16 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
         total_results: response.data.results?.length || 0,
         has_more: response.data.has_more || false,
         next_cursor: response.data.next_cursor,
-        pages: this.transformPages(response.data.results || [])
+        pages: this.transformPages(response.data.results || []),
       };
     } catch (error: unknown) {
       return this.handleNotionError(error);
     }
   }
 
-  private async sendNotionRequest(args: NotionArgs): Promise<AxiosResponse<NotionApiResponse>> {
+  private async sendNotionRequest(
+    args: NotionArgs,
+  ): Promise<AxiosResponse<NotionApiResponse>> {
     const token = process.env.NOTION_API_TOKEN;
     if (!token) {
       throw new Error('Notion API token not configured');
@@ -226,9 +249,9 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
       : 'https://api.notion.com/v1/search';
 
     const headers = {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Notion-Version': '2022-06-28',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     const data: Record<string, unknown> = {};
@@ -242,9 +265,9 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
     }
 
     if (args.sort) {
-      data.sorts = args.sort.map(s => ({
+      data.sorts = args.sort.map((s) => ({
         property: s.property,
-        direction: s.direction
+        direction: s.direction,
       }));
     }
 
@@ -260,25 +283,30 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
 
     return axios.post<NotionApiResponse>(endpoint, data, {
       headers,
-      timeout: 30000
+      timeout: 30000,
     });
   }
 
   private transformPages(pages: NotionPage[]): NotionOutput['pages'] {
-    return pages.map(page => {
+    return pages.map((page) => {
       // Extract title from properties if available
       let title: string | undefined;
       if (page.properties) {
-        const titleProp = (Object.entries(page.properties) as Array<[string, unknown]>).find(
-          ([, prop]) => (prop as Record<string, unknown>)?.type === 'title'
+        const titleProp = (
+          Object.entries(page.properties) as Array<[string, unknown]>
+        ).find(
+          ([, prop]) => (prop as Record<string, unknown>)?.type === 'title',
         );
         if (titleProp && (titleProp[1] as Record<string, unknown>)?.title) {
-          const titleContent = (titleProp[1] as Record<string, unknown>).title as Array<{
+          const titleContent = (titleProp[1] as Record<string, unknown>)
+            .title as Array<{
             plain_text?: string;
             text?: { content?: string };
           }>;
-          const extractedTitle = titleContent.map((t) => t.plain_text || t.text?.content || '').join('');
-          title = extractedTitle || undefined;  // Convert empty string to undefined
+          const extractedTitle = titleContent
+            .map((t) => t.plain_text || t.text?.content || '')
+            .join('');
+          title = extractedTitle || undefined; // Convert empty string to undefined
         }
       }
 
@@ -291,7 +319,7 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
         archived: page.archived,
         parent_id: page.parent.database_id || page.parent.page_id,
         properties_count: Object.keys(page.properties || {}).length,
-        preview: this.extractPreview(page)
+        preview: this.extractPreview(page),
       };
     });
   }
@@ -300,28 +328,44 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
     // Try to extract preview from properties
     if (page.properties) {
       const textProps = Object.entries(page.properties)
-        .filter(([, prop]) => (prop as Record<string, unknown>)?.type === 'rich_text')
+        .filter(
+          ([, prop]) => (prop as Record<string, unknown>)?.type === 'rich_text',
+        )
         .map(([, prop]) => {
-          const richText = (prop as Record<string, unknown>).rich_text as Array<{
-            plain_text?: string;
-            text?: { content?: string };
-          }> | undefined;
-          return richText?.map((t) => t.plain_text || t.text?.content || '').join('') || '';
+          const richText = (prop as Record<string, unknown>).rich_text as
+            | Array<{
+                plain_text?: string;
+                text?: { content?: string };
+              }>
+            | undefined;
+          return (
+            richText
+              ?.map((t) => t.plain_text || t.text?.content || '')
+              .join('') || ''
+          );
         });
 
-      return textProps.find(text => text.length > 0)?.substring(0, 200);
+      return textProps.find((text) => text.length > 0)?.substring(0, 200);
     }
   }
 
   private handleNotionError(error: unknown): never {
     let errorMessage = 'Unknown error occurred while accessing Notion API';
-    
+
     // Check for axios-like error structure (works with mocks and real axios errors)
-    const axiosLikeError = error as { isAxiosError?: boolean; response?: { status?: number; data?: { message?: string; error?: { message?: string } } }; message?: string };
-    
+    const axiosLikeError = error as {
+      isAxiosError?: boolean;
+      response?: {
+        status?: number;
+        data?: { message?: string; error?: { message?: string } };
+      };
+      message?: string;
+    };
+
     if (axios.isAxiosError(error) || axiosLikeError.isAxiosError) {
       const status = axiosLikeError.response?.status;
-      const message = axiosLikeError.response?.data?.message || axiosLikeError.message;
+      const message =
+        axiosLikeError.response?.data?.message || axiosLikeError.message;
 
       if (status === 401 || status === 403) {
         errorMessage = 'Notion authentication failed - check API token';
@@ -337,7 +381,10 @@ export class NotionRetriever extends BaseRetriever<NotionArgs, NotionOutput> {
     } else if (error instanceof Error) {
       if (error.message.includes('timeout')) {
         errorMessage = 'Notion API request timeout';
-      } else if (error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+      } else if (
+        error.message.includes('network') ||
+        error.message.includes('ECONNREFUSED')
+      ) {
         errorMessage = 'Network connectivity issue with Notion API';
       } else if (error.message.includes('token not configured')) {
         errorMessage = error.message;

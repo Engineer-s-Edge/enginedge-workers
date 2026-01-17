@@ -4,23 +4,132 @@
  * Tests for todo list management and task tracking functionality.
  */
 
-import { InternalTodoActor, TodoArgs, TodoOutput } from '@infrastructure/tools/actors/internal-todo.actor';
+import { Test, TestingModule } from '@nestjs/testing';
+import {
+  InternalTodoActor,
+  TodoArgs,
+  TodoOutput,
+} from '@infrastructure/tools/actors/internal-todo.actor';
+
+// Mock DB
+const createMockDb = () => {
+  const todos: any[] = [];
+  return {
+    collection: jest.fn().mockReturnValue({
+      createIndexes: jest.fn().mockResolvedValue([]),
+      countDocuments: jest.fn().mockImplementation(async (query) => {
+        const results = todos.filter((item) => matchQuery(item, query));
+        return results.length;
+      }),
+      insertOne: jest.fn().mockImplementation(async (doc) => {
+        todos.push(doc);
+        return { insertedId: doc.id };
+      }),
+      findOneAndUpdate: jest
+        .fn()
+        .mockImplementation(async (query, update, options) => {
+          const index = todos.findIndex((t) => t.id === query.id);
+          if (index === -1) return null;
+
+          const item = todos[index];
+          if (update.$set) {
+            Object.assign(item, update.$set);
+          }
+          return options?.returnDocument === 'after' ? item : todos[index];
+        }),
+      findOneAndDelete: jest.fn().mockImplementation(async (query) => {
+        const index = todos.findIndex((t) => t.id === query.id);
+        if (index === -1) return null;
+        const deleted = todos[index];
+        todos.splice(index, 1);
+        return deleted;
+      }),
+      findOne: jest.fn().mockImplementation(async (query) => {
+        return todos.find((t) => t.id === query.id) || null;
+      }),
+      find: jest.fn().mockImplementation((query) => {
+        let results = todos.filter((item) => matchQuery(item, query));
+        const cursor = {
+          sort: jest.fn().mockImplementation((criteria) => {
+            if (criteria.createdAt === -1) {
+              results = results.sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
+              );
+            }
+            return cursor;
+          }),
+          skip: jest.fn().mockImplementation((n) => {
+            results = results.slice(n);
+            return cursor;
+          }),
+          limit: jest.fn().mockImplementation((n) => {
+            results = results.slice(0, n);
+            return cursor;
+          }),
+          toArray: jest.fn().mockImplementation(() => Promise.resolve(results)),
+        };
+        return cursor;
+      }),
+    }),
+  };
+};
+
+function matchQuery(item: any, query: any): boolean {
+  for (const key in query) {
+    const condition = query[key];
+    const val = item[key];
+
+    if (condition && typeof condition === 'object') {
+      if ('$in' in condition) {
+        if (Array.isArray(val)) {
+          const intersection = val.some((v) => condition.$in.includes(v));
+          if (!intersection) return false;
+        } else {
+          if (!condition.$in.includes(val)) return false;
+        }
+      }
+      if ('$lte' in condition) {
+        if (new Date(val) > condition.$lte) return false;
+      }
+      if ('$gte' in condition) {
+        if (new Date(val) < condition.$gte) return false;
+      }
+    } else {
+      if (val !== condition) return false;
+    }
+  }
+  return true;
+}
 
 describe('InternalTodoActor', () => {
   let actor: InternalTodoActor;
+  let mockDb: any;
 
-  beforeEach(() => {
-    actor = new InternalTodoActor();
+  beforeEach(async () => {
+    mockDb = createMockDb();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        InternalTodoActor,
+        { provide: 'MONGODB_DB', useValue: mockDb },
+      ],
+    }).compile();
+
+    actor = module.get<InternalTodoActor>(InternalTodoActor);
   });
 
   describe('Create Todo', () => {
     it('should create a basic todo', async () => {
       const args: TodoArgs = {
         operation: 'create',
-        title: 'Test Todo'
+        title: 'Test Todo',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).operation).toBe('create');
@@ -45,10 +154,13 @@ describe('InternalTodoActor', () => {
         priority: 'high',
         tags: ['work', 'urgent'],
         dueDate: dueDate.toISOString(),
-        assignee: 'john.doe@example.com'
+        assignee: 'john.doe@example.com',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       const todo = (result.output as TodoOutput).todo!;
@@ -62,11 +174,14 @@ describe('InternalTodoActor', () => {
 
     it('should reject creation without title', async () => {
       const args: TodoArgs = {
-        operation: 'create'
+        operation: 'create',
         // Missing title
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Title is required');
     });
@@ -81,10 +196,13 @@ describe('InternalTodoActor', () => {
         operation: 'create',
         title: 'Original Todo',
         description: 'Original description',
-        priority: 'low'
+        priority: 'low',
       };
 
-      const createResult = await actor.execute({ name: 'internal-todo-actor', args: createArgs as unknown as Record<string, unknown> });
+      const createResult = await actor.execute({
+        name: 'internal-todo-actor',
+        args: createArgs as unknown as Record<string, unknown>,
+      });
       todoId = (createResult.output as TodoOutput).todo!.id;
     });
 
@@ -92,15 +210,20 @@ describe('InternalTodoActor', () => {
       const args: TodoArgs = {
         operation: 'update',
         id: todoId,
-        status: 'completed'
+        status: 'completed',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       const todo = (result.output as TodoOutput).todo!;
       expect(todo.status).toBe('completed');
-      expect(todo.updatedAt.getTime()).toBeGreaterThanOrEqual(todo.createdAt.getTime());
+      expect(todo.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        todo.createdAt.getTime(),
+      );
     });
 
     it('should update multiple fields', async () => {
@@ -111,10 +234,13 @@ describe('InternalTodoActor', () => {
         description: 'Updated description',
         priority: 'high',
         tags: ['updated'],
-        assignee: 'jane.smith@example.com'
+        assignee: 'jane.smith@example.com',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       const todo = (result.output as TodoOutput).todo!;
@@ -128,10 +254,13 @@ describe('InternalTodoActor', () => {
     it('should reject update without ID', async () => {
       const args: TodoArgs = {
         operation: 'update',
-        status: 'completed'
+        status: 'completed',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Todo ID is required');
     });
@@ -140,10 +269,13 @@ describe('InternalTodoActor', () => {
       const args: TodoArgs = {
         operation: 'update',
         id: 'non-existent-id',
-        status: 'completed'
+        status: 'completed',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('not found');
     });
@@ -154,26 +286,40 @@ describe('InternalTodoActor', () => {
       // Create multiple todos for testing
       const todos = [
         { title: 'High Priority', priority: 'high' as const, tags: ['urgent'] },
-        { title: 'Medium Priority', priority: 'medium' as const, tags: ['normal'] },
+        {
+          title: 'Medium Priority',
+          priority: 'medium' as const,
+          tags: ['normal'],
+        },
         { title: 'Low Priority', priority: 'low' as const, tags: ['minor'] },
-        { title: 'Completed Task', priority: 'medium' as const, status: 'completed' as const }
+        {
+          title: 'Completed Task',
+          priority: 'medium' as const,
+          status: 'completed' as const,
+        },
       ];
 
       for (const todoData of todos) {
         const args: TodoArgs = {
           operation: 'create',
-          ...todoData
+          ...todoData,
         };
-        await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+        await actor.execute({
+          name: 'internal-todo-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
       }
     });
 
     it('should list all todos', async () => {
       const args: TodoArgs = {
-        operation: 'list'
+        operation: 'list',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todos).toHaveLength(4);
@@ -183,36 +329,49 @@ describe('InternalTodoActor', () => {
     it('should filter by status', async () => {
       const args: TodoArgs = {
         operation: 'list',
-        filter: { status: ['completed'] }
+        filter: { status: ['completed'] },
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todos).toHaveLength(1);
-      expect((result.output as TodoOutput).todos![0].title).toBe('Completed Task');
+      expect((result.output as TodoOutput).todos![0].title).toBe(
+        'Completed Task',
+      );
     });
 
     it('should filter by priority', async () => {
       const args: TodoArgs = {
         operation: 'list',
-        filter: { priority: ['high'] }
+        filter: { priority: ['high'] },
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todos).toHaveLength(1);
-      expect((result.output as TodoOutput).todos![0].title).toBe('High Priority');
+      expect((result.output as TodoOutput).todos![0].title).toBe(
+        'High Priority',
+      );
     });
 
     it('should filter by tags', async () => {
       const args: TodoArgs = {
         operation: 'list',
-        filter: { tags: ['urgent'] }
+        filter: { tags: ['urgent'] },
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todos).toHaveLength(1);
@@ -223,10 +382,13 @@ describe('InternalTodoActor', () => {
       const args: TodoArgs = {
         operation: 'list',
         limit: 2,
-        offset: 1
+        offset: 1,
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todos).toHaveLength(2);
@@ -235,16 +397,21 @@ describe('InternalTodoActor', () => {
 
     it('should sort by creation date (newest first)', async () => {
       const args: TodoArgs = {
-        operation: 'list'
+        operation: 'list',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       const todos = (result.output as TodoOutput).todos!;
       // Should be sorted newest first
       for (let i = 0; i < todos.length - 1; i++) {
-        expect(todos[i].createdAt.getTime()).toBeGreaterThanOrEqual(todos[i + 1].createdAt.getTime());
+        expect(todos[i].createdAt.getTime()).toBeGreaterThanOrEqual(
+          todos[i + 1].createdAt.getTime(),
+        );
       }
     });
   });
@@ -255,20 +422,26 @@ describe('InternalTodoActor', () => {
     beforeEach(async () => {
       const createArgs: TodoArgs = {
         operation: 'create',
-        title: 'Test Todo for Get'
+        title: 'Test Todo for Get',
       };
 
-      const createResult = await actor.execute({ name: 'internal-todo-actor', args: createArgs as unknown as Record<string, unknown> });
+      const createResult = await actor.execute({
+        name: 'internal-todo-actor',
+        args: createArgs as unknown as Record<string, unknown>,
+      });
       todoId = (createResult.output as TodoOutput).todo!.id;
     });
 
     it('should get existing todo', async () => {
       const args: TodoArgs = {
         operation: 'get',
-        id: todoId
+        id: todoId,
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).found).toBe(true);
@@ -278,10 +451,13 @@ describe('InternalTodoActor', () => {
     it('should return found=false for non-existent todo', async () => {
       const args: TodoArgs = {
         operation: 'get',
-        id: 'non-existent-id'
+        id: 'non-existent-id',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).found).toBe(false);
@@ -290,10 +466,13 @@ describe('InternalTodoActor', () => {
 
     it('should reject get without ID', async () => {
       const args: TodoArgs = {
-        operation: 'get'
+        operation: 'get',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Todo ID is required');
     });
@@ -305,20 +484,26 @@ describe('InternalTodoActor', () => {
     beforeEach(async () => {
       const createArgs: TodoArgs = {
         operation: 'create',
-        title: 'Todo to Delete'
+        title: 'Todo to Delete',
       };
 
-      const createResult = await actor.execute({ name: 'internal-todo-actor', args: createArgs as unknown as Record<string, unknown> });
+      const createResult = await actor.execute({
+        name: 'internal-todo-actor',
+        args: createArgs as unknown as Record<string, unknown>,
+      });
       todoId = (createResult.output as TodoOutput).todo!.id;
     });
 
     it('should delete existing todo', async () => {
       const args: TodoArgs = {
         operation: 'delete',
-        id: todoId
+        id: todoId,
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todo!.id).toBe(todoId);
@@ -326,19 +511,25 @@ describe('InternalTodoActor', () => {
       // Verify it's actually deleted
       const getArgs: TodoArgs = {
         operation: 'get',
-        id: todoId
+        id: todoId,
       };
 
-      const getResult = await actor.execute({ name: 'internal-todo-actor', args: getArgs as unknown as Record<string, unknown> });
+      const getResult = await actor.execute({
+        name: 'internal-todo-actor',
+        args: getArgs as unknown as Record<string, unknown>,
+      });
       expect((getResult.output as TodoOutput).found).toBe(false);
     });
 
     it('should reject delete without ID', async () => {
       const args: TodoArgs = {
-        operation: 'delete'
+        operation: 'delete',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Todo ID is required');
     });
@@ -346,10 +537,13 @@ describe('InternalTodoActor', () => {
     it('should reject delete of non-existent todo', async () => {
       const args: TodoArgs = {
         operation: 'delete',
-        id: 'non-existent-id'
+        id: 'non-existent-id',
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('not found');
     });
@@ -358,10 +552,13 @@ describe('InternalTodoActor', () => {
   describe('Validation', () => {
     it('should reject invalid operation', async () => {
       const args = {
-        operation: 'invalid' as unknown
+        operation: 'invalid' as unknown,
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain('Unsupported operation');
     });
@@ -372,15 +569,18 @@ describe('InternalTodoActor', () => {
       const todos = [
         { title: 'Overdue', dueDate: '2025-01-01T00:00:00Z' },
         { title: 'Due Soon', dueDate: '2025-12-31T00:00:00Z' },
-        { title: 'Future', dueDate: '2026-01-01T00:00:00Z' }
+        { title: 'Future', dueDate: '2026-01-01T00:00:00Z' },
       ];
 
       for (const todoData of todos) {
         const args: TodoArgs = {
           operation: 'create',
-          ...todoData
+          ...todoData,
         };
-        await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+        await actor.execute({
+          name: 'internal-todo-actor',
+          args: args as unknown as Record<string, unknown>,
+        });
       }
     });
 
@@ -389,11 +589,14 @@ describe('InternalTodoActor', () => {
         operation: 'list',
         filter: {
           dueAfter: '2024-12-01T00:00:00Z',
-          dueBefore: '2025-06-01T00:00:00Z'
-        }
+          dueBefore: '2025-06-01T00:00:00Z',
+        },
       };
 
-      const result = await actor.execute({ name: 'internal-todo-actor', args: args as unknown as Record<string, unknown> });
+      const result = await actor.execute({
+        name: 'internal-todo-actor',
+        args: args as unknown as Record<string, unknown>,
+      });
 
       expect(result.success).toBe(true);
       expect((result.output as TodoOutput).todos).toHaveLength(1);

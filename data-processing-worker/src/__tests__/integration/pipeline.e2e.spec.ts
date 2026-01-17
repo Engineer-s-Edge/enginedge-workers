@@ -10,7 +10,9 @@
  */
 
 describe('Integration: full processing pipeline (skeleton)', () => {
-  it.todo('uploads a file and completes the pipeline (load -> split -> embed -> store)');
+  it.todo(
+    'uploads a file and completes the pipeline (load -> split -> embed -> store)',
+  );
   it.todo('performs a vector search after storing embeddings');
   it.todo('handles attachments and multi-file uploads');
 });

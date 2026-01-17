@@ -4,7 +4,7 @@ import { Document } from '../../domain/entities/document.entity';
 
 /**
  * Loader Registry Service (Application Layer)
- * 
+ *
  * Manages registration and discovery of document loaders.
  * Acts as a factory for selecting the appropriate loader.
  */
@@ -23,7 +23,7 @@ export class LoaderRegistryService {
 
     // Map file extensions to loader names
     const supportedTypes = loader.getSupportedTypes();
-    supportedTypes.forEach(ext => {
+    supportedTypes.forEach((ext) => {
       this.extensionMap.set(ext.toLowerCase(), name);
       this.logger.debug(`Mapped extension ${ext} to loader ${name}`);
     });
@@ -55,7 +55,7 @@ export class LoaderRegistryService {
 
     // For string, check if it's a URL or file path
     const isUrl = this.isUrl(source);
-    
+
     if (isUrl) {
       // Try URL loaders
       for (const [name, loader] of this.loaders.entries()) {
@@ -72,7 +72,9 @@ export class LoaderRegistryService {
         if (loaderName) {
           const loader = this.loaders.get(loaderName);
           if (loader) {
-            this.logger.debug(`Auto-selected loader ${loaderName} for extension: ${extension}`);
+            this.logger.debug(
+              `Auto-selected loader ${loaderName} for extension: ${extension}`,
+            );
             return loader;
           }
         }
@@ -97,7 +99,10 @@ export class LoaderRegistryService {
   /**
    * Load document with auto-detection
    */
-  async loadAuto(source: string | Blob, options?: Record<string, unknown>): Promise<Document[]> {
+  async loadAuto(
+    source: string | Blob,
+    options?: Record<string, unknown>,
+  ): Promise<Document[]> {
     const loader = this.getLoaderForSource(source);
     if (!loader) {
       throw new Error(`No suitable loader found for source: ${source}`);
@@ -113,7 +118,11 @@ export class LoaderRegistryService {
   private isUrl(str: string): boolean {
     try {
       const url = new URL(str);
-      return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'ftp:';
+      return (
+        url.protocol === 'http:' ||
+        url.protocol === 'https:' ||
+        url.protocol === 'ftp:'
+      );
     } catch {
       return false;
     }
@@ -132,8 +141,8 @@ export class LoaderRegistryService {
    */
   getSupportedTypes(): string[] {
     const types = new Set<string>();
-    this.loaders.forEach(loader => {
-      loader.getSupportedTypes().forEach(type => types.add(type));
+    this.loaders.forEach((loader) => {
+      loader.getSupportedTypes().forEach((type) => types.add(type));
     });
     return Array.from(types).sort();
   }

@@ -7,8 +7,15 @@
 
 import { Injectable } from '@nestjs/common';
 import { BaseRetriever } from '@domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '@domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '@domain/entities/tool.entities';
 import axios, { AxiosResponse, Method } from 'axios';
 
 export interface CurlArgs {
@@ -41,7 +48,8 @@ export interface CurlOutput extends ToolOutput {
 @Injectable()
 export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
   readonly name = 'curl-retriever';
-  readonly description = 'Make HTTP requests to external APIs and web services with full control over headers, methods, and request body';
+  readonly description =
+    'Make HTTP requests to external APIs and web services with full control over headers, methods, and request body';
   readonly retrievalType: RetrievalType = RetrievalType.API_DATA;
   readonly caching = false;
 
@@ -52,50 +60,57 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
       url: {
         type: 'string',
         description: 'The URL to make the request to',
-        format: 'uri'
+        format: 'uri',
       },
       method: {
         type: 'string',
         enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
         description: 'HTTP method to use',
-        default: 'GET'
+        default: 'GET',
       },
       headers: {
         type: 'object',
         description: 'HTTP headers to include in the request',
-        additionalProperties: { type: 'string' }
+        additionalProperties: { type: 'string' },
       },
       body: {
-        description: 'Request body (string or object for JSON)'
+        description: 'Request body (string or object for JSON)',
       },
       params: {
         type: 'object',
         description: 'Query parameters to append to the URL',
-        additionalProperties: { type: 'string' }
+        additionalProperties: { type: 'string' },
       },
       timeout: {
         type: 'number',
         description: 'Request timeout in milliseconds',
         minimum: 1000,
         maximum: 300000,
-        default: 30000
+        default: 30000,
       },
       followRedirects: {
         type: 'boolean',
         description: 'Whether to follow HTTP redirects',
-        default: true
+        default: true,
       },
       verifySSL: {
         type: 'boolean',
         description: 'Whether to verify SSL certificates',
-        default: true
-      }
-    }
+        default: true,
+      },
+    },
   };
 
   readonly outputSchema = {
     type: 'object',
-    required: ['success', 'url', 'method', 'statusCode', 'statusText', 'headers'],
+    required: [
+      'success',
+      'url',
+      'method',
+      'statusCode',
+      'statusText',
+      'headers',
+    ],
     properties: {
       success: { type: 'boolean' },
       url: { type: 'string' },
@@ -104,15 +119,15 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
       statusText: { type: 'string' },
       headers: {
         type: 'object',
-        additionalProperties: { type: 'string' }
+        additionalProperties: { type: 'string' },
       },
       body: { type: 'string' },
       responseTime: { type: 'number' },
       contentType: { type: 'string' },
       contentLength: { type: 'number' },
       processingTime: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   };
 
   readonly metadata = new RetrieverConfig(
@@ -124,17 +139,19 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
     [],
     this.retrievalType,
     this.caching,
-    {}
+    {},
   );
 
   readonly errorEvents: ErrorEvent[] = [
     new ErrorEvent('curl-request-failed', 'HTTP request failed', true),
     new ErrorEvent('curl-timeout', 'Request timed out', true),
     new ErrorEvent('curl-invalid-url', 'Invalid URL provided', false),
-    new ErrorEvent('curl-network-error', 'Network connectivity issue', true)
+    new ErrorEvent('curl-network-error', 'Network connectivity issue', true),
   ];
 
-  protected async retrieve(args: CurlArgs & { ragConfig: RAGConfig }): Promise<CurlOutput> {
+  protected async retrieve(
+    args: CurlArgs & { ragConfig: RAGConfig },
+  ): Promise<CurlOutput> {
     // Validate input
     this.validateInput(args);
 
@@ -146,7 +163,7 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
       params,
       timeout = 30000,
       followRedirects = true,
-      verifySSL = true
+      verifySSL = true,
     } = args;
 
     // Validate URL
@@ -154,7 +171,7 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
       new URL(url);
     } catch {
       throw Object.assign(new Error('Invalid URL format'), {
-        name: 'ValidationError'
+        name: 'ValidationError',
       });
     }
 
@@ -167,7 +184,7 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
       params,
       timeout,
       followRedirects,
-      verifySSL
+      verifySSL,
     });
   }
 
@@ -190,13 +207,15 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
         url: request.url,
         headers: {
           'User-Agent': 'CurlRetriever/1.0',
-          ...request.headers
+          ...request.headers,
         },
         params: request.params,
         timeout: request.timeout,
         maxRedirects: request.followRedirects ? 5 : 0,
-        httpsAgent: request.verifySSL ? undefined : ({ rejectUnauthorized: false } as any),
-        validateStatus: () => true // Don't throw on any status code
+        httpsAgent: request.verifySSL
+          ? undefined
+          : ({ rejectUnauthorized: false } as any),
+        validateStatus: () => true, // Don't throw on any status code
       } as any;
 
       // Add body for non-GET methods
@@ -215,7 +234,9 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
       // Extract response headers
       const responseHeaders: Record<string, string> = {};
       Object.entries(response.headers).forEach(([key, value]) => {
-        responseHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
+        responseHeaders[key] = Array.isArray(value)
+          ? value.join(', ')
+          : String(value);
       });
 
       return {
@@ -225,39 +246,57 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
         statusCode: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
-        body: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
-        responseTime: response.headers['request-duration'] ? parseInt(response.headers['request-duration']) : undefined,
+        body:
+          typeof response.data === 'string'
+            ? response.data
+            : JSON.stringify(response.data),
+        responseTime: response.headers['request-duration']
+          ? parseInt(response.headers['request-duration'])
+          : undefined,
         contentType: response.headers['content-type'],
-        contentLength: response.headers['content-length'] ? parseInt(response.headers['content-length']) : undefined,
-        processingTime
+        contentLength: response.headers['content-length']
+          ? parseInt(response.headers['content-length'])
+          : undefined,
+        processingTime,
       };
-
     } catch (error) {
       const processingTime = Date.now() - startTime;
       const axiosError = error as {
         code?: string;
-        response?: { status?: number; statusText?: string; headers?: Record<string, string>; data?: unknown };
-        message?: string
+        response?: {
+          status?: number;
+          statusText?: string;
+          headers?: Record<string, string>;
+          data?: unknown;
+        };
+        message?: string;
       };
 
-      if (axiosError.code === 'ECONNREFUSED' || axiosError.code === 'ENOTFOUND') {
+      if (
+        axiosError.code === 'ECONNREFUSED' ||
+        axiosError.code === 'ENOTFOUND'
+      ) {
         throw Object.assign(new Error('Network connectivity issue'), {
-          name: 'NetworkError'
+          name: 'NetworkError',
         });
       }
 
       if (axiosError.code === 'ETIMEDOUT') {
         throw Object.assign(new Error('Request timed out'), {
-          name: 'TimeoutError'
+          name: 'TimeoutError',
         });
       }
 
       // If we have a response, return it as a successful result
       if (axiosError.response) {
         const responseHeaders: Record<string, string> = {};
-        Object.entries(axiosError.response.headers || {}).forEach(([key, value]) => {
-          responseHeaders[key] = Array.isArray(value) ? value.join(', ') : String(value);
-        });
+        Object.entries(axiosError.response.headers || {}).forEach(
+          ([key, value]) => {
+            responseHeaders[key] = Array.isArray(value)
+              ? value.join(', ')
+              : String(value);
+          },
+        );
 
         return {
           success: true,
@@ -266,16 +305,21 @@ export class CurlRetriever extends BaseRetriever<CurlArgs, CurlOutput> {
           statusCode: axiosError.response.status || 0,
           statusText: axiosError.response.statusText || 'Unknown',
           headers: responseHeaders,
-          body: typeof axiosError.response.data === 'string' ? axiosError.response.data : JSON.stringify(axiosError.response.data || ''),
+          body:
+            typeof axiosError.response.data === 'string'
+              ? axiosError.response.data
+              : JSON.stringify(axiosError.response.data || ''),
           contentType: axiosError.response.headers?.['content-type'],
-          contentLength: axiosError.response.headers?.['content-length'] ? parseInt(axiosError.response.headers['content-length']) : undefined,
-          processingTime
+          contentLength: axiosError.response.headers?.['content-length']
+            ? parseInt(axiosError.response.headers['content-length'])
+            : undefined,
+          processingTime,
         };
       }
 
       const errorMessage = axiosError.message || 'Unknown error';
       throw Object.assign(new Error(`HTTP request failed: ${errorMessage}`), {
-        name: 'HttpError'
+        name: 'HttpError',
       });
     }
   }

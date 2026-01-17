@@ -4,7 +4,9 @@
  * Configures adapters, controllers, and external integrations.
  */
 
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { KafkaLoggerAdapter } from '../common/logging/kafka-logger.adapter';
 import { ApplicationModule } from '@application/application.module';
 import { HealthModule } from '../health/health.module';
 import { ThreadingModule } from './threading/threading.module';
@@ -15,11 +17,20 @@ import { SessionController } from './controllers/session.controller';
 import { InterviewController } from './controllers/interview.controller';
 import { ProfileController } from './controllers/profile.controller';
 import { ReportController } from './controllers/report.controller';
+import { WebhookController } from './controllers/webhook.controller';
+import { CodeExecutionController } from './controllers/code-execution.controller';
+import { AnalyticsController } from './controllers/analytics.controller';
+import { AgentController } from './controllers/agent.controller';
 import { InterviewWebSocketGateway } from './gateways/interview-websocket.gateway';
 import { GoogleSpeechAdapter } from './adapters/voice/google-speech.adapter';
 import { AzureSpeechAdapter } from './adapters/voice/azure-speech.adapter';
+import { FillerWordDetectorAdapter } from './adapters/voice/filler-word-detector.adapter';
+import { AudioFormatAdapter } from './adapters/voice/audio-format.adapter';
+import { WebhookDeliveryAdapter } from './adapters/webhooks/webhook-delivery.adapter';
+import { DockerCodeExecutorAdapter } from './adapters/code-execution/docker-code-executor.adapter';
+import { TestRunnerAdapter } from './adapters/code-execution/test-runner.adapter';
 import { StructuredLogger } from './adapters/logging/structured-logger';
-import { ILogger } from '@application/ports/logger.port';
+import { RedisCacheAdapter } from './adapters/cache/redis-cache.adapter';
 import {
   MongoDbModule,
   MongoInterviewRepository,
@@ -29,7 +40,13 @@ import {
   MongoCandidateProfileRepository,
   MongoTranscriptRepository,
   MongoInterviewReportRepository,
+  MongoWebhookRepository,
+  MongoCodeExecutionRepository,
+  MongoTestCaseRepository,
 } from './adapters/database';
+import { MongoFavoriteRepository } from './adapters/database/favorite.repository';
+import { MongoWhiteboardRepository } from './adapters/database/whiteboard.repository';
+import { MongoUserTestCaseRepository } from './adapters/database/user-test-case.repository';
 import {
   IInterviewRepository,
   IInterviewSessionRepository,
@@ -38,24 +55,29 @@ import {
   ICandidateProfileRepository,
   ITranscriptRepository,
   IInterviewReportRepository,
+  IWebhookRepository,
 } from '@application/ports/repositories.port';
-
+import { ICodeExecutor } from '@application/ports/code-executor.port';
+import { WebhookService } from '@application/services/webhook.service';
+import { CodeExecutionService } from '@application/services/code-execution.service';
+import { PhaseTransitionService } from '@application/services/phase-transition.service';
+import { TimeLimitService } from '@application/services/time-limit.service';
 
 /**
  * Infrastructure module - adapters, controllers, and wiring
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
  * Phase 4: Knowledge graph ✅
- * Phase 5: Advanced features ⏳
- * 
+ * Phase 5: Advanced features ✅
+ *
  * Made global to ensure DI providers are available across all modules
  */
 @Global()
 @Module({
   imports: [
-    ApplicationModule,
+    forwardRef(() => ApplicationModule),
     HealthModule, // Provides HealthController and HealthService
     ThreadingModule, // Provides WorkerThreadPool, RequestQueue, etc.
     MongoDbModule, // MongoDB connection and database instance
@@ -67,21 +89,42 @@ import {
     InterviewController,
     ProfileController,
     ReportController,
+    WebhookController,
+    CodeExecutionController,
+    AnalyticsController,
+    AgentController,
   ],
   providers: [
     // Logger
     {
       provide: 'ILogger',
-      useFactory: () => {
-        const logger = new StructuredLogger('interview-worker');
-        return logger;
-      },
+      useClass: KafkaLoggerAdapter,
     },
     // WebSocket Gateway
     InterviewWebSocketGateway,
     // Speech Adapters
     GoogleSpeechAdapter,
     AzureSpeechAdapter,
+    FillerWordDetectorAdapter,
+    AudioFormatAdapter,
+    // Webhook System
+    WebhookService,
+    WebhookDeliveryAdapter,
+    // Code Execution System
+    CodeExecutionService,
+    {
+      provide: 'ICodeExecutor',
+      useClass: DockerCodeExecutorAdapter,
+    },
+    TestRunnerAdapter,
+    // Phase Transition and Time Limit Services
+    PhaseTransitionService,
+    TimeLimitService,
+    MongoCodeExecutionRepository,
+    MongoTestCaseRepository,
+    MongoFavoriteRepository,
+    MongoWhiteboardRepository,
+    MongoUserTestCaseRepository,
     // Repository implementations
     {
       provide: 'IInterviewRepository',
@@ -111,7 +154,14 @@ import {
       provide: 'IInterviewReportRepository',
       useClass: MongoInterviewReportRepository,
     },
+    {
+      provide: 'IWebhookRepository',
+      useClass: MongoWebhookRepository,
+    },
     MetricsAdapter,
+
+    // Cache adapter
+    RedisCacheAdapter,
   ],
   exports: [
     // Export logger for use in other modules
@@ -124,6 +174,24 @@ import {
     'ICandidateProfileRepository',
     'ITranscriptRepository',
     'IInterviewReportRepository',
+    'IWebhookRepository',
+    // Export code executor interface
+    'ICodeExecutor',
+    // Export services
+    WebhookService,
+    CodeExecutionService,
+    // Export repositories for use in application layer
+    MongoTestCaseRepository,
+    MongoCodeExecutionRepository,
+    MongoFavoriteRepository,
+    MongoWhiteboardRepository,
+    MongoUserTestCaseRepository,
+    // Export adapters for use in other modules
+    AudioFormatAdapter,
+    WebhookDeliveryAdapter,
+    TestRunnerAdapter,
+    // Export gateway for use in application layer
+    InterviewWebSocketGateway,
   ],
 })
 export class InfrastructureModule {}

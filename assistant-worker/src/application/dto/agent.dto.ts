@@ -1,10 +1,15 @@
 /**
  * Create Agent DTO
- * 
+ *
  * Request payload for creating a new agent
  */
 
-import { ConfigObject, ExecutionContext, AgentTypeValue, MemoryTypeValue } from './types';
+import {
+  ConfigObject,
+  ExecutionContext,
+  AgentTypeValue,
+  MemoryTypeValue,
+} from './types';
 
 export class CreateAgentDTO {
   /**

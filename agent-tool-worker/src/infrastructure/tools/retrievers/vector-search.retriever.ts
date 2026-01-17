@@ -1,8 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import { BaseRetriever } from '@domain/tools/base/base-retriever';
-import { RetrieverConfig, ErrorEvent } from '@domain/value-objects/tool-config.value-objects';
-import { ToolOutput, RAGConfig, RetrievalType } from '@domain/entities/tool.entities';
+import {
+  RetrieverConfig,
+  ErrorEvent,
+} from '@domain/value-objects/tool-config.value-objects';
+import {
+  ToolOutput,
+  RAGConfig,
+  RetrievalType,
+} from '@domain/entities/tool.entities';
 
 export interface VectorSearchArgs {
   query: string;
@@ -27,12 +34,15 @@ export interface VectorSearchOutput extends ToolOutput {
 
 /**
  * Vector Search Retriever
- * 
+ *
  * Performs semantic vector search using the Data Processing Worker.
  * Integrates with MongoDB vector store for similarity-based document retrieval.
  */
 @Injectable()
-export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, VectorSearchOutput> {
+export class VectorSearchRetriever extends BaseRetriever<
+  VectorSearchArgs,
+  VectorSearchOutput
+> {
   readonly name = 'vector-search-retriever';
   readonly description = 'Search documents using semantic vector similarity';
 
@@ -44,10 +54,26 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
 
   constructor() {
     const errorEvents = [
-      new ErrorEvent('vector-search-failed', 'Failed to perform vector search', false),
-      new ErrorEvent('embedding-generation-failed', 'Failed to generate query embedding', false),
-      new ErrorEvent('data-processing-unavailable', 'Data Processing Worker is not available', false),
-      new ErrorEvent('vector-search-timeout', 'Vector search request timed out', true),
+      new ErrorEvent(
+        'vector-search-failed',
+        'Failed to perform vector search',
+        false,
+      ),
+      new ErrorEvent(
+        'embedding-generation-failed',
+        'Failed to generate query embedding',
+        false,
+      ),
+      new ErrorEvent(
+        'data-processing-unavailable',
+        'Data Processing Worker is not available',
+        false,
+      ),
+      new ErrorEvent(
+        'vector-search-timeout',
+        'Vector search request timed out',
+        true,
+      ),
     ];
 
     const metadata = new RetrieverConfig(
@@ -112,8 +138,17 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
       },
       [
         { query: 'machine learning algorithms', userId: 'user-123' },
-        { query: 'API documentation', userId: 'user-123', conversationId: 'conv-456', limit: 10 },
-        { query: 'python code examples', userId: 'user-123', filters: { sourceType: 'github' } },
+        {
+          query: 'API documentation',
+          userId: 'user-123',
+          conversationId: 'conv-456',
+          limit: 10,
+        },
+        {
+          query: 'python code examples',
+          userId: 'user-123',
+          filters: { sourceType: 'github' },
+        },
       ],
       'database' as RetrievalType,
       true, // caching
@@ -124,17 +159,23 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
     this.metadata = metadata;
     this.errorEvents = errorEvents;
 
-    this.DATA_PROCESSING_URL = process.env.DATA_PROCESSING_WORKER_URL || 'http://data-processing-worker:3003';
+    this.DATA_PROCESSING_URL =
+      process.env.DATA_PROCESSING_WORKER_URL ||
+      'http://data-processing-worker:3003';
   }
 
   /**
    * Perform vector search using Data Processing Worker
    */
-  protected async retrieve(args: VectorSearchArgs & { ragConfig?: RAGConfig }): Promise<VectorSearchOutput> {
+  protected async retrieve(
+    args: VectorSearchArgs & { ragConfig?: RAGConfig },
+  ): Promise<VectorSearchOutput> {
     const startTime = Date.now();
 
     try {
-      this.logger.log(`Vector search for query: "${args.query.substring(0, 50)}..."`);
+      this.logger.log(
+        `Vector search for query: "${args.query.substring(0, 50)}..."`,
+      );
 
       // Step 1: Generate embedding for query using Data Processing embedder
       const embeddingResponse: AxiosResponse = await axios.post(
@@ -157,7 +198,9 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
         throw new Error('Failed to generate query embedding');
       }
 
-      this.logger.log(`Generated embedding with ${queryEmbedding.length} dimensions`);
+      this.logger.log(
+        `Generated embedding with ${queryEmbedding.length} dimensions`,
+      );
 
       // Step 2: Perform vector search
       let searchEndpoint = `${this.DATA_PROCESSING_URL}/vector-store/search`;
@@ -196,18 +239,33 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
       this.logger.log(`Found ${results.length} results in ${processingTime}ms`);
 
       return {
-        results: results.map((r: { document?: { id?: string; content?: string; metadata?: Record<string, unknown> }; id?: string; content?: string; metadata?: Record<string, unknown>; score?: number }) => ({
-          documentId: r.document?.id || r.id || 'unknown',
-          content: r.document?.content || r.content || '',
-          metadata: r.document?.metadata || r.metadata || {},
-          score: r.score || 0,
-        })),
+        results: results.map(
+          (r: {
+            document?: {
+              id?: string;
+              content?: string;
+              metadata?: Record<string, unknown>;
+            };
+            id?: string;
+            content?: string;
+            metadata?: Record<string, unknown>;
+            score?: number;
+          }) => ({
+            documentId: r.document?.id || r.id || 'unknown',
+            content: r.document?.content || r.content || '',
+            metadata: r.document?.metadata || r.metadata || {},
+            score: r.score || 0,
+          }),
+        ),
         count: results.length,
         processingTime,
       };
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      this.logger.error(`Vector search failed after ${processingTime}ms:`, error instanceof Error ? error.message : error);
+      this.logger.error(
+        `Vector search failed after ${processingTime}ms:`,
+        error instanceof Error ? error.message : error,
+      );
 
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
@@ -248,12 +306,20 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
       throw new Error('userId must be a non-empty string');
     }
 
-    if (args.limit !== undefined && (typeof args.limit !== 'number' || args.limit < 1 || args.limit > 100)) {
+    if (
+      args.limit !== undefined &&
+      (typeof args.limit !== 'number' || args.limit < 1 || args.limit > 100)
+    ) {
       throw new Error('limit must be a number between 1 and 100');
     }
 
-    if (args.similarity && !['cosine', 'euclidean', 'dotProduct'].includes(args.similarity)) {
-      throw new Error('similarity must be one of: cosine, euclidean, dotProduct');
+    if (
+      args.similarity &&
+      !['cosine', 'euclidean', 'dotProduct'].includes(args.similarity)
+    ) {
+      throw new Error(
+        'similarity must be one of: cosine, euclidean, dotProduct',
+      );
     }
 
     return true;
@@ -306,7 +372,10 @@ export class VectorSearchRetriever extends BaseRetriever<VectorSearchArgs, Vecto
       });
       return response.status === 200;
     } catch (error) {
-      this.logger.warn('Data Processing Worker unavailable:', error instanceof Error ? error.message : error);
+      this.logger.warn(
+        'Data Processing Worker unavailable:',
+        error instanceof Error ? error.message : error,
+      );
       return false;
     }
   }

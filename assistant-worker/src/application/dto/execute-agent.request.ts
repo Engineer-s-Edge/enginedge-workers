@@ -21,7 +21,7 @@ export class ExecuteAgentRequest {
     stream?: boolean;
     metadata?: Record<string, unknown>;
   }): ExecuteAgentRequest {
-    const messages = data.messages.map(msg =>
+    const messages = data.messages.map((msg) =>
       Message.create(msg.role, msg.content),
     );
 

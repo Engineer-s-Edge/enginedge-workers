@@ -3,7 +3,7 @@
  *
  * Configures and provides all application-layer services and use cases.
  * Bridges domain logic with infrastructure adapters.
- * 
+ *
  * Phase 1: Core agent infrastructure ✅
  * Phase 2: Specialized agent controllers ✅
  * Phase 3: Memory systems ✅
@@ -25,10 +25,14 @@ import { PauseInterviewUseCase } from './use-cases/pause-interview.use-case';
 import { ResumeInterviewUseCase } from './use-cases/resume-interview.use-case';
 import { SkipQuestionUseCase } from './use-cases/skip-question.use-case';
 import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
+import { WebhookService } from './services/webhook.service';
+import { NotificationService } from './services/notification.service';
+import { PhaseTransitionService } from './services/phase-transition.service';
+import { TimeLimitService } from './services/time-limit.service';
 
 /**
  * Application module - use cases and application services
- * 
+ *
  * Note: InfrastructureModule is @Global(), so its providers (ILogger, ILLMProvider, IAgentRepository)
  * are automatically available to all modules. No need to import it here.
  */
@@ -51,6 +55,10 @@ import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
     InterviewService,
     CandidateProfileService,
     EvaluatorService,
+    WebhookService,
+    NotificationService,
+    PhaseTransitionService,
+    TimeLimitService,
   ],
   exports: [
     // Export domain module so infrastructure can access it
@@ -61,6 +69,10 @@ import { SubmitResponseUseCase } from './use-cases/submit-response.use-case';
     InterviewService,
     CandidateProfileService,
     EvaluatorService,
+    WebhookService,
+    NotificationService,
+    PhaseTransitionService,
+    TimeLimitService,
   ],
 })
 export class ApplicationModule {}

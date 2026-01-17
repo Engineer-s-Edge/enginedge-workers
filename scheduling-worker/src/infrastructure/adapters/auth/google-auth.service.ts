@@ -8,9 +8,9 @@ import {
 
 /**
  * Google Auth Service - OAuth 2.0 Implementation
- * 
+ *
  * Handles OAuth flow for Google Calendar API
- * 
+ *
  * Infrastructure Adapter - Depends on googleapis library
  */
 @Injectable()

@@ -1,0 +1,182 @@
+groups:
+  - name: resume_worker_critical
+    interval: 30s
+    rules:
+      - alert: ResumeWorkerDown
+        expr: up{job="resume-worker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "Resume Worker is down"
+          description: "Resume Worker has been down for more than 2 minutes"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      - alert: HighEvaluationLatency
+        expr: histogram_quantile(0.95, rate(resume_evaluation_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "High evaluation latency"
+          description: "P95 evaluation latency is {{ $value }}s (threshold: 30s)"
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum by (topic) (kafka_consumer_lag) > 1000
+        for: 10m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "High Kafka consumer lag on {{ $labels.topic }}"
+          description: "Consumer lag is {{ $value }} messages (threshold: 1000)"
+
+      - alert: MongoDBConnectionPoolExhausted
+        expr: mongodb_connection_pool_current_connections / mongodb_connection_pool_max_connections > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: resume-worker
+        annotations:
+          summary: "MongoDB connection pool nearly exhausted"
+          description: "Connection pool usage is {{ $value | humanizePercentage }}"
+
+  - name: resume_worker_warning
+    interval: 1m
+    rules:
+      - alert: HighQueueSize
+        expr: sum(bullmq_queue_size{state="waiting"}) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High BullMQ queue size"
+          description: "Queue size is {{ $value }} jobs (threshold: 100)"
+
+      - alert: LowSuccessRate
+        expr: rate(resume_evaluations_total{status="success"}[15m]) / rate(resume_evaluations_total[15m]) < 0.95
+        for: 15m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Low success rate"
+          description: "Success rate is {{ $value | humanizePercentage }} (threshold: 95%)"
+
+      - alert: HighMemoryUsage
+        expr: nodejs_heap_size_used_bytes / nodejs_heap_size_total_bytes > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+      - alert: HighEventLoopLag
+        expr: nodejs_eventloop_lag_seconds > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High event loop lag"
+          description: "Event loop lag is {{ $value }}s (threshold: 1s)"
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(mongodb_operation_duration_seconds_bucket[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Slow database queries"
+          description: "P95 query latency is {{ $value }}s (threshold: 1s)"
+
+      - alert: HighJobFailureRate
+        expr: rate(bullmq_jobs_total{status="failed"}[10m]) / rate(bullmq_jobs_total[10m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High job failure rate"
+          description: "Job failure rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+  - name: SPACY_SERVICE
+    interval: 1m
+    rules:
+      - alert: ResumeNLPServiceDown
+        expr: up{job="spacy-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: spacy-service
+        annotations:
+          summary: "Resume NLP Service is down"
+          description: "Resume NLP Service has been down for more than 2 minutes"
+
+      - alert: HighNLPProcessingTime
+        expr: histogram_quantile(0.95, rate(bullet_evaluation_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: spacy-service
+        annotations:
+          summary: "High NLP processing time"
+          description: "P95 bullet evaluation time is {{ $value }}s (threshold: 5s)"
+
+      - alert: NLPServiceHighMemory
+        expr: process_resident_memory_bytes{job="spacy-service"} > 4e9
+        for: 10m
+        labels:
+          severity: warning
+          service: spacy-service
+        annotations:
+          summary: "NLP Service high memory usage"
+          description: "Memory usage is {{ $value | humanize }}B (threshold: 4GB)"
+
+  - name: business_metrics
+    interval: 5m
+    rules:
+      - alert: LowBulletPassRate
+        expr: rate(bullet_evaluations_total{passed="true"}[1h]) / rate(bullet_evaluations_total[1h]) < 0.5
+        for: 30m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "Low bullet pass rate"
+          description: "Bullet pass rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+
+      - alert: LowAverageEvaluationScore
+        expr: avg(resume_evaluation_score) < 70
+        for: 1h
+        labels:
+          severity: info
+          service: resume-worker
+        annotations:
+          summary: "Low average evaluation score"
+          description: "Average evaluation score is {{ $value }} (threshold: 70)"
+
+      - alert: HighTailoringJobDuration
+        expr: histogram_quantile(0.95, rate(tailoring_job_duration_seconds_bucket[1h])) > 600
+        for: 30m
+        labels:
+          severity: warning
+          service: resume-worker
+        annotations:
+          summary: "High tailoring job duration"
+          description: "P95 job duration is {{ $value }}s (threshold: 600s/10min)"

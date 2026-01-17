@@ -1,6 +1,6 @@
 /**
  * Question Selection Service
- * 
+ *
  * Domain service for selecting questions based on criteria while preventing repetition.
  * Pure business logic - no external dependencies.
  */
@@ -127,4 +127,3 @@ export class QuestionSelectionService {
     return shuffled;
   }
 }
-
