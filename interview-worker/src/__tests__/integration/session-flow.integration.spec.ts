@@ -24,6 +24,7 @@ describe('Session Flow Integration', () => {
   let questionService: QuestionService;
   let mongoServer: MongoMemoryServer;
   let mongoClient: MongoClient;
+  const createdSessionIds: string[] = [];
 
   beforeAll(async () => {
     // Start MongoDB Memory Server
@@ -79,7 +80,22 @@ describe('Session Flow Integration', () => {
     });
   });
 
+  afterEach(async () => {
+    // Clean up all sessions created during tests
+    for (const sessionId of createdSessionIds) {
+      try {
+        await sessionService.endSession(sessionId);
+      } catch (error) {
+        // Session might already be ended, ignore
+      }
+    }
+    createdSessionIds.length = 0;
+  });
+
   afterAll(async () => {
+    // Give timers a moment to clear
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    
     await app.close();
     if (mongoClient) {
       await mongoClient.close();
@@ -101,6 +117,7 @@ describe('Session Flow Integration', () => {
       candidateId: 'integration-test-candidate',
       communicationMode: 'text',
     });
+    createdSessionIds.push(session.sessionId);
 
     expect(session.status).toBe('in-progress');
     expect(session.sessionId).toBeDefined();
@@ -161,6 +178,7 @@ describe('Session Flow Integration', () => {
         communicationMode: 'text',
       }),
     ]);
+    createdSessionIds.push(...sessions.map((s) => s.sessionId));
 
     expect(sessions).toHaveLength(3);
     console.log(

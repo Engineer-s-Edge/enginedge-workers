@@ -24,6 +24,8 @@ import { TimeLimitService } from './time-limit.service';
 
 @Injectable()
 export class SessionService {
+  private readonly phaseCheckIntervals = new Map<string, NodeJS.Timeout>();
+
   constructor(
     @Inject('IInterviewSessionRepository')
     private readonly sessionRepository: IInterviewSessionRepository,
@@ -63,11 +65,12 @@ export class SessionService {
     await this.timeLimitService.startMonitoring(session.sessionId);
 
     // Start periodic phase transition checks
-    setInterval(async () => {
+    const phaseCheckInterval = setInterval(async () => {
       await this.phaseTransitionService.checkAndTransitionPhase(
         session.sessionId,
       );
     }, 10000); // Check every 10 seconds
+    this.phaseCheckIntervals.set(session.sessionId, phaseCheckInterval);
 
     return session;
   }
@@ -78,6 +81,10 @@ export class SessionService {
 
   async pauseSession(sessionId: string): Promise<InterviewSession> {
     const session = await this.pauseInterviewUseCase.execute(sessionId);
+
+    // Stop monitoring when paused
+    this.timeLimitService.stopMonitoring(sessionId);
+    this.cleanupSessionIntervals(sessionId);
 
     // Trigger webhook
     await this.webhookService.triggerWebhook(WebhookEvent.SESSION_PAUSED, {
@@ -92,6 +99,13 @@ export class SessionService {
 
   async resumeSession(sessionId: string): Promise<InterviewSession> {
     const session = await this.resumeInterviewUseCase.execute(sessionId);
+
+    // Restart monitoring when resumed
+    await this.timeLimitService.startMonitoring(sessionId);
+    const phaseCheckInterval = setInterval(async () => {
+      await this.phaseTransitionService.checkAndTransitionPhase(sessionId);
+    }, 10000);
+    this.phaseCheckIntervals.set(sessionId, phaseCheckInterval);
 
     // Trigger webhook
     await this.webhookService.triggerWebhook(WebhookEvent.SESSION_RESUMED, {
@@ -166,6 +180,8 @@ export class SessionService {
   }
 
   async endSession(sessionId: string): Promise<InterviewSession> {
+    // Clean up intervals
+    this.cleanupSessionIntervals(sessionId);
     const session = await this.sessionRepository.findById(sessionId);
     if (!session) {
       throw new Error(`Session not found: ${sessionId}`);
@@ -196,5 +212,16 @@ export class SessionService {
 
   async getInterview(interviewId: string): Promise<Interview | null> {
     return await this.interviewRepository.findById(interviewId);
+  }
+
+  /**
+   * Clean up all intervals for a session
+   */
+  private cleanupSessionIntervals(sessionId: string): void {
+    const phaseCheckInterval = this.phaseCheckIntervals.get(sessionId);
+    if (phaseCheckInterval) {
+      clearInterval(phaseCheckInterval);
+      this.phaseCheckIntervals.delete(sessionId);
+    }
   }
 }
