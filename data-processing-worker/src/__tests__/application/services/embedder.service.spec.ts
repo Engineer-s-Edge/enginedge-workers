@@ -37,9 +37,12 @@ describe('EmbedderService', () => {
     const embedder = new DummyEmbedder('dummy');
     const mockSimilarityHelper = {
       calculateSimilarity: jest.fn(),
-      findMostSimilar: jest.fn()
+      findMostSimilar: jest.fn(),
     };
-    service = new EmbedderService(new DummyFactory(embedder) as any, mockSimilarityHelper as any);
+    service = new EmbedderService(
+      new DummyFactory(embedder) as any,
+      mockSimilarityHelper as any,
+    );
   });
 
   it('embeds single text and caches result', async () => {

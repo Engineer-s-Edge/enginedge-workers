@@ -24,7 +24,9 @@ jest.mock('@google-cloud/speech', () => ({
 // Mock Google Cloud Text-to-Speech
 jest.mock('@google-cloud/text-to-speech', () => ({
   TextToSpeechClient: jest.fn().mockImplementation(() => ({
-    synthesizeSpeech: jest.fn().mockResolvedValue([{ audioContent: Buffer.from('test-audio') }]),
+    synthesizeSpeech: jest
+      .fn()
+      .mockResolvedValue([{ audioContent: Buffer.from('test-audio') }]),
     close: jest.fn(),
   })),
 }));
@@ -43,7 +45,10 @@ describe('GoogleSpeechAdapter', () => {
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve('mock_error'),
-        json: () => Promise.resolve({ results: [{ alternatives: [{ transcript: 'Mock transcription' }] }] }),
+        json: () =>
+          Promise.resolve({
+            results: [{ alternatives: [{ transcript: 'Mock transcription' }] }],
+          }),
         arrayBuffer: () => Promise.resolve(Buffer.from('mock_audio')),
       }),
     ) as any;

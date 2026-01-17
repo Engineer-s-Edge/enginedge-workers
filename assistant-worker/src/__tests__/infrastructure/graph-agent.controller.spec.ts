@@ -69,7 +69,7 @@ describe('GraphAgentController', () => {
         state: {},
         config: {},
       };
-      
+
       agentService.createAgent.mockResolvedValue(mockResult as any);
 
       const dto = {
@@ -136,12 +136,17 @@ describe('GraphAgentController', () => {
         currentNodeIds: ['node-1'],
         executedNodes: [],
       };
-      
-      agentService.getGraphAgentExecutionState.mockResolvedValue(mockState as any);
+
+      agentService.getGraphAgentExecutionState.mockResolvedValue(
+        mockState as any,
+      );
 
       const result = await controller.getWorkflowState('agent-123', 'user-1');
 
-      expect(agentService.getGraphAgentExecutionState).toHaveBeenCalledWith('agent-123', 'user-1');
+      expect(agentService.getGraphAgentExecutionState).toHaveBeenCalledWith(
+        'agent-123',
+        'user-1',
+      );
       expect(result).toEqual({
         agentId: 'agent-123',
         ...mockState,
@@ -158,23 +163,34 @@ describe('GraphAgentController', () => {
         reason: 'user request',
       });
 
-      expect(agentService.pauseGraphAgent).toHaveBeenCalledWith('agent-123', 'user-1', {
-        reason: 'user request',
-      });
+      expect(agentService.pauseGraphAgent).toHaveBeenCalledWith(
+        'agent-123',
+        'user-1',
+        {
+          reason: 'user request',
+        },
+      );
       expect(result).toEqual({ success: true, checkpointId: 'cp-1' });
     });
   });
 
   describe('resumeFromCheckpoint', () => {
     it('should resume the graph', async () => {
-      agentService.resumeGraphAgent.mockResolvedValue({ ok: true, message: 'Resumed' });
+      agentService.resumeGraphAgent.mockResolvedValue({
+        ok: true,
+        message: 'Resumed',
+      });
 
       const result = await controller.resumeFromCheckpoint('agent-123', {
         userId: 'user-1',
         checkpointId: 'cp-1',
       });
 
-      expect(agentService.resumeGraphAgent).toHaveBeenCalledWith('agent-123', 'user-1', 'cp-1');
+      expect(agentService.resumeGraphAgent).toHaveBeenCalledWith(
+        'agent-123',
+        'user-1',
+        'cp-1',
+      );
       expect(result).toEqual({ success: true, message: 'Resumed' });
     });
   });
@@ -205,7 +221,7 @@ describe('GraphAgentController', () => {
         getGraphState: jest.fn().mockReturnValue({ some: 'state' }),
       };
       agentService.getAgentInstance.mockResolvedValue(mockInstance as any);
-      
+
       checkpointService.createCheckpoint.mockResolvedValue({
         id: 'cp-123',
         name: 'My Checkpoint',
@@ -218,7 +234,10 @@ describe('GraphAgentController', () => {
         name: 'My Checkpoint',
       });
 
-      expect(agentService.getAgentInstance).toHaveBeenCalledWith('agent-123', 'user-1');
+      expect(agentService.getAgentInstance).toHaveBeenCalledWith(
+        'agent-123',
+        'user-1',
+      );
       expect(mockInstance.getGraphState).toHaveBeenCalled();
       expect(checkpointService.createCheckpoint).toHaveBeenCalledWith(
         'agent-123',
@@ -232,11 +251,11 @@ describe('GraphAgentController', () => {
         name: 'My Checkpoint',
       });
     });
-    
+
     it('should use empty state if instance does not have getGraphState', async () => {
       const mockInstance = {}; // No methods
       agentService.getAgentInstance.mockResolvedValue(mockInstance as any);
-      
+
       checkpointService.createCheckpoint.mockResolvedValue({
         id: 'cp-123',
         createdAt: new Date(),

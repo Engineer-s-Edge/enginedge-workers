@@ -18,7 +18,7 @@ describe('Health Checks', () => {
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
-    
+
     mongoClient = new MongoClient(mongoUri);
     await mongoClient.connect();
 

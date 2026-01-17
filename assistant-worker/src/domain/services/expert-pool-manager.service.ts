@@ -113,7 +113,8 @@ export class ExpertPoolManager {
   constructor(
     @Inject('ILLMProvider') private readonly llmProvider: ILLMProvider,
     @Inject('ILogger') private readonly logger: ILogger,
-    @Inject('KnowledgeGraphPort') private readonly knowledgeGraph: KnowledgeGraphPort,
+    @Inject('KnowledgeGraphPort')
+    private readonly knowledgeGraph: KnowledgeGraphPort,
     @Optional() @Inject('METRICS') private readonly metrics?: any,
   ) {
     // Initialize semaphores

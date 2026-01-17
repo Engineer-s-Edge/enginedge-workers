@@ -16,7 +16,10 @@ import { PhaseTransitionService } from '../../../application/services/phase-tran
 import { TimeLimitService } from '../../../application/services/time-limit.service';
 import { InterviewSession } from '../../../domain/entities';
 import { mock } from 'jest-mock-extended';
-import { IInterviewSessionRepository, IInterviewRepository } from '../../../application/ports/repositories.port';
+import {
+  IInterviewSessionRepository,
+  IInterviewRepository,
+} from '../../../application/ports/repositories.port';
 
 describe('SessionService', () => {
   let service: SessionService;
@@ -49,11 +52,23 @@ describe('SessionService', () => {
         },
         { provide: SkipQuestionUseCase, useValue: mockSkipQuestionUseCase },
         { provide: SubmitResponseUseCase, useValue: mockSubmitResponseUseCase },
-        { provide: 'IInterviewRepository', useValue: mock<IInterviewRepository>() },
+        {
+          provide: 'IInterviewRepository',
+          useValue: mock<IInterviewRepository>(),
+        },
         { provide: WebhookService, useValue: mock<WebhookService>() },
-        { provide: CodeExecutionService, useValue: mock<CodeExecutionService>() },
-        { provide: MongoTestCaseRepository, useValue: mock<MongoTestCaseRepository>() },
-        { provide: PhaseTransitionService, useValue: mock<PhaseTransitionService>() },
+        {
+          provide: CodeExecutionService,
+          useValue: mock<CodeExecutionService>(),
+        },
+        {
+          provide: MongoTestCaseRepository,
+          useValue: mock<MongoTestCaseRepository>(),
+        },
+        {
+          provide: PhaseTransitionService,
+          useValue: mock<PhaseTransitionService>(),
+        },
         { provide: TimeLimitService, useValue: mock<TimeLimitService>() },
       ],
     }).compile();

@@ -7,7 +7,7 @@ import { ReActAgent } from '../../domain/agents/react-agent/react-agent';
 import { Agent } from '../../domain/entities/agent.entity';
 import { BadRequestException } from '@nestjs/common';
 
-// Mock ReActAgent class 
+// Mock ReActAgent class
 // We use Object.create to handle instanceof checks, similar to how we handled ExpertAgent
 const mockReActAgentPrototype = Object.create(ReActAgent.prototype);
 
@@ -24,12 +24,15 @@ describe('ReActAgentController', () => {
     error: jest.fn(),
   };
 
-  const mockAgentInstance = Object.assign(Object.create(mockReActAgentPrototype), {
-    getReasoningTrace: jest.fn(),
-    getState: jest.fn(),
-    registerTool: jest.fn(),
-    getRegisteredTools: jest.fn(),
-  });
+  const mockAgentInstance = Object.assign(
+    Object.create(mockReActAgentPrototype),
+    {
+      getReasoningTrace: jest.fn(),
+      getState: jest.fn(),
+      registerTool: jest.fn(),
+      getRegisteredTools: jest.fn(),
+    },
+  );
 
   const mockAgentEntity = Object.assign(Object.create(Agent.prototype), {
     id: 'agent-123',
@@ -55,7 +58,10 @@ describe('ReActAgentController', () => {
     });
     mockAgentInstance.getState.mockReturnValue({
       getCurrentState: () => 'idle',
-      getMetadata: () => ({ iterations: 0, lastUpdate: new Date().toISOString() }),
+      getMetadata: () => ({
+        iterations: 0,
+        lastUpdate: new Date().toISOString(),
+      }),
     });
     mockAgentInstance.getRegisteredTools.mockReturnValue(['tool1']);
 
@@ -106,7 +112,7 @@ describe('ReActAgentController', () => {
         id: 'agent-123',
         ...mockAgentEntity,
       };
-      
+
       agentService.createAgent.mockResolvedValue(mockResult as any);
 
       const dto = {
@@ -168,9 +174,15 @@ describe('ReActAgentController', () => {
       agentService.getAgent.mockResolvedValue(mockAgentEntity);
       agentService.getAgentInstance.mockResolvedValue(mockAgentInstance);
 
-      const result = await controller.getReasoningHistory('agent-123', 'user-1');
+      const result = await controller.getReasoningHistory(
+        'agent-123',
+        'user-1',
+      );
 
-      expect(agentService.getAgentInstance).toHaveBeenCalledWith('agent-123', 'user-1');
+      expect(agentService.getAgentInstance).toHaveBeenCalledWith(
+        'agent-123',
+        'user-1',
+      );
       expect(mockAgentInstance.getReasoningTrace).toHaveBeenCalled();
       expect(result.agentId).toBe('agent-123');
       expect(result.status).toBe('idle');
@@ -182,7 +194,7 @@ describe('ReActAgentController', () => {
       agentService.getAgentInstance.mockResolvedValue({} as any); // Not ReAct instance
 
       await expect(
-        controller.getReasoningHistory('agent-123', 'user-1')
+        controller.getReasoningHistory('agent-123', 'user-1'),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -201,11 +213,11 @@ describe('ReActAgentController', () => {
       expect(agentService.updateAgent).toHaveBeenCalledWith(
         'agent-123',
         expect.objectContaining({
-            config: expect.objectContaining({
-                toolNames: ['tool1', 'new-tool']
-            })
+          config: expect.objectContaining({
+            toolNames: ['tool1', 'new-tool'],
+          }),
         }),
-        'user-1'
+        'user-1',
       );
       expect(mockAgentInstance.registerTool).toHaveBeenCalledWith('new-tool');
       expect(result.success).toBe(true);

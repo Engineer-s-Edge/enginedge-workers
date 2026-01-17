@@ -19,7 +19,9 @@ const ENV_CMD = IS_WIN ? 'cmd' : 'env';
 const ENV_ARGS = IS_WIN ? ['/c', 'set'] : [];
 // ls nonexistent (to cause stderr or failure)
 const FAIL_CMD = IS_WIN ? 'cmd' : 'ls';
-const FAIL_ARGS = IS_WIN ? ['/c', 'dir', 'nonexistent_file_123'] : ['nonexistent_file_123'];
+const FAIL_ARGS = IS_WIN
+  ? ['/c', 'dir', 'nonexistent_file_123']
+  : ['nonexistent_file_123'];
 
 describe('TerminalActor', () => {
   let actor: TerminalActor;
@@ -75,12 +77,14 @@ describe('TerminalActor', () => {
         name: 'terminal-actor',
         args: args as unknown as Record<string, unknown>,
       });
-      
+
       // Check stderr for error message
       // Note: Exit code handling can vary by environment, so we focus on output capture
-      const output = (result.output as TerminalOutput);
+      const output = result.output as TerminalOutput;
       const combinedOutput = (output.stderr || '') + (output.stdout || '');
-      expect(combinedOutput.toLowerCase()).toMatch(/no such file|not found|cannot access/);
+      expect(combinedOutput.toLowerCase()).toMatch(
+        /no such file|not found|cannot access/,
+      );
     });
   });
 

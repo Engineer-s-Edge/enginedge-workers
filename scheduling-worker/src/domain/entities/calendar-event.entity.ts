@@ -92,7 +92,8 @@ export class CalendarEvent {
     const duration = this.getDurationMinutes();
     const isFullDay = duration >= 1440; // 24 hours
     const startAtMidnight =
-      this.startTime.getUTCHours() === 0 && this.startTime.getUTCMinutes() === 0;
+      this.startTime.getUTCHours() === 0 &&
+      this.startTime.getUTCMinutes() === 0;
     return isFullDay && startAtMidnight;
   }
 

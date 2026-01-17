@@ -160,7 +160,9 @@ describe('Expert Module Integration Suite', () => {
     });
 
     it('should return null for non-existent expert', async () => {
-      const expert = await expertPoolManager.getExpert('non-existent-id' as any);
+      const expert = await expertPoolManager.getExpert(
+        'non-existent-id' as any,
+      );
       expect(expert).toBeNull();
     });
   });
@@ -412,7 +414,9 @@ describe('Expert Module Integration Suite', () => {
 
         const updatedStats = await expertPoolManager.getPoolStats();
         // releases count is not available in interface
-        expect(updatedStats.activeExperts).toBeLessThanOrEqual(stats.activeExperts);
+        expect(updatedStats.activeExperts).toBeLessThanOrEqual(
+          stats.activeExperts,
+        );
       }
     });
 

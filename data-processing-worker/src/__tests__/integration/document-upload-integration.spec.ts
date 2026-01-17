@@ -78,8 +78,12 @@ describe('Document Upload Integration Tests', () => {
       ],
     }).compile();
 
-    kafkaAdapter = module.get<KafkaDataProcessingAdapter>(KafkaDataProcessingAdapter);
-    documentProcessingService = module.get<DocumentProcessingService>(DocumentProcessingService);
+    kafkaAdapter = module.get<KafkaDataProcessingAdapter>(
+      KafkaDataProcessingAdapter,
+    );
+    documentProcessingService = module.get<DocumentProcessingService>(
+      DocumentProcessingService,
+    );
 
     // Initialize module to trigger Kafka connection
     await kafkaAdapter.onModuleInit();
@@ -122,11 +126,13 @@ describe('Document Upload Integration Tests', () => {
       } as any;
 
       // Mock the service processing
-      jest.spyOn(documentProcessingService, 'processDocument').mockResolvedValue({
-        documentIds: ['doc-1'],
-        chunks: 5,
-        // metadata removed as it's not in the return type
-      });
+      jest
+        .spyOn(documentProcessingService, 'processDocument')
+        .mockResolvedValue({
+          documentIds: ['doc-1'],
+          chunks: 5,
+          // metadata removed as it's not in the return type
+        });
 
       // Call the PRIVATE handleMessage method via generic casting
       await (kafkaAdapter as any).handleMessage(message);
@@ -141,14 +147,16 @@ describe('Document Upload Integration Tests', () => {
       );
 
       // Verify the success event publication
-      expect(mockProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-        topic: 'document.uploaded',
-        messages: expect.arrayContaining([
-          expect.objectContaining({
-             value: expect.stringContaining('"status":"SUCCESS"'),
-          })
-        ])
-      }));
+      expect(mockProducer.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          topic: 'document.uploaded',
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              value: expect.stringContaining('"status":"SUCCESS"'),
+            }),
+          ]),
+        }),
+      );
     });
   });
 
@@ -172,14 +180,16 @@ describe('Document Upload Integration Tests', () => {
       await (kafkaAdapter as any).handleMessage(message);
 
       // Should verify that it published a FAILURE message
-      expect(mockProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-        topic: 'document.uploaded',
-        messages: expect.arrayContaining([
-          expect.objectContaining({
-             value: expect.stringContaining('"status":"FAILURE"'),
-          })
-        ])
-      }));
+      expect(mockProducer.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          topic: 'document.uploaded',
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              value: expect.stringContaining('"status":"FAILURE"'),
+            }),
+          ]),
+        }),
+      );
     });
 
     it('should handle processing errors', async () => {
@@ -188,7 +198,9 @@ describe('Document Upload Integration Tests', () => {
         content: 'some content',
       };
 
-      jest.spyOn(documentProcessingService, 'processDocument').mockRejectedValue(new Error('Processing failed'));
+      jest
+        .spyOn(documentProcessingService, 'processDocument')
+        .mockRejectedValue(new Error('Processing failed'));
 
       const message = {
         topic: 'document.upload',
@@ -200,14 +212,18 @@ describe('Document Upload Integration Tests', () => {
 
       await (kafkaAdapter as any).handleMessage(message);
 
-      expect(mockProducer.send).toHaveBeenCalledWith(expect.objectContaining({
-        topic: 'document.uploaded',
-        messages: expect.arrayContaining([
-          expect.objectContaining({
-             value: expect.stringMatching(/"status":"FAILURE".*Processing failed/),
-          })
-        ])
-      }));
+      expect(mockProducer.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          topic: 'document.uploaded',
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              value: expect.stringMatching(
+                /"status":"FAILURE".*Processing failed/,
+              ),
+            }),
+          ]),
+        }),
+      );
     });
   });
 });

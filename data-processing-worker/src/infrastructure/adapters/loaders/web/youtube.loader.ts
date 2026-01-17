@@ -121,14 +121,14 @@ export class YoutubeLoaderAdapter extends WebLoaderPort {
 
   /**
    * Load video transcript/captions
-   * 
+   *
    * PLACEHOLDER IMPLEMENTATION: YouTube Transcript Loading
-   * 
+   *
    * This is an intentional placeholder for transcript functionality.
    * A full implementation would integrate with youtube-transcript package or YouTube Data API
    * to extract captions/subtitles from videos. The placeholder returns null to allow
    * the system to function while transcript capabilities are developed.
-   * 
+   *
    * Future implementation should:
    * - Install youtube-transcript package: npm install youtube-transcript
    * - Use YoutubeTranscript.fetchTranscript() to get captions

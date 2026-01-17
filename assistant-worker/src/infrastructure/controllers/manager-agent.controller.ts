@@ -458,11 +458,12 @@ export class ManagerAgentController {
    */
   @Post(':id/reassign')
   @HttpCode(HttpStatus.OK)
-  async reassignTask(
-    @Param('id') agentId: string,
-    @Body() body: ReassignBody,
-  ) {
-    this.logger.info('Reassigning task', { agentId, assignmentId: body.assignmentId, targetAgentId: body.targetAgentId });
+  async reassignTask(@Param('id') agentId: string, @Body() body: ReassignBody) {
+    this.logger.info('Reassigning task', {
+      agentId,
+      assignmentId: body.assignmentId,
+      targetAgentId: body.targetAgentId,
+    });
 
     if (!body.userId) {
       throw new BadRequestException('userId is required');

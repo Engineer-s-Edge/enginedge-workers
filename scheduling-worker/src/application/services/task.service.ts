@@ -173,7 +173,7 @@ export class TaskService {
       newEndTime = new Date(newTime.getTime() + duration * 60 * 1000);
     } else {
       const now = new Date();
-      let targetDate = new Date(task.startTime);
+      const targetDate = new Date(task.startTime);
 
       if (deferType === 'next-day') {
         targetDate.setDate(targetDate.getDate() + 1);
@@ -254,7 +254,7 @@ export class TaskService {
       if (options.scheduleParts && i > 0) {
         // Schedule subsequent parts
         const previousPart = splitTasks[i - 1];
-        let targetDate = new Date(previousPart.endTime);
+        const targetDate = new Date(previousPart.endTime);
 
         if (options.deferType === 'next-day') {
           targetDate.setDate(targetDate.getDate() + 1);

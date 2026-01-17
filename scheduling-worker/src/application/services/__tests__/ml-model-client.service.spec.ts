@@ -45,9 +45,7 @@ describe('MLModelClient', () => {
       const result = await service.healthCheck();
 
       expect(result).toBe(true);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        '/health',
-      );
+      expect(mockedAxios.get).toHaveBeenCalledWith('/health');
     });
 
     it('should return false when ML service is down', async () => {
@@ -86,13 +84,10 @@ describe('MLModelClient', () => {
       });
 
       expect(result).toEqual(mockResponse);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        '/map-deliverable',
-        {
-          deliverable_text: 'Review PR #123',
-          context: { userId: 'user1' },
-        },
-      );
+      expect(mockedAxios.post).toHaveBeenCalledWith('/map-deliverable', {
+        deliverable_text: 'Review PR #123',
+        context: { userId: 'user1' },
+      });
     });
 
     it('should throw error when ML service fails', async () => {
@@ -140,14 +135,11 @@ describe('MLModelClient', () => {
       );
 
       expect(result).toEqual(mockResponse.recommendations);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        '/predict-slots',
-        {
-          user_id: 'user1',
-          deliverable: { text: 'Code review', priority: 'high' },
-          context: { workingHours: [9, 17] },
-        },
-      );
+      expect(mockedAxios.post).toHaveBeenCalledWith('/predict-slots', {
+        user_id: 'user1',
+        deliverable: { text: 'Code review', priority: 'high' },
+        context: { workingHours: [9, 17] },
+      });
     });
 
     it('should return empty array when no slots predicted', async () => {

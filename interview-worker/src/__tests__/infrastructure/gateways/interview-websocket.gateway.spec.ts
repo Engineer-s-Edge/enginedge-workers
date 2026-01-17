@@ -34,7 +34,9 @@ jest.mock('@google-cloud/speech', () => ({
 // Mock Google Cloud Text-to-Speech
 jest.mock('@google-cloud/text-to-speech', () => ({
   TextToSpeechClient: jest.fn().mockImplementation(() => ({
-    synthesizeSpeech: jest.fn().mockResolvedValue([{ audioContent: Buffer.from('test-audio') }]),
+    synthesizeSpeech: jest
+      .fn()
+      .mockResolvedValue([{ audioContent: Buffer.from('test-audio') }]),
     close: jest.fn(),
   })),
 }));
@@ -82,10 +84,19 @@ describe('InterviewWebSocketGateway', () => {
           provide: 'ITranscriptRepository',
           useValue: mockTranscriptRepository,
         },
-        { provide: CodeExecutionService, useValue: mock<CodeExecutionService>() },
-        { provide: MongoTestCaseRepository, useValue: mock<MongoTestCaseRepository>() },
+        {
+          provide: CodeExecutionService,
+          useValue: mock<CodeExecutionService>(),
+        },
+        {
+          provide: MongoTestCaseRepository,
+          useValue: mock<MongoTestCaseRepository>(),
+        },
         { provide: AudioFormatAdapter, useValue: mock<AudioFormatAdapter>() },
-        { provide: FillerWordDetectorAdapter, useValue: mock<FillerWordDetectorAdapter>() },
+        {
+          provide: FillerWordDetectorAdapter,
+          useValue: mock<FillerWordDetectorAdapter>(),
+        },
       ],
     }).compile();
 

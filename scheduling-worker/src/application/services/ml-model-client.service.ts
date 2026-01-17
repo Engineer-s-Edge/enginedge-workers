@@ -235,10 +235,14 @@ export class MLModelClient {
 
       for (const task of tasks) {
         try {
-          const result = await this.mapDeliverable(task.text, task.context || {});
+          const result = await this.mapDeliverable(
+            task.text,
+            task.context || {},
+          );
           results.push(result);
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
+          const message =
+            error instanceof Error ? error.message : 'Unknown error';
           this.logger.warn(`Skipping task due to mapping failure: ${message}`);
         }
       }

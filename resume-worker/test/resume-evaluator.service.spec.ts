@@ -84,35 +84,37 @@ describe('ResumeEvaluatorService', () => {
     }).compile();
 
     service = module.get<ResumeEvaluatorService>(ResumeEvaluatorService);
-    
+
     // Mock internal methods to avoid external calls
     jest.spyOn(service as any, 'parseResumePdf').mockResolvedValue({
       text: 'Parsed content',
       rawText: 'Parsed content',
       sections: {
         summary: 'Summary content',
-        experience: [{
-          bullets: ['Worked on things'],
-          role: 'Dev',
-          company: 'Co',
-          dateRange: '2020'
-        }]
+        experience: [
+          {
+            bullets: ['Worked on things'],
+            role: 'Dev',
+            company: 'Co',
+            dateRange: '2020',
+          },
+        ],
       },
       metadata: {
         fontsMinPt: 12,
         pageCount: 1,
         layout: 'single-column',
         layoutFlags: {
-            tables: false,
-            columns: false,
-            images: false
-        }
-      }
+          tables: false,
+          columns: false,
+          images: false,
+        },
+      },
     });
 
     jest.spyOn(service as any, 'performSpellcheck').mockResolvedValue({
       issues: [],
-      score: 1.0
+      score: 1.0,
     });
   });
 

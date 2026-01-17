@@ -5,7 +5,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LearningModeAdapter } from '../../../infrastructure/adapters/implementations/learning-mode.adapter';
 import { LearningModeService } from '../../../application/services/learning-mode.service';
-import { LearningMode, LearningModeConfig } from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
+import {
+  LearningMode,
+  LearningModeConfig,
+} from '../../../infrastructure/adapters/interfaces/learning-mode.adapter.interface';
 
 describe('LearningModeAdapter', () => {
   let adapter: LearningModeAdapter;

@@ -36,7 +36,9 @@ describe('KnowledgeGraphAdapter', () => {
               edgeCount: 20,
               lastUpdated: new Date(),
             }),
-            searchTopics: jest.fn().mockResolvedValue(['AI', 'Machine Learning']),
+            searchTopics: jest
+              .fn()
+              .mockResolvedValue(['AI', 'Machine Learning']),
             getTopicDetails: jest.fn().mockImplementation((id) => ({
               topic: id === 'test-topic' ? 'test-topic' : 'Machine Learning',
               id: '123',

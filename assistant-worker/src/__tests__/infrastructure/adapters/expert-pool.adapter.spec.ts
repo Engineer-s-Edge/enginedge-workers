@@ -51,7 +51,9 @@ describe('ExpertPoolAdapter', () => {
                   .map((_, i) => ({
                     id: `expert-${i}`,
                     specialization: req.specialization || 'General',
-                    complexity: req.complexity ? parseInt(req.complexity[1]) : 1,
+                    complexity: req.complexity
+                      ? parseInt(req.complexity[1])
+                      : 1,
                     availability: true,
                     expertise: ['Transformers', 'LLMs'],
                   })),
@@ -96,14 +98,14 @@ describe('ExpertPoolAdapter', () => {
         { provide: 'ILLMProvider', useValue: mockLLMProvider },
         { provide: 'ILogger', useValue: mockLogger },
         { provide: 'KnowledgeGraphPort', useValue: mockKnowledgeGraph },
-        { 
-          provide: 'METRICS', 
+        {
+          provide: 'METRICS',
           useValue: {
             updateExpertPoolActiveExperts: jest.fn(),
             incrementExpertAllocation: jest.fn(),
             incrementExpertRelease: jest.fn(),
-            recordExpertAllocationTime: jest.fn()
-          } 
+            recordExpertAllocationTime: jest.fn(),
+          },
         },
       ],
     }).compile();

@@ -14,7 +14,7 @@ describe('AzureSpeechAdapter', () => {
     mockConfigService = {
       get: jest.fn(),
     };
-    
+
     // Mock global fetch
     global.fetch = jest.fn(() =>
       Promise.resolve({

@@ -163,7 +163,10 @@ describe('Session Flow Integration', () => {
     ]);
 
     expect(sessions).toHaveLength(3);
-    console.log('SessionIDs:', sessions.map((s) => s.sessionId));
+    console.log(
+      'SessionIDs:',
+      sessions.map((s) => s.sessionId),
+    );
     expect(new Set(sessions.map((s) => s.sessionId)).size).toBe(3); // All unique
 
     // Verify each can be retrieved independently

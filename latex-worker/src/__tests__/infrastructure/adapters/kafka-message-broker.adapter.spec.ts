@@ -241,10 +241,12 @@ describe('KafkaMessageBrokerAdapter', () => {
       // Ensure connect fails so it stays disconnected
       mockProducer.connect.mockRejectedValue(new Error('Connect fail'));
       mockConsumer.connect.mockRejectedValue(new Error('Connect fail'));
-      
+
       await adapter.disconnect();
       const handler = jest.fn();
-      const warnSpy = jest.spyOn((adapter as any).logger, 'warn').mockImplementation();
+      const warnSpy = jest
+        .spyOn((adapter as any).logger, 'warn')
+        .mockImplementation();
 
       await adapter.subscribe('test-topic', handler);
 
@@ -257,7 +259,9 @@ describe('KafkaMessageBrokerAdapter', () => {
       const error = new Error('Subscription failed');
       mockConsumer.subscribe.mockRejectedValue(error);
       const handler = jest.fn();
-      const warnSpy = jest.spyOn((adapter as any).logger, 'warn').mockImplementation();
+      const warnSpy = jest
+        .spyOn((adapter as any).logger, 'warn')
+        .mockImplementation();
 
       await adapter.subscribe('test-topic', handler);
 

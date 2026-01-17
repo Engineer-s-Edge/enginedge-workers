@@ -18,39 +18,45 @@ const createMockDb = () => {
     collection: jest.fn().mockReturnValue({
       createIndexes: jest.fn().mockResolvedValue([]),
       countDocuments: jest.fn().mockImplementation(async (query) => {
-         const results = todos.filter(item => matchQuery(item, query));
-         return results.length;
+        const results = todos.filter((item) => matchQuery(item, query));
+        return results.length;
       }),
       insertOne: jest.fn().mockImplementation(async (doc) => {
         todos.push(doc);
         return { insertedId: doc.id };
       }),
-      findOneAndUpdate: jest.fn().mockImplementation(async (query, update, options) => {
-        const index = todos.findIndex(t => t.id === query.id);
-        if (index === -1) return null;
-        
-        const item = todos[index];
-        if (update.$set) {
-          Object.assign(item, update.$set);
-        }
-        return options?.returnDocument === 'after' ? item : todos[index];
-      }),
+      findOneAndUpdate: jest
+        .fn()
+        .mockImplementation(async (query, update, options) => {
+          const index = todos.findIndex((t) => t.id === query.id);
+          if (index === -1) return null;
+
+          const item = todos[index];
+          if (update.$set) {
+            Object.assign(item, update.$set);
+          }
+          return options?.returnDocument === 'after' ? item : todos[index];
+        }),
       findOneAndDelete: jest.fn().mockImplementation(async (query) => {
-        const index = todos.findIndex(t => t.id === query.id);
+        const index = todos.findIndex((t) => t.id === query.id);
         if (index === -1) return null;
         const deleted = todos[index];
         todos.splice(index, 1);
         return deleted;
       }),
       findOne: jest.fn().mockImplementation(async (query) => {
-        return todos.find(t => t.id === query.id) || null;
+        return todos.find((t) => t.id === query.id) || null;
       }),
       find: jest.fn().mockImplementation((query) => {
-        let results = todos.filter(item => matchQuery(item, query));
+        let results = todos.filter((item) => matchQuery(item, query));
         const cursor = {
           sort: jest.fn().mockImplementation((criteria) => {
             if (criteria.createdAt === -1) {
-              results = results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              results = results.sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime(),
+              );
             }
             return cursor;
           }),
@@ -62,39 +68,39 @@ const createMockDb = () => {
             results = results.slice(0, n);
             return cursor;
           }),
-          toArray: jest.fn().mockImplementation(() => Promise.resolve(results))
+          toArray: jest.fn().mockImplementation(() => Promise.resolve(results)),
         };
         return cursor;
-      })
-    })
+      }),
+    }),
   };
 };
 
 function matchQuery(item: any, query: any): boolean {
-    for (const key in query) {
-        const condition = query[key];
-        const val = item[key];
-        
-        if (condition && typeof condition === 'object') {
-             if ('$in' in condition) {
-                 if (Array.isArray(val)) {
-                     const intersection = val.some(v => condition.$in.includes(v));
-                     if (!intersection) return false;
-                 } else {
-                     if (!condition.$in.includes(val)) return false;
-                 }
-             }
-             if ('$lte' in condition) {
-                  if (new Date(val) > condition.$lte) return false;
-             }
-             if ('$gte' in condition) {
-                  if (new Date(val) < condition.$gte) return false;
-             }
+  for (const key in query) {
+    const condition = query[key];
+    const val = item[key];
+
+    if (condition && typeof condition === 'object') {
+      if ('$in' in condition) {
+        if (Array.isArray(val)) {
+          const intersection = val.some((v) => condition.$in.includes(v));
+          if (!intersection) return false;
         } else {
-             if (val !== condition) return false;
+          if (!condition.$in.includes(val)) return false;
         }
+      }
+      if ('$lte' in condition) {
+        if (new Date(val) > condition.$lte) return false;
+      }
+      if ('$gte' in condition) {
+        if (new Date(val) < condition.$gte) return false;
+      }
+    } else {
+      if (val !== condition) return false;
     }
-    return true;
+  }
+  return true;
 }
 
 describe('InternalTodoActor', () => {
@@ -106,7 +112,7 @@ describe('InternalTodoActor', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InternalTodoActor,
-        { provide: 'MONGODB_DB', useValue: mockDb }
+        { provide: 'MONGODB_DB', useValue: mockDb },
       ],
     }).compile();
 

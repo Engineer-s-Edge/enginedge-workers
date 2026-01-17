@@ -347,7 +347,7 @@ export class MemoryController {
           memoryType,
         );
 
-        let additionalData: any = {};
+        const additionalData: any = {};
         if (memoryType === 'summary') {
           try {
             additionalData.summary =
@@ -437,7 +437,7 @@ export class MemoryController {
     const messages = await this.memoryService.getMessages(conversationId, type);
     const context = await this.memoryService.getContext(conversationId, type);
 
-    let additionalData: any = {};
+    const additionalData: any = {};
     if (type === 'summary') {
       try {
         additionalData.summary =

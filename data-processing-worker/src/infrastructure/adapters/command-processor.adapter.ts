@@ -44,12 +44,12 @@ export class CommandProcessorAdapter implements ICommandProcessor {
           this.logger.log(`Processing OCR task ${taskId}`);
           /**
            * PLACEHOLDER IMPLEMENTATION: OCR Processing
-           * 
+           *
            * This is an intentional placeholder for OCR functionality.
            * A full implementation would integrate with Tesseract OCR or similar library
            * to extract text from images. The placeholder returns a mock result to allow
            * the system to function while OCR capabilities are developed.
-           * 
+           *
            * Future implementation should:
            * - Install and configure Tesseract OCR library
            * - Process image data from payload

@@ -82,7 +82,10 @@ describe('GeniusAgentController', () => {
         { provide: LearningModeAdapter, useValue: mockLearningModeAdapter },
         { provide: ValidationAdapter, useValue: mockValidationAdapter },
         { provide: TopicCatalogAdapter, useValue: mockTopicCatalogAdapter },
-        { provide: ValidationWorkflowService, useValue: mockValidationWorkflow },
+        {
+          provide: ValidationWorkflowService,
+          useValue: mockValidationWorkflow,
+        },
         { provide: 'ILogger', useValue: mockLogger },
       ],
     }).compile();
@@ -90,7 +93,9 @@ describe('GeniusAgentController', () => {
     controller = module.get<GeniusAgentController>(GeniusAgentController);
     agentService = module.get<AgentService>(AgentService);
     expertPoolManager = module.get<ExpertPoolManager>(ExpertPoolManager);
-    expertRuntime = module.get<GeniusExpertRuntimeService>(GeniusExpertRuntimeService);
+    expertRuntime = module.get<GeniusExpertRuntimeService>(
+      GeniusExpertRuntimeService,
+    );
     topicCatalogAdapter = module.get<TopicCatalogAdapter>(TopicCatalogAdapter);
   });
 
@@ -131,9 +136,11 @@ describe('GeniusAgentController', () => {
         expect.arrayContaining([
           expect.objectContaining({ title: 'Topic A' }),
           expect.objectContaining({ title: 'Topic B' }),
-        ])
+        ]),
       );
-      expect(mockExpertPoolManager.markExpertBusy).toHaveBeenCalledWith(expertId);
+      expect(mockExpertPoolManager.markExpertBusy).toHaveBeenCalledWith(
+        expertId,
+      );
       expect(mockTopicCatalogAdapter.addTopic).toHaveBeenCalledTimes(2);
       expect(result).toHaveProperty('expertId', expertId);
       expect(result).toHaveProperty('assignments');
@@ -141,7 +148,10 @@ describe('GeniusAgentController', () => {
 
     it('should throw BadRequestException if topics are empty', async () => {
       await expect(
-        controller.reassignExpertTopics(agentId, expertId, { userId, topics: [] })
+        controller.reassignExpertTopics(agentId, expertId, {
+          userId,
+          topics: [],
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -150,7 +160,7 @@ describe('GeniusAgentController', () => {
       mockExpertPoolManager.getExpert.mockResolvedValue(null);
 
       await expect(
-        controller.reassignExpertTopics(agentId, expertId, { userId, topics })
+        controller.reassignExpertTopics(agentId, expertId, { userId, topics }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -177,9 +187,11 @@ describe('GeniusAgentController', () => {
       expect(mockExpertRuntime.pauseExpert).toHaveBeenCalledWith(
         agentId,
         expertId,
-        reason
+        reason,
       );
-      expect(mockExpertPoolManager.markExpertBusy).toHaveBeenCalledWith(expertId);
+      expect(mockExpertPoolManager.markExpertBusy).toHaveBeenCalledWith(
+        expertId,
+      );
       expect(result).toHaveProperty('paused', true);
     });
 
@@ -188,7 +200,7 @@ describe('GeniusAgentController', () => {
       mockExpertPoolManager.getExpert.mockResolvedValue(null);
 
       await expect(
-        controller.pauseExpert(agentId, expertId, { userId, reason })
+        controller.pauseExpert(agentId, expertId, { userId, reason }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -215,9 +227,11 @@ describe('GeniusAgentController', () => {
       expect(mockExpertRuntime.resumeExpert).toHaveBeenCalledWith(
         agentId,
         expertId,
-        note
+        note,
       );
-      expect(mockExpertPoolManager.markExpertAvailable).toHaveBeenCalledWith(expertId);
+      expect(mockExpertPoolManager.markExpertAvailable).toHaveBeenCalledWith(
+        expertId,
+      );
       expect(result).toHaveProperty('paused', false);
     });
   });

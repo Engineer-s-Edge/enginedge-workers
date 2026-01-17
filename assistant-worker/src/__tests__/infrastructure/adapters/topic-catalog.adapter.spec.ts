@@ -19,28 +19,34 @@ describe('TopicCatalogAdapter', () => {
           useFactory: () => {
             const topics = new Map();
             // Pre-seed topics for tests that assume existence
-            ['Machine Learning', 'Data Science', 'AI Ethics', 'Statistics', 'Topic'].forEach(name => {
+            [
+              'Machine Learning',
+              'Data Science',
+              'AI Ethics',
+              'Statistics',
+              'Topic',
+            ].forEach((name) => {
               topics.set(name, {
-                 id: 'seeded-' + name,
-                 name: name,
-                 description: 'Seeded topic',
-                 estimatedComplexity: 1,
-                 categorizationConfidence: 0.9,
-                 relatedCategories: [],
-                 lastUpdated: new Date()
+                id: 'seeded-' + name,
+                name: name,
+                description: 'Seeded topic',
+                estimatedComplexity: 1,
+                categorizationConfidence: 0.9,
+                relatedCategories: [],
+                lastUpdated: new Date(),
               });
             });
             // Pre-seed numbered topics for concurrent tests
-            for(let i=0; i<20; i++) {
+            for (let i = 0; i < 20; i++) {
               const name = `Topic${i}`;
               topics.set(name, {
-                 id: 'seeded-' + name,
-                 name: name,
-                 description: 'Seeded topic',
-                 estimatedComplexity: 1,
-                 categorizationConfidence: 0.9,
-                 relatedCategories: [],
-                 lastUpdated: new Date()
+                id: 'seeded-' + name,
+                name: name,
+                description: 'Seeded topic',
+                estimatedComplexity: 1,
+                categorizationConfidence: 0.9,
+                relatedCategories: [],
+                lastUpdated: new Date(),
               });
             }
 
@@ -70,10 +76,13 @@ describe('TopicCatalogAdapter', () => {
                 // Let's improve this. We iterate values or just return a dummy if found.
                 // For simplicity, find by ID from values
                 let found: any = null;
-                for(const t of topics.values()) {
-                  if(t.id === id) { found = t; break; }
+                for (const t of topics.values()) {
+                  if (t.id === id) {
+                    found = t;
+                    break;
+                  }
                 }
-                
+
                 // If not found by ID (because getTopicByName returned ID seeded-...), return that.
                 if (!found && topics.has('123')) found = topics.get('123'); // Fallback for addTopic's hardcoded ID
 

@@ -37,7 +37,7 @@ describe('ExperienceBankService', () => {
         {
           provide: BulletEvaluatorService,
           useValue: { evaluateBullet: jest.fn() },
-        }
+        },
       ],
     }).compile();
 
@@ -70,7 +70,7 @@ describe('ExperienceBankService', () => {
           linkedExperienceId: 'exp123',
           category: 'Engineering',
           impactScore: 9,
-          atsScore: 90
+          atsScore: 90,
         },
       };
 
@@ -131,18 +131,18 @@ describe('ExperienceBankService', () => {
   describe('markReviewed', () => {
     it('should mark a bullet as reviewed', async () => {
       const bulletId = '507f1f77bcf86cd799439011';
-      
+
       const updateOneMock = jest.fn().mockReturnValue({
-        exec: jest.fn().mockResolvedValue({ modifiedCount: 1 })
+        exec: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
       });
-      
+
       mockModel.updateOne = updateOneMock;
 
       await service.markReviewed(new Types.ObjectId(bulletId), true);
 
       expect(mockModel.updateOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(bulletId) }, 
-        { $set: { 'metadata.reviewed': true } }
+        { _id: new Types.ObjectId(bulletId) },
+        { $set: { 'metadata.reviewed': true } },
       );
     });
   });

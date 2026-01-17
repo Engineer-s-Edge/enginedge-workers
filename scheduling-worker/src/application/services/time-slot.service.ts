@@ -97,15 +97,15 @@ export class TimeSlotService {
         if (slotStart < endDate) {
           const actualEnd = slotEnd > endDate ? endDate : slotEnd;
           // Ensure we don't create slots ending before they start (due to start clamp)
-           // Also clamp start if it's before startDate? 
-           // Technically generateWorkingHourSlots checks currentDate which starts at startDate.
-           // But if startDate has minutes, setUTCHours(9,0,0,0) might go back in time if startDate was 09:30.
-           // But for now let's just use UTC.
-          
-           // Wait, if startDate is 10:00, and startHour is 9.
-           // slotStart becomes 09:00. This is BEFORE startDate.
-           // We should clamp slotStart to startDate if it is the first day.
-           const actualStart = slotStart < startDate ? startDate : slotStart;
+          // Also clamp start if it's before startDate?
+          // Technically generateWorkingHourSlots checks currentDate which starts at startDate.
+          // But if startDate has minutes, setUTCHours(9,0,0,0) might go back in time if startDate was 09:30.
+          // But for now let's just use UTC.
+
+          // Wait, if startDate is 10:00, and startHour is 9.
+          // slotStart becomes 09:00. This is BEFORE startDate.
+          // We should clamp slotStart to startDate if it is the first day.
+          const actualStart = slotStart < startDate ? startDate : slotStart;
 
           if (actualStart < actualEnd) {
             slots.push(new TimeSlot(actualStart, actualEnd));

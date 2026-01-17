@@ -61,12 +61,16 @@ describe('GeniusAgentOrchestrator Integration Tests', () => {
         results: [
           {
             status: 'passed',
-            checks: { format: {passed:true}, content: {passed:true}, references: {passed:true} } as any,
+            checks: {
+              format: { passed: true },
+              content: { passed: true },
+              references: { passed: true },
+            } as any,
             issues: [],
             issuesBySeverity: { info: 0, warning: 0, error: 0, critical: 0 },
             validatedAt: new Date(),
-          }
-        ]
+          },
+        ],
       }),
       validate: jest.fn().mockResolvedValue({
         status: 'passed',

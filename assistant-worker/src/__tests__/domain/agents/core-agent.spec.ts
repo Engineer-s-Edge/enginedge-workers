@@ -5,15 +5,21 @@ import { ILLMProvider } from '../../../domain/ports/llm-provider.port';
 
 // Create a concrete implementation for testing
 class TestAgent extends BaseAgent {
-  protected async run(input: string, context: ExecutionContext): Promise<ExecutionResult> {
+  protected async run(
+    input: string,
+    context: ExecutionContext,
+  ): Promise<ExecutionResult> {
     return {
       status: 'success',
       output: 'test output',
       metadata: {},
     };
   }
-  
-  protected async *runStream(input: string, context: ExecutionContext): AsyncGenerator<string> {
+
+  protected async *runStream(
+    input: string,
+    context: ExecutionContext,
+  ): AsyncGenerator<string> {
     yield 'test';
     yield ' ';
     yield 'output';
@@ -47,7 +53,7 @@ describe('BaseAgent', () => {
   describe('execute', () => {
     it('should successfully execute and return result', async () => {
       const result = await agent.execute('test input');
-      
+
       expect(result.status).toBe('success');
       expect(result.output).toBe('test output');
       expect((agent as any).internalState.status).toBe('complete');
@@ -55,36 +61,45 @@ describe('BaseAgent', () => {
 
     it('should emit events during execution', async () => {
       const emitSpy = jest.spyOn((agent as any).eventEmitter, 'emit');
-      
+
       await agent.execute('test input');
-      
+
       expect(emitSpy).toHaveBeenCalledWith('agent:started', expect.any(Object));
-      expect(emitSpy).toHaveBeenCalledWith('agent:completed', expect.any(Object));
+      expect(emitSpy).toHaveBeenCalledWith(
+        'agent:completed',
+        expect.any(Object),
+      );
     });
   });
 
   describe('stream', () => {
     it('should stream tokens', async () => {
       const tokens: string[] = [];
-      
+
       for await (const token of agent.stream('test input')) {
         tokens.push(token);
       }
-      
+
       expect(tokens).toEqual(['test', ' ', 'output']);
       expect((agent as any).internalState.status).toBe('complete');
     });
 
     it('should emit streaming events', async () => {
       const emitSpy = jest.spyOn((agent as any).eventEmitter, 'emit');
-      
+
       const tokens: string[] = [];
       for await (const token of agent.stream('test input')) {
         tokens.push(token);
       }
-      
-      expect(emitSpy).toHaveBeenCalledWith('agent:stream_started', expect.any(Object));
-      expect(emitSpy).toHaveBeenCalledWith('agent:stream_completed', expect.any(Object));
+
+      expect(emitSpy).toHaveBeenCalledWith(
+        'agent:stream_started',
+        expect.any(Object),
+      );
+      expect(emitSpy).toHaveBeenCalledWith(
+        'agent:stream_completed',
+        expect.any(Object),
+      );
     });
   });
 

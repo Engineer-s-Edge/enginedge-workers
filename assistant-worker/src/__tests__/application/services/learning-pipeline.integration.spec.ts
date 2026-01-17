@@ -78,8 +78,20 @@ describe('Learning Pipeline Integration Tests', () => {
         failed: 0,
         elapsedMs: 100,
         results: [
-          { status: 'passed', score: 0.95, checks: [], feedback: [], issues: [] },
-          { status: 'passed', score: 0.88, checks: [], feedback: [], issues: [] },
+          {
+            status: 'passed',
+            score: 0.95,
+            checks: [],
+            feedback: [],
+            issues: [],
+          },
+          {
+            status: 'passed',
+            score: 0.88,
+            checks: [],
+            feedback: [],
+            issues: [],
+          },
         ],
       }),
     };
@@ -374,35 +386,37 @@ describe('Learning Pipeline Integration Tests', () => {
         passed: 0,
         failed: 1,
         elapsedMs: 50,
-        results: [{
-          id: 'val-fail-1',
-          expertId: 'exp-1',
-          reportId: 'rep-1',
-          topic: 'test-topic',
-          validatedAt: new Date(),
-          validationDurationMs: 100,
-          coverageScore: 0.5,
-          completenessScore: 0.4,
-          requiresManualReview: true,
-          status: 'failed',
-          score: 0.3,
-          issues: [], // Add required property
-          issuesBySeverity: {
-            info: 0,
-            warning: 0,
-            error: 0,
-            critical: 0
+        results: [
+          {
+            id: 'val-fail-1',
+            expertId: 'exp-1',
+            reportId: 'rep-1',
+            topic: 'test-topic',
+            validatedAt: new Date(),
+            validationDurationMs: 100,
+            coverageScore: 0.5,
+            completenessScore: 0.4,
+            requiresManualReview: true,
+            status: 'failed',
+            score: 0.3,
+            issues: [], // Add required property
+            issuesBySeverity: {
+              info: 0,
+              warning: 0,
+              error: 0,
+              critical: 0,
+            },
+            checks: {
+              sourceCredibility: { passed: false },
+              findingConsistency: { passed: false },
+              confidenceLevel: { passed: false },
+              relevanceScore: { passed: true },
+              duplicationDetected: { passed: false },
+              semanticValidity: { passed: false },
+            } as any, // Cast to avoid full type matching for checks
+            reviewReason: 'Serious validation failures detected',
           },
-          checks: {
-            sourceCredibility: { passed: false },
-            findingConsistency: { passed: false },
-            confidenceLevel: { passed: false },
-            relevanceScore: { passed: true },
-            duplicationDetected: { passed: false },
-            semanticValidity: { passed: false },
-          } as any, // Cast to avoid full type matching for checks
-          reviewReason: 'Serious validation failures detected',
-        }]
+        ],
       });
 
       const result = await orchestrator.integrateResearchResults(reports);

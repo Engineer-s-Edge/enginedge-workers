@@ -181,7 +181,10 @@ describe('Agent Integration Tests', () => {
       // Start execution to ensure instance exists
       await request(app.getHttpServer())
         .post(`/agents/${agentId}/execute?userId=${testFixtures.userId}`)
-        .send({ input: { messages: [{ role: 'user', content: 'test' }] }, userId: testFixtures.userId })
+        .send({
+          input: { messages: [{ role: 'user', content: 'test' }] },
+          userId: testFixtures.userId,
+        })
         .expect(200);
 
       const response = await request(app.getHttpServer())

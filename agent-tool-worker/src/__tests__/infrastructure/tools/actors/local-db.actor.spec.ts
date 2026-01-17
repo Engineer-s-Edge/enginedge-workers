@@ -13,124 +13,129 @@ import {
 // Mock DB Implementation
 const createMockDb = () => {
   const collections = new Map<string, any[]>();
-  
+
   return {
     listCollections: jest.fn().mockImplementation((filter) => ({
       toArray: jest.fn().mockImplementation(async () => {
         if (filter && filter.name) {
-             return collections.has(filter.name) ? [{ name: filter.name }] : [];
+          return collections.has(filter.name) ? [{ name: filter.name }] : [];
         }
-        return Array.from(collections.keys()).map(name => ({ name }));
-      })
+        return Array.from(collections.keys()).map((name) => ({ name }));
+      }),
     })),
     createCollection: jest.fn().mockImplementation(async (name) => {
-        if (collections.has(name)) throw new Error('Collection exists');
-        collections.set(name, []);
-        return {};
+      if (collections.has(name)) throw new Error('Collection exists');
+      collections.set(name, []);
+      return {};
     }),
     collection: jest.fn().mockImplementation((name) => {
-        return {
-            createIndexes: jest.fn().mockResolvedValue([]),
-            insertOne: jest.fn().mockImplementation(async (doc) => {
-                 if (!collections.has(name)) throw new Error(`Table '${name}' not found`);
-                 doc._id = doc._id || 'generated-id-' + Math.random();
-                 collections.get(name)!.push({ ...doc });
-                 return { insertedId: doc._id };
-            }),
-            find: jest.fn().mockImplementation((query, options) => {
-                 const data = collections.get(name) || [];
-                 let results = data.filter(item => {
-                     for (const key in query) {
-                         if (getNested(item, key) !== query[key]) return false;
-                     }
-                     return true;
-                 });
+      return {
+        createIndexes: jest.fn().mockResolvedValue([]),
+        insertOne: jest.fn().mockImplementation(async (doc) => {
+          if (!collections.has(name))
+            throw new Error(`Table '${name}' not found`);
+          doc._id = doc._id || 'generated-id-' + Math.random();
+          collections.get(name)!.push({ ...doc });
+          return { insertedId: doc._id };
+        }),
+        find: jest.fn().mockImplementation((query, options) => {
+          const data = collections.get(name) || [];
+          let results = data.filter((item) => {
+            for (const key in query) {
+              if (getNested(item, key) !== query[key]) return false;
+            }
+            return true;
+          });
 
-                 if (options && options.projection) {
-                    results = results.map(item => {
-                       const projected: any = {};
-                       for (const key in options.projection) {
-                           if (options.projection[key]) {
-                               const val = getNested(item, key);
-                               if (val !== undefined) {
-                                   const parts = key.split('.');
-                                   let curr = projected;
-                                   for(let i=0; i<parts.length-1; i++) {
-                                       curr[parts[i]] = curr[parts[i]] || {};
-                                       curr = curr[parts[i]];
-                                   }
-                                   curr[parts[parts.length-1]] = val;
-                               }
-                           }
-                       }
-                       return projected;
-                    });
-                 }
-                 
-                 return {
-                     toArray: jest.fn().mockResolvedValue(results),
-                     sort: jest.fn().mockReturnThis(),
-                     skip: jest.fn().mockReturnThis(),
-                     limit: jest.fn().mockImplementation((limit) => ({
-                         toArray: jest.fn().mockResolvedValue(results.slice(0, limit))
-                     }))
-                 };
-            }),
-            findOne: jest.fn().mockImplementation(async (query) => {
-                 const data = collections.get(name) || [];
-                 return data.find(item => {
-                     for (const key in query) {
-                         if (getNested(item, key) !== query[key]) return false;
-                     }
-                     return true;
-                 }) || null;
-            }),
-            findOneAndUpdate: jest.fn().mockImplementation(async (query, update, options) => {
-                 const data = collections.get(name) || [];
-                 const index = data.findIndex(item => {
-                     for (const key in query) {
-                         if (getNested(item, key) !== query[key]) return false;
-                     }
-                     return true;
-                 });
+          if (options && options.projection) {
+            results = results.map((item) => {
+              const projected: any = {};
+              for (const key in options.projection) {
+                if (options.projection[key]) {
+                  const val = getNested(item, key);
+                  if (val !== undefined) {
+                    const parts = key.split('.');
+                    let curr = projected;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                      curr[parts[i]] = curr[parts[i]] || {};
+                      curr = curr[parts[i]];
+                    }
+                    curr[parts[parts.length - 1]] = val;
+                  }
+                }
+              }
+              return projected;
+            });
+          }
 
-                 if (index !== -1) {
-                     const item = data[index];
-                     if (update.$set) {
-                         for (const k in update.$set) {
-                             item[k] = update.$set[k];
-                         }
-                     }
-                     return options?.returnDocument === 'after' ? item : data[index];
-                 }
-                 return null;
-            }),
-            findOneAndDelete: jest.fn().mockImplementation(async (query) => {
-                 const data = collections.get(name) || [];
-                 const index = data.findIndex(item => {
-                     for (const key in query) {
-                         if (getNested(item, key) !== query[key]) return false;
-                     }
-                     return true;
-                 });
+          return {
+            toArray: jest.fn().mockResolvedValue(results),
+            sort: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockImplementation((limit) => ({
+              toArray: jest.fn().mockResolvedValue(results.slice(0, limit)),
+            })),
+          };
+        }),
+        findOne: jest.fn().mockImplementation(async (query) => {
+          const data = collections.get(name) || [];
+          return (
+            data.find((item) => {
+              for (const key in query) {
+                if (getNested(item, key) !== query[key]) return false;
+              }
+              return true;
+            }) || null
+          );
+        }),
+        findOneAndUpdate: jest
+          .fn()
+          .mockImplementation(async (query, update, options) => {
+            const data = collections.get(name) || [];
+            const index = data.findIndex((item) => {
+              for (const key in query) {
+                if (getNested(item, key) !== query[key]) return false;
+              }
+              return true;
+            });
 
-                 if (index !== -1) {
-                     const deleted = data[index];
-                     data.splice(index, 1);
-                     return deleted;
-                 }
-                 return null;
-            }),
-            countDocuments: jest.fn().mockImplementation(async () => {
-                return (collections.get(name) || []).length;
-            })
-        };
-    })
+            if (index !== -1) {
+              const item = data[index];
+              if (update.$set) {
+                for (const k in update.$set) {
+                  item[k] = update.$set[k];
+                }
+              }
+              return options?.returnDocument === 'after' ? item : data[index];
+            }
+            return null;
+          }),
+        findOneAndDelete: jest.fn().mockImplementation(async (query) => {
+          const data = collections.get(name) || [];
+          const index = data.findIndex((item) => {
+            for (const key in query) {
+              if (getNested(item, key) !== query[key]) return false;
+            }
+            return true;
+          });
+
+          if (index !== -1) {
+            const deleted = data[index];
+            data.splice(index, 1);
+            return deleted;
+          }
+          return null;
+        }),
+        countDocuments: jest.fn().mockImplementation(async () => {
+          return (collections.get(name) || []).length;
+        }),
+      };
+    }),
   };
 };
 
 function getNested(obj: any, path: string) {
-    return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj);
+  return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj);
 }
 
 describe('LocalDBActor', () => {
@@ -140,10 +145,7 @@ describe('LocalDBActor', () => {
   beforeEach(async () => {
     mockDb = createMockDb();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-          LocalDBActor,
-          { provide: 'MONGODB_DB', useValue: mockDb }
-      ],
+      providers: [LocalDBActor, { provide: 'MONGODB_DB', useValue: mockDb }],
     }).compile();
 
     actor = module.get<LocalDBActor>(LocalDBActor);

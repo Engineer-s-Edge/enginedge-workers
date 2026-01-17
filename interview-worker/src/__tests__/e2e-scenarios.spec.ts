@@ -106,12 +106,12 @@ describe('Interview Worker E2E Scenarios', () => {
       // Pause
       const pausedResponse = await request(app.getHttpServer())
         .post(`/sessions/${sessionId}/pause`)
-      .expect(201);
+        .expect(201);
 
       // Resume
       const resumedResponse = await request(app.getHttpServer())
         .post(`/sessions/${sessionId}/resume`)
-      .expect(201);
+        .expect(201);
     });
 
     it('should retrieve session status', async () => {

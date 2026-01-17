@@ -144,7 +144,8 @@ export class TopicCatalogAdapter implements ITopicCatalogAdapter {
         id: updated.id,
         name: updated.name,
         description: metadata.description || updated.description || '',
-        complexity: metadata.complexity || (`L${updated.estimatedComplexity}` as any),
+        complexity:
+          metadata.complexity || (`L${updated.estimatedComplexity}` as any),
         relatedTopics: updated.relatedCategories,
         lastResearched: updated.lastUpdated,
         researchCount: 0,

@@ -69,7 +69,7 @@ const getCollection = (modelName: string) => {
 // Mock MongooseModule to prevent connection and provide in-memory storage
 jest.mock('@nestjs/mongoose', () => {
   const original = jest.requireActual('@nestjs/mongoose');
-  
+
   // Helper to create a chainable query object
   const createQuery = (result: any) => ({
     exec: jest.fn().mockResolvedValue(result),
@@ -93,38 +93,39 @@ jest.mock('@nestjs/mongoose', () => {
       forFeature: jest.fn().mockImplementation((models) => {
         const providers = models.map((model: any) => {
           const modelName = model.name;
-          
+
           const mockModel = {
             // Create
             create: jest.fn().mockImplementation((dto) => {
               // Ensure _id exists
-              const id = dto._id || dto.id || Math.random().toString(36).substring(7);
+              const id =
+                dto._id || dto.id || Math.random().toString(36).substring(7);
               const doc = { ...dto, _id: id, id };
               // Add to store
               getCollection(modelName).set(id, doc);
               return Promise.resolve(doc);
             }),
-            
+
             // Find By ID
             findById: jest.fn().mockImplementation((id) => {
               const doc = getCollection(modelName).get(id);
               return createQuery(doc || null);
             }),
-            
+
             // Find One
             findOne: jest.fn().mockImplementation((query) => {
               const collection = getCollection(modelName);
               let found = null;
-              
+
               if (!query || Object.keys(query).length === 0) {
-                 found = collection.values().next().value;
+                found = collection.values().next().value;
               } else {
                 for (const item of collection.values()) {
                   let match = true;
                   for (const [key, value] of Object.entries(query)) {
                     if (item[key] !== value) {
-                       match = false; 
-                       break;
+                      match = false;
+                      break;
                     }
                   }
                   if (match) {
@@ -135,63 +136,66 @@ jest.mock('@nestjs/mongoose', () => {
               }
               return createQuery(found);
             }),
-            
+
             // Find (All or filter)
             find: jest.fn().mockImplementation((query) => {
-               const collection = getCollection(modelName);
-               let results: any[] = [];
-               
-               if (!query || Object.keys(query).length === 0) {
-                 results = Array.from(collection.values());
-               } else {
-                 for (const item of collection.values()) {
-                    let match = true;
-                    for (const [key, value] of Object.entries(query)) {
-                      // Basic exact match support
-                      if (item[key] !== value) {
-                         match = false; 
-                         break;
-                      }
+              const collection = getCollection(modelName);
+              let results: any[] = [];
+
+              if (!query || Object.keys(query).length === 0) {
+                results = Array.from(collection.values());
+              } else {
+                for (const item of collection.values()) {
+                  let match = true;
+                  for (const [key, value] of Object.entries(query)) {
+                    // Basic exact match support
+                    if (item[key] !== value) {
+                      match = false;
+                      break;
                     }
-                    if (match) results.push(item);
-                 }
-               }
-               return createQuery(results);
+                  }
+                  if (match) results.push(item);
+                }
+              }
+              return createQuery(results);
             }),
 
             // Update One
             updateOne: jest.fn().mockImplementation((query, update) => {
-               // Simple implementation - find one and update
-               // This is a bit tricky without real query parsing
-               return createQuery({ modifiedCount: 1 });
+              // Simple implementation - find one and update
+              // This is a bit tricky without real query parsing
+              return createQuery({ modifiedCount: 1 });
             }),
 
             // Delete One
             deleteOne: jest.fn().mockImplementation((query) => {
-               // Assuming query is { _id: ... } or similar
-               const collection = getCollection(modelName);
-               if (query._id) {
-                 const existed = collection.delete(query._id);
-                 return createQuery({ deletedCount: existed ? 1 : 0 });
-               } else if (query.id) {
-                 const existed = collection.delete(query.id);
-                 return createQuery({ deletedCount: existed ? 1 : 0 });
-               }
-               
-               // Fallback: iterate
-               for (const [id, item] of collection.entries()) {
-                  let match = true;
-                  for (const [key, value] of Object.entries(query)) {
-                     if (item[key] !== value) { match = false; break; }
+              // Assuming query is { _id: ... } or similar
+              const collection = getCollection(modelName);
+              if (query._id) {
+                const existed = collection.delete(query._id);
+                return createQuery({ deletedCount: existed ? 1 : 0 });
+              } else if (query.id) {
+                const existed = collection.delete(query.id);
+                return createQuery({ deletedCount: existed ? 1 : 0 });
+              }
+
+              // Fallback: iterate
+              for (const [id, item] of collection.entries()) {
+                let match = true;
+                for (const [key, value] of Object.entries(query)) {
+                  if (item[key] !== value) {
+                    match = false;
+                    break;
                   }
-                  if (match) {
-                    collection.delete(id);
-                    return createQuery({ deletedCount: 1 });
-                  }
-               }
-               return createQuery({ deletedCount: 0 });
+                }
+                if (match) {
+                  collection.delete(id);
+                  return createQuery({ deletedCount: 1 });
+                }
+              }
+              return createQuery({ deletedCount: 0 });
             }),
-            
+
             constructor: jest.fn(),
           };
 
@@ -236,7 +240,7 @@ export async function createTestApp(): Promise<INestApplication> {
   // to point to something else or trust that compiled module mocks work.
   // Actually, overriding MongooseModule class won't work for dynamic imports.
   // Better to override the DbConnection token or similar.
-  await app.init(); 
+  await app.init();
 
   return app;
 }

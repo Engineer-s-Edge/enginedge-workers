@@ -61,7 +61,9 @@ describe('Adapter Coordination Tests', () => {
     };
 
     const mockResearchService = {
-      addResearchFinding: jest.fn().mockResolvedValue({ success: true, nodesAdded: 1 }),
+      addResearchFinding: jest
+        .fn()
+        .mockResolvedValue({ success: true, nodesAdded: 1 }),
       getRecentResearchReports: jest.fn().mockResolvedValue([]),
       getStatistics: jest.fn().mockResolvedValue({
         topicCount: 5,
@@ -74,7 +76,9 @@ describe('Adapter Coordination Tests', () => {
     };
 
     const mockValidationService = {
-      validate: jest.fn().mockResolvedValue({ isValid: true, score: 0.9, notes: [] }),
+      validate: jest
+        .fn()
+        .mockResolvedValue({ isValid: true, score: 0.9, notes: [] }),
       validateBatch: jest.fn().mockResolvedValue({
         batchId: 'batch-1',
         totalItems: 0,
@@ -94,7 +98,9 @@ describe('Adapter Coordination Tests', () => {
         },
       }),
       updateTopicStatus: jest.fn().mockResolvedValue(true),
-      getTopicByName: jest.fn().mockResolvedValue({ id: '123', name: 'test-topic' }),
+      getTopicByName: jest
+        .fn()
+        .mockResolvedValue({ id: '123', name: 'test-topic' }),
       getTopicsByPriority: jest.fn().mockResolvedValue([
         { id: '1', name: 'trending-topic-1', priority: 10 },
         { id: '2', name: 'trending-topic-2', priority: 8 },
