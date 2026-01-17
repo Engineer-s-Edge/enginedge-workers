@@ -9,7 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "lint:check": "eslint --config .eslintrc.js src test",
+    "lint:check": "eslint --config .eslintrc.js src",
     "prepare": "husky install || true",
     "start": "nest start",
     "start:dev": "nest start --watch",

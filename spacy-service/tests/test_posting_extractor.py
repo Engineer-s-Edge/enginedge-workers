@@ -3,6 +3,7 @@ Tests for Job Posting Extractor
 """
 
 import pytest
+
 from src.services.posting_extractor import PostingExtractor
 
 

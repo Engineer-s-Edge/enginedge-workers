@@ -15,6 +15,7 @@ import logging
 from typing import Any, Dict
 
 from kafka import KafkaConsumer, KafkaProducer
+
 from src.services.bullet_evaluator import BulletEvaluator
 from src.services.posting_extractor import PostingExtractor
 from src.services.resume_parser import ResumeParser

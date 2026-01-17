@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from src.services.bullet_evaluator import BulletEvaluator
 
 

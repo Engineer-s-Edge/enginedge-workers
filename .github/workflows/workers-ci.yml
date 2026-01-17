@@ -9,6 +9,9 @@ on:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       workers-matrix: ${{ steps.set-matrix.outputs.matrix }}
       python-changed: ${{ steps.set-matrix.outputs.python_changed }}
@@ -19,7 +22,7 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           filters: |
             assistant-worker:
               - 'assistant-worker/**'
